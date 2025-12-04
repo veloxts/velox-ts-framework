@@ -1,0 +1,55 @@
+{
+  "name": "create-velox-app",
+  "version": "0.1.0",
+  "description": "Project scaffolder for VeloxTS framework",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "create-velox-app": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "smoke-test": "./scripts/smoke-test.sh"
+  },
+  "dependencies": {
+    "@clack/prompts": "0.11.0",
+    "picocolors": "1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "5.9.3"
+  },
+  "keywords": [
+    "velox",
+    "create",
+    "scaffold",
+    "cli",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zzal/velox-framework",
+    "directory": "packages/create"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,51 @@
+// VeloxTS Playground - Prisma Schema
+//
+// This schema defines the database structure for the playground app.
+// Using SQLite for simplicity - easily swap to PostgreSQL for production.
+//
+// Prisma 7+ Configuration:
+// - Database URL is configured in prisma.config.ts
+// - Client is configured via PrismaClient constructor
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================================
+// User Model
+// ============================================================================
+
+/// User model for basic CRUD demonstration
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Future: Relations for posts, comments, etc.
+  // posts Post[]
+  @@map("users")
+}
+
+// ============================================================================
+// Future Models (for demonstration expansion)
+// ============================================================================
+
+// /// Blog post model
+// model Post {
+//   id        String   @id @default(uuid())
+//   title     String
+//   content   String
+//   published Boolean  @default(false)
+//   authorId  String
+//   author    User     @relation(fields: [authorId], references: [id])
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//
+//   @@map("posts")
+// }

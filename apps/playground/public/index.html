@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxTS Playground - Frontend Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; color: #333; }
+    .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h2 { margin-bottom: 15px; color: #555; font-size: 1.1rem; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; }
+    .status.ok { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+    th { color: #666; font-weight: 500; }
+    button { background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px; }
+    button:hover { background: #0056b3; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-right: 8px; }
+    .form-row { display: flex; gap: 10px; margin-bottom: 10px; }
+    .form-row input { flex: 1; }
+    #log { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; max-height: 200px; overflow-y: auto; }
+    .log-entry { margin-bottom: 5px; }
+    .log-method { color: #569cd6; }
+    .log-url { color: #ce9178; }
+    .log-status { color: #4ec9b0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>VeloxTS Playground</h1>
+
+    <!-- Health Status -->
+    <div class="card">
+      <h2>API Status</h2>
+      <div id="health">Loading...</div>
+    </div>
+
+    <!-- Users List -->
+    <div class="card">
+      <h2>Users</h2>
+      <div style="margin-bottom: 15px;">
+        <button onclick="loadUsers()">Refresh</button>
+        <input type="text" id="search" placeholder="Search users..." onkeyup="searchUsers(this.value)">
+      </div>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Created</th></tr>
+        </thead>
+        <tbody id="users-table"></tbody>
+      </table>
+    </div>
+
+    <!-- Create User -->
+    <div class="card">
+      <h2>Create User</h2>
+      <div class="form-row">
+        <input type="text" id="name" placeholder="Name">
+        <input type="email" id="email" placeholder="Email">
+        <button onclick="createUser()">Create</button>
+      </div>
+    </div>
+
+    <!-- Request Log -->
+    <div class="card">
+      <h2>Request Log</h2>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Import the VeloxTS client (built version)
+    // In a real app, you'd import from '@veloxts/client'
+
+    const API_BASE = '/api';
+
+    // Simple client implementation for demo
+    // (In production, use createClient from @veloxts/client)
+    const api = {
+      users: {
+        listUsers: (input) => fetchApi('GET', '/users', input),
+        getUser: (input) => fetchApi('GET', `/users/${input.id}`),
+        createUser: (input) => fetchApi('POST', '/users', input),
+        searchUsers: (input) => fetchApi('GET', '/users/search', input),
+      },
+      health: {
+        getHealth: () => fetchApi('GET', '/health'),
+      }
+    };
+
+    async function fetchApi(method, path, input) {
+      let url = API_BASE + path;
+      const options = { method, headers: { 'Content-Type': 'application/json' } };
+
+      if (method === 'GET' && input) {
+        const params = new URLSearchParams(input);
+        url += `?${params.toString()}`;
+      } else if (method !== 'GET' && input) {
+        options.body = JSON.stringify(input);
+      }
+
+      logRequest(method, url);
+      const res = await fetch(url, options);
+      const data = await res.json();
+      logResponse(res.status, data);
+      return data;
+    }
+
+    function logRequest(method, url) {
+      const log = document.getElementById('log');
+      log.innerHTML = `<div class="log-entry"><span class="log-method">${method}</span> <span class="log-url">${url}</span></div>${log.innerHTML}`;
+    }
+
+    function logResponse(status, data) {
+      const log = document.getElementById('log');
+      const preview = JSON.stringify(data).slice(0, 100) + (JSON.stringify(data).length > 100 ? '...' : '');
+      log.innerHTML = `<div class="log-entry"><span class="log-status">${status}</span> ${preview}</div>${log.innerHTML}`;
+    }
+
+    // Load health status
+    async function loadHealth() {
+      try {
+        const data = await api.health.getHealth();
+        document.getElementById('health').innerHTML = `
+          <span class="status ok">OK</span>
+          Version: ${data.version} | Uptime: ${Math.round(data.uptime)}s
+        `;
+      } catch (e) {
+        document.getElementById('health').innerHTML = `<span class="status error">Error</span> ${e.message}`;
+      }
+    }
+
+    // Load users
+    async function loadUsers() {
+      try {
+        const data = await api.users.listUsers();
+        renderUsers(data.data);
+      } catch (e) {
+        console.error('Failed to load users:', e);
+      }
+    }
+    window.loadUsers = loadUsers;
+
+    // Search users
+    let searchTimeout;
+    async function searchUsers(query) {
+      clearTimeout(searchTimeout);
+      if (!query) { loadUsers(); return; }
+      searchTimeout = setTimeout(async () => {
+        try {
+          const data = await api.users.searchUsers({ q: query });
+          renderUsers(data);
+        } catch (e) {
+          console.error('Search failed:', e);
+        }
+      }, 300);
+    }
+    window.searchUsers = searchUsers;
+
+    // Render users table
+    function renderUsers(users) {
+      const tbody = document.getElementById('users-table');
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>${u.name}</td>
+          <td>${u.email}</td>
+          <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Create user
+    async function createUser() {
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      if (!name || !email) { alert('Please fill in all fields'); return; }
+
+      try {
+        await api.users.createUser({ name, email });
+        document.getElementById('name').value = '';
+        document.getElementById('email').value = '';
+        loadUsers();
+      } catch (e) {
+        alert(`Failed to create user: ${e.message}`);
+      }
+    }
+    window.createUser = createUser;
+
+    // Initialize
+    loadHealth();
+    loadUsers();
+  </script>
+</body>
+</html>

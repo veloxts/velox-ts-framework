@@ -1,0 +1,12 @@
+{
+  "name": "@veloxts/docs",
+  "version": "0.1.0",
+  "description": "Documentation site for VeloxTS framework",
+  "scripts": {
+    "dev": "echo \"Documentation site not yet implemented\"",
+    "build": "echo \"Documentation site not yet implemented\""
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "private": true
+}

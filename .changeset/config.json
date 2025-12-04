@@ -1,0 +1,22 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [],
+  "linked": [
+    [
+      "@veloxts/core",
+      "@veloxts/router",
+      "@veloxts/validation",
+      "@veloxts/orm",
+      "@veloxts/auth",
+      "@veloxts/client",
+      "@veloxts/cli",
+      "create-velox-app"
+    ]
+  ],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["@veloxts/playground", "@veloxts/docs"]
+}

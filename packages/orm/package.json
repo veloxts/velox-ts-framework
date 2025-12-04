@@ -1,0 +1,62 @@
+{
+  "name": "@veloxts/orm",
+  "version": "0.1.0",
+  "description": "Prisma wrapper with enhanced DX for VeloxTS framework",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@veloxts/core": "workspace:*",
+    "fastify": "5.6.2"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "4.0.15"
+  },
+  "peerDependencies": {
+    "@prisma/client": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@prisma/client": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "velox",
+    "orm",
+    "prisma",
+    "database",
+    "fullstack",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zzal/velox-framework",
+    "directory": "packages/orm"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

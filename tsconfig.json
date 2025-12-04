@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/validation" },
+    { "path": "./packages/orm" },
+    { "path": "./packages/router" },
+    { "path": "./packages/auth" },
+    { "path": "./packages/client" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/create" },
+    { "path": "./apps/playground" }
+  ]
+}

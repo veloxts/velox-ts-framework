@@ -1,0 +1,67 @@
+{
+  "name": "@veloxts/router",
+  "version": "0.1.0",
+  "description": "Procedure definitions with tRPC and REST routing for VeloxTS framework",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@veloxts/core": "workspace:*",
+    "@veloxts/validation": "workspace:*",
+    "@trpc/server": "11.7.2",
+    "fastify": "5.6.2"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "zod": "3.24.4",
+    "vitest": "4.0.15"
+  },
+  "peerDependencies": {
+    "zod": "^3.24.0",
+    "fastify": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": false
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "velox",
+    "router",
+    "trpc",
+    "rest",
+    "procedures",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zzal/velox-framework",
+    "directory": "packages/router"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

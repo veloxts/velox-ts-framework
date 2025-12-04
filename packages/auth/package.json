@@ -1,0 +1,51 @@
+{
+  "name": "@veloxts/auth",
+  "version": "0.1.0",
+  "description": "Authentication and authorization system for VeloxTS framework (v1.1+)",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@veloxts/core": "workspace:*",
+    "@veloxts/router": "workspace:*",
+    "@veloxts/orm": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "keywords": [
+    "velox",
+    "auth",
+    "authentication",
+    "authorization",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zzal/velox-framework",
+    "directory": "packages/auth"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
