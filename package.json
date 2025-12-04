@@ -23,6 +23,11 @@
     "ci:lint": "turbo run lint --color --no-daemon",
     "ci:type-check": "turbo run type-check --color --no-daemon"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/veloxts/velox-ts-framework"
+  },
+  "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "2.3.8",
     "@changesets/cli": "2.29.8",
