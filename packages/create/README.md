@@ -342,7 +342,7 @@ After creating your project:
 2. **Modify the database schema** - Edit `prisma/schema.prisma` and run migrations
 3. **Add new procedures** - Create additional API endpoints following the user example
 4. **Connect a frontend** - Use `@veloxts/client` for type-safe API calls
-5. **Read the documentation** - Visit the [VeloxTS documentation](https://github.com/veloxts/velox-ts-framework/docs) for guides
+5. **Read the documentation** - Visit the [VeloxTS documentation](https://github.com/veloxts/velox-ts-framework/tree/main/docs) for guides
 
 ## Learn More
 
