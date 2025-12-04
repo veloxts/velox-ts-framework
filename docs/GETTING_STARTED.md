@@ -833,7 +833,7 @@ Congratulations! You've learned the fundamentals of VeloxTS Framework. Here's wh
 ### Community and Support
 
 - **GitHub Repository** - [github.com/veloxts/velox-ts-framework](https://github.com/veloxts/velox-ts-framework)
-- **Documentation** - [veloxts.dev/docs](https://veloxts.dev/docs)
+- **Documentation** - [github.com/veloxts/velox-ts-framework/docs](https://github.com/veloxts/velox-ts-framework/docs)
 - **Discord Community** - Get help and share your projects
 - **Report Issues** - Found a bug? Let us know!
 

@@ -222,7 +222,7 @@ Future versions will include additional templates:
 
 ```bash
 # Clone the VeloxTS repository
-git clone https://github.com/zzal/velox-framework.git
+git clone https://github.com/veloxts/velox-ts-framework.git
 cd velox-framework
 
 # Install dependencies
@@ -342,11 +342,11 @@ After creating your project:
 2. **Modify the database schema** - Edit `prisma/schema.prisma` and run migrations
 3. **Add new procedures** - Create additional API endpoints following the user example
 4. **Connect a frontend** - Use `@veloxts/client` for type-safe API calls
-5. **Read the documentation** - Visit the [VeloxTS documentation](https://github.com/zzal/velox-framework) for guides
+5. **Read the documentation** - Visit the [VeloxTS documentation](https://github.com/veloxts/velox-ts-framework/docs) for guides
 
 ## Learn More
 
-- [VeloxTS Framework Documentation](https://github.com/zzal/velox-framework)
+- [VeloxTS Framework Documentation](https://github.com/veloxts/velox-ts-framework)
 - [@veloxts/core](../core) - Core framework concepts
 - [@veloxts/router](../router) - Procedure-based routing
 - [@veloxts/validation](../validation) - Schema validation with Zod
@@ -357,7 +357,7 @@ After creating your project:
 
 Found a bug or want to improve the scaffolder? Contributions are welcome!
 
-1. Report issues at [GitHub Issues](https://github.com/zzal/velox-framework/issues)
+1. Report issues at [GitHub Issues](https://github.com/veloxts/velox-ts-framework/issues)
 2. Submit pull requests with improvements
 3. Share feedback on the generated project structure
 
