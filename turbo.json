@@ -12,7 +12,7 @@
       "persistent": true
     },
     "type-check": {
-      "dependsOn": [],
+      "dependsOn": ["^build"],
       "inputs": ["src/**/*.ts", "tsconfig.json"],
       "outputs": []
     },
