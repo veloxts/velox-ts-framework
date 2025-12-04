@@ -233,7 +233,7 @@ The client automatically maps procedure calls to REST endpoints using the same c
 
 The client uses the native `fetch` API, which is available in:
 - All modern browsers
-- Node.js v18+ (native fetch)
+- Node.js v20+ (native fetch)
 - Earlier Node.js versions with a polyfill
 
 For older Node.js versions, provide a custom fetch implementation:

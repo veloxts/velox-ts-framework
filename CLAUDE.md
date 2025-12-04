@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Hybrid API architecture (tRPC for internal, auto-generated REST for external)
 - Convention over configuration with Laravel-style elegance
 - Built on Fastify, tRPC, Prisma, and Zod
-- Targets Node.js v18+ with TypeScript v5+
+- Targets Node.js v20+ with TypeScript v5+
 
 ## Commands
 
@@ -224,7 +224,7 @@ Currently in **Week 1** of 6-week MVP sprint:
 
 ## Technology Stack
 
-- **Runtime:** Node.js v18+
+- **Runtime:** Node.js v20+
 - **Language:** TypeScript v5+ (strict mode)
 - **HTTP Server:** Fastify
 - **RPC Layer:** tRPC

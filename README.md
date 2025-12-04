@@ -88,7 +88,7 @@ export const userProcedures = defineProcedures('users', {
 
 ## Requirements
 
-- Node.js 18 or later
+- Node.js 20 or later
 - TypeScript 5 or later
 - pnpm, npm, or yarn
 

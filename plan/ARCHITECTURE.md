@@ -288,7 +288,7 @@ declare module '@veloxts/core' {
 ## Technology Stack
 
 ### Core Runtime
-- **Node.js:** v18+ (native fetch, top-level await)
+- **Node.js:** v20+ (native fetch, top-level await)
 - **TypeScript:** v5+ (strict mode, advanced types)
 - **Package Manager:** pnpm (fast, efficient)
 

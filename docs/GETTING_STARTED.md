@@ -35,7 +35,7 @@ Then VeloxTS may be a good fit. Note that it's still in alpha - evaluate careful
 
 Before you begin, ensure you have:
 
-- **Node.js 18+** installed ([download here](https://nodejs.org/))
+- **Node.js 20+** installed ([download here](https://nodejs.org/))
 - **Basic TypeScript knowledge** - Familiarity with types, interfaces, and async/await
 - **Command-line experience** - Comfortable running terminal commands
 - **A package manager** - npm, pnpm, or yarn
