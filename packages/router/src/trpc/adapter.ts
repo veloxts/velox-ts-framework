@@ -10,6 +10,7 @@
 import type { AnyRouter as TRPCAnyRouter } from '@trpc/server';
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { BaseContext } from '@veloxts/core';
+import type { FastifyInstance } from 'fastify';
 
 /**
  * Re-exported AnyRouter type from tRPC
@@ -393,7 +394,7 @@ export interface TRPCPluginOptions {
  *
  * @example
  * ```typescript
- * const app = await createVeloxApp({ port: 3000 });
+ * const app = await createVeloxApp({ port: 3210 });
  * const appRouter = createAppRouter(t, [userProcedures]);
  *
  * await registerTRPCPlugin(app.server, {
@@ -403,7 +404,7 @@ export interface TRPCPluginOptions {
  * ```
  */
 export async function registerTRPCPlugin(
-  server: { register: (plugin: unknown, opts: unknown) => Promise<void> },
+  server: FastifyInstance,
   options: TRPCPluginOptions
 ): Promise<void> {
   // Dynamic import to avoid pulling in complex types at compile time

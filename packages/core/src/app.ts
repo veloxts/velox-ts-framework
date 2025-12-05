@@ -28,7 +28,7 @@ import { LifecycleManager } from './utils/lifecycle.js';
  * @example
  * ```typescript
  * const app = await createVeloxApp({
- *   port: 3000,
+ *   port: 3210,
  *   logger: true
  * });
  *
@@ -401,7 +401,7 @@ export class VeloxApp {
  * @example
  * ```typescript
  * const app = await createVeloxApp({
- *   port: 3000,
+ *   port: 3210,
  *   host: '0.0.0.0',
  *   logger: true
  * });
@@ -411,7 +411,7 @@ export class VeloxApp {
  * ```typescript
  * // With default configuration
  * const app = await createVeloxApp();
- * await app.start(); // Listens on port 3000
+ * await app.start(); // Listens on port 3210
  * ```
  *
  * @example

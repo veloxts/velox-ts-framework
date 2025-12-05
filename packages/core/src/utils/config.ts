@@ -26,7 +26,7 @@ declare const ValidPortBrand: unique symbol;
  *   // port is guaranteed to be 0-65535
  * }
  *
- * const port = 3000;
+ * const port = 3210;
  * if (isValidPort(port)) {
  *   listen(port); // TypeScript knows port is ValidPort here
  * }
@@ -81,7 +81,7 @@ export type VeloxFastifyOptions = Omit<FastifyServerOptions, 'logger'>;
  * @example
  * ```typescript
  * const config: VeloxAppConfig = {
- *   port: 3000,
+ *   port: 3210,
  *   host: '0.0.0.0',
  *   logger: true
  * };
@@ -90,7 +90,7 @@ export type VeloxFastifyOptions = Omit<FastifyServerOptions, 'logger'>;
 export interface VeloxAppConfig {
   /**
    * Port to listen on
-   * @default 3000
+   * @default 3210
    */
   port?: number;
 
@@ -138,7 +138,7 @@ export type FrozenVeloxAppConfig = Readonly<{
  * Default configuration values
  */
 export const DEFAULT_CONFIG = {
-  port: 3000,
+  port: 3210,
   host: '0.0.0.0',
   logger: process.env.NODE_ENV !== 'production',
 } as const;
@@ -155,7 +155,7 @@ export const DEFAULT_CONFIG = {
  *
  * @example
  * ```typescript
- * const port = 3000;
+ * const port = 3210;
  * if (isValidPort(port)) {
  *   // port is narrowed to ValidPort
  *   startServer(port);
@@ -213,7 +213,7 @@ export function mergeConfig(userConfig: VeloxAppConfig = {}): Required<VeloxAppC
  *
  * @example
  * ```typescript
- * const merged = mergeConfig({ port: 3000 });
+ * const merged = mergeConfig({ port: 3210 });
  * const validated = validateConfig(merged);
  * // validated.port is ValidPort (branded type)
  * // validated is frozen (immutable at runtime)

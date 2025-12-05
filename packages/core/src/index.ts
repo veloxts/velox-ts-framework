@@ -8,7 +8,7 @@
  * ```typescript
  * import { createVeloxApp, definePlugin } from '@veloxts/core';
  *
- * const app = await createVeloxApp({ port: 3000 });
+ * const app = await createVeloxApp({ port: 3210 });
  * await app.start();
  * ```
  *

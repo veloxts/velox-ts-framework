@@ -114,7 +114,7 @@ interface PluginState<TClient extends DatabaseClient> {
  * import { createDatabasePlugin } from '@veloxts/orm';
  *
  * const prisma = new PrismaClient();
- * const app = await createVeloxApp({ port: 3000 });
+ * const app = await createVeloxApp({ port: 3210 });
  *
  * // Register the database plugin
  * await app.use(createDatabasePlugin({ client: prisma }));

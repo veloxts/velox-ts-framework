@@ -17,7 +17,7 @@ import { createVeloxApp } from '@veloxts/core';
 
 // Create application
 const app = await createVeloxApp({
-  port: 3000,
+  port: 3210,
   host: '0.0.0.0',
   logger: true,
 });
@@ -381,7 +381,7 @@ app.server.get('/users/:id', async (request, reply) => {
 
 ```typescript
 {
-  port: 3000,
+  port: 3210,
   host: '0.0.0.0',
   logger: process.env.NODE_ENV !== 'production',
 }
@@ -391,7 +391,7 @@ app.server.get('/users/:id', async (request, reply) => {
 
 ```typescript
 const app = await createVeloxApp({
-  port: Number(process.env.PORT) || 3000,
+  port: Number(process.env.PORT) || 3210,
   host: process.env.HOST || '0.0.0.0',
   logger: process.env.NODE_ENV !== 'production',
   fastify: {
@@ -404,7 +404,7 @@ const app = await createVeloxApp({
 
 ```typescript
 const app = await createVeloxApp({
-  port: 3000,
+  port: 3210,
   host: '0.0.0.0',
   logger: {
     level: 'warn',
@@ -527,7 +527,7 @@ import { userProcedures } from './procedures/users';
 // Initialize
 const prisma = new PrismaClient();
 const app = await createVeloxApp({
-  port: Number(process.env.PORT) || 3000,
+  port: Number(process.env.PORT) || 3210,
   logger: true,
 });
 

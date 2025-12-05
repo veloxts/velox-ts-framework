@@ -166,6 +166,13 @@ function createRouteHandler(
 }
 
 /**
+ * Type guard to check if a value is a plain object
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
  * Gather input data from the request based on HTTP method
  *
  * - GET: Merge params and query
@@ -173,10 +180,13 @@ function createRouteHandler(
  */
 function gatherInput(request: FastifyRequest, route: RestRoute): unknown {
   if (route.method === 'GET') {
-    // Merge route params and query params
+    // Safely merge route params and query params with type guards
+    const params = isPlainObject(request.params) ? request.params : {};
+    const query = isPlainObject(request.query) ? request.query : {};
+
     return {
-      ...(request.params as object),
-      ...(request.query as object),
+      ...params,
+      ...query,
     };
   }
 

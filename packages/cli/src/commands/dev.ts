@@ -18,7 +18,7 @@ import {
   instruction,
   printBanner,
 } from '../utils/output.js';
-import { findEntryPoint, isVeloxProject } from '../utils/paths.js';
+import { findEntryPoint, isVeloxProject, validateEntryPath } from '../utils/paths.js';
 
 interface DevOptions {
   port?: string;
@@ -32,7 +32,7 @@ interface DevOptions {
 export function createDevCommand(version: string): Command {
   return new Command('dev')
     .description('Start the development server with hot reload')
-    .option('-p, --port <port>', 'Port to listen on', '3000')
+    .option('-p, --port <port>', 'Port to listen on', '3210')
     .option('-H, --host <host>', 'Host to bind to', 'localhost')
     .option('-e, --entry <file>', 'Entry point file (auto-detected if not specified)')
     .action(async (options: DevOptions) => {
@@ -59,10 +59,22 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
     }
     s.stop('Project validated');
 
-    // Find entry point
-    let entryPoint = options.entry;
+    // Find and validate entry point
+    let entryPoint: string;
 
-    if (!entryPoint) {
+    if (options.entry) {
+      // User specified an entry point - validate it
+      s.start('Validating entry point...');
+      try {
+        entryPoint = validateEntryPath(options.entry);
+        s.stop(`Entry point: ${formatPath(entryPoint)}`);
+      } catch (err) {
+        s.stop('Invalid entry point');
+        error(err instanceof Error ? err.message : 'Invalid entry point');
+        process.exit(1);
+      }
+    } else {
+      // Auto-detect entry point
       s.start('Detecting entry point...');
       const detected = findEntryPoint();
 
@@ -78,14 +90,30 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
       s.stop(`Entry point: ${formatPath(entryPoint)}`);
     }
 
+    // Validate port and host
+    const port = options.port || '3210';
+    const host = options.host || 'localhost';
+
+    // Validate port is a valid number
+    const portNum = Number.parseInt(port, 10);
+    if (Number.isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      error(`Invalid port: ${port}. Port must be a number between 1 and 65535.`);
+      process.exit(1);
+    }
+
+    // Validate host doesn't contain dangerous characters
+    const validHostPattern = /^[a-zA-Z0-9.-]+$/;
+    if (!validHostPattern.test(host)) {
+      error(
+        `Invalid host: ${host}. Host should only contain alphanumeric characters, dots, and dashes.`
+      );
+      process.exit(1);
+    }
+
     // Print startup banner
     printBanner(version);
     info('Starting development server...');
     console.log('');
-
-    // Start the development server with tsx watch
-    const port = options.port || '3000';
-    const host = options.host || 'localhost';
 
     // Set environment variables for the app
     const env = {
@@ -154,7 +182,7 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
       // Provide helpful suggestions based on error
       if (err.message.includes('EADDRINUSE')) {
         instruction(`Port ${options.port} is already in use. Try a different port:`);
-        console.log(`  ${formatCommand(`velox dev --port ${Number(options.port || 3000) + 1}`)}`);
+        console.log(`  ${formatCommand(`velox dev --port ${Number(options.port || 3210) + 1}`)}`);
       } else if (err.message.includes('EACCES')) {
         instruction('Permission denied. Try using a port above 1024.');
       }

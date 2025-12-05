@@ -6,6 +6,16 @@
  */
 
 // ============================================================================
+// Version Constant
+// ============================================================================
+
+/**
+ * VeloxTS framework version for generated projects.
+ * This is automatically updated during releases via changesets.
+ */
+export const VELOXTS_VERSION = '0.1.0';
+
+// ============================================================================
 // Template Interface
 // ============================================================================
 
@@ -40,10 +50,10 @@ export function generatePackageJson(template: ProjectTemplate): string {
         '@fastify/static': '^8.3.0',
         '@prisma/adapter-better-sqlite3': '^7.1.0',
         '@prisma/client': '^7.1.0',
-        '@veloxts/core': '^0.1.0',
-        '@veloxts/orm': '^0.1.0',
-        '@veloxts/router': '^0.1.0',
-        '@veloxts/validation': '^0.1.0',
+        '@veloxts/core': `^${VELOXTS_VERSION}`,
+        '@veloxts/orm': `^${VELOXTS_VERSION}`,
+        '@veloxts/router': `^${VELOXTS_VERSION}`,
+        '@veloxts/validation': `^${VELOXTS_VERSION}`,
         dotenv: '^17.2.3',
         zod: '^3.24.4',
       },
@@ -125,7 +135,7 @@ DATABASE_URL="file:./dev.db"
 # DATABASE_URL="postgresql://user:password@localhost:5432/myapp"
 
 # Server Configuration
-PORT=3000
+PORT=3210
 HOST=0.0.0.0
 NODE_ENV=development
 
@@ -344,7 +354,7 @@ export interface AppConfig {
 
 export function createConfig(): AppConfig {
   return {
-    port: Number(process.env.PORT) || 3000,
+    port: Number(process.env.PORT) || 3210,
     host: process.env.HOST || '0.0.0.0',
     logger: process.env.LOG_LEVEL !== 'silent',
     apiPrefix: process.env.API_PREFIX || '/api',

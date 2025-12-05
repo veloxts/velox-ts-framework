@@ -33,7 +33,7 @@ export interface AppConfig {
  */
 export function createConfig(): AppConfig {
   return {
-    port: Number(process.env.PORT) || 3000,
+    port: Number(process.env.PORT) || 3210,
     host: process.env.HOST || '0.0.0.0',
     logger: process.env.LOG_LEVEL !== 'silent',
     apiPrefix: process.env.API_PREFIX || '/api',
