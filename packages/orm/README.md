@@ -1,6 +1,8 @@
 # @veloxts/orm
 
-Laravel-inspired Prisma wrapper with enhanced developer experience for the VeloxTS framework.
+> **Alpha Release** - This framework is in early development. APIs may change between versions. Not recommended for production use yet.
+
+Prisma wrapper with enhanced developer experience for the VeloxTS framework.
 
 ## Installation
 

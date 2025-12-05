@@ -1,5 +1,7 @@
 # @veloxts/client
 
+> **Alpha Release** - This framework is in early development. APIs may change between versions. Not recommended for production use yet.
+
 Type-safe frontend API client for the VeloxTS framework.
 
 ## Features

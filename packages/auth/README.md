@@ -1,5 +1,7 @@
 # @veloxts/auth
 
+> **Alpha Release** - This framework is in early development. APIs may change between versions. Not recommended for production use yet.
+
 Authentication and authorization system for VeloxTS Framework.
 
 > **Note:** This package is a placeholder in v0.1.0. Full implementation coming in v1.1.

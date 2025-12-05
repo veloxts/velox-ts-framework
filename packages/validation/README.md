@@ -1,5 +1,7 @@
 # @veloxts/validation
 
+> **Alpha Release** - This framework is in early development. APIs may change between versions. Not recommended for production use yet.
+
 Type-safe validation using Zod schemas for the VeloxTS framework.
 
 ## Installation

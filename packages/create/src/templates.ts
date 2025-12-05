@@ -591,7 +591,7 @@ export function generateIndexHtml(): string {
 export function generateReadme(projectName: string): string {
   return `# ${projectName}
 
-A VeloxTS application - Laravel-inspired TypeScript full-stack framework.
+A VeloxTS application - TypeScript full-stack framework.
 
 ## Getting Started
 

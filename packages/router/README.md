@@ -1,5 +1,7 @@
 # @veloxts/router
 
+> **Alpha Release** - This framework is in early development. APIs may change between versions. Not recommended for production use yet.
+
 Procedure-based routing with hybrid tRPC and REST adapters for the VeloxTS framework.
 
 ## Installation

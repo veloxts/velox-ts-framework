@@ -1,6 +1,8 @@
 # @veloxts/cli
 
-Laravel-inspired command-line interface for the VeloxTS Framework.
+> **Alpha Release** - This framework is in early development. APIs may change between versions. Not recommended for production use yet.
+
+Command-line interface for the VeloxTS Framework.
 
 ## Installation
 
@@ -94,7 +96,7 @@ pnpm type-check
 - Automatic entry point detection
 - Graceful shutdown handling (Ctrl+C)
 - Helpful error messages with suggestions
-- Laravel-inspired command design
+- Intuitive command design
 - Built with Commander.js and Clack
 
 ## Architecture

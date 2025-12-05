@@ -1,5 +1,7 @@
 # create-velox-app
 
+> **Alpha Release** - This framework is in early development. APIs may change between versions. Not recommended for production use yet.
+
 Interactive project scaffolder for the VeloxTS framework.
 
 ## Usage
