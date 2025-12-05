@@ -13,7 +13,7 @@
  * VeloxTS framework version for generated projects.
  * This is automatically updated during releases via changesets.
  */
-export const VELOXTS_VERSION = '0.1.0';
+export const VELOXTS_VERSION = '0.2.2';
 
 // ============================================================================
 // Template Interface

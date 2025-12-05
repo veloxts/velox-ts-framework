@@ -1,5 +1,15 @@
 # @veloxts/auth
 
+## 0.2.2
+
+### Patch Changes
+
+- Version bump to sync with create-velox-app native module fix
+- Updated dependencies
+  - @veloxts/core@0.2.2
+  - @veloxts/orm@0.2.2
+  - @veloxts/router@0.2.2
+
 ## 0.2.0
 
 ### Minor Changes

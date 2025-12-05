@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.2.2
+
+### Patch Changes
+
+- Version bump to sync with create-velox-app native module fix
+
 ## 0.2.0
 
 ### Minor Changes
