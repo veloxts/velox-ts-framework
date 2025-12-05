@@ -1,5 +1,14 @@
 # create-velox-app
 
+## 0.2.2
+
+### Patch Changes
+
+- 9b1d71d: Fix: Add better-sqlite3 as direct dependency and postinstall script for native module compilation
+
+  - Added `better-sqlite3` as a direct dependency to ensure pnpm compiles native bindings
+  - Added `postinstall` script to run `prisma generate` automatically after install
+
 ## 0.2.1
 
 ### Patch Changes
