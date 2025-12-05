@@ -95,30 +95,25 @@ echo "✓ Local packages linked in package.json"
 echo ""
 
 echo "=== Step 5: Installing dependencies with local packages ==="
+# postinstall script runs 'prisma generate' automatically
 npm install --legacy-peer-deps
-echo "✓ Dependencies installed"
+echo "✓ Dependencies installed (Prisma client generated via postinstall)"
 echo ""
 
-# Step 6: Generate Prisma client
-echo "=== Step 6: Generating Prisma client ==="
-npm run db:generate
-echo "✓ Prisma client generated"
-echo ""
-
-# Step 7: Push database schema
-echo "=== Step 7: Pushing database schema ==="
+# Step 6: Push database schema
+echo "=== Step 6: Pushing database schema ==="
 npm run db:push
 echo "✓ Database schema pushed"
 echo ""
 
-# Step 8: Build the app
-echo "=== Step 8: Building the app ==="
+# Step 7: Build the app
+echo "=== Step 7: Building the app ==="
 npm run build
 echo "✓ App built"
 echo ""
 
-# Step 9: Start the server and test endpoints
-echo "=== Step 9: Testing the app ==="
+# Step 8: Start the server and test endpoints
+echo "=== Step 8: Testing the app ==="
 
 # Use a unique port for testing (avoid conflicts with other processes)
 TEST_PORT=3210
