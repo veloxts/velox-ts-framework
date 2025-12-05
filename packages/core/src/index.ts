@@ -15,8 +15,14 @@
  * @module @veloxts/core
  */
 
-// Version constant
-export const VELOX_VERSION = '0.1.0' as const;
+import { createRequire } from 'node:module';
+
+// Read version from package.json dynamically
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version: string };
+
+/** VeloxTS framework version */
+export const VELOX_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // App creation and types
 export { createVeloxApp, VeloxApp } from './app.js';

@@ -17,17 +17,13 @@
  * ```
  */
 
-// Core - Application bootstrap, plugins, context
-export * from '@veloxts/core';
-
-// Validation - Zod integration and schema utilities
-export * from '@veloxts/validation';
-
-// ORM - Database plugin and Prisma integration
-export * from '@veloxts/orm';
-
-// Router - Procedure definitions, REST adapter, tRPC
-export * from '@veloxts/router';
-
 // Auth - Authentication and authorization (v1.1+)
 export * from '@veloxts/auth';
+// Core - Application bootstrap, plugins, context
+export * from '@veloxts/core';
+// ORM - Database plugin and Prisma integration
+export * from '@veloxts/orm';
+// Router - Procedure definitions, REST adapter, tRPC
+export * from '@veloxts/router';
+// Validation - Zod integration and schema utilities
+export * from '@veloxts/validation';
