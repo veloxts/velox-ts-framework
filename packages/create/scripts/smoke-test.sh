@@ -58,11 +58,9 @@ echo "=== Step 3: Running scaffolder ==="
 mkdir -p "$TEST_DIR"
 cd "$TEST_DIR"
 
-# Run the scaffolder to create project files
-# In CI: Will install from npm (may fail if packages not yet published)
-# Locally: Will fail on install (packages don't exist on npm)
-# We use || true to continue regardless, as we verify the install in Step 4
-node "$SCRIPT_DIR/dist/cli.js" smoke-test-app 2>&1 || true
+# Run the scaffolder to create project files only (skip npm install)
+# We skip installation because we'll link to local packages in Step 4
+SKIP_INSTALL=true node "$SCRIPT_DIR/dist/cli.js" smoke-test-app
 
 # Verify that essential files were created
 if [ ! -f "$TEST_DIR/smoke-test-app/package.json" ]; then

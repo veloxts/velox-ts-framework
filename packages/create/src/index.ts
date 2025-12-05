@@ -271,6 +271,11 @@ async function createProjectStructure(config: ProjectConfig): Promise<void> {
  * Install project dependencies using the detected package manager
  */
 async function installDependencies(config: ProjectConfig): Promise<void> {
+  // Skip installation if SKIP_INSTALL is set (used in smoke tests)
+  if (process.env.SKIP_INSTALL === 'true') {
+    return;
+  }
+
   const spinner = p.spinner();
   spinner.start('Installing dependencies');
 
@@ -311,6 +316,11 @@ function getInstallCommand(packageManager: string): string {
  * Generate Prisma client after dependencies are installed
  */
 async function generatePrismaClient(config: ProjectConfig): Promise<void> {
+  // Skip if SKIP_INSTALL is set (used in smoke tests)
+  if (process.env.SKIP_INSTALL === 'true') {
+    return;
+  }
+
   const spinner = p.spinner();
   spinner.start('Generating Prisma client');
 
