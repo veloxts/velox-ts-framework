@@ -1,5 +1,15 @@
 # @veloxts/auth
 
+## 0.3.2
+
+### Patch Changes
+
+- abf270e: Dynamically set core `VELOX_VERSION` from package.json
+- Updated dependencies [abf270e]
+  - @veloxts/core@0.3.2
+  - @veloxts/orm@0.3.2
+  - @veloxts/router@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes
