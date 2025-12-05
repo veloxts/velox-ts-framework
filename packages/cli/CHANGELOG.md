@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.3.1
+
+### Patch Changes
+
+- cb9806e: Fixed the value for VELOXTS_VERSION in create app template
+- Updated dependencies [cb9806e]
+  - @veloxts/auth@0.3.1
+  - @veloxts/core@0.3.1
+  - @veloxts/orm@0.3.1
+  - @veloxts/router@0.3.1
+  - @veloxts/validation@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
