@@ -75,51 +75,31 @@ echo ""
 cd "$TEST_DIR/smoke-test-app"
 
 # Step 4: Setup dependencies
-# In CI: Packages are already installed from npm by the scaffolder
-# Locally: We need to link to monorepo packages via file: references
-if [ "$IS_CI" = "true" ]; then
-  echo "=== Step 4: Verifying published npm packages (CI mode) ==="
+# Always link to local monorepo packages for smoke tests
+# This ensures we test against the code we just built, not published packages
+echo "=== Step 4: Linking local monorepo packages ==="
 
-  # Verify that node_modules exists and contains @veloxts packages
-  if [ ! -d "node_modules/@veloxts" ]; then
-    echo "✗ Expected node_modules/@veloxts to exist (scaffolder should have installed)"
-    echo "  The scaffolder may have failed during npm install"
-    exit 1
-  fi
+# Replace @veloxts/* dependencies with file: references to local packages
+node -e "
+const fs = require('fs');
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
-  echo "✓ Dependencies installed from npm registry"
-  echo ""
+// Point @veloxts/* packages to local built packages
+pkg.dependencies['@veloxts/core'] = 'file:$MONOREPO_ROOT/packages/core';
+pkg.dependencies['@veloxts/orm'] = 'file:$MONOREPO_ROOT/packages/orm';
+pkg.dependencies['@veloxts/router'] = 'file:$MONOREPO_ROOT/packages/router';
+pkg.dependencies['@veloxts/validation'] = 'file:$MONOREPO_ROOT/packages/validation';
 
-  # Rebuild native modules (better-sqlite3 requires this in CI)
-  echo "=== Step 5: Rebuilding native modules ==="
-  npm rebuild better-sqlite3 2>/dev/null || pnpm rebuild better-sqlite3 2>/dev/null || true
-  echo "✓ Native modules rebuilt"
-  echo ""
-else
-  echo "=== Step 4: Linking local monorepo packages ==="
+fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+console.log('Updated package.json with local package references');
+"
+echo "✓ Local packages linked in package.json"
+echo ""
 
-  # Replace @veloxts/* dependencies with file: references to local packages
-  node -e "
-  const fs = require('fs');
-  const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-
-  // Point @veloxts/* packages to local built packages
-  pkg.dependencies['@veloxts/core'] = 'file:$MONOREPO_ROOT/packages/core';
-  pkg.dependencies['@veloxts/orm'] = 'file:$MONOREPO_ROOT/packages/orm';
-  pkg.dependencies['@veloxts/router'] = 'file:$MONOREPO_ROOT/packages/router';
-  pkg.dependencies['@veloxts/validation'] = 'file:$MONOREPO_ROOT/packages/validation';
-
-  fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-  console.log('Updated package.json with local package references');
-  "
-  echo "✓ Local packages linked in package.json"
-  echo ""
-
-  echo "=== Step 5: Installing dependencies with local packages ==="
-  npm install --legacy-peer-deps
-  echo "✓ Dependencies installed"
-  echo ""
-fi
+echo "=== Step 5: Installing dependencies with local packages ==="
+npm install --legacy-peer-deps
+echo "✓ Dependencies installed"
+echo ""
 
 # Step 6: Generate Prisma client
 echo "=== Step 6: Generating Prisma client ==="
