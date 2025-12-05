@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.2.1
+
+### Patch Changes
+
+- b577801: Fix: include dist folder in published package
+
 ## 0.2.0
 
 ### Minor Changes
