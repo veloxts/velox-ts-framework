@@ -1,5 +1,17 @@
 # @veloxts/router
 
+## 0.2.0
+
+### Minor Changes
+
+- 9404976: fix Prisma client generation. README adjustments
+
+### Patch Changes
+
+- Updated dependencies [9404976]
+  - @veloxts/validation@0.2.0
+  - @veloxts/core@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
