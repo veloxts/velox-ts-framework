@@ -13,7 +13,7 @@
  * VeloxTS framework version for generated projects.
  * This is automatically updated during releases via changesets.
  */
-export const VELOXTS_VERSION = '0.2.2';
+export const VELOXTS_VERSION = '0.3.1';
 
 // ============================================================================
 // Template Interface
@@ -32,7 +32,7 @@ export function generatePackageJson(template: ProjectTemplate): string {
   return JSON.stringify(
     {
       name: template.projectName,
-      version: '0.1.0',
+      version: '0.0.1',
       description: 'A VeloxTS application',
       type: 'module',
       main: 'dist/index.js',
