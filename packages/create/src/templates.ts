@@ -45,6 +45,7 @@ export function generatePackageJson(template: ProjectTemplate): string {
         'db:generate': 'prisma generate',
         'db:push': 'prisma db push',
         'db:studio': 'prisma studio',
+        postinstall: 'prisma generate',
       },
       dependencies: {
         '@fastify/static': '^8.3.0',
@@ -54,6 +55,7 @@ export function generatePackageJson(template: ProjectTemplate): string {
         '@veloxts/orm': `^${VELOXTS_VERSION}`,
         '@veloxts/router': `^${VELOXTS_VERSION}`,
         '@veloxts/validation': `^${VELOXTS_VERSION}`,
+        'better-sqlite3': '^12.5.0',
         dotenv: '^17.2.3',
         zod: '^3.24.4',
       },
