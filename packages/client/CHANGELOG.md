@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.3.0
+
+### Minor Changes
+
+- 1adce10: Introduced an umbrella package for server side packages: @veloxts/velox
+
 ## 0.2.2
 
 ### Patch Changes
