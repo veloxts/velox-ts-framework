@@ -2,8 +2,8 @@
 # Smoke test for create-velox-app scaffolder
 # Tests the full flow: scaffold -> install -> generate -> build -> run
 #
-# This test creates a project without running install internally,
-# then manually installs dependencies (mocking @veloxts/* packages).
+# In CI: Uses published npm packages directly
+# Locally: Links to monorepo packages via file: references
 
 set -e
 
@@ -11,9 +11,18 @@ TEST_DIR="/tmp/velox-smoke-test-$$"
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MONOREPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Detect if running in CI
+# GitHub Actions sets CI=true, some other CI systems use CI=1
+if [ "$CI" = "true" ] || [ "$CI" = "1" ]; then
+  IS_CI="true"
+else
+  IS_CI="false"
+fi
+
 echo "=== Smoke Test for create-velox-app ==="
 echo "Test directory: $TEST_DIR"
 echo "Monorepo root: $MONOREPO_ROOT"
+echo "Running in CI: $IS_CI"
 echo ""
 
 # Cleanup function
@@ -44,48 +53,67 @@ pnpm build
 echo "✓ Monorepo packages built"
 echo ""
 
-# Step 3: Create test project (scaffolder will fail on install, but files are created)
-echo "=== Step 3: Creating test project files ==="
+# Step 3: Create test project using scaffolder
+echo "=== Step 3: Running scaffolder ==="
 mkdir -p "$TEST_DIR"
 cd "$TEST_DIR"
 
-# Create project files only (let install fail, we'll do it manually)
+# Run the scaffolder to create project files
+# In CI: Will install from npm (may fail if packages not yet published)
+# Locally: Will fail on install (packages don't exist on npm)
+# We use || true to continue regardless, as we verify the install in Step 4
 node "$SCRIPT_DIR/dist/cli.js" smoke-test-app 2>&1 || true
 
-# Check if files were created
+# Verify that essential files were created
 if [ ! -f "$TEST_DIR/smoke-test-app/package.json" ]; then
-  echo "✗ Project files not created"
+  echo "✗ Scaffolder failed to create project files"
   exit 1
 fi
-echo "✓ Project files created"
+echo "✓ Project files created by scaffolder"
 echo ""
 
-# Step 4: Manually modify package.json to use workspace packages
-echo "=== Step 4: Linking workspace packages ==="
 cd "$TEST_DIR/smoke-test-app"
 
-# Remove @veloxts/* dependencies from package.json and add them as file: references
-node -e "
-const fs = require('fs');
-const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+# Step 4: Setup dependencies
+# In CI: Packages are already installed from npm by the scaffolder
+# Locally: We need to link to monorepo packages via file: references
+if [ "$IS_CI" = "true" ]; then
+  echo "=== Step 4: Verifying published npm packages (CI mode) ==="
 
-// Point @veloxts/* packages to local built packages
-pkg.dependencies['@veloxts/core'] = 'file:$MONOREPO_ROOT/packages/core';
-pkg.dependencies['@veloxts/orm'] = 'file:$MONOREPO_ROOT/packages/orm';
-pkg.dependencies['@veloxts/router'] = 'file:$MONOREPO_ROOT/packages/router';
-pkg.dependencies['@veloxts/validation'] = 'file:$MONOREPO_ROOT/packages/validation';
+  # Verify that node_modules exists and contains @veloxts packages
+  if [ ! -d "node_modules/@veloxts" ]; then
+    echo "✗ Expected node_modules/@veloxts to exist (scaffolder should have installed)"
+    echo "  The scaffolder may have failed during npm install"
+    exit 1
+  fi
 
-fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-console.log('Updated package.json with local package references');
-"
-echo "✓ Workspace packages linked"
-echo ""
+  echo "✓ Dependencies installed from npm registry"
+  echo ""
+else
+  echo "=== Step 4: Linking local monorepo packages ==="
 
-# Step 5: Install dependencies
-echo "=== Step 5: Installing dependencies ==="
-npm install --legacy-peer-deps
-echo "✓ Dependencies installed"
-echo ""
+  # Replace @veloxts/* dependencies with file: references to local packages
+  node -e "
+  const fs = require('fs');
+  const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+
+  // Point @veloxts/* packages to local built packages
+  pkg.dependencies['@veloxts/core'] = 'file:$MONOREPO_ROOT/packages/core';
+  pkg.dependencies['@veloxts/orm'] = 'file:$MONOREPO_ROOT/packages/orm';
+  pkg.dependencies['@veloxts/router'] = 'file:$MONOREPO_ROOT/packages/router';
+  pkg.dependencies['@veloxts/validation'] = 'file:$MONOREPO_ROOT/packages/validation';
+
+  fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+  console.log('Updated package.json with local package references');
+  "
+  echo "✓ Local packages linked in package.json"
+  echo ""
+
+  echo "=== Step 5: Installing dependencies with local packages ==="
+  npm install --legacy-peer-deps
+  echo "✓ Dependencies installed"
+  echo ""
+fi
 
 # Step 6: Generate Prisma client
 echo "=== Step 6: Generating Prisma client ==="
