@@ -77,19 +77,16 @@ cd "$TEST_DIR/smoke-test-app"
 # This ensures we test against the code we just built, not published packages
 echo "=== Step 4: Linking local monorepo packages ==="
 
-# Replace @veloxts/* dependencies with file: references to local packages
+# Replace @veloxts/velox dependency with file: reference to local umbrella package
 node -e "
 const fs = require('fs');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
-// Point @veloxts/* packages to local built packages
-pkg.dependencies['@veloxts/core'] = 'file:$MONOREPO_ROOT/packages/core';
-pkg.dependencies['@veloxts/orm'] = 'file:$MONOREPO_ROOT/packages/orm';
-pkg.dependencies['@veloxts/router'] = 'file:$MONOREPO_ROOT/packages/router';
-pkg.dependencies['@veloxts/validation'] = 'file:$MONOREPO_ROOT/packages/validation';
+// Point @veloxts/velox to local built umbrella package
+pkg.dependencies['@veloxts/velox'] = 'file:$MONOREPO_ROOT/packages/velox';
 
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-console.log('Updated package.json with local package references');
+console.log('Updated package.json with local package reference');
 "
 echo "✓ Local packages linked in package.json"
 echo ""

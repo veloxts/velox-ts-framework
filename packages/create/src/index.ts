@@ -389,6 +389,14 @@ function printSuccessMessage(config: ProjectConfig): void {
   console.log('  Next steps:');
   console.log('');
   console.log(`    ${pc.cyan(cdCommand)}`);
+
+  // Add pnpm-specific instruction for native module builds
+  if (config.packageManager === 'pnpm') {
+    console.log(
+      `    ${pc.cyan('pnpm approve-builds')}${pc.dim('  # Allow native module compilation')}`
+    );
+  }
+
   console.log(`    ${pc.cyan(dbCommand)}${pc.dim('  # Setup database')}`);
   console.log(`    ${pc.cyan(devCommand)}${pc.dim('   # Start dev server')}`);
   console.log('');

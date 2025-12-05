@@ -1,0 +1,78 @@
+{
+  "name": "@veloxts/velox",
+  "version": "0.2.2",
+  "description": "Complete VeloxTS framework - batteries included",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    },
+    "./validation": {
+      "types": "./dist/validation.d.ts",
+      "import": "./dist/validation.js"
+    },
+    "./orm": {
+      "types": "./dist/orm.d.ts",
+      "import": "./dist/orm.js"
+    },
+    "./router": {
+      "types": "./dist/router.d.ts",
+      "import": "./dist/router.js"
+    },
+    "./auth": {
+      "types": "./dist/auth.d.ts",
+      "import": "./dist/auth.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@veloxts/core": "workspace:*",
+    "@veloxts/validation": "workspace:*",
+    "@veloxts/orm": "workspace:*",
+    "@veloxts/router": "workspace:*",
+    "@veloxts/auth": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "peerDependencies": {
+    "zod": "^3.24.0"
+  },
+  "keywords": [
+    "velox",
+    "veloxts",
+    "framework",
+    "typescript",
+    "fullstack",
+    "fastify",
+    "trpc"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/veloxts/velox-ts-framework",
+    "directory": "packages/velox"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

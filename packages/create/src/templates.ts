@@ -51,10 +51,7 @@ export function generatePackageJson(template: ProjectTemplate): string {
         '@fastify/static': '^8.3.0',
         '@prisma/adapter-better-sqlite3': '^7.1.0',
         '@prisma/client': '^7.1.0',
-        '@veloxts/core': `^${VELOXTS_VERSION}`,
-        '@veloxts/orm': `^${VELOXTS_VERSION}`,
-        '@veloxts/router': `^${VELOXTS_VERSION}`,
-        '@veloxts/validation': `^${VELOXTS_VERSION}`,
+        '@veloxts/velox': `^${VELOXTS_VERSION}`,
         'better-sqlite3': '^12.5.0',
         dotenv: '^17.2.3',
         zod: '^3.24.4',
@@ -257,9 +254,13 @@ export function generateIndexTs(): string {
 import 'dotenv/config';
 
 import fastifyStatic from '@fastify/static';
-import { createVeloxApp, VELOX_VERSION } from '@veloxts/core';
-import { createDatabasePlugin } from '@veloxts/orm';
-import { createRoutesRegistrar, getRouteSummary } from '@veloxts/router';
+import {
+  createVeloxApp,
+  VELOX_VERSION,
+  createDatabasePlugin,
+  createRoutesRegistrar,
+  getRouteSummary,
+} from '@veloxts/velox';
 import path from 'node:path';
 
 import { config } from './config/index.js';
@@ -409,9 +410,7 @@ export function generateHealthProcedures(): string {
  * Health Check Procedures
  */
 
-import { VELOX_VERSION } from '@veloxts/core';
-import { defineProcedures, procedure } from '@veloxts/router';
-import { z } from 'zod';
+import { VELOX_VERSION, defineProcedures, procedure, z } from '@veloxts/velox';
 
 export const healthProcedures = defineProcedures('health', {
   getHealth: procedure()
@@ -439,9 +438,7 @@ export function generateUserProcedures(): string {
  * User Procedures
  */
 
-import { defineProcedures, procedure } from '@veloxts/router';
-import { paginationInputSchema } from '@veloxts/validation';
-import { z } from 'zod';
+import { defineProcedures, procedure, paginationInputSchema, z } from '@veloxts/velox';
 
 import { CreateUserInput, UserSchema } from '../schemas/user.js';
 
@@ -542,8 +539,7 @@ export function generateUserSchema(): string {
  * User Schemas
  */
 
-import { createIdSchema, emailSchema } from '@veloxts/validation';
-import { z } from 'zod';
+import { createIdSchema, emailSchema, z } from '@veloxts/velox';
 
 export const UserSchema = z.object({
   id: createIdSchema('uuid'),

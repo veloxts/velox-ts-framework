@@ -229,6 +229,31 @@ importers:
         specifier: 4.0.15
         version: 4.0.15(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)
 
+  packages/velox:
+    dependencies:
+      '@veloxts/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@veloxts/core':
+        specifier: workspace:*
+        version: link:../core
+      '@veloxts/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@veloxts/router':
+        specifier: workspace:*
+        version: link:../router
+      '@veloxts/validation':
+        specifier: workspace:*
+        version: link:../validation
+      zod:
+        specifier: ^3.24.0
+        version: 3.24.4
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   tooling/biome-config: {}
 
   tooling/tsconfig: {}
