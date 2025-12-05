@@ -89,6 +89,12 @@ if [ "$IS_CI" = "true" ]; then
 
   echo "✓ Dependencies installed from npm registry"
   echo ""
+
+  # Rebuild native modules (better-sqlite3 requires this in CI)
+  echo "=== Step 5: Rebuilding native modules ==="
+  npm rebuild better-sqlite3 2>/dev/null || pnpm rebuild better-sqlite3 2>/dev/null || true
+  echo "✓ Native modules rebuilt"
+  echo ""
 else
   echo "=== Step 4: Linking local monorepo packages ==="
 
