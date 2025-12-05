@@ -75,6 +75,9 @@ export async function createVeloxApp(initialProjectName?: string): Promise<void>
     // Install dependencies
     await installDependencies(config);
 
+    // Generate Prisma client
+    await generatePrismaClient(config);
+
     // Initialize git
     await initializeGit(config);
 
@@ -297,6 +300,30 @@ function getInstallCommand(packageManager: string): string {
       return 'yarn install';
     default:
       return 'npm install';
+  }
+}
+
+// ============================================================================
+// Prisma Client Generation
+// ============================================================================
+
+/**
+ * Generate Prisma client after dependencies are installed
+ */
+async function generatePrismaClient(config: ProjectConfig): Promise<void> {
+  const spinner = p.spinner();
+  spinner.start('Generating Prisma client');
+
+  try {
+    execSync('npx prisma generate', {
+      cwd: config.directory,
+      stdio: 'ignore',
+    });
+
+    spinner.stop('Prisma client generated');
+  } catch (error) {
+    spinner.stop('Failed to generate Prisma client');
+    throw error;
   }
 }
 

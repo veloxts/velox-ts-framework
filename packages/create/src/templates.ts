@@ -375,11 +375,17 @@ export function generateDatabaseIndex(): string {
  * - Driver adapter for database connections
  */
 
-import { PrismaClient } from '../generated/prisma/client.js';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
+import { PrismaClient } from '../generated/prisma/client.js';
+
+// Validate DATABASE_URL is set
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+
 // Create SQLite adapter with database URL from environment
-const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! });
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
 
 // Export configured Prisma client
 export const prisma = new PrismaClient({ adapter });
