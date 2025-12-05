@@ -153,12 +153,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Restore build artifacts to avoid rebuilding
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: .
+      # Build all packages before publishing
+      - name: Build packages
+        run: pnpm build
 
       - name: Create Release Pull Request or Publish
         id: changesets
