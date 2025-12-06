@@ -1,12 +1,12 @@
 # VeloxTS Framework - MVP Feature Scope
 
-## Version 0.1.0 - Minimum Viable Product
+## Version 0.1.0 - 0.3.x (MVP Complete ✅)
 
-This document defines what features are **included** in the MVP release and what is **deferred** to future versions.
+This document defines what features were **included** in the MVP release and what is **deferred** to future versions.
 
 ---
 
-## ✅ INCLUDED in MVP v0.1.0
+## ✅ INCLUDED in MVP (v0.1.0 - v0.3.x)
 
 ### Core Infrastructure
 - ✅ **Monorepo with pnpm + Turborepo**
@@ -77,6 +77,15 @@ This document defines what features are **included** in the MVP release and what
   - Post-install instructions
   - Generated project works out-of-the-box
 
+### @veloxts/velox (v0.3.0+)
+- ✅ **Umbrella package**
+  - Single import for all backend packages
+  - Re-exports core, validation, orm, router, auth
+  - Subpath exports for tree-shaking
+  - Simplified dependency management
+- ✅ **Dynamic versioning**
+  - `VELOX_VERSION` reads from package.json at runtime
+
 ### Developer Experience
 - ✅ **Type safety without code generation**
   - Direct type imports from backend to frontend
@@ -108,9 +117,9 @@ This document defines what features are **included** in the MVP release and what
 
 ---
 
-## ⏳ DEFERRED to v1.1 and Beyond
+## ⏳ DEFERRED to v0.4+ and Beyond
 
-### Authentication (@veloxts/auth) - v1.1
+### Authentication (@veloxts/auth) - v0.4
 - ⏳ JWT authentication system
 - ⏳ Guards and policies
 - ⏳ User model helpers
@@ -120,7 +129,7 @@ This document defines what features are **included** in the MVP release and what
 - ⏳ Session management
 - ⏳ Pluggable auth adapters (BetterAuth, Clerk, Auth0)
 
-### Advanced Routing - v1.1
+### Advanced Routing - v0.4
 - ⏳ **Nested resource routing**
   - Hierarchical resources (`/posts/:postId/comments`)
   - Multi-level nesting with warnings
@@ -135,14 +144,14 @@ This document defines what features are **included** in the MVP release and what
   - Conditional middleware
   - Async middleware chains
 
-### Dependency Injection - v1.1
+### Dependency Injection - v0.4
 - ⏳ **Full DI container**
   - Decorator-based injection (`@Injectable()`, `@Inject()`)
   - Metadata reflection
   - Lifecycle management
   - Scoped/singleton/transient services
 
-### CLI Advanced Features - v1.1
+### CLI Advanced Features - v0.5
 - ⏳ **Code generators**
   - `velox generate procedure <name>`
   - `velox generate schema <name>`
@@ -158,7 +167,7 @@ This document defines what features are **included** in the MVP release and what
   - API-only template
   - Custom template support
 
-### Frontend Integration - v1.1
+### Frontend Integration - v0.5
 - ⏳ **React hooks**
   - `useQuery` hook
   - `useMutation` hook
@@ -171,7 +180,7 @@ This document defines what features are **included** in the MVP release and what
   - Timeout configuration
   - Progress tracking
 
-### ORM Advanced Features - v1.1
+### ORM Advanced Features - v0.5
 - ⏳ **Migration runner**
   - Migration status checking
   - Rollback functionality
@@ -183,7 +192,7 @@ This document defines what features are **included** in the MVP release and what
   - Factory pattern support
   - Relationship seeding
 
-### Developer Tooling - v1.1
+### Developer Tooling - v0.5
 - ⏳ **Procedure discovery**
   - Automatic procedure file scanning
   - Convention-based registration
@@ -194,7 +203,19 @@ This document defines what features are **included** in the MVP release and what
   - Performance metrics
   - Debug mode
 
-### Documentation - v1.1+
+### AI-Native Development - v0.6
+- ⏳ **CLAUDE.md in scaffolder**
+  - Ship AI instructions with every project
+- ⏳ **Machine-readable CLI**
+  - `--json` flag for all commands
+- ⏳ **Structured error codes**
+  - `VeloxError[E1001]` with fix suggestions
+- ⏳ **MCP Server** (`@veloxts/mcp`)
+  - Expose VeloxTS context to AI tools
+- ⏳ **Type introspection**
+  - `velox introspect` command
+
+### Documentation - v0.5+
 - ⏳ **Full documentation site**
   - VitePress-based site
   - Comprehensive guides
@@ -207,7 +228,7 @@ This document defines what features are **included** in the MVP release and what
   - From AdonisJS
   - From Next.js API routes
 
-### Testing - v1.1
+### Testing - v0.4+
 - ⏳ **Comprehensive test coverage**
   - 80%+ code coverage
   - Integration test suite
@@ -220,7 +241,7 @@ This document defines what features are **included** in the MVP release and what
   - Database test helpers
   - Factory pattern support
 
-### Performance - v1.1+
+### Performance - v0.8+
 - ⏳ **Optimizations**
   - Response caching
   - Query optimization
@@ -233,11 +254,15 @@ This document defines what features are **included** in the MVP release and what
   - APM support
   - Health check endpoints
 
-### Advanced Features - v1.2+
-- ⏳ WebSocket/SSE support
-- ⏳ Background job processing
-- ⏳ Email templating system
-- ⏳ File storage abstraction
+### Ecosystem Packages - v0.7+
+- ⏳ `@veloxts/queue` - Background job processing
+- ⏳ `@veloxts/mail` - Email templating system
+- ⏳ `@veloxts/storage` - File storage abstraction
+- ⏳ `@veloxts/events` - WebSocket/SSE support
+- ⏳ `@veloxts/cache` - Caching layer
+- ⏳ `@veloxts/monitor` - Debugging dashboard
+
+### Advanced Features - v0.8+
 - ⏳ OpenAPI/Swagger documentation auto-generation
 - ⏳ GraphQL support (alongside tRPC/REST)
 - ⏳ Admin panel generator
@@ -269,7 +294,7 @@ The MVP must allow developers to:
 1. ✅ Each package has README with basic usage
 2. ✅ Getting started guide exists
 3. ✅ At least one working example application
-4. ✅ Clear upgrade path to v1.1 documented
+4. ✅ Clear upgrade path to v0.4+ documented
 
 ---
 
@@ -279,7 +304,7 @@ The MVP must allow developers to:
 - Authentication adds significant complexity
 - MVP can validate core concepts without auth
 - Developers can add their own auth temporarily
-- Better to get auth right in v1.1 than rush it in MVP
+- Better to get auth right in v0.4 than rush it in MVP
 
 ### Why Defer Nested Routing?
 - Flat routing covers 80% of use cases
@@ -303,30 +328,33 @@ The MVP must allow developers to:
 - `velox dev` is essential for good DX
 - Hot reload is table stakes for modern frameworks
 - `velox migrate` simplifies database setup
-- Advanced commands can wait for v1.1
+- Advanced commands can wait for v0.5
 
 ---
 
 ## Version Naming Strategy
 
-- **v0.1.0** - MVP (6 weeks)
-- **v0.2.0-v0.9.0** - Beta releases with breaking changes allowed
-- **v1.0.0** - First stable release (includes auth, nested routing, full DI)
-- **v1.1.0+** - Incremental feature additions
-- **v2.0.0** - Major version with potential breaking changes
+- **v0.1.0 - v0.3.x** - MVP (complete ✅)
+- **v0.4.x** - Stable foundation (auth, full REST)
+- **v0.5.x** - Developer experience (code generators, React hooks)
+- **v0.6.x** - AI-native development (CLAUDE.md, MCP, `--json` CLI)
+- **v0.7.x** - Ecosystem expansion (queue, mail, storage)
+- **v0.8.x** - Polish (performance, monitoring)
+- **v0.9.x** - Release candidate (stabilization)
+- **v1.0.0** - Mature release (production-ready, stable API)
 
 ---
 
-## Upgrade Path from MVP to v1.1
+## Upgrade Path from MVP to v0.4+
 
-All v0.1.0 APIs will remain backwards compatible in v1.1. New features will be additive:
+All MVP APIs will remain backwards compatible in v0.4+. New features will be additive:
 
 ```typescript
-// v0.1.0 code
-const procedure = createProcedure();
+// MVP code (v0.3.x)
+import { procedure } from '@veloxts/velox';
 
-// v1.1 code (backwards compatible)
-const procedure = createProcedure();
+// v0.4+ code (backwards compatible)
+import { procedure, auth } from '@veloxts/velox';
 procedure.use(auth.middleware()); // New feature, opt-in
 ```
 
@@ -334,17 +362,21 @@ Developers can upgrade incrementally without rewriting existing code.
 
 ---
 
-## Timeline Summary
+## Version Roadmap
 
-| Version | Timeline | Focus |
-|---------|----------|-------|
-| v0.1.0 | Weeks 1-6 | Core functionality, type safety, basic DX |
-| v0.2.0 | Week 7 | Bug fixes, small improvements |
-| v1.0.0 | Weeks 8-12 | Auth, nested routing, full DI, polish |
-| v1.1.0+ | Ongoing | Advanced features, community requests |
+| Version | Focus | Key Deliverables |
+|---------|-------|------------------|
+| v0.3.x | ✅ MVP Complete | Umbrella package, dynamic versioning |
+| v0.4.x | Stable Foundation | Auth, full REST, starter kits |
+| v0.5.x | Developer Experience | Code generators, React hooks, seeders |
+| v0.6.x | AI-Native | CLAUDE.md, MCP server, `--json` CLI |
+| v0.7.x | Ecosystem | Queue, mail, storage, events |
+| v0.8.x | Polish | Performance, monitoring, admin panel |
+| v0.9.x | Release Candidate | Final stabilization, community feedback |
+| **v1.0.0** | **Mature Release** | Production-ready, stable API, full docs |
 
 ---
 
-**Current Status:** In Development - Week 1 (Foundation)
-**Target Release:** v0.1.0 by end of Week 6
-**Next Major Release:** v1.0.0 by Week 12
+**Current Status:** MVP Complete (v0.3.x)
+**Next Release:** v0.4.0 - Stable Foundation
+**Mature Release:** v1.0.0
