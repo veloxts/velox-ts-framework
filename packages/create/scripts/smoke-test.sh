@@ -132,12 +132,58 @@ else
   exit 1
 fi
 
-# Test users endpoint
+# Test users list endpoint (GET)
 USERS_RESPONSE=$(curl -s http://localhost:$TEST_PORT/api/users)
 if echo "$USERS_RESPONSE" | grep -q "\["; then
-  echo "✓ Users endpoint working"
+  echo "✓ GET /api/users working"
 else
-  echo "✗ Users endpoint failed: $USERS_RESPONSE"
+  echo "✗ GET /api/users failed: $USERS_RESPONSE"
+  exit 1
+fi
+
+# Test create user (POST) - should return 201
+echo ""
+echo "--- Testing REST verbs ---"
+CREATE_STATUS=$(curl -s -o /tmp/create_body.json -w "%{http_code}" -X POST http://localhost:$TEST_PORT/api/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Test User", "email": "test@smoke.com"}')
+CREATE_BODY=$(cat /tmp/create_body.json)
+if [ "$CREATE_STATUS" = "201" ] && echo "$CREATE_BODY" | grep -q '"id"'; then
+  USER_ID=$(echo "$CREATE_BODY" | grep -o '"id":"[^"]*"' | sed 's/"id":"//;s/"//')
+  echo "✓ POST /api/users returned 201 (created user: $USER_ID)"
+else
+  echo "✗ POST /api/users failed: status=$CREATE_STATUS, body=$CREATE_BODY"
+  exit 1
+fi
+
+# Test update user (PUT) - should return 200
+UPDATE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "http://localhost:$TEST_PORT/api/users/$USER_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Updated User", "email": "test@smoke.com"}')
+if [ "$UPDATE_STATUS" = "200" ]; then
+  echo "✓ PUT /api/users/:id returned 200"
+else
+  echo "✗ PUT /api/users/:id failed: status=$UPDATE_STATUS"
+  exit 1
+fi
+
+# Test patch user (PATCH) - should return 200
+PATCH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "http://localhost:$TEST_PORT/api/users/$USER_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Patched User"}')
+if [ "$PATCH_STATUS" = "200" ]; then
+  echo "✓ PATCH /api/users/:id returned 200"
+else
+  echo "✗ PATCH /api/users/:id failed: status=$PATCH_STATUS"
+  exit 1
+fi
+
+# Test delete user (DELETE) - should return 200
+DELETE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "http://localhost:$TEST_PORT/api/users/$USER_ID")
+if [ "$DELETE_STATUS" = "200" ]; then
+  echo "✓ DELETE /api/users/:id returned 200"
+else
+  echo "✗ DELETE /api/users/:id failed: status=$DELETE_STATUS"
   exit 1
 fi
 

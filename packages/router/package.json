@@ -21,19 +21,20 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@trpc/server": "11.7.2",
     "@veloxts/core": "workspace:*",
     "@veloxts/validation": "workspace:*",
-    "@trpc/server": "11.7.2",
     "fastify": "5.6.2"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "4.0.15",
     "typescript": "5.9.3",
-    "zod": "3.24.4",
-    "vitest": "4.0.15"
+    "vitest": "4.0.15",
+    "zod": "3.24.4"
   },
   "peerDependencies": {
-    "zod": "^3.24.0",
-    "fastify": "^5.0.0"
+    "fastify": "^5.0.0",
+    "zod": "^3.24.0"
   },
   "peerDependenciesMeta": {
     "zod": {

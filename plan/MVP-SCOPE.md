@@ -41,10 +41,11 @@ This document defines what features were **included** in the MVP release and wha
   - tRPC router creation from procedures
   - Type-safe internal API calls
   - Basic error handling
-- ✅ **REST adapter (limited)**
+- ✅ **REST adapter**
   - Auto-generation from naming conventions
-  - **GET and POST only**
-  - Basic path generation
+  - **Full REST verb support (GET, POST, PUT, PATCH, DELETE)**
+  - Smart input gathering (params, query, body based on method)
+  - Proper HTTP status codes (201 for POST, 204 for DELETE with no body)
   - Manual override with `.rest()` method
 
 ### @veloxts/orm
@@ -134,11 +135,6 @@ This document defines what features were **included** in the MVP release and wha
   - Hierarchical resources (`/posts/:postId/comments`)
   - Multi-level nesting with warnings
   - Flat access generation
-- ⏳ **Full REST verb support**
-  - PUT method
-  - PATCH method
-  - DELETE method
-  - Complete REST conventions
 - ⏳ **Advanced middleware**
   - Middleware composition
   - Conditional middleware

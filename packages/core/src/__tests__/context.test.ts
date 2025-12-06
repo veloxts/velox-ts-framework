@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
 import { createVeloxApp } from '../app.js';
+import { createContext, isContext } from '../context.js';
 import { definePlugin } from '../plugin.js';
 
 describe('VeloxApp - Context Availability', () => {
@@ -149,5 +150,99 @@ describe('VeloxApp - Context Availability', () => {
     // Each request should have unique context
     expect(id1).not.toBe(id2);
     expect(contextIds).toHaveLength(2);
+  });
+});
+
+describe('Context - Unit Tests', () => {
+  describe('createContext', () => {
+    it('should create a context with request and reply', () => {
+      const mockRequest = { url: '/test', method: 'GET' };
+      const mockReply = { status: () => {}, send: () => {} };
+
+      const context = createContext(mockRequest as never, mockReply as never);
+
+      expect(context).toBeDefined();
+      expect(context.request).toBe(mockRequest);
+      expect(context.reply).toBe(mockReply);
+    });
+
+    it('should create contexts with different request objects', () => {
+      const mockRequest1 = { url: '/test1', method: 'GET' };
+      const mockRequest2 = { url: '/test2', method: 'POST' };
+      const mockReply = { status: () => {}, send: () => {} };
+
+      const context1 = createContext(mockRequest1 as never, mockReply as never);
+      const context2 = createContext(mockRequest2 as never, mockReply as never);
+
+      expect(context1.request).toBe(mockRequest1);
+      expect(context2.request).toBe(mockRequest2);
+      expect(context1.request).not.toBe(context2.request);
+    });
+  });
+
+  describe('isContext', () => {
+    it('should return true for valid context objects', () => {
+      const mockRequest = { url: '/test' };
+      const mockReply = { status: () => {} };
+      const context = createContext(mockRequest as never, mockReply as never);
+
+      expect(isContext(context)).toBe(true);
+    });
+
+    it('should return true for objects with request and reply properties', () => {
+      const obj = {
+        request: { url: '/test' },
+        reply: { status: () => {} },
+      };
+
+      expect(isContext(obj)).toBe(true);
+    });
+
+    it('should return false for null', () => {
+      expect(isContext(null)).toBe(false);
+    });
+
+    it('should return false for undefined', () => {
+      expect(isContext(undefined)).toBe(false);
+    });
+
+    it('should return false for primitives', () => {
+      expect(isContext('string')).toBe(false);
+      expect(isContext(123)).toBe(false);
+      expect(isContext(true)).toBe(false);
+    });
+
+    it('should return false for empty object', () => {
+      expect(isContext({})).toBe(false);
+    });
+
+    it('should return false for object missing request', () => {
+      expect(isContext({ reply: {} })).toBe(false);
+    });
+
+    it('should return false for object missing reply', () => {
+      expect(isContext({ request: {} })).toBe(false);
+    });
+
+    it('should return false for object with null request', () => {
+      expect(isContext({ request: null, reply: {} })).toBe(false);
+    });
+
+    it('should return false for object with null reply', () => {
+      expect(isContext({ request: {}, reply: null })).toBe(false);
+    });
+
+    it('should return false for object with non-object request', () => {
+      expect(isContext({ request: 'string', reply: {} })).toBe(false);
+    });
+
+    it('should return false for object with non-object reply', () => {
+      expect(isContext({ request: {}, reply: 'string' })).toBe(false);
+    });
+
+    it('should return false for arrays', () => {
+      expect(isContext([])).toBe(false);
+      expect(isContext([1, 2, 3])).toBe(false);
+    });
   });
 });

@@ -434,6 +434,59 @@ describe('Type Guards', () => {
   });
 });
 
+describe('Fallback middleware execution', () => {
+  it('should execute fallback middleware chain when precompiled executor is missing', async () => {
+    const executionOrder: string[] = [];
+
+    // Create a procedure with middleware
+    const proc = procedure()
+      .use(async ({ next }) => {
+        executionOrder.push('middleware-before');
+        const result = await next();
+        executionOrder.push('middleware-after');
+        return result;
+      })
+      .query(async () => {
+        executionOrder.push('handler');
+        return { success: true };
+      });
+
+    // Remove the precompiled executor to force fallback execution
+    const procWithoutPrecompiled = {
+      ...proc,
+      _precompiledExecutor: undefined,
+    };
+
+    const ctx: BaseContext = {} as BaseContext;
+    const result = await executeProcedure(procWithoutPrecompiled, undefined, ctx);
+
+    expect(result).toEqual({ success: true });
+    expect(executionOrder).toEqual(['middleware-before', 'handler', 'middleware-after']);
+  });
+
+  it('should allow middleware to extend context in fallback mode', async () => {
+    const proc = procedure()
+      .use(async ({ next, ctx }) => {
+        return next({ ctx: { ...ctx, addedProperty: 'test-value' } });
+      })
+      .query(async ({ ctx }) => {
+        const extendedCtx = ctx as BaseContext & { addedProperty: string };
+        return { value: extendedCtx.addedProperty };
+      });
+
+    // Remove precompiled executor
+    const procWithoutPrecompiled = {
+      ...proc,
+      _precompiledExecutor: undefined,
+    };
+
+    const ctx: BaseContext = {} as BaseContext;
+    const result = await executeProcedure(procWithoutPrecompiled, undefined, ctx);
+
+    expect(result).toEqual({ value: 'test-value' });
+  });
+});
+
 describe('Edge Cases and Complex Scenarios', () => {
   it('should handle nested object input', async () => {
     const proc = procedure()

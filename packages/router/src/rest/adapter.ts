@@ -113,11 +113,6 @@ function generateRouteForProcedure(
   // Try to infer from naming convention
   const mapping = parseNamingConvention(name, procedure.type);
   if (mapping) {
-    // MVP: Only allow GET and POST
-    if (mapping.method !== 'GET' && mapping.method !== 'POST') {
-      return undefined;
-    }
-
     return {
       method: mapping.method,
       path: buildRestPath(namespace, mapping),
@@ -141,7 +136,8 @@ function generateRouteForProcedure(
  * 1. Extracts input from request (params, query, body)
  * 2. Gets context from request decorator
  * 3. Executes the procedure (validation, middleware, handler)
- * 4. Returns the result
+ * 4. Sets appropriate HTTP status code
+ * 5. Returns the result
  */
 function createRouteHandler(
   route: RestRoute
@@ -156,9 +152,24 @@ function createRouteHandler(
     // Execute the procedure
     const result = await executeProcedure(route.procedure, input, ctx);
 
-    // For mutations (POST), set 201 status for creates
-    if (route.method === 'POST' && route.procedureName.startsWith('create')) {
-      reply.status(201);
+    // Set appropriate HTTP status codes based on method and result
+    switch (route.method) {
+      case 'POST':
+        // 201 Created for new resources
+        if (route.procedureName.startsWith('create') || route.procedureName.startsWith('add')) {
+          reply.status(201);
+        }
+        break;
+
+      case 'DELETE':
+        // 204 No Content if result is null/undefined/empty, otherwise 200 OK
+        if (result === null || result === undefined) {
+          reply.status(204);
+          return null;
+        }
+        break;
+
+      // GET, PUT, PATCH default to 200 OK (Fastify default)
     }
 
     return result;
@@ -177,21 +188,33 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  *
  * - GET: Merge params and query
  * - POST: Use body
+ * - PUT/PATCH: Merge params (for ID) and body (for data)
+ * - DELETE: Merge params and query (no body per REST conventions)
  */
 function gatherInput(request: FastifyRequest, route: RestRoute): unknown {
-  if (route.method === 'GET') {
-    // Safely merge route params and query params with type guards
-    const params = isPlainObject(request.params) ? request.params : {};
-    const query = isPlainObject(request.query) ? request.query : {};
+  const params = isPlainObject(request.params) ? request.params : {};
+  const query = isPlainObject(request.query) ? request.query : {};
+  const body = isPlainObject(request.body) ? request.body : {};
 
-    return {
-      ...params,
-      ...query,
-    };
+  switch (route.method) {
+    case 'GET':
+      // GET: params (for :id) + query (for filters/pagination)
+      return { ...params, ...query };
+
+    case 'DELETE':
+      // DELETE: params (for :id) + query (for options), no body per REST conventions
+      return { ...params, ...query };
+
+    case 'PUT':
+    case 'PATCH':
+      // PUT/PATCH: params (for :id) + body (for data)
+      return { ...params, ...body };
+
+    case 'POST':
+    default:
+      // POST: body only (no ID in params for creates)
+      return request.body;
   }
-
-  // POST, PUT, PATCH, DELETE: Use body
-  return request.body;
 }
 
 /**
@@ -276,10 +299,14 @@ export function registerRestRoutes(
         case 'POST':
           server.post(fullPath, handler);
           break;
-        // MVP: Only GET and POST
-        // v1.1+ will add PUT, PATCH, DELETE
-        default:
-          // Skip unsupported methods in MVP
+        case 'PUT':
+          server.put(fullPath, handler);
+          break;
+        case 'PATCH':
+          server.patch(fullPath, handler);
+          break;
+        case 'DELETE':
+          server.delete(fullPath, handler);
           break;
       }
     }

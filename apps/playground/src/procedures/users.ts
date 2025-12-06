@@ -15,7 +15,13 @@ import { defineProcedures, procedure } from '@veloxts/router';
 import { paginationInputSchema } from '@veloxts/validation';
 import { z } from 'zod';
 
-import { CreateUserInput, SearchUserInput, type User, UserSchema } from '../schemas/user.js';
+import {
+  CreateUserInput,
+  SearchUserInput,
+  UpdateUserInput,
+  type User,
+  UserSchema,
+} from '../schemas/user.js';
 
 // ============================================================================
 // Database Types
@@ -45,6 +51,8 @@ interface DbClient {
     findUnique: (args: { where: { id: string } }) => Promise<DbUser | null>;
     findMany: (args?: { skip?: number; take?: number; where?: unknown }) => Promise<DbUser[]>;
     create: (args: { data: { name: string; email: string } }) => Promise<DbUser>;
+    update: (args: { where: { id: string }; data: { name?: string; email?: string } }) => Promise<DbUser>;
+    delete: (args: { where: { id: string } }) => Promise<DbUser>;
     count: (args?: { where?: unknown }) => Promise<number>;
   };
 }
@@ -168,6 +176,53 @@ export const userProcedures = defineProcedures('users', {
       });
 
       return dbUsers.map(toUserResponse);
+    }),
+
+  /**
+   * Update an existing user (full update)
+   *
+   * REST: PUT /users/:id
+   * tRPC: users.updateUser({ id: "...", name: "...", email: "..." })
+   */
+  updateUser: procedure()
+    .input(z.object({ id: z.string().uuid() }).merge(UpdateUserInput))
+    .output(UserSchema)
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb(ctx);
+      const { id, ...data } = input;
+      const user = await db.user.update({ where: { id }, data });
+      return toUserResponse(user);
+    }),
+
+  /**
+   * Partially update a user
+   *
+   * REST: PATCH /users/:id
+   * tRPC: users.patchUser({ id: "...", name: "..." })
+   */
+  patchUser: procedure()
+    .input(z.object({ id: z.string().uuid() }).merge(UpdateUserInput))
+    .output(UserSchema)
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb(ctx);
+      const { id, ...data } = input;
+      const user = await db.user.update({ where: { id }, data });
+      return toUserResponse(user);
+    }),
+
+  /**
+   * Delete a user
+   *
+   * REST: DELETE /users/:id
+   * tRPC: users.deleteUser({ id: "..." })
+   */
+  deleteUser: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb(ctx);
+      await db.user.delete({ where: { id: input.id } });
+      return { success: true };
     }),
 });
 

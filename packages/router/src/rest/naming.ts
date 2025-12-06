@@ -44,20 +44,21 @@ interface NamingPattern {
 // ============================================================================
 
 /**
- * MVP (v0.1.0) naming patterns - GET and POST only
+ * REST naming patterns - Full verb support
  *
  * Pattern matching is done by prefix:
- * - get<Resource>    -> GET /:id    (single resource)
- * - list<Resources>  -> GET /       (collection)
- * - find<Resource>   -> GET /       (search/filter)
- * - create<Resource> -> POST /      (create new)
- * - add<Resource>    -> POST /      (alias for create)
- *
- * v1.1+ will add:
- * - update<Resource> -> PUT /:id
- * - delete<Resource> -> DELETE /:id
+ * - get<Resource>    -> GET /:id     (single resource)
+ * - list<Resources>  -> GET /        (collection)
+ * - find<Resource>   -> GET /        (search/filter)
+ * - create<Resource> -> POST /       (create new)
+ * - add<Resource>    -> POST /       (alias for create)
+ * - update<Resource> -> PUT /:id     (full update)
+ * - edit<Resource>   -> PUT /:id     (alias for update)
+ * - patch<Resource>  -> PATCH /:id   (partial update)
+ * - delete<Resource> -> DELETE /:id  (remove resource)
+ * - remove<Resource> -> DELETE /:id  (alias for delete)
  */
-const MVP_NAMING_PATTERNS: readonly NamingPattern[] = [
+const NAMING_PATTERNS: readonly NamingPattern[] = [
   // GET with ID - single resource retrieval
   {
     pattern: /^get([A-Z][a-zA-Z]*)$/,
@@ -93,6 +94,41 @@ const MVP_NAMING_PATTERNS: readonly NamingPattern[] = [
     hasIdParam: false,
     procedureType: 'mutation',
   },
+  // PUT - full update
+  {
+    pattern: /^update([A-Z][a-zA-Z]*)$/,
+    method: 'PUT',
+    hasIdParam: true,
+    procedureType: 'mutation',
+  },
+  // PUT - edit resource (alias)
+  {
+    pattern: /^edit([A-Z][a-zA-Z]*)$/,
+    method: 'PUT',
+    hasIdParam: true,
+    procedureType: 'mutation',
+  },
+  // PATCH - partial update
+  {
+    pattern: /^patch([A-Z][a-zA-Z]*)$/,
+    method: 'PATCH',
+    hasIdParam: true,
+    procedureType: 'mutation',
+  },
+  // DELETE - remove resource
+  {
+    pattern: /^delete([A-Z][a-zA-Z]*)$/,
+    method: 'DELETE',
+    hasIdParam: true,
+    procedureType: 'mutation',
+  },
+  // DELETE - remove resource (alias)
+  {
+    pattern: /^remove([A-Z][a-zA-Z]*)$/,
+    method: 'DELETE',
+    hasIdParam: true,
+    procedureType: 'mutation',
+  },
 ] as const;
 
 // ============================================================================
@@ -122,7 +158,7 @@ const MVP_NAMING_PATTERNS: readonly NamingPattern[] = [
  * ```
  */
 export function parseNamingConvention(name: string, type: ProcedureType): RestMapping | undefined {
-  for (const pattern of MVP_NAMING_PATTERNS) {
+  for (const pattern of NAMING_PATTERNS) {
     // Check if procedure type matches
     if (pattern.procedureType !== type) {
       continue;
@@ -185,7 +221,7 @@ export function buildRestPath(namespace: string, mapping: RestMapping): string {
  * ```
  */
 export function inferResourceName(name: string): string | undefined {
-  for (const pattern of MVP_NAMING_PATTERNS) {
+  for (const pattern of NAMING_PATTERNS) {
     const match = pattern.pattern.exec(name);
     if (match) {
       return match[1];

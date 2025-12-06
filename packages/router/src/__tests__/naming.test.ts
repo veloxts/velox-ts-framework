@@ -10,7 +10,7 @@ import {
   followsNamingConvention,
   inferResourceName,
   parseNamingConvention,
-} from '../rest/naming.js';
+} from '../rest';
 
 describe('parseNamingConvention', () => {
   describe('GET with ID - single resource', () => {
@@ -149,6 +149,136 @@ describe('parseNamingConvention', () => {
     });
   });
 
+  describe('PUT - full update', () => {
+    it('should parse updateX pattern', () => {
+      const result = parseNamingConvention('updateUser', 'mutation');
+
+      expect(result).toEqual({
+        method: 'PUT',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should parse update with camelCase names', () => {
+      expect(parseNamingConvention('updateUserProfile', 'mutation')).toEqual({
+        method: 'PUT',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should reject update pattern for queries', () => {
+      const result = parseNamingConvention('updateUser', 'query');
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('PUT - edit resource (alias)', () => {
+    it('should parse editX pattern', () => {
+      const result = parseNamingConvention('editUser', 'mutation');
+
+      expect(result).toEqual({
+        method: 'PUT',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should parse edit with camelCase names', () => {
+      expect(parseNamingConvention('editUserSettings', 'mutation')).toEqual({
+        method: 'PUT',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should reject edit pattern for queries', () => {
+      const result = parseNamingConvention('editUser', 'query');
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('PATCH - partial update', () => {
+    it('should parse patchX pattern', () => {
+      const result = parseNamingConvention('patchUser', 'mutation');
+
+      expect(result).toEqual({
+        method: 'PATCH',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should parse patch with camelCase names', () => {
+      expect(parseNamingConvention('patchUserEmail', 'mutation')).toEqual({
+        method: 'PATCH',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should reject patch pattern for queries', () => {
+      const result = parseNamingConvention('patchUser', 'query');
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('DELETE - remove resource', () => {
+    it('should parse deleteX pattern', () => {
+      const result = parseNamingConvention('deleteUser', 'mutation');
+
+      expect(result).toEqual({
+        method: 'DELETE',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should parse delete with camelCase names', () => {
+      expect(parseNamingConvention('deleteUserAccount', 'mutation')).toEqual({
+        method: 'DELETE',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should reject delete pattern for queries', () => {
+      const result = parseNamingConvention('deleteUser', 'query');
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('DELETE - remove resource (alias)', () => {
+    it('should parse removeX pattern', () => {
+      const result = parseNamingConvention('removeUser', 'mutation');
+
+      expect(result).toEqual({
+        method: 'DELETE',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should parse remove with camelCase names', () => {
+      expect(parseNamingConvention('removeTeamMember', 'mutation')).toEqual({
+        method: 'DELETE',
+        path: '/:id',
+        hasIdParam: true,
+      });
+    });
+
+    it('should reject remove pattern for queries', () => {
+      const result = parseNamingConvention('removeUser', 'query');
+
+      expect(result).toBeUndefined();
+    });
+  });
+
   describe('Unknown patterns', () => {
     it('should return undefined for unknown query patterns', () => {
       expect(parseNamingConvention('fetchUser', 'query')).toBeUndefined();
@@ -157,14 +287,15 @@ describe('parseNamingConvention', () => {
     });
 
     it('should return undefined for unknown mutation patterns', () => {
-      expect(parseNamingConvention('updateUser', 'mutation')).toBeUndefined();
-      expect(parseNamingConvention('deleteUser', 'mutation')).toBeUndefined();
       expect(parseNamingConvention('saveUser', 'mutation')).toBeUndefined();
+      expect(parseNamingConvention('modifyUser', 'mutation')).toBeUndefined();
+      expect(parseNamingConvention('destroyUser', 'mutation')).toBeUndefined();
     });
 
     it('should return undefined for lowercase prefixes', () => {
       expect(parseNamingConvention('getuser', 'query')).toBeUndefined();
       expect(parseNamingConvention('createuser', 'mutation')).toBeUndefined();
+      expect(parseNamingConvention('updateuser', 'mutation')).toBeUndefined();
     });
 
     it('should return undefined for non-prefixed names', () => {
@@ -277,6 +408,31 @@ describe('inferResourceName', () => {
     expect(inferResourceName('addTeamMember')).toBe('TeamMember');
   });
 
+  it('should infer resource from update pattern', () => {
+    expect(inferResourceName('updateUser')).toBe('User');
+    expect(inferResourceName('updateUserProfile')).toBe('UserProfile');
+  });
+
+  it('should infer resource from edit pattern', () => {
+    expect(inferResourceName('editUser')).toBe('User');
+    expect(inferResourceName('editSettings')).toBe('Settings');
+  });
+
+  it('should infer resource from patch pattern', () => {
+    expect(inferResourceName('patchUser')).toBe('User');
+    expect(inferResourceName('patchUserEmail')).toBe('UserEmail');
+  });
+
+  it('should infer resource from delete pattern', () => {
+    expect(inferResourceName('deleteUser')).toBe('User');
+    expect(inferResourceName('deleteUserAccount')).toBe('UserAccount');
+  });
+
+  it('should infer resource from remove pattern', () => {
+    expect(inferResourceName('removeUser')).toBe('User');
+    expect(inferResourceName('removeTeamMember')).toBe('TeamMember');
+  });
+
   it('should return undefined for unknown patterns', () => {
     expect(inferResourceName('fetchUser')).toBeUndefined();
     expect(inferResourceName('doSomething')).toBeUndefined();
@@ -303,11 +459,16 @@ describe('followsNamingConvention', () => {
   it('should return true for valid mutation conventions', () => {
     expect(followsNamingConvention('createUser', 'mutation')).toBe(true);
     expect(followsNamingConvention('addUser', 'mutation')).toBe(true);
+    expect(followsNamingConvention('updateUser', 'mutation')).toBe(true);
+    expect(followsNamingConvention('editUser', 'mutation')).toBe(true);
+    expect(followsNamingConvention('patchUser', 'mutation')).toBe(true);
+    expect(followsNamingConvention('deleteUser', 'mutation')).toBe(true);
+    expect(followsNamingConvention('removeUser', 'mutation')).toBe(true);
   });
 
   it('should return false for invalid conventions', () => {
     expect(followsNamingConvention('fetchUser', 'query')).toBe(false);
-    expect(followsNamingConvention('updateUser', 'mutation')).toBe(false);
+    expect(followsNamingConvention('saveUser', 'mutation')).toBe(false);
     expect(followsNamingConvention('doSomething', 'query')).toBe(false);
   });
 

@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineProcedures, procedure } from '../procedure/builder.js';
-import { generateRestRoutes, getRouteSummary, registerRestRoutes } from '../rest/adapter.js';
+import { generateRestRoutes, getRouteSummary, registerRestRoutes } from '../rest';
 
 describe('generateRestRoutes', () => {
   it('should generate routes from naming conventions', () => {
@@ -96,6 +96,18 @@ describe('generateRestRoutes', () => {
     expect(routes[0].path).toBe('/users/:userId');
   });
 
+  it('should skip route generation for partial override without convention match', () => {
+    const collection = defineProcedures('users', {
+      customAction: procedure()
+        .rest({ method: 'POST' })
+        .query(async () => ({ result: 'ok' })),
+    });
+
+    const routes = generateRestRoutes(collection);
+
+    expect(routes).toHaveLength(0);
+  });
+
   it('should handle empty procedure collection', () => {
     const collection = defineProcedures('empty', {});
 
@@ -118,6 +130,58 @@ describe('generateRestRoutes', () => {
     expect(routes).toHaveLength(5);
     expect(routes.filter((r) => r.method === 'GET')).toHaveLength(3);
     expect(routes.filter((r) => r.method === 'POST')).toHaveLength(2);
+  });
+
+  it('should generate PUT routes for update patterns', () => {
+    const collection = defineProcedures('users', {
+      updateUser: procedure()
+        .input(z.object({ id: z.string(), name: z.string() }))
+        .mutation(async ({ input }) => ({ id: input.id, name: input.name })),
+      editUser: procedure()
+        .input(z.object({ id: z.string(), email: z.string() }))
+        .mutation(async ({ input }) => ({ id: input.id, email: input.email })),
+    });
+
+    const routes = generateRestRoutes(collection);
+
+    expect(routes).toHaveLength(2);
+    expect(routes[0].method).toBe('PUT');
+    expect(routes[0].path).toBe('/users/:id');
+    expect(routes[1].method).toBe('PUT');
+    expect(routes[1].path).toBe('/users/:id');
+  });
+
+  it('should generate PATCH routes for patch pattern', () => {
+    const collection = defineProcedures('users', {
+      patchUser: procedure()
+        .input(z.object({ id: z.string(), email: z.string().optional() }))
+        .mutation(async ({ input }) => ({ id: input.id })),
+    });
+
+    const routes = generateRestRoutes(collection);
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0].method).toBe('PATCH');
+    expect(routes[0].path).toBe('/users/:id');
+  });
+
+  it('should generate DELETE routes for delete patterns', () => {
+    const collection = defineProcedures('users', {
+      deleteUser: procedure()
+        .input(z.object({ id: z.string() }))
+        .mutation(async () => ({ deleted: true })),
+      removeUser: procedure()
+        .input(z.object({ id: z.string() }))
+        .mutation(async () => ({ removed: true })),
+    });
+
+    const routes = generateRestRoutes(collection);
+
+    expect(routes).toHaveLength(2);
+    expect(routes[0].method).toBe('DELETE');
+    expect(routes[0].path).toBe('/users/:id');
+    expect(routes[1].method).toBe('DELETE');
+    expect(routes[1].path).toBe('/users/:id');
   });
 });
 
@@ -466,6 +530,117 @@ describe('registerRestRoutes - Integration', () => {
 
     expect(response.statusCode).toBe(404);
   });
+
+  it('should register PUT route and merge params with body', async () => {
+    const collection = defineProcedures('users', {
+      updateUser: procedure()
+        .input(z.object({ id: z.string(), name: z.string(), email: z.string() }))
+        .mutation(async ({ input }) => ({
+          id: input.id,
+          name: input.name,
+          email: input.email,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'PUT',
+      url: '/api/users/123',
+      payload: { name: 'John Updated', email: 'john@updated.com' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      id: '123',
+      name: 'John Updated',
+      email: 'john@updated.com',
+    });
+  });
+
+  it('should register PATCH route and merge params with body', async () => {
+    const collection = defineProcedures('users', {
+      patchUser: procedure()
+        .input(z.object({ id: z.string(), email: z.string().optional() }))
+        .mutation(async ({ input }) => ({
+          id: input.id,
+          email: input.email,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'PATCH',
+      url: '/api/users/456',
+      payload: { email: 'patched@example.com' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      id: '456',
+      email: 'patched@example.com',
+    });
+  });
+
+  it('should register DELETE route and return 204 for null result', async () => {
+    const collection = defineProcedures('users', {
+      deleteUser: procedure()
+        .input(z.object({ id: z.string() }))
+        .mutation(async () => null),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'DELETE',
+      url: '/api/users/789',
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.body).toBe('');
+  });
+
+  it('should register DELETE route and return 200 with data', async () => {
+    const collection = defineProcedures('users', {
+      deleteUser: procedure()
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input }) => ({ id: input.id, deleted: true })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'DELETE',
+      url: '/api/users/789',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ id: '789', deleted: true });
+  });
+
+  it('should return 201 for add pattern (POST alias)', async () => {
+    const collection = defineProcedures('users', {
+      addUser: procedure()
+        .input(z.object({ name: z.string() }))
+        .mutation(async ({ input }) => ({ id: 'new', name: input.name })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'POST',
+      url: '/api/users',
+      payload: { name: 'Added User' },
+    });
+
+    expect(response.statusCode).toBe(201);
+  });
 });
 
 describe('Input gathering', () => {
@@ -562,6 +737,112 @@ describe('Input gathering', () => {
     expect(response.json()).toEqual({
       id: '123',
       fields: 'name,email',
+    });
+  });
+
+  it('should merge params and query for DELETE', async () => {
+    const collection = defineProcedures('users', {
+      deleteUser: procedure()
+        .input(
+          z.object({
+            id: z.string(),
+            force: z.coerce.boolean().optional(),
+          })
+        )
+        .mutation(async ({ input }) => ({
+          id: input.id,
+          force: input.force,
+          deleted: true,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'DELETE',
+      url: '/api/users/456?force=true',
+    });
+
+    expect(response.json()).toEqual({
+      id: '456',
+      force: true,
+      deleted: true,
+    });
+  });
+
+  it('should use body only for POST', async () => {
+    const collection = defineProcedures('users', {
+      createUser: procedure()
+        .input(z.object({ name: z.string(), email: z.string() }))
+        .mutation(async ({ input }) => ({
+          name: input.name,
+          email: input.email,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'POST',
+      url: '/api/users',
+      payload: { name: 'Test', email: 'test@example.com' },
+    });
+
+    expect(response.json()).toEqual({
+      name: 'Test',
+      email: 'test@example.com',
+    });
+  });
+
+  it('should merge params and body for PUT', async () => {
+    const collection = defineProcedures('users', {
+      updateUser: procedure()
+        .input(z.object({ id: z.string(), name: z.string() }))
+        .mutation(async ({ input }) => ({
+          id: input.id,
+          name: input.name,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'PUT',
+      url: '/api/users/999',
+      payload: { name: 'Updated Name' },
+    });
+
+    expect(response.json()).toEqual({
+      id: '999',
+      name: 'Updated Name',
+    });
+  });
+
+  it('should merge params and body for PATCH', async () => {
+    const collection = defineProcedures('users', {
+      patchUser: procedure()
+        .input(z.object({ id: z.string(), status: z.string() }))
+        .mutation(async ({ input }) => ({
+          id: input.id,
+          status: input.status,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'PATCH',
+      url: '/api/users/888',
+      payload: { status: 'active' },
+    });
+
+    expect(response.json()).toEqual({
+      id: '888',
+      status: 'active',
     });
   });
 });

@@ -158,14 +158,17 @@ Type inference flows through the procedure chain automatically.
 #### REST Adapter Pattern
 REST endpoints are auto-generated from procedure naming conventions:
 
-**MVP (v0.1.0) - GET and POST only:**
-- `getUser` → `GET /users/:id`
-- `listUsers` → `GET /users`
-- `createUser` → `POST /users`
-
-**v1.1+ - Full REST:**
-- `updateUser` → `PUT /users/:id`
-- `deleteUser` → `DELETE /users/:id`
+**Supported naming patterns:**
+- `getUser` / `get*` → `GET /users/:id` (single resource)
+- `listUsers` / `list*` → `GET /users` (collection)
+- `findUser` / `find*` → `GET /users` (search/filter)
+- `createUser` / `create*` → `POST /users` (201 Created)
+- `addUser` / `add*` → `POST /users` (201 Created)
+- `updateUser` / `update*` → `PUT /users/:id` (full update)
+- `editUser` / `edit*` → `PUT /users/:id` (full update)
+- `patchUser` / `patch*` → `PATCH /users/:id` (partial update)
+- `deleteUser` / `delete*` → `DELETE /users/:id` (200/204)
+- `removeUser` / `remove*` → `DELETE /users/:id` (200/204)
 
 Manual overrides available via `.rest()` method.
 
@@ -195,7 +198,7 @@ Currently building toward MVP with these constraints:
 - Monorepo infrastructure (pnpm + Turborepo + Changesets)
 - `@veloxts/core` - Basic Fastify wrapper with simplified plugin system
 - `@veloxts/validation` - Zod integration
-- `@veloxts/router` - Procedure API with tRPC + REST adapter (GET/POST only)
+- `@veloxts/router` - Procedure API with tRPC + REST adapter (full REST verb support)
 - `@veloxts/orm` - Prisma client wrapper (manual migrations)
 - `@veloxts/client` - Type-safe API client for frontend
 - `@veloxts/cli` - Basic commands (`velox dev`, `velox migrate`)
@@ -203,7 +206,6 @@ Currently building toward MVP with these constraints:
 
 ### Deferred to v1.1+
 - Authentication system (`@veloxts/auth`)
-- Full REST verbs (PUT, PATCH, DELETE)
 - Nested resource routing
 - Full DI container with decorators
 - Code generators

@@ -133,8 +133,24 @@ const userProcedures = defineProcedures('users', {
       return ctx.db.user.create({ data: input });
     }),
 
-  // Update user (v1.1+ - PUT endpoint)
+  // PUT /api/users/:id - Full update
   updateUser: procedure()
+    .input(z.object({
+      id: z.string().uuid(),
+      name: z.string().min(1),
+      email: z.string().email(),
+    }))
+    .output(UserSchema)
+    .mutation(async ({ input, ctx }) => {
+      const { id, ...data } = input;
+      return ctx.db.user.update({
+        where: { id },
+        data,
+      });
+    }),
+
+  // PATCH /api/users/:id - Partial update
+  patchUser: procedure()
     .input(z.object({
       id: z.string().uuid(),
       name: z.string().min(1).optional(),
@@ -148,6 +164,15 @@ const userProcedures = defineProcedures('users', {
         data,
       });
     }),
+
+  // DELETE /api/users/:id
+  deleteUser: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db.user.delete({ where: { id: input.id } });
+      return { success: true };
+    }),
 });
 ```
 
@@ -155,21 +180,35 @@ const userProcedures = defineProcedures('users', {
 
 VeloxTS automatically generates REST endpoints from procedure names using **naming conventions**:
 
-### MVP (v0.1.0) - GET and POST
+### Supported Naming Patterns
 
-| Procedure Name | HTTP Method | REST Path | Notes |
-|---------------|-------------|-----------|-------|
-| `getUser` | GET | `/users/:id` | Single resource |
-| `listUsers` | GET | `/users` | Collection |
-| `createUser` | POST | `/users` | Create resource |
+| Procedure Name | HTTP Method | REST Path | Status Code | Notes |
+|---------------|-------------|-----------|-------------|-------|
+| `getUser` | GET | `/users/:id` | 200 | Single resource |
+| `listUsers` | GET | `/users` | 200 | Collection |
+| `findUsers` | GET | `/users` | 200 | Search/filter |
+| `createUser` | POST | `/users` | 201 | Create resource |
+| `addUser` | POST | `/users` | 201 | Create resource |
+| `updateUser` | PUT | `/users/:id` | 200 | Full update |
+| `editUser` | PUT | `/users/:id` | 200 | Full update |
+| `patchUser` | PATCH | `/users/:id` | 200 | Partial update |
+| `deleteUser` | DELETE | `/users/:id` | 200/204 | Delete resource |
+| `removeUser` | DELETE | `/users/:id` | 200/204 | Delete resource |
 
-### v1.1+ - Full REST Support
+### Input Gathering
 
-| Procedure Name | HTTP Method | REST Path |
-|---------------|-------------|-----------|
-| `updateUser` | PUT | `/users/:id` |
-| `patchUser` | PATCH | `/users/:id` |
-| `deleteUser` | DELETE | `/users/:id` |
+Different HTTP methods gather inputs from different request parts:
+
+- **GET/DELETE**: `params` (route parameters) + `query` (query string)
+- **POST**: `body` only
+- **PUT/PATCH**: `params` (route parameters) + `body`
+
+### Status Codes
+
+- **GET**: 200 OK
+- **POST**: 201 Created
+- **PUT/PATCH**: 200 OK
+- **DELETE**: 200 OK (with response body) or 204 No Content (if handler returns null)
 
 ### Custom REST Paths
 
@@ -461,8 +500,27 @@ export const userProcedures = defineProcedures('users', {
       return ctx.db.user.create({ data: input });
     }),
 
-  // PUT /users/:id (v1.1+)
-  // DELETE /users/:id (v1.1+)
+  // PUT /users/:id
+  updateUser: procedure()
+    .input(z.object({
+      id: z.string().uuid(),
+      name: z.string().min(1).max(100),
+      email: z.string().email(),
+    }))
+    .output(UserSchema)
+    .mutation(async ({ input, ctx }) => {
+      const { id, ...data } = input;
+      return ctx.db.user.update({ where: { id }, data });
+    }),
+
+  // DELETE /users/:id
+  deleteUser: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db.user.delete({ where: { id: input.id } });
+      return { success: true };
+    }),
 });
 ```
 
@@ -613,21 +671,20 @@ await registerRestRoutes(app.server, {
 // Generates: GET /api/v1/users/:id
 ```
 
-## MVP Limitations
-
-The current v0.1.0 release supports:
+## Current Features
 
 **Included:**
 - Query procedures (GET)
-- Mutation procedures (POST)
+- Mutation procedures (POST, PUT, PATCH, DELETE)
+- Full REST verb support with smart input gathering
+- Proper HTTP status codes (201, 204, etc.)
 - Input/output validation with Zod
 - Naming convention-based REST mapping
 - Custom REST path overrides
 - tRPC adapter for type-safe internal calls
 - Middleware support
 
-**Deferred to v1.1+:**
-- Full REST verbs (PUT, PATCH, DELETE)
+**Planned for Future Releases:**
 - Nested resource routing
 - OpenAPI/Swagger documentation generation
 - Rate limiting middleware

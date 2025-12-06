@@ -440,7 +440,7 @@ export function generateUserProcedures(): string {
 
 import { defineProcedures, procedure, paginationInputSchema, z } from '@veloxts/velox';
 
-import { CreateUserInput, UserSchema } from '../schemas/user.js';
+import { CreateUserInput, UpdateUserInput, UserSchema } from '../schemas/user.js';
 
 // Database types
 interface DbUser {
@@ -456,6 +456,8 @@ interface DbClient {
     findUnique: (args: { where: { id: string } }) => Promise<DbUser | null>;
     findMany: (args?: { skip?: number; take?: number }) => Promise<DbUser[]>;
     create: (args: { data: { name: string; email: string } }) => Promise<DbUser>;
+    update: (args: { where: { id: string }; data: { name?: string; email?: string } }) => Promise<DbUser>;
+    delete: (args: { where: { id: string } }) => Promise<DbUser>;
     count: () => Promise<number>;
   };
 }
@@ -521,6 +523,35 @@ export const userProcedures = defineProcedures('users', {
       const user = await db.user.create({ data: input });
       return toUserResponse(user);
     }),
+
+  updateUser: procedure()
+    .input(z.object({ id: z.string().uuid() }).merge(UpdateUserInput))
+    .output(UserSchema)
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb(ctx);
+      const { id, ...data } = input;
+      const user = await db.user.update({ where: { id }, data });
+      return toUserResponse(user);
+    }),
+
+  patchUser: procedure()
+    .input(z.object({ id: z.string().uuid() }).merge(UpdateUserInput))
+    .output(UserSchema)
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb(ctx);
+      const { id, ...data } = input;
+      const user = await db.user.update({ where: { id }, data });
+      return toUserResponse(user);
+    }),
+
+  deleteUser: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb(ctx);
+      await db.user.delete({ where: { id: input.id } });
+      return { success: true };
+    }),
 });
 `;
 }
@@ -557,6 +588,13 @@ export const CreateUserInput = z.object({
 });
 
 export type CreateUserData = z.infer<typeof CreateUserInput>;
+
+export const UpdateUserInput = z.object({
+  name: z.string().min(1).max(100).optional(),
+  email: emailSchema.optional(),
+});
+
+export type UpdateUserData = z.infer<typeof UpdateUserInput>;
 `;
 }
 
@@ -644,20 +682,26 @@ public/              # Static files served at /
 
 Procedure names automatically map to HTTP methods and routes:
 
-| Procedure Name | HTTP Method | Route |
-|----------------|-------------|-------|
-| \`getUser\` | GET | \`/users/:id\` |
-| \`listUsers\` | GET | \`/users\` |
-| \`createUser\` | POST | \`/users\` |
-| \`updateUser\` | PUT | \`/users/:id\` |
-| \`deleteUser\` | DELETE | \`/users/:id\` |
+| Procedure Name | HTTP Method | Route | Status Code |
+|----------------|-------------|-------|-------------|
+| \`getUser\` | GET | \`/users/:id\` | 200 |
+| \`listUsers\` | GET | \`/users\` | 200 |
+| \`findUsers\` | GET | \`/users\` | 200 |
+| \`createUser\` | POST | \`/users\` | 201 |
+| \`addUser\` | POST | \`/users\` | 201 |
+| \`updateUser\` | PUT | \`/users/:id\` | 200 |
+| \`editUser\` | PUT | \`/users/:id\` | 200 |
+| \`patchUser\` | PATCH | \`/users/:id\` | 200 |
+| \`deleteUser\` | DELETE | \`/users/:id\` | 200/204 |
+| \`removeUser\` | DELETE | \`/users/:id\` | 200/204 |
 
 **Pattern rules:**
-- \`get*\` → GET with ID parameter
-- \`list*\` / \`find*\` → GET collection
-- \`create*\` → POST
-- \`update*\` → PUT with ID parameter
-- \`delete*\` / \`remove*\` → DELETE with ID parameter
+- \`get*\` → GET with ID parameter (single resource)
+- \`list*\` / \`find*\` → GET collection (no ID)
+- \`create*\` / \`add*\` → POST (201 Created)
+- \`update*\` / \`edit*\` → PUT with ID parameter (full update)
+- \`patch*\` → PATCH with ID parameter (partial update)
+- \`delete*\` / \`remove*\` → DELETE with ID parameter (200 OK or 204 No Content)
 
 ## Creating a New Procedure
 
