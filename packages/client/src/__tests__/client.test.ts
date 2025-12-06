@@ -786,4 +786,322 @@ describe('createClient', () => {
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
+
+  describe('additional naming conventions', () => {
+    it('should use POST for addX procedures', async () => {
+      const mockFetch = createMockFetch([{ status: 201, body: { id: '123' } }]);
+
+      const client = createClient<{
+        items: {
+          procedures: {
+            addItem: { inputSchema: { parse: (i: unknown) => { name: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.items.addItem({ name: 'New Item' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/items',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('should use PUT for editX procedures', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { id: '123' } }]);
+
+      const client = createClient<{
+        items: {
+          procedures: {
+            editItem: { inputSchema: { parse: (i: unknown) => { id: string; name: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.items.editItem({ id: '123', name: 'Edited' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/items'),
+        expect.objectContaining({ method: 'PUT' })
+      );
+    });
+
+    it('should use PATCH for patchX procedures', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { id: '123' } }]);
+
+      const client = createClient<{
+        users: {
+          procedures: {
+            patchUser: { inputSchema: { parse: (i: unknown) => { id: string; email?: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.users.patchUser({ id: '123', email: 'new@example.com' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/users'),
+        expect.objectContaining({ method: 'PATCH' })
+      );
+    });
+
+    it('should use DELETE for removeX procedures', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { success: true } }]);
+
+      const client = createClient<{
+        items: {
+          procedures: {
+            removeItem: { inputSchema: { parse: (i: unknown) => { id: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.items.removeItem({ id: '123' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/items'),
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+
+    it('should use GET for findX procedures', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        items: {
+          procedures: {
+            findItems: { inputSchema: { parse: (i: unknown) => { query?: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.items.findItems({ query: 'test' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/items'),
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should throw error for missing path parameter', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: {} }]);
+
+      const client = createClient<{
+        users: {
+          procedures: {
+            getUser: { inputSchema: { parse: (i: unknown) => { id?: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      // Missing required id parameter
+      await expect(client.users.getUser({})).rejects.toThrow('Missing path parameter: id');
+    });
+
+    it('should throw error for null path parameter', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: {} }]);
+
+      const client = createClient<{
+        users: {
+          procedures: {
+            getUser: { inputSchema: { parse: (i: unknown) => Record<string, unknown> } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      // Explicitly null id parameter
+      await expect(client.users.getUser({ id: null })).rejects.toThrow('Missing path parameter: id');
+    });
+
+    it('should handle malformed JSON response gracefully', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => {
+          throw new Error('Invalid JSON');
+        },
+        text: async () => 'Fallback text response',
+      });
+
+      const client = createClient<{
+        test: {
+          procedures: {
+            listData: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      const result = await client.test.listData({});
+
+      expect(result).toBe('Fallback text response');
+    });
+
+    it('should handle async interceptors', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { data: 'test' } }]);
+      const onRequest = vi.fn().mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+      const onResponse = vi.fn().mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+
+      const client = createClient<{
+        test: {
+          procedures: {
+            listData: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        onRequest,
+        onResponse,
+        fetch: mockFetch,
+      });
+
+      await client.test.listData({});
+
+      expect(onRequest).toHaveBeenCalled();
+      expect(onResponse).toHaveBeenCalled();
+    });
+
+    it('should handle async error interceptor', async () => {
+      const mockFetch = createMockFetch([
+        { status: 500, body: { error: 'ServerError', message: 'Error', statusCode: 500 } },
+      ]);
+      const onError = vi.fn().mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+
+      const client = createClient<{
+        test: {
+          procedures: {
+            listData: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        onError,
+        fetch: mockFetch,
+      });
+
+      await expect(client.test.listData({})).rejects.toThrow();
+
+      expect(onError).toHaveBeenCalled();
+    });
+
+    it('should handle GET request with no input', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        items: {
+          procedures: {
+            listItems: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      // Call with undefined/null input
+      await client.items.listItems(undefined as unknown as void);
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/items', expect.any(Object));
+    });
+
+    it('should handle network error with non-Error object', async () => {
+      // Mock fetch that throws a non-Error object (e.g., string, DOMException, etc.)
+      const mockFetch = vi.fn().mockRejectedValue('Network failure');
+
+      const client = createClient<{
+        test: {
+          procedures: {
+            listData: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await expect(client.test.listData({})).rejects.toThrow(NetworkError);
+    });
+
+    it('should handle DELETE request with path params and body', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { success: true } }]);
+
+      const client = createClient<{
+        posts: {
+          procedures: {
+            deletePost: {
+              inputSchema: { parse: (i: unknown) => { id: string; reason?: string } };
+            };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.posts.deletePost({ id: '123', reason: 'spam' });
+
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(options.body as string);
+
+      // id should be in URL, reason in body
+      expect(body).toEqual({ reason: 'spam' });
+    });
+
+    it('should handle PATCH request without path params', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { updated: true } }]);
+
+      const client = createClient<{
+        settings: {
+          procedures: {
+            patchSettings: { inputSchema: { parse: (i: unknown) => { theme: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.settings.patchSettings({ theme: 'dark' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/settings',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ theme: 'dark' }),
+        })
+      );
+    });
+  });
 });

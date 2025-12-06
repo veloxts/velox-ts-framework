@@ -21,10 +21,12 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {},
   "devDependencies": {
+    "@vitest/coverage-v8": "4.0.15",
     "typescript": "5.9.3",
     "vitest": "4.0.15"
   },

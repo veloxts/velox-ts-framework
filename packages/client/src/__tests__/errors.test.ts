@@ -404,5 +404,25 @@ describe('parseErrorResponse', () => {
 
       expect(error.message).toBe('Request failed with status 400');
     });
+
+    it('should handle array body', () => {
+      const response = createMockResponse(400);
+      const body = ['error1', 'error2'];
+
+      const error = parseErrorResponse(response, body, '/api/test', 'POST');
+
+      expect(error).toBeInstanceOf(VeloxClientError);
+      expect(error.message).toBe('Request failed with status 400');
+    });
+
+    it('should handle number body', () => {
+      const response = createMockResponse(500);
+      const body = 42;
+
+      const error = parseErrorResponse(response, body, '/api/test', 'GET');
+
+      expect(error).toBeInstanceOf(ServerError);
+      expect(error.message).toBe('Request failed with status 500');
+    });
   });
 });

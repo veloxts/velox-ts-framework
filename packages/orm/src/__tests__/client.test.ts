@@ -146,6 +146,38 @@ describe('createDatabase', () => {
       // Even on failure, state should be disconnected
       expect(db.isConnected).toBe(false);
     });
+
+    it('should handle non-Error rejection during disconnect', async () => {
+      const mockClient = createMockClient({
+        $disconnect: vi.fn().mockRejectedValue('non-error failure'),
+      });
+      const db = createDatabase({ client: mockClient });
+
+      await db.connect();
+      await expect(db.disconnect()).rejects.toThrow(
+        'Failed to disconnect from database: non-error failure'
+      );
+      // Even on failure, state should be disconnected
+      expect(db.isConnected).toBe(false);
+    });
+
+    it('should clear connectedAt even when disconnect fails', async () => {
+      const mockClient = createMockClient({
+        $disconnect: vi.fn().mockRejectedValue(new Error('Disconnect failed')),
+      });
+      const db = createDatabase({ client: mockClient });
+
+      await db.connect();
+      expect(db.status.connectedAt).toBeDefined();
+
+      try {
+        await db.disconnect();
+      } catch {
+        // Expected to throw
+      }
+
+      expect(db.status.connectedAt).toBeUndefined();
+    });
   });
 
   describe('client access', () => {
@@ -200,6 +232,50 @@ describe('createDatabase', () => {
 
       await db.disconnect();
       expect(db.status.connectedAt).toBeUndefined();
+    });
+
+    it('should maintain consistent status object reference when no state change', () => {
+      const mockClient = createMockClient();
+      const db = createDatabase({ client: mockClient });
+
+      const status1 = db.status;
+      const status2 = db.status;
+
+      // Should return same cached object when state hasn't changed
+      expect(status1).toBe(status2);
+    });
+
+    it('should update status object after state changes', async () => {
+      const mockClient = createMockClient();
+      const db = createDatabase({ client: mockClient });
+
+      const statusBeforeConnect = db.status;
+      await db.connect();
+      const statusAfterConnect = db.status;
+
+      // Status object should be different after connection
+      expect(statusBeforeConnect).not.toBe(statusAfterConnect);
+      expect(statusBeforeConnect.isConnected).toBe(false);
+      expect(statusAfterConnect.isConnected).toBe(true);
+    });
+
+    it('should reflect all connection states correctly', async () => {
+      const mockClient = createMockClient();
+      const db = createDatabase({ client: mockClient });
+
+      // Initial disconnected state
+      expect(db.status.state).toBe('disconnected');
+      expect(db.status.isConnected).toBe(false);
+
+      // Connected state
+      await db.connect();
+      expect(db.status.state).toBe('connected');
+      expect(db.status.isConnected).toBe(true);
+
+      // Disconnected state again
+      await db.disconnect();
+      expect(db.status.state).toBe('disconnected');
+      expect(db.status.isConnected).toBe(false);
     });
   });
 

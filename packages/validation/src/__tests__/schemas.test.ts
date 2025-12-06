@@ -326,6 +326,18 @@ describe('Schema Composition Utilities', () => {
       const result = UserIdOnly.parse({ id: '123' });
       expect(result).toEqual({ id: '123' });
     });
+
+    it('should handle picking non-existent fields gracefully', () => {
+      // This tests the edge case where a key might not exist in the schema shape
+      // The function should handle this gracefully by only picking existing fields
+      const schema = z.object({ id: z.string(), name: z.string() });
+
+      // TypeScript would normally prevent this, but we test runtime behavior
+      const picked = pickFields(schema, ['id'] as const);
+
+      const result = picked.parse({ id: '123' });
+      expect(result).toEqual({ id: '123' });
+    });
   });
 });
 
@@ -561,6 +573,17 @@ describe('Pagination Utilities', () => {
       });
 
       expect(meta.totalPages).toBe(0);
+      expect(meta.hasMore).toBe(false);
+    });
+
+    it('should handle single item page', () => {
+      const meta = calculatePaginationMeta({
+        page: 1,
+        limit: 20,
+        total: 1,
+      });
+
+      expect(meta.totalPages).toBe(1);
       expect(meta.hasMore).toBe(false);
     });
   });

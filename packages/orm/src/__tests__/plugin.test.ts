@@ -209,6 +209,117 @@ describe('createDatabasePlugin', () => {
         'Failed to disconnect database during shutdown'
       );
     });
+
+    it('should handle non-Error disconnect failures gracefully', async () => {
+      const mockClient = createMockClient({
+        $disconnect: vi.fn().mockRejectedValue('string error'),
+      });
+      const mockServer = createMockServer();
+      const plugin = createDatabasePlugin({ client: mockClient });
+
+      await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
+
+      // Should not throw even if disconnect fails with non-Error
+      await expect(mockServer._triggerHook('onClose')).resolves.not.toThrow();
+
+      // Verify error was logged with Error wrapper
+      expect(mockServer.log.error).toHaveBeenCalledWith(
+        expect.objectContaining({ err: expect.any(Error) }),
+        'Failed to disconnect database during shutdown'
+      );
+
+      // Verify the error was wrapped in a VeloxError by the Database wrapper
+      const errorCall = mockServer.log.error.mock.calls[0];
+      expect(errorCall[0].err.message).toContain('string error');
+    });
+
+    it('should handle non-Error object disconnect failures', async () => {
+      const mockClient = createMockClient({
+        $disconnect: vi.fn().mockRejectedValue({ code: 'CUSTOM_ERROR', details: 'Failed' }),
+      });
+      const mockServer = createMockServer();
+      const plugin = createDatabasePlugin({ client: mockClient });
+
+      await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
+
+      // Should not throw even if disconnect fails with non-Error object
+      await expect(mockServer._triggerHook('onClose')).resolves.not.toThrow();
+
+      // Verify error was logged with Error wrapper
+      expect(mockServer.log.error).toHaveBeenCalledWith(
+        expect.objectContaining({ err: expect.any(Error) }),
+        'Failed to disconnect database during shutdown'
+      );
+    });
+
+    it('should log info when database disconnects successfully', async () => {
+      const mockClient = createMockClient();
+      const mockServer = createMockServer();
+      const plugin = createDatabasePlugin({ client: mockClient });
+
+      await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
+
+      // Trigger onClose hook
+      await mockServer._triggerHook('onClose');
+
+      // Verify success was logged
+      expect(mockServer.log.info).toHaveBeenCalledWith(
+        'Database disconnected successfully during shutdown'
+      );
+    });
+
+    it('should not attempt disconnect if database was never connected', async () => {
+      const mockClient = createMockClient();
+      const mockServer = createMockServer();
+
+      // Create a new plugin but don't actually register it (connection won't happen)
+      // Instead, manually create the hook scenario
+      const plugin = createDatabasePlugin({ client: mockClient });
+
+      // Mock connect to fail, so database never becomes connected
+      mockClient.$connect = vi.fn().mockRejectedValue(new Error('Connection failed'));
+
+      let registrationFailed = false;
+      try {
+        await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
+      } catch {
+        registrationFailed = true;
+      }
+
+      expect(registrationFailed).toBe(true);
+
+      // Clear all previous calls
+      vi.clearAllMocks();
+
+      // Now trigger onClose - should not attempt disconnect since database never connected
+      await mockServer._triggerHook('onClose');
+
+      // Verify disconnect was not called
+      expect(mockClient.$disconnect).not.toHaveBeenCalled();
+    });
+
+    it('should not attempt disconnect if already disconnected before shutdown', async () => {
+      const mockClient = createMockClient();
+      const mockServer = createMockServer();
+      const plugin = createDatabasePlugin({ client: mockClient });
+
+      // Register successfully
+      await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
+      expect(mockClient.$connect).toHaveBeenCalledTimes(1);
+
+      // Now manually disconnect before shutdown
+      // Since the plugin creates its own database wrapper, we need to trigger the disconnect
+      // through the onClose hook first
+      await mockServer._triggerHook('onClose');
+      expect(mockClient.$disconnect).toHaveBeenCalledTimes(1);
+
+      // Clear mocks
+      vi.clearAllMocks();
+
+      // Trigger onClose again - should not attempt disconnect since already disconnected
+      await mockServer._triggerHook('onClose');
+      expect(mockClient.$disconnect).not.toHaveBeenCalled();
+    });
   });
 
   describe('error handling', () => {

@@ -163,6 +163,19 @@ describe('Validation Functions', () => {
       }
     });
 
+    it('should use custom error message with wrapped Schema', () => {
+      const schema = wrapSchema(z.string().email());
+      const input = 'invalid-email';
+
+      try {
+        validate(schema, input, 'Custom wrapped schema error');
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          expect(error.message).toBe('Custom wrapped schema error');
+        }
+      }
+    });
+
     it('should preserve transformation logic', () => {
       const schema = z
         .string()
@@ -245,6 +258,8 @@ describe('Schema Validators', () => {
 
       expect(typeof userValidator.validate).toBe('function');
       expect(typeof userValidator.safeValidate).toBe('function');
+      expect(typeof userValidator.parse).toBe('function');
+      expect(typeof userValidator.safeParse).toBe('function');
       expect(userValidator.schema).toBe(UserSchema);
     });
 
@@ -256,10 +271,24 @@ describe('Schema Validators', () => {
       expect(result).toBe('test@example.com');
     });
 
+    it('should parse successfully (new method)', () => {
+      const validator = createValidator(z.string().email());
+
+      const result = validator.parse('test@example.com');
+
+      expect(result).toBe('test@example.com');
+    });
+
     it('should throw on validation failure', () => {
       const validator = createValidator(z.string().email());
 
       expect(() => validator.validate('invalid')).toThrow(ValidationError);
+    });
+
+    it('should throw on parse failure (new method)', () => {
+      const validator = createValidator(z.string().email());
+
+      expect(() => validator.parse('invalid')).toThrow(ValidationError);
     });
 
     it('should safe validate successfully', () => {
@@ -273,10 +302,29 @@ describe('Schema Validators', () => {
       }
     });
 
+    it('should safe parse successfully (new method)', () => {
+      const validator = createValidator(z.number().positive());
+
+      const result = validator.safeParse(42);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toBe(42);
+      }
+    });
+
     it('should safe validate with error', () => {
       const validator = createValidator(z.number().positive());
 
       const result = validator.safeValidate(-5);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should safe parse with error (new method)', () => {
+      const validator = createValidator(z.number().positive());
+
+      const result = validator.safeParse(-5);
 
       expect(result.success).toBe(false);
     });
@@ -352,6 +400,43 @@ describe('Request Validation Helpers', () => {
       } catch (error) {
         if (error instanceof ValidationError) {
           expect(error.fields).toHaveProperty('data.nested.field');
+        }
+      }
+    });
+
+    it('should handle root-level validation errors (empty path)', () => {
+      // Create a schema with root-level refinement that can fail with empty path
+      const schema = z
+        .string()
+        .refine((val) => val.length > 5, { message: 'Too short', path: [] });
+
+      try {
+        validateAll({
+          input: [schema, 'hi'],
+        });
+        expect.fail('Should have thrown');
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          // Should have the error at the root level of 'input'
+          expect(error.fields).toHaveProperty('input');
+        }
+      }
+    });
+
+    it('should handle multiple errors with duplicate paths', () => {
+      const schema = z.object({
+        value: z.string().min(5).max(10),
+      });
+
+      try {
+        validateAll({
+          data: [schema, { value: 'a' }],
+        });
+        expect.fail('Should have thrown');
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          // Only first error for each path should be kept
+          expect(error.fields).toHaveProperty('data.value');
         }
       }
     });
