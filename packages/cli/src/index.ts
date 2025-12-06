@@ -17,10 +17,14 @@
  * ```
  */
 
-/**
- * CLI version (synchronized with package.json)
- */
-export const CLI_VERSION = '0.1.0';
+import { createRequire } from 'node:module';
+
+// Read version from package.json dynamically
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version: string };
+
+/** CLI package version */
+export const CLI_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 /**
  * Export command functions for programmatic usage

@@ -7,7 +7,14 @@
  * @note This package is a placeholder for MVP (v0.1.0)
  */
 
-export const AUTH_VERSION = '0.1.0';
+import { createRequire } from 'node:module';
+
+// Read version from package.json dynamically
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version: string };
+
+/** Auth package version */
+export const AUTH_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 /**
  * User interface for authenticated requests
@@ -21,7 +28,7 @@ export interface User {
 /**
  * Creates an authentication plugin for VeloxTS
  *
- * @param config - Authentication configuration
+ * @param _config
  * @returns Auth plugin
  *
  * @note Full implementation coming in v1.1+

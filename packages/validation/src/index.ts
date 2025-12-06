@@ -23,12 +23,18 @@
  * @module @veloxts/validation
  */
 
+import { createRequire } from 'node:module';
+
 // Re-export Zod for convenience
 // Users can import { z } from '@veloxts/validation' instead of installing zod separately
 export { ZodError, type ZodType, type ZodTypeDef, z } from 'zod';
 
-// Version constant
-export const VALIDATION_VERSION = '0.1.0' as const;
+// Read version from package.json dynamically
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version: string };
+
+/** Validation package version */
+export const VALIDATION_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // ============================================================================
 // Core Types

@@ -82,4 +82,11 @@ export type { ErrorResponse } from './errors.js';
 // Version
 // ============================================================================
 
-export const CLIENT_VERSION = '0.1.0';
+import { createRequire } from 'node:module';
+
+// Read version from package.json dynamically
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version: string };
+
+/** Client package version */
+export const CLIENT_VERSION: string = packageJson.version ?? '0.0.0-unknown';

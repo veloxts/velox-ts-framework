@@ -33,14 +33,18 @@
  * @module @veloxts/orm
  */
 
+import { createRequire } from 'node:module';
+
 // ============================================================================
 // Version
 // ============================================================================
 
-/**
- * Package version
- */
-export const ORM_VERSION = '0.1.0' as const;
+// Read version from package.json dynamically
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version: string };
+
+/** ORM package version */
+export const ORM_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // ============================================================================
 // Core Types

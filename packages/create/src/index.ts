@@ -39,7 +39,14 @@ import {
 // Constants
 // ============================================================================
 
-export const CREATE_VERSION = '0.3.1';
+import { createRequire } from 'node:module';
+
+// Read version from package.json dynamically
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version: string };
+
+/** Create-velox-app package version */
+export const CREATE_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // ============================================================================
 // Types
