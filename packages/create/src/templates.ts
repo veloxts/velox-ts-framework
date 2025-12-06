@@ -592,6 +592,141 @@ export function generateIndexHtml(): string {
 `;
 }
 
+// ============================================================================
+// AI Instructions (CLAUDE.md)
+// ============================================================================
+
+export function generateClaudeMd(projectName: string): string {
+  return `# CLAUDE.md
+
+This file provides guidance to Claude Code and other AI assistants when working with this VeloxTS project.
+
+## Project Overview
+
+**${projectName}** is a VeloxTS application - a TypeScript full-stack framework built on Fastify, tRPC, Prisma, and Zod.
+
+**Key Characteristics:**
+- Type safety without code generation (direct type imports)
+- Hybrid API: tRPC for internal, REST for external
+- Convention over configuration
+- Laravel-inspired developer experience
+
+## Commands
+
+\`\`\`bash
+pnpm dev          # Start development server with hot reload
+pnpm build        # Build for production
+pnpm start        # Run production server
+pnpm db:push      # Push database schema changes
+pnpm db:generate  # Regenerate Prisma client
+pnpm db:studio    # Open Prisma Studio GUI
+pnpm type-check   # Run TypeScript type checking
+\`\`\`
+
+## Project Structure
+
+\`\`\`
+src/
+├── config/          # Application configuration
+├── database/        # Prisma client setup
+├── procedures/      # API procedures (business logic)
+├── schemas/         # Zod validation schemas
+├── generated/       # Generated Prisma client (git-ignored)
+└── index.ts         # Application entry point
+
+prisma/
+└── schema.prisma    # Database schema
+
+public/              # Static files served at /
+\`\`\`
+
+## Procedure Naming Conventions
+
+Procedure names automatically map to HTTP methods and routes:
+
+| Procedure Name | HTTP Method | Route |
+|----------------|-------------|-------|
+| \`getUser\` | GET | \`/users/:id\` |
+| \`listUsers\` | GET | \`/users\` |
+| \`createUser\` | POST | \`/users\` |
+| \`updateUser\` | PUT | \`/users/:id\` |
+| \`deleteUser\` | DELETE | \`/users/:id\` |
+
+**Pattern rules:**
+- \`get*\` → GET with ID parameter
+- \`list*\` / \`find*\` → GET collection
+- \`create*\` → POST
+- \`update*\` → PUT with ID parameter
+- \`delete*\` / \`remove*\` → DELETE with ID parameter
+
+## Creating a New Procedure
+
+\`\`\`typescript
+// src/procedures/posts.ts
+import { defineProcedures, procedure, z } from '@veloxts/velox';
+
+export const postProcedures = defineProcedures('posts', {
+  // GET /api/posts/:id
+  getPost: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .output(PostSchema)
+    .query(async ({ input, ctx }) => {
+      return ctx.db.post.findUnique({ where: { id: input.id } });
+    }),
+
+  // POST /api/posts
+  createPost: procedure()
+    .input(CreatePostSchema)
+    .output(PostSchema)
+    .mutation(async ({ input, ctx }) => {
+      return ctx.db.post.create({ data: input });
+    }),
+});
+\`\`\`
+
+Then register in \`src/procedures/index.ts\` and add to collections in \`src/index.ts\`.
+
+## Type Safety
+
+VeloxTS provides end-to-end type safety without code generation:
+
+- **Zod schemas** define validation and infer TypeScript types
+- **Procedures** chain \`.input()\` and \`.output()\` for full type inference
+- **Context** provides typed access to database (\`ctx.db\`)
+- Import types directly: \`import type { User } from './schemas/user.js'\`
+
+## Database (Prisma)
+
+- Schema: \`prisma/schema.prisma\`
+- Config: \`prisma.config.ts\` (Prisma 7.x style)
+- Client: Generated to \`src/generated/prisma/\`
+- Access via context: \`ctx.db.user.findMany()\`
+
+After schema changes:
+\`\`\`bash
+pnpm db:push      # Apply changes to database
+pnpm db:generate  # Regenerate client types
+\`\`\`
+
+## Environment Variables
+
+Configured in \`.env\`:
+- \`DATABASE_URL\` - Database connection string
+- \`PORT\` - Server port (default: 3210)
+- \`HOST\` - Server host (default: 0.0.0.0)
+- \`NODE_ENV\` - Environment (development/production)
+- \`API_PREFIX\` - API route prefix (default: /api)
+
+## Code Style
+
+- Use Zod for all input/output validation
+- Keep procedures focused - one operation per procedure
+- Use descriptive names following conventions
+- Colocate schemas with their procedures when simple
+- Extract to \`src/schemas/\` when shared across procedures
+`;
+}
+
 export function generateReadme(projectName: string): string {
   return `# ${projectName}
 

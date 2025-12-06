@@ -14,6 +14,7 @@ import pc from 'picocolors';
 
 import type { ProjectTemplate } from './templates.js';
 import {
+  generateClaudeMd,
   generateConfigApp,
   generateConfigIndex,
   generateDatabaseIndex,
@@ -205,6 +206,7 @@ async function createProjectStructure(config: ProjectConfig): Promise<void> {
     await fs.writeFile(path.join(config.directory, '.env'), generateEnvExample());
     await fs.writeFile(path.join(config.directory, '.gitignore'), generateGitignore());
     await fs.writeFile(path.join(config.directory, 'README.md'), generateReadme(config.name));
+    await fs.writeFile(path.join(config.directory, 'CLAUDE.md'), generateClaudeMd(config.name));
 
     // Write Prisma files
     await fs.writeFile(
