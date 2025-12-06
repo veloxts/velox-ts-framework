@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.3.3
+
+### Patch Changes
+
+- 4ee103b: Full REST support PUT, PATCH and DELETE
+- Updated dependencies [4ee103b]
+  - @veloxts/auth@0.3.3
+  - @veloxts/core@0.3.3
+  - @veloxts/orm@0.3.3
+  - @veloxts/router@0.3.3
+  - @veloxts/validation@0.3.3
+
 ## 0.3.2
 
 ### Patch Changes
