@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.3.3
+
+### Patch Changes
+
+- 4ee103b: Full REST support PUT, PATCH and DELETE
+
 ## 0.3.2
 
 ### Patch Changes
