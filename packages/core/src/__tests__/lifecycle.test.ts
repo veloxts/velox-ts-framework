@@ -3,7 +3,7 @@
  * Tests shutdown handler management and signal handling
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { LifecycleManager } from '../utils/lifecycle.js';
 
@@ -179,6 +179,9 @@ describe('LifecycleManager - Unit Tests', () => {
     });
 
     it('should continue executing handlers even if one fails', async () => {
+      // Suppress expected console.error from lifecycle manager
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       const manager = new LifecycleManager();
       const executed: number[] = [];
 
@@ -196,6 +199,12 @@ describe('LifecycleManager - Unit Tests', () => {
       await manager.executeShutdownHandlers();
 
       expect(executed).toEqual([1, 2, 3]);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error during shutdown handler execution:',
+        expect.any(Error)
+      );
+
+      consoleSpy.mockRestore();
     });
 
     it('should not execute handlers multiple times during concurrent shutdown', async () => {

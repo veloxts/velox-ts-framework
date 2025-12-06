@@ -3,7 +3,7 @@
  * Tests routes(), onShutdown(), error handling edge cases, and app integration
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
 import { createVeloxApp } from '../app.js';
@@ -192,6 +192,9 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should continue shutdown even if handler fails', async () => {
+      // Suppress expected console.error from lifecycle manager
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       app = await createVeloxApp({ port: 0, logger: false });
 
       const executed: number[] = [];
@@ -213,6 +216,12 @@ describe('VeloxApp - Enhanced Features', () => {
       await app.stop();
 
       expect(executed).toEqual([1, 2, 3]);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error during shutdown handler execution:',
+        expect.any(Error)
+      );
+
+      consoleSpy.mockRestore();
     });
   });
 
@@ -245,6 +254,9 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should handle errors that occur in error handler (fallback)', async () => {
+      // Suppress expected console.error from error handler fallback
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       app = await createVeloxApp({ port: 0, logger: false });
 
       const plugin = definePlugin({
@@ -274,6 +286,12 @@ describe('VeloxApp - Enhanced Features', () => {
 
       // Should fall back to generic 500 error
       expect(response.statusCode).toBe(500);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Critical error in error handler:',
+        expect.any(Error)
+      );
+
+      consoleSpy.mockRestore();
     });
 
     it('should only log 5xx errors, not 4xx errors', async () => {
