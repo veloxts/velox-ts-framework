@@ -6,6 +6,38 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 // ============================================================================
+// Error Types
+// ============================================================================
+
+/**
+ * Authentication/Authorization error class
+ *
+ * Provides structured error information with HTTP status code and error code.
+ *
+ * @example
+ * ```typescript
+ * throw new AuthError('Token has expired', 401);
+ * throw new AuthError('Access denied', 403, 'FORBIDDEN');
+ * ```
+ */
+export class AuthError extends Error {
+  /** HTTP status code for the error response */
+  readonly statusCode: number;
+
+  /** Error code for programmatic error handling */
+  readonly code: string;
+
+  constructor(message: string, statusCode: number, code = 'AUTH_ERROR') {
+    super(message);
+    this.name = 'AuthError';
+    this.statusCode = statusCode;
+    this.code = code;
+    // Maintains proper stack trace for where error was thrown
+    Error.captureStackTrace?.(this, AuthError);
+  }
+}
+
+// ============================================================================
 // User Types
 // ============================================================================
 
@@ -49,6 +81,8 @@ export interface TokenPayload {
   iss?: string;
   /** Token audience */
   aud?: string;
+  /** Not before timestamp - token is invalid before this time */
+  nbf?: number;
   /** Additional claims */
   [key: string]: unknown;
 }

@@ -3,7 +3,7 @@
  * @module auth/jwt
  */
 
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 import type { JwtConfig, TokenPair, TokenPayload, User } from './types.js';
 
@@ -13,6 +13,22 @@ import type { JwtConfig, TokenPair, TokenPayload, User } from './types.js';
 
 const DEFAULT_ACCESS_EXPIRY = '15m';
 const DEFAULT_REFRESH_EXPIRY = '7d';
+
+/**
+ * Minimum JWT secret length (64 characters = 512 bits)
+ * HS256 requires at least 256 bits, but we require 512 for extra security margin
+ */
+const MIN_SECRET_LENGTH = 64;
+
+/**
+ * Minimum unique characters in secret for entropy validation
+ */
+const MIN_SECRET_ENTROPY_CHARS = 16;
+
+/**
+ * Reserved JWT claims that cannot be overridden via additionalClaims
+ */
+const RESERVED_JWT_CLAIMS = new Set(['sub', 'iss', 'aud', 'exp', 'iat', 'jti', 'nbf', 'type', 'email']);
 
 // ============================================================================
 // JWT Implementation
@@ -113,8 +129,21 @@ export class JwtManager {
     JwtConfig;
 
   constructor(config: JwtConfig) {
-    if (!config.secret || config.secret.length < 32) {
-      throw new Error('JWT secret must be at least 32 characters long');
+    // Validate secret length (Critical Fix #1)
+    if (!config.secret || config.secret.length < MIN_SECRET_LENGTH) {
+      throw new Error(
+        `JWT secret must be at least ${MIN_SECRET_LENGTH} characters long (512 bits). ` +
+          'Generate with: openssl rand -base64 64'
+      );
+    }
+
+    // Validate secret entropy - check for sufficient unique characters
+    const uniqueChars = new Set(config.secret).size;
+    if (uniqueChars < MIN_SECRET_ENTROPY_CHARS) {
+      throw new Error(
+        `JWT secret has insufficient entropy (only ${uniqueChars} unique characters). ` +
+          'Use cryptographically random data with at least 16 unique characters.'
+      );
     }
 
     this.config = {
@@ -169,26 +198,65 @@ export class JwtManager {
 
     const [encodedHeader, encodedPayload, signature] = parts;
 
-    // Verify signature
+    // Critical Fix #2: Validate algorithm BEFORE signature verification
+    // This prevents algorithm confusion attacks (CVE-2015-9235)
+    let header: { alg: string; typ: string };
+    try {
+      header = JSON.parse(base64urlDecode(encodedHeader)) as { alg: string; typ: string };
+    } catch {
+      throw new Error('Invalid token header');
+    }
+
+    // Only allow HS256 - reject "none", RS256, and other algorithms
+    if (header.alg !== 'HS256') {
+      throw new Error(`Invalid algorithm: ${header.alg}. Only HS256 is supported.`);
+    }
+
+    if (header.typ !== 'JWT') {
+      throw new Error('Invalid token type in header');
+    }
+
+    // Verify signature using timing-safe comparison to prevent timing attacks
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
     const expectedSignature = createSignature(signatureInput, this.config.secret);
 
-    if (signature !== expectedSignature) {
+    const sigBuffer = Buffer.from(signature, 'utf8');
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+
+    if (sigBuffer.length !== expectedBuffer.length || !timingSafeEqual(sigBuffer, expectedBuffer)) {
       throw new Error('Invalid token signature');
     }
 
     // Decode payload
     let payload: TokenPayload;
     try {
-      payload = JSON.parse(base64urlDecode(encodedPayload)) as TokenPayload;
-    } catch {
-      throw new Error('Invalid token payload');
+      const decoded = JSON.parse(base64urlDecode(encodedPayload)) as Record<string, unknown>;
+
+      // Validate required fields
+      if (
+        typeof decoded.sub !== 'string' ||
+        typeof decoded.email !== 'string' ||
+        typeof decoded.iat !== 'number' ||
+        typeof decoded.exp !== 'number' ||
+        (decoded.type !== 'access' && decoded.type !== 'refresh')
+      ) {
+        throw new Error('Missing required token fields');
+      }
+
+      payload = decoded as TokenPayload;
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Invalid token payload');
     }
 
     // Check expiration
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp < now) {
       throw new Error('Token has expired');
+    }
+
+    // Check not-before claim if present (Medium Fix #10)
+    if (typeof payload.nbf === 'number' && payload.nbf > now) {
+      throw new Error('Token not yet valid');
     }
 
     // Verify issuer if configured
@@ -206,8 +274,24 @@ export class JwtManager {
 
   /**
    * Creates an access/refresh token pair for a user
+   *
+   * @param user - The user to create tokens for
+   * @param additionalClaims - Custom claims to include (cannot override reserved claims)
+   * @throws Error if additionalClaims contains reserved JWT claims
    */
   createTokenPair(user: User, additionalClaims?: Record<string, unknown>): TokenPair {
+    // Critical Fix #3: Validate additionalClaims don't contain reserved claims
+    if (additionalClaims) {
+      for (const key of Object.keys(additionalClaims)) {
+        if (RESERVED_JWT_CLAIMS.has(key)) {
+          throw new Error(
+            `Cannot override reserved JWT claim: ${key}. ` +
+              `Reserved claims are: ${[...RESERVED_JWT_CLAIMS].join(', ')}`
+          );
+        }
+      }
+    }
+
     const tokenId = generateTokenId();
 
     const basePayload = {
@@ -316,4 +400,64 @@ export class JwtManager {
  */
 export function createJwtManager(config: JwtConfig): JwtManager {
   return new JwtManager(config);
+}
+
+// ============================================================================
+// Token Revocation Store (Critical Fix #4)
+// ============================================================================
+
+/**
+ * Token store interface for revocation management
+ */
+export interface TokenStore {
+  /** Revoke a token by its ID (jti) */
+  revoke: (tokenId: string) => void | Promise<void>;
+  /** Check if a token is revoked */
+  isRevoked: (tokenId: string) => boolean | Promise<boolean>;
+  /** Clear all revoked tokens (useful for testing) */
+  clear: () => void;
+}
+
+/**
+ * Creates an in-memory token store for development and testing
+ *
+ * ⚠️ WARNING: NOT suitable for production!
+ * - Does not persist across server restarts
+ * - Does not work across multiple server instances
+ * - No automatic cleanup of expired token IDs
+ *
+ * For production, use Redis or database-backed storage:
+ * - upstash/redis for serverless
+ * - ioredis for traditional servers
+ * - Database table for audit trail
+ *
+ * @example
+ * ```typescript
+ * // Development/Testing
+ * const tokenStore = createInMemoryTokenStore();
+ *
+ * const authConfig: AuthConfig = {
+ *   jwt: { secret: process.env.JWT_SECRET! },
+ *   isTokenRevoked: tokenStore.isRevoked,
+ * };
+ *
+ * // Revoke on logout
+ * app.post('/logout', async (req) => {
+ *   const tokenId = req.auth.token.jti;
+ *   tokenStore.revoke(tokenId);
+ * });
+ * ```
+ */
+export function createInMemoryTokenStore(): TokenStore {
+  const revokedTokens = new Set<string>();
+
+  return {
+    revoke: (tokenId: string) => {
+      revokedTokens.add(tokenId);
+    },
+    isRevoked: (tokenId: string) => revokedTokens.has(tokenId),
+    clear: () => {
+      revokedTokens.clear();
+    },
+  };
 }

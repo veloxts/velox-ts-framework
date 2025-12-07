@@ -15,7 +15,7 @@
 export { AUTH_VERSION } from './plugin.js';
 
 // ============================================================================
-// Types
+// Types and Errors
 // ============================================================================
 
 export type {
@@ -38,12 +38,20 @@ export type {
   // Core types
   User,
 } from './types.js';
+export { AuthError } from './types.js';
 
 // ============================================================================
 // JWT Authentication
 // ============================================================================
 
-export { createJwtManager, generateTokenId, JwtManager, parseTimeToSeconds } from './jwt.js';
+export type { TokenStore } from './jwt.js';
+export {
+  createInMemoryTokenStore,
+  createJwtManager,
+  generateTokenId,
+  JwtManager,
+  parseTimeToSeconds,
+} from './jwt.js';
 
 // ============================================================================
 // Password Hashing

@@ -8,13 +8,14 @@ import type { MiddlewareFunction } from '@veloxts/router';
 
 import { executeGuards } from './guards.js';
 import { JwtManager } from './jwt.js';
-import type {
-  AuthConfig,
-  AuthContext,
-  AuthMiddlewareOptions,
-  GuardDefinition,
-  TokenPayload,
-  User,
+import {
+  type AuthConfig,
+  type AuthContext,
+  AuthError,
+  type AuthMiddlewareOptions,
+  type GuardDefinition,
+  type TokenPayload,
+  type User,
 } from './types.js';
 
 // ============================================================================
@@ -94,7 +95,7 @@ export function createAuthMiddleware(config: AuthConfig) {
         }
 
         // Required auth - reject
-        throw createAuthError('Authorization header required', 401);
+        throw new AuthError('Authorization header required', 401);
       }
 
       // Verify token
@@ -119,14 +120,14 @@ export function createAuthMiddleware(config: AuthConfig) {
           });
         }
 
-        throw createAuthError(error instanceof Error ? error.message : 'Invalid token', 401);
+        throw new AuthError(error instanceof Error ? error.message : 'Invalid token', 401);
       }
 
       // Check if token is revoked
       if (config.isTokenRevoked && payload.jti) {
         const revoked = await config.isTokenRevoked(payload.jti);
         if (revoked) {
-          throw createAuthError('Token has been revoked', 401);
+          throw new AuthError('Token has been revoked', 401, 'TOKEN_REVOKED');
         }
       }
 
@@ -135,7 +136,7 @@ export function createAuthMiddleware(config: AuthConfig) {
       if (config.userLoader) {
         user = await config.userLoader(payload.sub);
         if (!user && !options.optional) {
-          throw createAuthError('User not found', 401);
+          throw new AuthError('User not found', 401, 'USER_NOT_FOUND');
         }
       } else {
         // No user loader - create minimal user from token
@@ -161,16 +162,25 @@ export function createAuthMiddleware(config: AuthConfig) {
 
       // Run guards if specified
       if (options.guards && options.guards.length > 0) {
-        const guardDefs = options.guards.map((g) =>
-          typeof g === 'string' ? { name: g, check: () => false } : g
-        ) as GuardDefinition<typeof extendedCtx>[];
+        // Validate that all guards are GuardDefinition objects (strings are not supported)
+        const guardDefs = options.guards.map((g) => {
+          if (typeof g === 'string') {
+            throw new AuthError(
+              `String guard references are not supported. Use a GuardDefinition object instead of "${g}"`,
+              500,
+              'INVALID_GUARD'
+            );
+          }
+          return g;
+        }) as GuardDefinition<typeof extendedCtx>[];
 
         const result = await executeGuards(guardDefs, extendedCtx, request, ctx.reply);
 
         if (!result.passed) {
-          throw createAuthError(
+          throw new AuthError(
             result.message ?? `Guard failed: ${result.failedGuard}`,
-            result.statusCode ?? 403
+            result.statusCode ?? 403,
+            'GUARD_FAILED'
           );
         }
       }
@@ -218,15 +228,7 @@ export function createAuthMiddleware(config: AuthConfig) {
 // Error Helpers
 // ============================================================================
 
-/**
- * Creates an authentication error with status code
- */
-function createAuthError(message: string, statusCode: number): Error {
-  const error = new Error(message);
-  (error as Error & { statusCode: number }).statusCode = statusCode;
-  (error as Error & { code: string }).code = 'AUTH_ERROR';
-  return error;
-}
+// AuthError is now imported from types.ts
 
 // ============================================================================
 // Rate Limiting Middleware
@@ -288,10 +290,7 @@ export function createRateLimitMiddleware<TInput, TContext extends BaseContext, 
 
     // Check limit
     if (record.count > max) {
-      const error = new Error(message);
-      (error as Error & { statusCode: number }).statusCode = 429;
-      (error as Error & { code: string }).code = 'RATE_LIMIT_EXCEEDED';
-      throw error;
+      throw new AuthError(message, 429, 'RATE_LIMIT_EXCEEDED');
     }
 
     // Add rate limit headers
