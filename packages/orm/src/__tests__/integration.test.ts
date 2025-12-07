@@ -92,8 +92,12 @@ describe('Integration: Complete Database Lifecycle', () => {
     });
 
     // Register both plugins
-    await primaryPlugin.register(mockServer as unknown as Parameters<typeof primaryPlugin.register>[0]);
-    await secondaryPlugin.register(mockServer as unknown as Parameters<typeof secondaryPlugin.register>[0]);
+    await primaryPlugin.register(
+      mockServer as unknown as Parameters<typeof primaryPlugin.register>[0]
+    );
+    await secondaryPlugin.register(
+      mockServer as unknown as Parameters<typeof secondaryPlugin.register>[0]
+    );
 
     expect(primaryClient.$connect).toHaveBeenCalledTimes(1);
     expect(secondaryClient.$connect).toHaveBeenCalledTimes(1);

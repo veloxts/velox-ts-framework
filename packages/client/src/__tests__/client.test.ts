@@ -933,7 +933,9 @@ describe('createClient', () => {
       });
 
       // Explicitly null id parameter
-      await expect(client.users.getUser({ id: null })).rejects.toThrow('Missing path parameter: id');
+      await expect(client.users.getUser({ id: null })).rejects.toThrow(
+        'Missing path parameter: id'
+      );
     });
 
     it('should handle malformed JSON response gracefully', async () => {

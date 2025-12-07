@@ -35,13 +35,10 @@
  * @internal This package is for internal use only and is not published to npm
  */
 
-// Server utilities
-export { createTestServer, wrapVeloxPlugin } from './server.js';
-export type { TestServerOptions } from './server.js';
-
 // Re-export setupTestContext from core for convenience
 export { setupTestContext } from '@veloxts/core';
 
+export type { TestUser } from './helpers.js';
 // Helper utilities
 export {
   authHeader,
@@ -51,4 +48,6 @@ export {
   TEST_SECRETS,
   wait,
 } from './helpers.js';
-export type { TestUser } from './helpers.js';
+export type { TestServerOptions } from './server.js';
+// Server utilities
+export { createTestServer, wrapVeloxPlugin } from './server.js';

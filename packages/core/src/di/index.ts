@@ -81,23 +81,23 @@ export type {
   ValueProvider,
 } from './providers.js';
 export {
-  // Succinct scope helpers (preferred)
-  singleton,
-  scoped,
-  transient,
-  value,
-  factory,
   // Legacy helpers (still supported)
   asClass,
   asExisting,
   asFactory,
   asValue,
+  factory,
   // Type guards
   isClassProvider,
   isExistingProvider,
   isFactoryProvider,
   isValueProvider,
+  scoped,
+  // Succinct scope helpers (preferred)
+  singleton,
+  transient,
   validateProvider,
+  value,
 } from './providers.js';
 export { Scope, ScopeManager } from './scope.js';
 export type {
@@ -109,8 +109,6 @@ export type {
   TokenType,
 } from './tokens.js';
 export {
-  // Succinct API (preferred)
-  token,
   // Legacy (deprecated) - keep for backwards compatibility
   createStringToken,
   createSymbolToken,
@@ -119,5 +117,7 @@ export {
   isClassToken,
   isStringToken,
   isSymbolToken,
+  // Succinct API (preferred)
+  token,
   validateToken,
 } from './tokens.js';

@@ -3,14 +3,13 @@
  * @module testing/server
  */
 
+import { setupTestContext } from '@veloxts/core';
 import Fastify, {
   type FastifyInstance,
   type FastifyPluginAsync,
   type FastifyPluginOptions,
 } from 'fastify';
 import fp from 'fastify-plugin';
-
-import { setupTestContext } from '@veloxts/core';
 
 // ============================================================================
 // Types
@@ -64,9 +63,7 @@ export interface TestServerOptions {
  * await server.close();
  * ```
  */
-export async function createTestServer(
-  options: TestServerOptions = {}
-): Promise<FastifyInstance> {
+export async function createTestServer(options: TestServerOptions = {}): Promise<FastifyInstance> {
   const { logger = false, plugins = [], skipContext = false } = options;
 
   const server = Fastify({ logger });
@@ -99,12 +96,10 @@ export async function createTestServer(
  * await server.register(wrapVeloxPlugin(authPlugin(config)), config);
  * ```
  */
-export function wrapVeloxPlugin<TOptions extends FastifyPluginOptions>(
-  veloxPlugin: {
-    name: string;
-    register: (instance: FastifyInstance, options: TOptions) => Promise<void>;
-  }
-): FastifyPluginAsync<TOptions> {
+export function wrapVeloxPlugin<TOptions extends FastifyPluginOptions>(veloxPlugin: {
+  name: string;
+  register: (instance: FastifyInstance, options: TOptions) => Promise<void>;
+}): FastifyPluginAsync<TOptions> {
   return fp(
     async (instance: FastifyInstance, opts: TOptions) => {
       await veloxPlugin.register(instance, opts);

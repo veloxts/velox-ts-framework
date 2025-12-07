@@ -56,7 +56,12 @@ describe('Public API Exports', () => {
 
   describe('package completeness', () => {
     it('should export all expected top-level functions', () => {
-      const expectedExports = ['ORM_VERSION', 'isDatabaseClient', 'createDatabase', 'createDatabasePlugin'];
+      const expectedExports = [
+        'ORM_VERSION',
+        'isDatabaseClient',
+        'createDatabase',
+        'createDatabasePlugin',
+      ];
 
       for (const exportName of expectedExports) {
         expect(ormPackage).toHaveProperty(exportName);

@@ -384,9 +384,7 @@ describe('VeloxApp - Enhanced Features', () => {
         },
       });
 
-      await expect(app.use(failingPlugin)).rejects.toThrow(
-        'Database connection failed'
-      );
+      await expect(app.use(failingPlugin)).rejects.toThrow('Database connection failed');
     });
   });
 

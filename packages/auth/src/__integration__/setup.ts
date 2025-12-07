@@ -3,11 +3,10 @@
  * @module __integration__/setup
  */
 
+import { createTestServer as baseCreateTestServer, wrapVeloxPlugin } from '@veloxts/testing';
 import type { FastifyInstance } from 'fastify';
 
-import { createTestServer as baseCreateTestServer, wrapVeloxPlugin } from '@veloxts/testing';
-
-import { authPlugin, type AuthPluginOptions } from '../plugin.js';
+import { type AuthPluginOptions, authPlugin } from '../plugin.js';
 import { createTestAuthConfig } from './fixtures.js';
 
 // Re-export utilities from @veloxts/testing

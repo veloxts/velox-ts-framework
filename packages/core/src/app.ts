@@ -8,7 +8,7 @@ import fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 import fp from 'fastify-plugin';
 
 import { type BaseContext, createContext } from './context.js';
-import { container, type Container } from './di/index.js';
+import { type Container, container } from './di/index.js';
 import { isVeloxError, VeloxError } from './errors.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
 import { validatePluginMetadata } from './plugin.js';

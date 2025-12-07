@@ -17,6 +17,25 @@ import { Scope } from './scope.js';
 import type { InjectionToken } from './tokens.js';
 
 // ============================================================================
+// Type Definitions
+// ============================================================================
+
+/**
+ * Type representing a class constructor for decorator metadata operations
+ *
+ * This type is used throughout the DI decorator system to represent classes
+ * that can have metadata attached via reflect-metadata. It uses a permissive
+ * signature compatible with any class constructor.
+ *
+ * Note: This differs from ClassConstructor in tokens.ts which uses `never[]`
+ * for strict type inference. This type uses `never` for args to remain
+ * compatible with ClassConstructor while accepting any constructor.
+ *
+ * @typeParam T - The instance type that the constructor creates
+ */
+export type Constructor<T = unknown> = abstract new (...args: never) => T;
+
+// ============================================================================
 // Metadata Keys
 // ============================================================================
 
@@ -212,7 +231,7 @@ export function Optional(): ParameterDecorator {
  * @param target - The class to check
  * @returns true if the class has the @Injectable decorator
  */
-export function isInjectable(target: Function): boolean {
+export function isInjectable(target: Constructor): boolean {
   return Reflect.getMetadata(INJECTABLE_METADATA_KEY, target) === true;
 }
 
@@ -222,7 +241,7 @@ export function isInjectable(target: Function): boolean {
  * @param target - The class to check
  * @returns The configured scope or SINGLETON if not specified
  */
-export function getInjectableScope(target: Function): Scope {
+export function getInjectableScope(target: Constructor): Scope {
   const scope = Reflect.getMetadata(SCOPE_METADATA_KEY, target);
   return scope ?? Scope.SINGLETON;
 }
@@ -233,7 +252,7 @@ export function getInjectableScope(target: Function): Scope {
  * @param target - The class to get tokens for
  * @returns A map of parameter index to injection token
  */
-export function getExplicitInjectTokens(target: Function): Map<number, InjectionToken> {
+export function getExplicitInjectTokens(target: Constructor): Map<number, InjectionToken> {
   return Reflect.getMetadata(INJECT_METADATA_KEY, target) ?? new Map<number, InjectionToken>();
 }
 
@@ -243,7 +262,7 @@ export function getExplicitInjectTokens(target: Function): Map<number, Injection
  * @param target - The class to check
  * @returns A set of parameter indices marked as optional
  */
-export function getOptionalParams(target: Function): Set<number> {
+export function getOptionalParams(target: Constructor): Set<number> {
   return Reflect.getMetadata(OPTIONAL_METADATA_KEY, target) ?? new Set<number>();
 }
 
@@ -255,7 +274,7 @@ export function getOptionalParams(target: Function): Set<number> {
  * @param target - The class to get parameter types for
  * @returns Array of constructor parameter types, or undefined if not available
  */
-export function getDesignParamTypes(target: Function): Function[] | undefined {
+export function getDesignParamTypes(target: Constructor): Constructor[] | undefined {
   return Reflect.getMetadata(DESIGN_PARAMTYPES_KEY, target);
 }
 
@@ -268,7 +287,7 @@ export function getDesignParamTypes(target: Function): Function[] | undefined {
  * @param target - The class to get tokens for
  * @returns Array of injection tokens for each constructor parameter
  */
-export function getConstructorTokens(target: Function): InjectionToken[] {
+export function getConstructorTokens(target: Constructor): InjectionToken[] {
   // Get design-time types from TypeScript's metadata emission
   const designTypes = getDesignParamTypes(target) ?? [];
 
@@ -322,7 +341,7 @@ export function getConstructorTokens(target: Function): InjectionToken[] {
  * });
  * ```
  */
-export function makeInjectable(target: Function, options: InjectableOptions = {}): void {
+export function makeInjectable(target: Constructor, options: InjectableOptions = {}): void {
   Reflect.defineMetadata(INJECTABLE_METADATA_KEY, true, target);
   Reflect.defineMetadata(SCOPE_METADATA_KEY, options.scope ?? Scope.SINGLETON, target);
 }
@@ -343,7 +362,7 @@ export function makeInjectable(target: Function, options: InjectableOptions = {}
  * setInjectTokens(ThirdPartyService, [ConfigService, DATABASE]);
  * ```
  */
-export function setInjectTokens(target: Function, tokens: InjectionToken[]): void {
+export function setInjectTokens(target: Constructor, tokens: InjectionToken[]): void {
   const tokenMap = new Map<number, InjectionToken>();
   tokens.forEach((token, index) => {
     tokenMap.set(index, token);

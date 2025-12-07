@@ -117,6 +117,8 @@ export {
 // ============================================================================
 
 export {
+  // Legacy (deprecated)
+  createDatabasePlugin,
   /**
    * Create a database plugin for VeloxApp integration
    *
@@ -141,6 +143,4 @@ export {
    */
   // Succinct API (preferred)
   databasePlugin,
-  // Legacy (deprecated)
-  createDatabasePlugin,
 } from './plugin.js';

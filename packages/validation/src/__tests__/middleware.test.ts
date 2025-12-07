@@ -406,9 +406,7 @@ describe('Request Validation Helpers', () => {
 
     it('should handle root-level validation errors (empty path)', () => {
       // Create a schema with root-level refinement that can fail with empty path
-      const schema = z
-        .string()
-        .refine((val) => val.length > 5, { message: 'Too short', path: [] });
+      const schema = z.string().refine((val) => val.length > 5, { message: 'Too short', path: [] });
 
       try {
         validateAll({

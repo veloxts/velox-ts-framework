@@ -127,9 +127,7 @@ describe('Plugin - Unit Tests', () => {
         async register() {},
       };
 
-      expect(() => validatePluginMetadata(plugin)).toThrow(
-        'Plugin must have a non-empty name'
-      );
+      expect(() => validatePluginMetadata(plugin)).toThrow('Plugin must have a non-empty name');
     });
 
     it('should throw for plugin with whitespace-only name', () => {
@@ -139,9 +137,7 @@ describe('Plugin - Unit Tests', () => {
         async register() {},
       };
 
-      expect(() => validatePluginMetadata(plugin)).toThrow(
-        'Plugin must have a non-empty name'
-      );
+      expect(() => validatePluginMetadata(plugin)).toThrow('Plugin must have a non-empty name');
     });
 
     it('should throw for plugin with missing name', () => {
@@ -150,9 +146,7 @@ describe('Plugin - Unit Tests', () => {
         async register() {},
       };
 
-      expect(() => validatePluginMetadata(plugin)).toThrow(
-        'Plugin must have a non-empty name'
-      );
+      expect(() => validatePluginMetadata(plugin)).toThrow('Plugin must have a non-empty name');
     });
 
     it('should throw for plugin with non-string name', () => {
@@ -162,9 +156,7 @@ describe('Plugin - Unit Tests', () => {
         async register() {},
       };
 
-      expect(() => validatePluginMetadata(plugin)).toThrow(
-        'Plugin must have a non-empty name'
-      );
+      expect(() => validatePluginMetadata(plugin)).toThrow('Plugin must have a non-empty name');
     });
 
     it('should throw for plugin with empty version', () => {
@@ -174,9 +166,7 @@ describe('Plugin - Unit Tests', () => {
         async register() {},
       };
 
-      expect(() => validatePluginMetadata(plugin)).toThrow(
-        'Plugin "test" must have a version'
-      );
+      expect(() => validatePluginMetadata(plugin)).toThrow('Plugin "test" must have a version');
     });
 
     it('should throw for plugin with whitespace-only version', () => {
@@ -186,9 +176,7 @@ describe('Plugin - Unit Tests', () => {
         async register() {},
       };
 
-      expect(() => validatePluginMetadata(plugin)).toThrow(
-        'Plugin "test" must have a version'
-      );
+      expect(() => validatePluginMetadata(plugin)).toThrow('Plugin "test" must have a version');
     });
 
     it('should throw for plugin with missing version', () => {
@@ -197,9 +185,7 @@ describe('Plugin - Unit Tests', () => {
         async register() {},
       };
 
-      expect(() => validatePluginMetadata(plugin)).toThrow(
-        'Plugin "test" must have a version'
-      );
+      expect(() => validatePluginMetadata(plugin)).toThrow('Plugin "test" must have a version');
     });
 
     it('should throw for plugin with non-string version', () => {
@@ -209,9 +195,7 @@ describe('Plugin - Unit Tests', () => {
         async register() {},
       };
 
-      expect(() => validatePluginMetadata(plugin)).toThrow(
-        'Plugin "test" must have a version'
-      );
+      expect(() => validatePluginMetadata(plugin)).toThrow('Plugin "test" must have a version');
     });
 
     it('should throw for plugin with missing register function', () => {

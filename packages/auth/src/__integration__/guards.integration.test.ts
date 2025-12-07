@@ -10,13 +10,12 @@
  * @module __integration__/guards.integration.test
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-
-import { defineProcedures, procedure, rest, type ProcedureCollection } from '@veloxts/router';
+import { defineProcedures, type ProcedureCollection, procedure, rest } from '@veloxts/router';
 import { z } from '@veloxts/validation';
+import type { FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { hasRole, hasPermission, guard } from '../guards.js';
+import { guard, hasPermission, hasRole } from '../guards.js';
 import { authMiddleware } from '../middleware.js';
 import type { User } from '../types.js';
 import { createTestAuthConfig, createTestAuthConfigNoLoader, TEST_USERS } from './fixtures.js';
@@ -162,8 +161,7 @@ describe('Guards Integration', () => {
       // Create a config with a userLoader that returns our specific user
       const configWithUser = {
         ...createTestAuthConfigNoLoader(),
-        userLoader: async (userId: string) =>
-          userId === adminWithPerm.id ? adminWithPerm : null,
+        userLoader: async (userId: string) => (userId === adminWithPerm.id ? adminWithPerm : null),
       };
       const customServer = await createTestServer({ authOptions: configWithUser });
       const auth = authMiddleware(configWithUser);
@@ -221,9 +219,12 @@ describe('Guards Integration', () => {
       const customServer = await createTestServer();
 
       // Custom guard that checks if user ID matches a pattern
-      const isVerifiedUser = guard<{ user?: User & { email?: string } }>('isVerifiedUser', async (ctx) => {
-        return ctx.user?.email?.endsWith('@example.com') ?? false;
-      });
+      const isVerifiedUser = guard<{ user?: User & { email?: string } }>(
+        'isVerifiedUser',
+        async (ctx) => {
+          return ctx.user?.email?.endsWith('@example.com') ?? false;
+        }
+      );
 
       const auth = authMiddleware(createTestAuthConfig());
 
@@ -305,8 +306,7 @@ describe('Guards Integration', () => {
       // Create a config with a userLoader that returns our specific user
       const configWithUser = {
         ...createTestAuthConfigNoLoader(),
-        userLoader: async (userId: string) =>
-          userId === userWithPerms.id ? userWithPerms : null,
+        userLoader: async (userId: string) => (userId === userWithPerms.id ? userWithPerms : null),
       };
       const customServer = await createTestServer({ authOptions: configWithUser });
       const auth = authMiddleware(configWithUser);

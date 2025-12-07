@@ -172,7 +172,9 @@ describe('Authorization Guards', () => {
       it('should pass when user has subset of allowed roles', async () => {
         // Allow admin, moderator, or editor - user has moderator and editor
         const roleGuard = hasRole(['admin', 'moderator', 'editor']);
-        const ctx = { user: { id: '1', email: 'test@example.com', roles: ['moderator', 'editor'] } };
+        const ctx = {
+          user: { id: '1', email: 'test@example.com', roles: ['moderator', 'editor'] },
+        };
         const result = await executeGuard(roleGuard, ctx, mockRequest, mockReply);
 
         expect(result.passed).toBe(true);
@@ -181,7 +183,9 @@ describe('Authorization Guards', () => {
       it('should pass when user has exactly one matching role among many', async () => {
         // User has viewer, commenter, editor - only editor is allowed
         const roleGuard = hasRole('editor');
-        const ctx = { user: { id: '1', email: 'test@example.com', roles: ['viewer', 'commenter', 'editor'] } };
+        const ctx = {
+          user: { id: '1', email: 'test@example.com', roles: ['viewer', 'commenter', 'editor'] },
+        };
         const result = await executeGuard(roleGuard, ctx, mockRequest, mockReply);
 
         expect(result.passed).toBe(true);
@@ -190,7 +194,9 @@ describe('Authorization Guards', () => {
       it('should fail when user has many roles but none match', async () => {
         // User has many roles but none are admin
         const roleGuard = hasRole('admin');
-        const ctx = { user: { id: '1', email: 'test@example.com', roles: ['user', 'editor', 'viewer'] } };
+        const ctx = {
+          user: { id: '1', email: 'test@example.com', roles: ['user', 'editor', 'viewer'] },
+        };
         const result = await executeGuard(roleGuard, ctx, mockRequest, mockReply);
 
         expect(result.passed).toBe(false);
@@ -198,15 +204,25 @@ describe('Authorization Guards', () => {
 
       it('should work with role hierarchy pattern', async () => {
         // Simulating super-admin who has all roles
-        const superAdmin = { id: '1', email: 'super@example.com', roles: ['super-admin', 'admin', 'moderator', 'user'] };
+        const superAdmin = {
+          id: '1',
+          email: 'super@example.com',
+          roles: ['super-admin', 'admin', 'moderator', 'user'],
+        };
 
         const adminGuard = hasRole('admin');
         const modGuard = hasRole('moderator');
         const userGuard = hasRole('user');
 
-        expect((await executeGuard(adminGuard, { user: superAdmin }, mockRequest, mockReply)).passed).toBe(true);
-        expect((await executeGuard(modGuard, { user: superAdmin }, mockRequest, mockReply)).passed).toBe(true);
-        expect((await executeGuard(userGuard, { user: superAdmin }, mockRequest, mockReply)).passed).toBe(true);
+        expect(
+          (await executeGuard(adminGuard, { user: superAdmin }, mockRequest, mockReply)).passed
+        ).toBe(true);
+        expect(
+          (await executeGuard(modGuard, { user: superAdmin }, mockRequest, mockReply)).passed
+        ).toBe(true);
+        expect(
+          (await executeGuard(userGuard, { user: superAdmin }, mockRequest, mockReply)).passed
+        ).toBe(true);
       });
     });
   });
@@ -300,7 +316,12 @@ describe('Authorization Guards', () => {
     it('should pass when all guards pass', async () => {
       const combined = allOf([hasRole('admin'), hasPermission('users.delete')]);
       const ctx = {
-        user: { id: '1', email: 'test@example.com', roles: ['admin'], permissions: ['users.delete'] },
+        user: {
+          id: '1',
+          email: 'test@example.com',
+          roles: ['admin'],
+          permissions: ['users.delete'],
+        },
       };
       const result = await executeGuard(combined, ctx, mockRequest, mockReply);
 
@@ -358,7 +379,12 @@ describe('Authorization Guards', () => {
     it('should pass when all guards pass', async () => {
       const guards = [hasRole('admin'), hasPermission('users.delete')];
       const ctx = {
-        user: { id: '1', email: 'test@example.com', roles: ['admin'], permissions: ['users.delete'] },
+        user: {
+          id: '1',
+          email: 'test@example.com',
+          roles: ['admin'],
+          permissions: ['users.delete'],
+        },
       };
       const result = await executeGuards(guards, ctx, mockRequest, mockReply);
 
@@ -369,7 +395,12 @@ describe('Authorization Guards', () => {
     it('should fail on first failing guard', async () => {
       const guards = [hasRole('admin'), hasPermission('users.delete')];
       const ctx = {
-        user: { id: '1', email: 'test@example.com', roles: ['user'], permissions: ['users.delete'] },
+        user: {
+          id: '1',
+          email: 'test@example.com',
+          roles: ['user'],
+          permissions: ['users.delete'],
+        },
       };
       const result = await executeGuards(guards, ctx, mockRequest, mockReply);
 

@@ -10,15 +10,14 @@
  * @module __integration__/rate-limiting.integration.test
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-
-import { defineProcedures, procedure, rest, type ProcedureCollection } from '@veloxts/router';
+import { defineProcedures, type ProcedureCollection, procedure, rest } from '@veloxts/router';
 import { z } from '@veloxts/validation';
+import type { FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { rateLimitMiddleware, clearRateLimitStore } from '../middleware.js';
-import { authHeader, createTestServer } from './setup.js';
+import { clearRateLimitStore, rateLimitMiddleware } from '../middleware.js';
 import { TEST_USERS } from './fixtures.js';
+import { authHeader, createTestServer } from './setup.js';
 
 // ============================================================================
 // Test Setup

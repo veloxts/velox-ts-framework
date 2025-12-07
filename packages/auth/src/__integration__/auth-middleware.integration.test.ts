@@ -10,11 +10,10 @@
  * @module __integration__/auth-middleware.integration.test
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-
-import { defineProcedures, procedure, rest, type ProcedureCollection } from '@veloxts/router';
+import { defineProcedures, type ProcedureCollection, procedure, rest } from '@veloxts/router';
 import { z } from '@veloxts/validation';
+import type { FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { authMiddleware } from '../middleware.js';
 import type { User } from '../types.js';

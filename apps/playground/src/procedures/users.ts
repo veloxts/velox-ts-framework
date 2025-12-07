@@ -11,7 +11,7 @@
  * - searchUsers -> GET /users/search (custom override)
  */
 
-import { authenticated, AuthError, hasRole } from '@veloxts/auth';
+import { AuthError, authenticated, hasRole } from '@veloxts/auth';
 import { defineProcedures, GuardError, procedure } from '@veloxts/router';
 import { paginationInputSchema } from '@veloxts/validation';
 import { z } from 'zod';
@@ -52,7 +52,10 @@ interface DbClient {
     findUnique: (args: { where: { id: string } }) => Promise<DbUser | null>;
     findMany: (args?: { skip?: number; take?: number; where?: unknown }) => Promise<DbUser[]>;
     create: (args: { data: { name: string; email: string } }) => Promise<DbUser>;
-    update: (args: { where: { id: string }; data: { name?: string; email?: string } }) => Promise<DbUser>;
+    update: (args: {
+      where: { id: string };
+      data: { name?: string; email?: string };
+    }) => Promise<DbUser>;
     delete: (args: { where: { id: string } }) => Promise<DbUser>;
     count: (args?: { where?: unknown }) => Promise<number>;
   };

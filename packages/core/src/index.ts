@@ -29,10 +29,79 @@ const packageJson = require('../package.json') as { version: string };
 export const VELOX_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // App creation and types
-export { veloxApp, createVeloxApp, VeloxApp } from './app.js';
+export { createVeloxApp, VeloxApp, veloxApp } from './app.js';
 // Context system
 export type { BaseContext } from './context.js';
 export { createContext, isContext, setupTestContext } from './context.js';
+export type {
+  AbstractClass,
+  ClassConstructor,
+  ClassProvider,
+  // Container types
+  ContainerOptions,
+  ExistingProvider,
+  FactoryProvider,
+  // Decorator types
+  InjectableOptions,
+  // Token types
+  InjectionToken,
+  // Provider types
+  Provider,
+  ResolutionContext,
+  StringToken,
+  SymbolToken,
+  TokenType,
+  ValueProvider,
+} from './di/index.js';
+// Dependency Injection
+export {
+  // Provider helpers (legacy)
+  asClass,
+  asExisting,
+  asFactory,
+  asValue,
+  // Container
+  Container,
+  container,
+  createContainer,
+  // Tokens (legacy - deprecated)
+  createStringToken,
+  createSymbolToken,
+  factory,
+  getConstructorTokens,
+  getExplicitInjectTokens,
+  getInjectableScope,
+  getOptionalParams,
+  getTokenName,
+  Inject,
+  // Decorators
+  Injectable,
+  // Provider type guards
+  isClassProvider,
+  isClassToken,
+  isExistingProvider,
+  isFactoryProvider,
+  // Decorator utilities
+  isInjectable,
+  isStringToken,
+  isSymbolToken,
+  isValueProvider,
+  makeInjectable,
+  Optional,
+  // Scope
+  Scope,
+  ScopeManager,
+  scoped,
+  setInjectTokens,
+  // Provider helpers (succinct API)
+  singleton,
+  // Tokens (succinct API)
+  token,
+  transient,
+  validateProvider,
+  validateToken,
+  value,
+} from './di/index.js';
 // Error handling
 export type {
   ErrorResponse,
@@ -79,73 +148,3 @@ export type {
   VeloxFastifyOptions,
 } from './utils/config.js';
 export { isValidHost, isValidPort } from './utils/config.js';
-
-// Dependency Injection
-export {
-  // Container
-  Container,
-  container,
-  createContainer,
-  // Decorators
-  Injectable,
-  Inject,
-  Optional,
-  // Decorator utilities
-  isInjectable,
-  getInjectableScope,
-  getConstructorTokens,
-  getExplicitInjectTokens,
-  getOptionalParams,
-  makeInjectable,
-  setInjectTokens,
-  // Provider helpers (succinct API)
-  singleton,
-  scoped,
-  transient,
-  value,
-  factory,
-  // Provider helpers (legacy)
-  asClass,
-  asFactory,
-  asValue,
-  asExisting,
-  // Provider type guards
-  isClassProvider,
-  isFactoryProvider,
-  isValueProvider,
-  isExistingProvider,
-  validateProvider,
-  // Scope
-  Scope,
-  ScopeManager,
-  // Tokens (succinct API)
-  token,
-  // Tokens (legacy - deprecated)
-  createStringToken,
-  createSymbolToken,
-  getTokenName,
-  isClassToken,
-  isStringToken,
-  isSymbolToken,
-  validateToken,
-} from './di/index.js';
-export type {
-  // Container types
-  ContainerOptions,
-  ResolutionContext,
-  // Decorator types
-  InjectableOptions,
-  // Provider types
-  Provider,
-  ClassProvider,
-  FactoryProvider,
-  ValueProvider,
-  ExistingProvider,
-  // Token types
-  InjectionToken,
-  ClassConstructor,
-  AbstractClass,
-  StringToken,
-  SymbolToken,
-  TokenType,
-} from './di/index.js';

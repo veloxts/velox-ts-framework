@@ -122,18 +122,18 @@ export type {
 // Consider moving to @veloxts/router/internal subpath in v1.1+
 export type { RestAdapterOptions, RestMapping, RestRoute } from './rest/index.js';
 export {
-  // Succinct API (preferred)
-  rest,
-  // Legacy API (deprecated)
-  createRoutesRegistrar,
   // Internal utilities
   buildRestPath,
+  // Legacy API (deprecated)
+  createRoutesRegistrar,
   followsNamingConvention,
   generateRestRoutes,
   getRouteSummary,
   inferResourceName,
   parseNamingConvention,
   registerRestRoutes,
+  // Succinct API (preferred)
+  rest,
 } from './rest/index.js';
 
 // ============================================================================
