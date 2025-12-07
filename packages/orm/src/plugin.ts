@@ -225,3 +225,27 @@ export function createDatabasePlugin<TClient extends DatabaseClient>(
     },
   });
 }
+
+/**
+ * Creates a database plugin for VeloxApp integration (succinct API)
+ *
+ * This is the preferred, shorter form of `createDatabasePlugin`.
+ *
+ * @template TClient - Type of the Prisma client
+ * @param config - Plugin configuration with Prisma client
+ * @returns A VeloxPlugin that can be registered with `app.register()`
+ *
+ * @example
+ * ```typescript
+ * import { veloxApp } from '@veloxts/core';
+ * import { PrismaClient } from '@prisma/client';
+ * import { databasePlugin } from '@veloxts/orm';
+ *
+ * const prisma = new PrismaClient();
+ * const app = await veloxApp({ port: 3210 });
+ *
+ * await app.register(databasePlugin({ client: prisma }));
+ * await app.start();
+ * ```
+ */
+export const databasePlugin = createDatabasePlugin;

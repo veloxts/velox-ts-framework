@@ -359,7 +359,7 @@ export function getRouteSummary(
  * @param options - Registration options
  * @returns A function that registers routes on a Fastify instance
  *
- * @deprecated Use `rest()` instead. This alias will be removed in v2.0.
+ * @deprecated Use `rest()` instead. This alias will be removed in v0.9.
  *
  * @example
  * ```typescript

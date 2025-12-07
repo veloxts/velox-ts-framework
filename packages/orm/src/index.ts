@@ -128,16 +128,19 @@ export {
    *
    * @example
    * ```typescript
-   * import { createVeloxApp } from '@veloxts/core';
+   * import { veloxApp } from '@veloxts/core';
    * import { PrismaClient } from '@prisma/client';
-   * import { createDatabasePlugin } from '@veloxts/orm';
+   * import { databasePlugin } from '@veloxts/orm';
    *
    * const prisma = new PrismaClient();
-   * const app = await createVeloxApp({ port: 3210 });
+   * const app = await veloxApp({ port: 3210 });
    *
-   * await app.use(createDatabasePlugin({ client: prisma }));
+   * await app.register(databasePlugin({ client: prisma }));
    * await app.start();
    * ```
    */
+  // Succinct API (preferred)
+  databasePlugin,
+  // Legacy (deprecated)
   createDatabasePlugin,
 } from './plugin.js';

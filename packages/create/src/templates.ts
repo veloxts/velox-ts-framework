@@ -255,10 +255,10 @@ import 'dotenv/config';
 
 import fastifyStatic from '@fastify/static';
 import {
-  createVeloxApp,
+  veloxApp,
   VELOX_VERSION,
-  createDatabasePlugin,
-  createRoutesRegistrar,
+  databasePlugin,
+  rest,
   getRouteSummary,
 } from '@veloxts/velox';
 import path from 'node:path';
@@ -272,14 +272,14 @@ import { healthProcedures, userProcedures } from './procedures/index.js';
 // ============================================================================
 
 async function createApp() {
-  const app = await createVeloxApp({
+  const app = await veloxApp({
     port: config.port,
     host: config.host,
     logger: config.logger,
   });
 
   // Register database plugin
-  await app.use(createDatabasePlugin({ client: prisma }));
+  await app.register(databasePlugin({ client: prisma }));
 
   // Register static file serving for frontend
   await app.server.register(fastifyStatic, {
@@ -289,7 +289,7 @@ async function createApp() {
 
   // Register REST API routes
   const collections = [userProcedures, healthProcedures];
-  app.routes(createRoutesRegistrar(collections, { prefix: config.apiPrefix }));
+  app.routes(rest(collections, { prefix: config.apiPrefix }));
 
   return { app, collections };
 }

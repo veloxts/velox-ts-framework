@@ -295,7 +295,7 @@ export class VeloxApp {
   /**
    * Registers a plugin with the application
    *
-   * @deprecated Use `register()` instead. This alias will be removed in v2.0.
+   * @deprecated Use `register()` instead. This alias will be removed in v0.9.
    * @template Options - Type of options the plugin accepts
    * @param plugin - Plugin to register
    * @param options - Options to pass to the plugin
@@ -448,7 +448,7 @@ export class VeloxApp {
   /**
    * Adds a shutdown handler
    *
-   * @deprecated Use `beforeShutdown()` instead. This alias will be removed in v2.0.
+   * @deprecated Use `beforeShutdown()` instead. This alias will be removed in v0.9.
    * @param handler - Async function to call during shutdown
    */
   onShutdown(handler: ShutdownHandler): void {
@@ -502,7 +502,7 @@ export async function veloxApp(config: VeloxAppConfig = {}): Promise<VeloxApp> {
 /**
  * Creates a new VeloxTS application instance
  *
- * @deprecated Use `veloxApp()` instead. This alias will be removed in v2.0.
+ * @deprecated Use `veloxApp()` instead. This alias will be removed in v0.9.
  * @param config - Application configuration
  * @returns Promise resolving to VeloxApp instance
  */
