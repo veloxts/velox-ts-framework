@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.3.4
+
+### Patch Changes
+
+- 65ef3e7: DI container and Auth Guards
+- Updated dependencies [65ef3e7]
+  - @veloxts/core@0.3.4
+  - @veloxts/router@0.3.4
+
 ## 0.3.3
 
 ### Patch Changes

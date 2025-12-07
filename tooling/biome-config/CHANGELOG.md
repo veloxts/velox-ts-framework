@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.3.4
+
+### Patch Changes
+
+- 65ef3e7: DI container and Auth Guards
+
 ## 0.3.3
 
 ### Patch Changes
