@@ -9,6 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js"
+    },
+    "./adapters/better-auth": {
+      "types": "./dist/adapters/better-auth.d.ts",
+      "import": "./dist/adapters/better-auth.js"
     }
   },
   "files": [
@@ -30,13 +38,17 @@
   },
   "peerDependencies": {
     "bcrypt": ">=5.0.0",
-    "argon2": ">=0.30.0"
+    "argon2": ">=0.30.0",
+    "better-auth": ">=1.0.0"
   },
   "peerDependenciesMeta": {
     "bcrypt": {
       "optional": true
     },
     "argon2": {
+      "optional": true
+    },
+    "better-auth": {
       "optional": true
     }
   },

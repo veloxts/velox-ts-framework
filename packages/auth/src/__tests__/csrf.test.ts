@@ -5,17 +5,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  type CsrfConfig,
+  CsrfError,
+  type CsrfManager,
   createCsrfManager,
   createCsrfMiddleware,
-  CsrfError,
-  type CsrfConfig,
-  type CsrfManager,
 } from '../csrf.js';
 
 describe('CSRF Protection', () => {
   // 64+ character secret for security requirements
-  const validSecret =
-    'this-is-a-very-long-csrf-secret-key-for-testing-purposes-with-extra-chars';
+  const validSecret = 'this-is-a-very-long-csrf-secret-key-for-testing-purposes-with-extra-chars';
 
   const defaultConfig: CsrfConfig = {
     token: { secret: validSecret },
@@ -34,15 +33,17 @@ describe('CSRF Protection', () => {
   }
 
   // Mock FastifyRequest
-  function createMockRequest(options: {
-    method?: string;
-    url?: string;
-    headers?: Record<string, string | undefined>;
-    cookies?: Record<string, string>;
-    body?: Record<string, unknown>;
-    query?: Record<string, unknown>;
-    protocol?: string;
-  } = {}) {
+  function createMockRequest(
+    options: {
+      method?: string;
+      url?: string;
+      headers?: Record<string, string | undefined>;
+      cookies?: Record<string, string>;
+      body?: Record<string, unknown>;
+      query?: Record<string, unknown>;
+      protocol?: string;
+    } = {}
+  ) {
     return {
       method: options.method ?? 'POST',
       url: options.url ?? '/api/submit',
@@ -720,7 +721,7 @@ describe('CSRF Protection', () => {
       const request = createMockRequest({
         method: 'POST',
         cookies: { 'velox.csrf': token },
-        headers: { 'x-csrf-token': token + 'extra' },
+        headers: { 'x-csrf-token': `${token}extra` },
       });
 
       try {
@@ -969,7 +970,7 @@ describe('CSRF Protection', () => {
         token: { secret: validSecret },
       });
       const manager2 = createCsrfManager({
-        token: { secret: validSecret + '-different' },
+        token: { secret: `${validSecret}-different` },
       });
 
       const reply = createMockReply();

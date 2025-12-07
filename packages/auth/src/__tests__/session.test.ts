@@ -32,7 +32,7 @@ describe('Session Management', () => {
         cookies[name] = { value, options };
         return mockReply;
       }),
-      clearCookie: vi.fn((name: string, options: Record<string, unknown>) => {
+      clearCookie: vi.fn((name: string, _options: Record<string, unknown>) => {
         delete cookies[name];
         return mockReply;
       }),
@@ -42,9 +42,7 @@ describe('Session Management', () => {
   }
 
   // Mock FastifyRequest
-  function createMockRequest(options: {
-    cookies?: Record<string, string>;
-  } = {}) {
+  function createMockRequest(options: { cookies?: Record<string, string> } = {}) {
     return {
       cookies: options.cookies ?? {},
     };
@@ -160,7 +158,7 @@ describe('Session Management', () => {
         expiresAt: now + 3600000,
       });
 
-      const userSessions = await store.getSessionsByUser!('user-123');
+      const userSessions = await store.getSessionsByUser?.('user-123');
       expect(userSessions).toHaveLength(2);
       expect(userSessions).toContain('session-1');
       expect(userSessions).toContain('session-2');
@@ -180,7 +178,7 @@ describe('Session Management', () => {
         expiresAt: now + 3600000,
       });
 
-      await store.deleteSessionsByUser!('user-123');
+      await store.deleteSessionsByUser?.('user-123');
 
       expect(await store.get('session-1')).toBeNull();
       expect(await store.get('session-2')).toBeNull();
@@ -667,7 +665,7 @@ describe('Session Management', () => {
 
     it('should reject session from different secret', async () => {
       const manager1 = createSessionManager({ secret: validSecret });
-      const manager2 = createSessionManager({ secret: validSecret + '-different' });
+      const manager2 = createSessionManager({ secret: `${validSecret}-different` });
 
       const reply = createMockReply();
       const session = manager1.createSession(reply as never);

@@ -6,6 +6,7 @@ Authentication and authorization system for VeloxTS Framework.
 
 ## Features
 
+- **Pluggable Auth Adapters** - Integrate external providers like BetterAuth, Clerk, Auth0
 - **Session Management** - Cookie-based sessions with pluggable storage backends
 - **JWT Authentication** - Stateless token-based authentication with refresh tokens
 - **Password Hashing** - Secure bcrypt hashing with configurable cost factors
@@ -16,6 +17,7 @@ Authentication and authorization system for VeloxTS Framework.
 ## Table of Contents
 
 - [Installation](#installation)
+- [Auth Adapters](#auth-adapters)
 - [Authentication Strategies](#authentication-strategies)
 - [Session Management](#session-management)
 - [JWT Authentication](#jwt-authentication)
@@ -34,6 +36,262 @@ Required peer dependencies:
 
 ```bash
 npm install @veloxts/core @veloxts/router fastify @fastify/cookie
+```
+
+## Auth Adapters
+
+Auth adapters allow you to integrate external authentication providers like BetterAuth, Clerk, or Auth0 with VeloxTS. Instead of building authentication from scratch, you can leverage battle-tested auth solutions.
+
+### BetterAuth Adapter
+
+[BetterAuth](https://better-auth.com) is a comprehensive, framework-agnostic TypeScript authentication library. The BetterAuth adapter seamlessly integrates it with VeloxTS.
+
+#### Installation
+
+```bash
+npm install better-auth @veloxts/auth
+```
+
+#### Basic Setup
+
+```typescript
+import { createVeloxApp } from '@veloxts/core';
+import { createAuthAdapterPlugin, createBetterAuthAdapter } from '@veloxts/auth';
+import { betterAuth } from 'better-auth';
+import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+// Create BetterAuth instance
+const auth = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: 'postgresql', // or 'mysql', 'sqlite'
+  }),
+  trustedOrigins: ['http://localhost:3000'],
+  emailAndPassword: {
+    enabled: true,
+  },
+});
+
+// Create the adapter
+const betterAuthAdapter = createBetterAuthAdapter({
+  name: 'better-auth',
+  auth,
+  debug: process.env.NODE_ENV === 'development',
+});
+
+// Create the plugin
+const authPlugin = createAuthAdapterPlugin({
+  adapter: betterAuthAdapter,
+  config: betterAuthAdapter.config,
+});
+
+// Create app and register plugin
+const app = createVeloxApp();
+await app.register(authPlugin);
+```
+
+#### Using Authentication in Procedures
+
+```typescript
+import { createAdapterAuthMiddleware } from '@veloxts/auth';
+import { defineProcedures, procedure } from '@veloxts/router';
+
+const authMiddleware = createAdapterAuthMiddleware();
+
+export const userProcedures = defineProcedures('users', {
+  // Require authentication - throws 401 if not logged in
+  getProfile: procedure
+    .use(authMiddleware.requireAuth())
+    .query(async ({ ctx }) => {
+      // ctx.user is guaranteed to exist
+      return {
+        id: ctx.user.id,
+        email: ctx.user.email,
+        name: ctx.user.name,
+      };
+    }),
+
+  // Optional authentication - user may or may not be logged in
+  getPublicPosts: procedure
+    .use(authMiddleware.optionalAuth())
+    .query(async ({ ctx }) => {
+      const posts = await db.post.findMany({ where: { published: true } });
+      return {
+        posts,
+        isAuthenticated: ctx.isAuthenticated,
+        userId: ctx.user?.id,
+      };
+    }),
+});
+```
+
+#### BetterAuth Configuration Options
+
+```typescript
+const adapter = createBetterAuthAdapter({
+  // Required: Adapter name (for logging)
+  name: 'better-auth',
+
+  // Required: BetterAuth instance
+  auth: betterAuth({ ... }),
+
+  // Optional: Base path for auth routes (default: '/api/auth')
+  basePath: '/api/auth',
+
+  // Optional: Enable debug logging
+  debug: true,
+
+  // Optional: Handle all HTTP methods (default: GET, POST only)
+  handleAllMethods: true,
+
+  // Optional: Routes to exclude from session loading
+  excludeRoutes: ['/api/health', '/api/public/*'],
+
+  // Optional: Custom user transformation
+  transformUser: (adapterUser) => ({
+    id: adapterUser.id,
+    email: adapterUser.email,
+    role: adapterUser.providerData?.role as string ?? 'user',
+    permissions: adapterUser.providerData?.permissions as string[] ?? [],
+  }),
+});
+```
+
+#### Auth Routes
+
+BetterAuth automatically mounts its routes at the configured base path. Common routes include:
+
+- `POST /api/auth/sign-up` - User registration
+- `POST /api/auth/sign-in/email` - Email/password login
+- `POST /api/auth/sign-out` - Logout
+- `GET /api/auth/session` - Get current session
+- `POST /api/auth/magic-link` - Send magic link (if enabled)
+- `GET /api/auth/callback/:provider` - OAuth callbacks
+
+See the [BetterAuth documentation](https://better-auth.com/docs) for all available routes and configuration options.
+
+### Creating Custom Adapters
+
+You can create adapters for other authentication providers by implementing the `AuthAdapter` interface:
+
+```typescript
+import {
+  AuthAdapter,
+  AuthAdapterConfig,
+  AdapterSessionResult,
+  BaseAuthAdapter,
+  defineAuthAdapter,
+} from '@veloxts/auth';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+
+// Define your adapter-specific config
+interface MyAuthConfig extends AuthAdapterConfig {
+  apiKey: string;
+  domain: string;
+}
+
+// Option 1: Use defineAuthAdapter helper
+export const myAuthAdapter = defineAuthAdapter<MyAuthConfig>({
+  name: 'my-auth',
+  version: '1.0.0',
+
+  async initialize(fastify: FastifyInstance, config: MyAuthConfig) {
+    // Initialize your auth client
+    this.client = new MyAuthClient({
+      apiKey: config.apiKey,
+      domain: config.domain,
+    });
+  },
+
+  async getSession(request: FastifyRequest): Promise<AdapterSessionResult | null> {
+    const token = request.headers.authorization?.replace('Bearer ', '');
+    if (!token) return null;
+
+    const session = await this.client.verifySession(token);
+    if (!session) return null;
+
+    return {
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+      },
+      session: {
+        sessionId: session.id,
+        userId: session.user.id,
+        expiresAt: session.expiresAt,
+        isActive: true,
+      },
+    };
+  },
+
+  getRoutes() {
+    return [
+      {
+        path: '/api/auth/*',
+        methods: ['GET', 'POST'],
+        handler: async (request, reply) => {
+          // Forward to your auth provider
+        },
+      },
+    ];
+  },
+});
+
+// Option 2: Extend BaseAuthAdapter class
+class MyAuthAdapter extends BaseAuthAdapter<MyAuthConfig> {
+  private client: MyAuthClient | null = null;
+
+  constructor() {
+    super('my-auth', '1.0.0');
+  }
+
+  override async initialize(fastify: FastifyInstance, config: MyAuthConfig) {
+    await super.initialize(fastify, config);
+    this.client = new MyAuthClient(config);
+  }
+
+  override async getSession(request: FastifyRequest): Promise<AdapterSessionResult | null> {
+    // Implementation...
+  }
+
+  override getRoutes() {
+    return [];
+  }
+}
+```
+
+### Adapter Type Utilities
+
+```typescript
+import {
+  isAuthAdapter,
+  InferAdapterConfig,
+  AuthAdapterError,
+} from '@veloxts/auth';
+
+// Type guard to check if value is a valid adapter
+if (isAuthAdapter(maybeAdapter)) {
+  const plugin = createAuthAdapterPlugin({
+    adapter: maybeAdapter,
+    config: maybeAdapter.config,
+  });
+}
+
+// Infer config type from adapter
+type BetterAuthConfig = InferAdapterConfig<typeof betterAuthAdapter>;
+
+// Handle adapter errors
+try {
+  const session = await adapter.getSession(request);
+} catch (error) {
+  if (error instanceof AuthAdapterError) {
+    console.error(`Adapter error: ${error.code} - ${error.message}`);
+    console.error(`Cause:`, error.cause);
+  }
+}
 ```
 
 ## Authentication Strategies

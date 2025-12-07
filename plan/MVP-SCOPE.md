@@ -130,13 +130,14 @@ This document defines what features were **included** in the MVP release and wha
 - ✅ Token revocation infrastructure (TokenStore interface)
 - ✅ CSRF protection (Signed Double Submit Cookie pattern, HMAC-SHA256)
 - ✅ Session management (cookie-based sessions with pluggable stores)
+- ✅ Pluggable auth adapters (BetterAuth adapter with extensible AuthAdapter interface)
 
 ---
 
 ## ⏳ DEFERRED to v0.4+ and Beyond
 
-### Authentication Advanced Features - v0.4+
-- ⏳ Pluggable auth adapters (BetterAuth, Clerk, Auth0)
+### Authentication Advanced Features - v0.5+
+- ⏳ Additional auth adapters (Clerk, Auth0)
 
 ### Advanced Routing - v0.4
 - ⏳ **Nested resource routing**

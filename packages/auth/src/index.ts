@@ -184,3 +184,57 @@ export {
   loginSession,
   logoutSession,
 } from './session.js';
+
+// ============================================================================
+// Auth Adapter System
+// ============================================================================
+
+export type {
+  // Middleware types
+  AdapterAuthContext,
+  // Route types
+  AdapterHttpMethod,
+  AdapterMiddlewareOptions,
+  AdapterRoute,
+  // Session result types
+  AdapterSession,
+  AdapterSessionResult,
+  AdapterUser,
+  // Adapter interface
+  AuthAdapter,
+  // Configuration types
+  AuthAdapterConfig,
+  // Error types
+  AuthAdapterErrorCode,
+  // Plugin options
+  AuthAdapterPluginOptions,
+  // Type utilities
+  InferAdapterConfig,
+} from './adapter.js';
+export {
+  // Error class
+  AuthAdapterError,
+  // Abstract base class
+  BaseAuthAdapter,
+  // Factory functions
+  createAdapterAuthMiddleware,
+  createAuthAdapterPlugin,
+  defineAuthAdapter,
+  // Type guard
+  isAuthAdapter,
+} from './adapter.js';
+
+// ============================================================================
+// BetterAuth Adapter
+// ============================================================================
+
+export type {
+  BetterAuthAdapterConfig,
+  BetterAuthApi,
+  BetterAuthHandler,
+  BetterAuthInstance,
+  BetterAuthSession,
+  BetterAuthSessionResult,
+  BetterAuthUser,
+} from './adapters/better-auth.js';
+export { BetterAuthAdapter, createBetterAuthAdapter } from './adapters/better-auth.js';

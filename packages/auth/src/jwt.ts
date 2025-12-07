@@ -28,7 +28,17 @@ const MIN_SECRET_ENTROPY_CHARS = 16;
 /**
  * Reserved JWT claims that cannot be overridden via additionalClaims
  */
-const RESERVED_JWT_CLAIMS = new Set(['sub', 'iss', 'aud', 'exp', 'iat', 'jti', 'nbf', 'type', 'email']);
+const RESERVED_JWT_CLAIMS = new Set([
+  'sub',
+  'iss',
+  'aud',
+  'exp',
+  'iat',
+  'jti',
+  'nbf',
+  'type',
+  'email',
+]);
 
 // ============================================================================
 // JWT Implementation

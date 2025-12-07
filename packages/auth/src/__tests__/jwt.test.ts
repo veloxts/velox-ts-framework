@@ -4,7 +4,12 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createInMemoryTokenStore, generateTokenId, JwtManager, parseTimeToSeconds } from '../jwt.js';
+import {
+  createInMemoryTokenStore,
+  generateTokenId,
+  JwtManager,
+  parseTimeToSeconds,
+} from '../jwt.js';
 import type { User } from '../types.js';
 
 describe('JWT Authentication', () => {

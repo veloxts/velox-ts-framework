@@ -326,7 +326,6 @@ function base64urlEncode(data: Buffer): string {
   return data.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
-
 // ============================================================================
 // CSRF Manager Implementation
 // ============================================================================
@@ -433,7 +432,7 @@ export function createCsrfManager(config: CsrfConfig): CsrfManager {
     const issuedAt = parseInt(issuedAtStr, 10);
     const expiresAt = parseInt(expiresAtStr, 10);
 
-    if (isNaN(issuedAt) || isNaN(expiresAt)) {
+    if (Number.isNaN(issuedAt) || Number.isNaN(expiresAt)) {
       return null;
     }
 

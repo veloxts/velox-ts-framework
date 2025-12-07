@@ -8,7 +8,6 @@ import type { MiddlewareFunction } from '@veloxts/router';
 
 import { executeGuards } from './guards.js';
 import { JwtManager } from './jwt.js';
-import { AuthError } from './types.js';
 import type {
   AuthConfig,
   AuthContext,
@@ -17,6 +16,7 @@ import type {
   TokenPayload,
   User,
 } from './types.js';
+import { AuthError } from './types.js';
 
 // ============================================================================
 // Auth Middleware Factory
