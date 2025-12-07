@@ -187,6 +187,11 @@ export interface ProcedureBuilder<
    * Guards are compatible with @veloxts/auth guards (authenticated, hasRole, etc.)
    * but can be any object implementing the GuardLike interface.
    *
+   * The guard type parameter accepts guards that require a subset of the current
+   * context (contravariant). This allows guards typed for `{ auth?: AuthContext }`
+   * to work with the full `BaseContext` since BaseContext extends that shape.
+   *
+   * @template TGuardContext - The context type required by the guard (must be a subset of TContext)
    * @param guard - Guard definition to apply
    * @returns Same builder (no type changes)
    *
@@ -205,7 +210,9 @@ export interface ProcedureBuilder<
    *   .mutation(async ({ input, ctx }) => { ... });
    * ```
    */
-  guard(guard: GuardLike<TContext>): ProcedureBuilder<TInput, TOutput, TContext>;
+  guard<TGuardContext extends Partial<TContext>>(
+    guard: GuardLike<TGuardContext>
+  ): ProcedureBuilder<TInput, TOutput, TContext>;
 
   /**
    * Configures REST route override

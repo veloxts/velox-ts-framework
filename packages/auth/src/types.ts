@@ -115,6 +115,12 @@ export interface TokenPair {
 export interface JwtConfig {
   /** Secret key for signing tokens (required) */
   secret: string;
+  /**
+   * Separate secret for signing refresh tokens (optional)
+   * If not provided, the main `secret` will be used for both token types.
+   * Using a separate secret adds an extra layer of security.
+   */
+  refreshSecret?: string;
   /** Access token expiration (default: '15m') */
   accessTokenExpiry?: string;
   /** Refresh token expiration (default: '7d') */

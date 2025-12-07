@@ -276,8 +276,8 @@ async function createApp() {
     return reply.status(statusCode).send({
       error: err.code ?? 'ERROR',
       message: err.message,
-      ...(err.guardName && { guardName: err.guardName }),
-      ...(err.validation && { validation: err.validation }),
+      ...(err.guardName ? { guardName: err.guardName } : {}),
+      ...(err.validation ? { validation: err.validation } : {}),
       // Include stack in development only
       stack: err.stack?.split('\n').slice(0, 5),
     });

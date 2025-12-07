@@ -108,6 +108,26 @@ export type ProcedureHandler<TInput, TOutput, TContext extends BaseContext = Bas
 // ============================================================================
 
 /**
+ * Guard check function type
+ *
+ * The function receives the context, request, and reply objects.
+ * Request and reply are typed as `any` to enable compatibility with more
+ * specific types (like FastifyRequest/FastifyReply from @veloxts/auth).
+ *
+ * This design allows guards defined with specific Fastify types to be
+ * used interchangeably with guards that use generic types.
+ *
+ * @template TContext - The context type the guard operates on
+ */
+export type GuardCheckFunction<TContext = unknown> = (
+  ctx: TContext,
+  // biome-ignore lint/suspicious/noExplicitAny: Required for bivariant compatibility with FastifyRequest/FastifyReply
+  request: any,
+  // biome-ignore lint/suspicious/noExplicitAny: Required for bivariant compatibility with FastifyRequest/FastifyReply
+  reply: any
+) => boolean | Promise<boolean>;
+
+/**
  * Guard-like type for authorization checks
  *
  * This interface is compatible with @veloxts/auth guards but doesn't create
@@ -119,7 +139,7 @@ export interface GuardLike<TContext = unknown> {
   /** Guard name for error messages */
   name: string;
   /** Guard check function - returns true if access is allowed */
-  check: (ctx: TContext, request: unknown, reply: unknown) => boolean | Promise<boolean>;
+  check: GuardCheckFunction<TContext>;
   /** Custom error message (optional) */
   message?: string;
   /** HTTP status code on failure (default: 403) */

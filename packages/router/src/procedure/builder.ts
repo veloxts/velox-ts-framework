@@ -129,8 +129,13 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
 
     /**
      * Adds an authorization guard
+     *
+     * Accepts guards with partial context types (contravariant).
+     * Guards typed for `{ auth?: AuthContext }` work with full `BaseContext`.
      */
-    guard(guardDef: GuardLike<TContext>): ProcedureBuilder<TInput, TOutput, TContext> {
+    guard<TGuardContext extends Partial<TContext>>(
+      guardDef: GuardLike<TGuardContext>
+    ): ProcedureBuilder<TInput, TOutput, TContext> {
       return createBuilder<TInput, TOutput, TContext>({
         ...state,
         guards: [...state.guards, guardDef as GuardLike<unknown>],
