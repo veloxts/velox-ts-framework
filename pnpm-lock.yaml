@@ -96,6 +96,9 @@ importers:
       '@types/bcrypt':
         specifier: 5.0.2
         version: 5.0.2
+      '@veloxts/testing':
+        specifier: workspace:*
+        version: link:../../tooling/testing
       '@veloxts/validation':
         specifier: workspace:*
         version: link:../validation
@@ -294,6 +297,25 @@ importers:
         version: 5.9.3
 
   tooling/biome-config: {}
+
+  tooling/testing:
+    dependencies:
+      '@veloxts/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      fastify:
+        specifier: 5.6.2
+        version: 5.6.2
+      fastify-plugin:
+        specifier: 5.1.0
+        version: 5.1.0
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   tooling/tsconfig: {}
 

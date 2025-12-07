@@ -1,0 +1,33 @@
+{
+  "name": "@veloxts/testing",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal testing utilities for VeloxTS framework packages",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@veloxts/core": "workspace:*",
+    "fastify": "5.6.2",
+    "fastify-plugin": "5.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

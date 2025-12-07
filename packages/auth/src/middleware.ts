@@ -295,15 +295,15 @@ export function rateLimitMiddleware<TInput, TContext extends BaseContext, TOutpu
       record.count++;
     }
 
-    // Check limit
-    if (record.count > max) {
-      throw new AuthError(message, 429, 'RATE_LIMIT_EXCEEDED');
-    }
-
-    // Add rate limit headers
+    // Add rate limit headers (always, even on 429 responses)
     ctx.reply.header('X-RateLimit-Limit', String(max));
     ctx.reply.header('X-RateLimit-Remaining', String(Math.max(0, max - record.count)));
     ctx.reply.header('X-RateLimit-Reset', String(Math.ceil(record.resetAt / 1000)));
+
+    // Check limit (after setting headers so they're included in 429 response)
+    if (record.count > max) {
+      throw new AuthError(message, 429, 'RATE_LIMIT_EXCEEDED');
+    }
 
     return next();
   };

@@ -3,18 +3,12 @@
  * @module __integration__/fixtures
  */
 
+import { TEST_SECRETS } from '@veloxts/testing';
+
 import type { User } from '../types.js';
 
-// ============================================================================
-// Test Secrets (64+ characters for HMAC-SHA512)
-// ============================================================================
-
-export const TEST_SECRETS = {
-  access:
-    'test-access-secret-key-for-integration-tests-must-be-64-characters-long-at-minimum-for-hmac',
-  refresh:
-    'test-refresh-secret-key-for-integration-tests-must-be-64-characters-long-at-minimum-for-hmac',
-} as const;
+// Re-export shared test secrets
+export { TEST_SECRETS };
 
 // ============================================================================
 // Test Users

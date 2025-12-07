@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "5.0.2",
+    "@veloxts/testing": "workspace:*",
     "@veloxts/validation": "workspace:*",
     "fastify-plugin": "5.1.0",
     "typescript": "5.9.3",

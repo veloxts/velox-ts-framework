@@ -118,14 +118,17 @@ describe('Rate Limiting Integration', () => {
         });
       }
 
-      // Fourth request should fail
+      // Fourth request should fail but still include headers
       const response = await server.inject({
         method: 'GET',
         url: '/api/limited/123',
       });
 
       expect(response.statusCode).toBe(429);
-      // Note: Headers may not be set when limit is exceeded (rate limit throws before setting headers)
+      // Headers are now set even on 429 responses
+      expect(response.headers['x-ratelimit-limit']).toBe('3');
+      expect(response.headers['x-ratelimit-remaining']).toBe('0');
+      expect(response.headers['x-ratelimit-reset']).toBeDefined();
     });
   });
 
