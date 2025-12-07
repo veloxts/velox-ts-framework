@@ -15,6 +15,7 @@ import type {
   CompiledProcedure,
   GuardLike,
   MiddlewareFunction,
+  ParentResourceConfig,
   ProcedureCollection,
   ProcedureHandler,
   RestRouteOverride,
@@ -27,6 +28,73 @@ import type {
   ProcedureDefinitions,
   ValidSchema,
 } from './types.js';
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Derives the default parent parameter name from a namespace
+ *
+ * Converts a plural namespace to a singular form and appends 'Id'.
+ * Uses simple heuristics for common English pluralization patterns.
+ *
+ * @param namespace - The parent resource namespace (e.g., 'posts', 'users')
+ * @returns The parameter name (e.g., 'postId', 'userId')
+ *
+ * @example
+ * ```typescript
+ * deriveParentParamName('posts')      // 'postId'
+ * deriveParentParamName('users')      // 'userId'
+ * deriveParentParamName('categories') // 'categoryId'
+ * deriveParentParamName('data')       // 'dataId' (no change for non-plural)
+ * ```
+ *
+ * @internal
+ */
+function deriveParentParamName(namespace: string): string {
+  // Handle common irregular plurals
+  const irregulars: Record<string, string> = {
+    people: 'person',
+    children: 'child',
+    men: 'man',
+    women: 'woman',
+    mice: 'mouse',
+    geese: 'goose',
+    teeth: 'tooth',
+    feet: 'foot',
+    data: 'datum',
+    criteria: 'criterion',
+    phenomena: 'phenomenon',
+  };
+
+  const lower = namespace.toLowerCase();
+  if (irregulars[lower]) {
+    return `${irregulars[lower]}Id`;
+  }
+
+  // Handle common English pluralization patterns
+  let singular = namespace;
+
+  if (namespace.endsWith('ies') && namespace.length > 3) {
+    // categories -> category
+    singular = namespace.slice(0, -3) + 'y';
+  } else if (namespace.endsWith('es') && namespace.length > 2) {
+    // Check for -shes, -ches, -xes, -zes, -sses patterns
+    const beforeEs = namespace.slice(-4, -2);
+    if (['sh', 'ch'].includes(beforeEs) || ['x', 'z', 's'].includes(namespace.slice(-3, -2))) {
+      singular = namespace.slice(0, -2);
+    } else {
+      // classes -> class (double s + es)
+      singular = namespace.slice(0, -1);
+    }
+  } else if (namespace.endsWith('s') && namespace.length > 1 && !namespace.endsWith('ss')) {
+    // Simple plural: users -> user, posts -> post
+    singular = namespace.slice(0, -1);
+  }
+
+  return `${singular}Id`;
+}
 
 // ============================================================================
 // Builder Factory
@@ -60,6 +128,7 @@ export function procedure(): ProcedureBuilder<unknown, unknown, BaseContext> {
     middlewares: [],
     guards: [],
     restOverride: undefined,
+    parentResource: undefined,
   });
 }
 
@@ -153,6 +222,21 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
+     * Declares a parent resource for nested routes
+     */
+    parent(namespace: string, paramName?: string): ProcedureBuilder<TInput, TOutput, TContext> {
+      const parentConfig: ParentResourceConfig = {
+        namespace,
+        paramName: paramName ?? deriveParentParamName(namespace),
+      };
+
+      return createBuilder<TInput, TOutput, TContext>({
+        ...state,
+        parentResource: parentConfig,
+      });
+    },
+
+    /**
      * Finalizes as a query procedure
      */
     query(
@@ -206,6 +290,7 @@ function compileProcedure<TInput, TOutput, TContext extends BaseContext>(
     middlewares: typedMiddlewares,
     guards: state.guards as ReadonlyArray<GuardLike<TContext>>,
     restOverride: state.restOverride,
+    parentResource: state.parentResource,
     // Store pre-compiled executor for performance
     _precompiledExecutor: precompiledExecutor,
   };

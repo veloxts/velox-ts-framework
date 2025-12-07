@@ -272,6 +272,36 @@ export interface RestRouteOverride {
 }
 
 /**
+ * Parent resource configuration for nested routes
+ *
+ * Defines the parent resource relationship for generating nested REST routes
+ * like `/posts/:postId/comments/:id`.
+ *
+ * @example
+ * ```typescript
+ * // Default param name: posts -> postId
+ * procedure().parent('posts')
+ *
+ * // Custom param name
+ * procedure().parent('posts', 'post_id')
+ * ```
+ */
+export interface ParentResourceConfig {
+  /**
+   * Parent resource namespace (e.g., 'posts', 'users')
+   * Used to build the parent path segment: `/${namespace}/:${paramName}`
+   */
+  readonly namespace: string;
+
+  /**
+   * Parent resource parameter name in the path
+   * Defaults to `${singularNamespace}Id` if not specified
+   * (e.g., 'posts' -> 'postId', 'users' -> 'userId')
+   */
+  readonly paramName: string;
+}
+
+/**
  * Compiled procedure with all metadata and handlers
  *
  * This is the final output of the procedure builder, ready for registration
@@ -300,6 +330,20 @@ export interface CompiledProcedure<
   readonly guards: ReadonlyArray<GuardLike<TContext>>;
   /** REST route override (if specified) */
   readonly restOverride?: RestRouteOverride;
+  /**
+   * Parent resource configuration for nested routes
+   *
+   * When specified, the REST path will be prefixed with the parent resource:
+   * `/${parent.namespace}/:${parent.paramName}/${childNamespace}/:id`
+   *
+   * @example
+   * ```typescript
+   * // With parentResource: { namespace: 'posts', paramName: 'postId' }
+   * // and namespace: 'comments'
+   * // Generates: /posts/:postId/comments/:id
+   * ```
+   */
+  readonly parentResource?: ParentResourceConfig;
   /**
    * Pre-compiled middleware chain executor
    *

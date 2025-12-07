@@ -70,6 +70,8 @@ export type {
   MiddlewareFunction,
   MiddlewareNext,
   MiddlewareResult,
+  // Nested routes
+  ParentResourceConfig,
   // Collection types
   ProcedureCollection,
   ProcedureHandler,
@@ -123,6 +125,7 @@ export type {
 export type { RestAdapterOptions, RestMapping, RestRoute } from './rest/index.js';
 export {
   // Internal utilities
+  buildNestedRestPath,
   buildRestPath,
   // Legacy API (deprecated)
   createRoutesRegistrar,

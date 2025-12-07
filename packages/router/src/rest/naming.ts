@@ -7,7 +7,7 @@
  * @module rest/naming
  */
 
-import type { HttpMethod, ProcedureType } from '../types.js';
+import type { HttpMethod, ParentResourceConfig, ProcedureType } from '../types.js';
 
 // ============================================================================
 // Types
@@ -205,6 +205,50 @@ export function buildRestPath(namespace: string, mapping: RestMapping): string {
 
   // Otherwise append the path (e.g., '/:id')
   return `${basePath}${mapping.path}`;
+}
+
+/**
+ * Build a nested REST path with parent resource prefix
+ *
+ * Creates paths like `/posts/:postId/comments/:id` for nested resources.
+ *
+ * @param parentResource - Parent resource configuration
+ * @param childNamespace - Child resource namespace (e.g., 'comments')
+ * @param mapping - REST mapping from parseNamingConvention
+ * @returns Full nested path
+ *
+ * @example
+ * ```typescript
+ * const parent = { namespace: 'posts', paramName: 'postId' };
+ *
+ * buildNestedRestPath(parent, 'comments', { method: 'GET', path: '/:id', hasIdParam: true })
+ * // Returns: '/posts/:postId/comments/:id'
+ *
+ * buildNestedRestPath(parent, 'comments', { method: 'GET', path: '/', hasIdParam: false })
+ * // Returns: '/posts/:postId/comments'
+ *
+ * buildNestedRestPath(parent, 'comments', { method: 'POST', path: '/', hasIdParam: false })
+ * // Returns: '/posts/:postId/comments'
+ * ```
+ */
+export function buildNestedRestPath(
+  parentResource: ParentResourceConfig,
+  childNamespace: string,
+  mapping: RestMapping
+): string {
+  // Build parent path segment: /{parentNamespace}/:{parentParamName}
+  const parentPath = `/${parentResource.namespace}/:${parentResource.paramName}`;
+
+  // Build child path segment
+  const childBasePath = `/${childNamespace}`;
+
+  // If mapping path is just '/', don't add extra suffix
+  if (mapping.path === '/') {
+    return `${parentPath}${childBasePath}`;
+  }
+
+  // Otherwise append the path (e.g., '/:id')
+  return `${parentPath}${childBasePath}${mapping.path}`;
 }
 
 /**

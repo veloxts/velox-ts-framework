@@ -17,6 +17,7 @@ import type {
   CompiledProcedure,
   GuardLike,
   MiddlewareFunction,
+  ParentResourceConfig,
   ProcedureHandler,
   RestRouteOverride,
 } from '../types.js';
@@ -232,6 +233,36 @@ export interface ProcedureBuilder<
   rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext>;
 
   /**
+   * Declares a parent resource for nested routes
+   *
+   * When a procedure has a parent resource, the REST path will be nested
+   * under the parent: `/${parentNamespace}/:${parentParam}/${childNamespace}/:id`
+   *
+   * The input schema should include the parent parameter (e.g., `postId`) for
+   * proper type safety and runtime validation.
+   *
+   * @param namespace - Parent resource namespace (e.g., 'posts', 'users')
+   * @param paramName - Optional custom parameter name (default: `${singularNamespace}Id`)
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * // Generates: GET /posts/:postId/comments/:id
+   * const getComment = procedure()
+   *   .parent('posts')
+   *   .input(z.object({ postId: z.string(), id: z.string() }))
+   *   .query(async ({ input }) => { ... });
+   *
+   * // With custom param name: GET /posts/:post_id/comments/:id
+   * const getComment = procedure()
+   *   .parent('posts', 'post_id')
+   *   .input(z.object({ post_id: z.string(), id: z.string() }))
+   *   .query(async ({ input }) => { ... });
+   * ```
+   */
+  parent(namespace: string, paramName?: string): ProcedureBuilder<TInput, TOutput, TContext>;
+
+  /**
    * Finalizes the procedure as a query (read-only operation)
    *
    * Queries map to GET requests in REST and should not modify data.
@@ -297,6 +328,8 @@ export interface BuilderRuntimeState {
   guards: GuardLike<unknown>[];
   /** REST route override */
   restOverride?: RestRouteOverride;
+  /** Parent resource configuration for nested routes */
+  parentResource?: ParentResourceConfig;
 }
 
 // ============================================================================

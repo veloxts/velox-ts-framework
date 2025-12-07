@@ -19,6 +19,7 @@ export {
 // Naming convention utilities - internal, exported for advanced use cases
 export type { RestMapping } from './naming.js';
 export {
+  buildNestedRestPath,
   buildRestPath,
   followsNamingConvention,
   inferResourceName,

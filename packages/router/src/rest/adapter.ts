@@ -13,7 +13,7 @@ import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest 
 
 import { executeProcedure } from '../procedure/builder.js';
 import type { CompiledProcedure, HttpMethod, ProcedureCollection } from '../types.js';
-import { buildRestPath, parseNamingConvention } from './naming.js';
+import { buildNestedRestPath, buildRestPath, parseNamingConvention } from './naming.js';
 
 // ============================================================================
 // Types
@@ -97,6 +97,9 @@ export function generateRestRoutes(collection: ProcedureCollection): RestRoute[]
 /**
  * Generate a REST route for a single procedure
  *
+ * Handles both flat routes (e.g., /users/:id) and nested routes
+ * (e.g., /posts/:postId/comments/:id) when a parent resource is configured.
+ *
  * @internal
  */
 function generateRouteForProcedure(
@@ -110,6 +113,8 @@ function generateRouteForProcedure(
 
     // Must have both method and path for override
     if (override.method && override.path) {
+      // For manual overrides with full path, use as-is
+      // The user is responsible for including parent segments if needed
       return {
         method: override.method,
         path: override.path,
@@ -121,9 +126,16 @@ function generateRouteForProcedure(
     // Partial override - try to fill in missing parts from convention
     const convention = parseNamingConvention(name, procedure.type);
     if (convention) {
+      // Build path based on whether there's a parent resource
+      const path =
+        override.path ??
+        (procedure.parentResource
+          ? buildNestedRestPath(procedure.parentResource, namespace, convention)
+          : buildRestPath(namespace, convention));
+
       return {
         method: override.method ?? convention.method,
-        path: override.path ?? buildRestPath(namespace, convention),
+        path,
         procedureName: name,
         procedure,
       };
@@ -136,9 +148,14 @@ function generateRouteForProcedure(
   // Try to infer from naming convention
   const mapping = parseNamingConvention(name, procedure.type);
   if (mapping) {
+    // Build path based on whether there's a parent resource
+    const path = procedure.parentResource
+      ? buildNestedRestPath(procedure.parentResource, namespace, mapping)
+      : buildRestPath(namespace, mapping);
+
     return {
       method: mapping.method,
-      path: buildRestPath(namespace, mapping),
+      path,
       procedureName: name,
       procedure,
     };
@@ -210,30 +227,44 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * Gather input data from the request based on HTTP method
  *
  * - GET: Merge params and query
- * - POST: Use body
+ * - POST: Use body, but merge params for nested routes (parent ID in URL)
  * - PUT/PATCH: Merge params (for ID) and body (for data)
  * - DELETE: Merge params and query (no body per REST conventions)
+ *
+ * For nested routes (e.g., /posts/:postId/comments), the parent param
+ * is extracted from the URL and merged with the body/query as appropriate.
  */
 function gatherInput(request: FastifyRequest, route: RestRoute): unknown {
   const params = isPlainObject(request.params) ? request.params : {};
   const query = isPlainObject(request.query) ? request.query : {};
   const body = isPlainObject(request.body) ? request.body : {};
 
+  // Check if this is a nested route (has parent resource)
+  const hasParentResource = route.procedure.parentResource !== undefined;
+
   switch (route.method) {
     case 'GET':
-      // GET: params (for :id) + query (for filters/pagination)
+      // GET: params (for :id and parent params) + query (for filters/pagination)
       return { ...params, ...query };
 
     case 'DELETE':
-      // DELETE: params (for :id) + query (for options), no body per REST conventions
+      // DELETE: params (for :id and parent params) + query (for options), no body per REST conventions
       return { ...params, ...query };
 
     case 'PUT':
     case 'PATCH':
-      // PUT/PATCH: params (for :id) + body (for data)
+      // PUT/PATCH: params (for :id and parent params) + body (for data)
       return { ...params, ...body };
+
+    case 'POST':
+      // POST: For nested routes, merge params (for parent ID) with body
+      // For flat routes, use body only (no ID in params for creates)
+      if (hasParentResource) {
+        return { ...params, ...body };
+      }
+      return request.body;
+
     default:
-      // POST: body only (no ID in params for creates)
       return request.body;
   }
 }
