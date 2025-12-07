@@ -495,7 +495,7 @@ export class Container {
     // Handle async factories (should be avoided in sync resolution)
     if (result instanceof Promise) {
       throw new VeloxError(
-        'Async factory returned from sync resolve(). ' + 'Use resolveAsync() for async factories.',
+        'Async factory returned from sync resolve(). Use resolveAsync() for async factories.',
         500,
         'INVALID_PROVIDER'
       );

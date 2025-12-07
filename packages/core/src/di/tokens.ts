@@ -41,9 +41,22 @@ export interface ClassConstructor<T = unknown> extends AbstractClass<T> {
 }
 
 /**
+ * Unique brand symbol for string tokens (compile-time only)
+ * @internal
+ */
+declare const StringTokenBrand: unique symbol;
+
+/**
+ * Unique brand symbol for symbol tokens (compile-time only)
+ * @internal
+ */
+declare const SymbolTokenBrand: unique symbol;
+
+/**
  * String token type for named services
  *
  * Branded type to distinguish service tokens from regular strings at compile time.
+ * The brand is purely a compile-time construct for type safety.
  *
  * @example
  * ```typescript
@@ -51,12 +64,13 @@ export interface ClassConstructor<T = unknown> extends AbstractClass<T> {
  * container.register({ provide: DATABASE, useFactory: () => createDb() });
  * ```
  */
-export type StringToken<T = unknown> = string & { readonly __tokenType__: T };
+export type StringToken<T = unknown> = string & { readonly [StringTokenBrand]: T };
 
 /**
  * Symbol token type for unique service identifiers
  *
  * Branded type that carries the service type information.
+ * The brand is purely a compile-time construct for type safety.
  *
  * @example
  * ```typescript
@@ -64,7 +78,7 @@ export type StringToken<T = unknown> = string & { readonly __tokenType__: T };
  * container.register({ provide: LOGGER, useClass: ConsoleLogger });
  * ```
  */
-export type SymbolToken<T = unknown> = symbol & { readonly __tokenType__: T };
+export type SymbolToken<T = unknown> = symbol & { readonly [SymbolTokenBrand]: T };
 
 /**
  * Union of all valid injection token types
@@ -178,16 +192,20 @@ export function createSymbolToken<T>(description?: string): SymbolToken<T> {
  * @internal
  */
 export function getTokenName(token: InjectionToken): string {
-  if (typeof token === 'string') {
-    return token;
+  // Cast to unknown for proper typeof narrowing without IDE warnings
+  // This is safe because InjectionToken runtime values are always string | symbol | function
+  const rawToken: unknown = token;
+
+  if (typeof rawToken === 'string') {
+    return rawToken;
   }
 
-  if (typeof token === 'symbol') {
-    return token.description ?? 'Symbol()';
+  if (typeof rawToken === 'symbol') {
+    return rawToken.description ?? 'Symbol()';
   }
 
-  if (typeof token === 'function') {
-    return token.name || 'AnonymousClass';
+  if (typeof rawToken === 'function') {
+    return rawToken.name || 'AnonymousClass';
   }
 
   return 'Unknown';
@@ -220,7 +238,8 @@ export function isStringToken(token: InjectionToken): token is StringToken {
  * @returns true if the token is a symbol token
  */
 export function isSymbolToken(token: InjectionToken): token is SymbolToken {
-  return typeof token === 'symbol';
+  // Cast to unknown for proper typeof narrowing without IDE warnings
+  return typeof (token as unknown) === 'symbol';
 }
 
 /**
