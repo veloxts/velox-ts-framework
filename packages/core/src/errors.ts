@@ -4,6 +4,31 @@
  * @module errors
  */
 
+// Import catalog for use in error classes
+import { ERROR_CATALOG, getErrorEntry as _getErrorEntry } from './errors/catalog.js';
+import { formatError as _formatError } from './errors/formatter.js';
+
+// Re-export the enhanced error catalog and formatter
+export {
+  ERROR_CATALOG,
+  ERROR_DOMAINS,
+  extractErrorLocation,
+  formatError,
+  formatErrorForApi,
+  formatErrorOneLine,
+  getDocsUrl,
+  getErrorEntry,
+  getErrorsByDomain,
+  isKnownErrorCode,
+  logDeprecation,
+  logError,
+  logWarning,
+  type ErrorCatalogEntry,
+  type ErrorDomain,
+  type ErrorLocation,
+  type FormatErrorOptions,
+} from './errors/index.js';
+
 // ============================================================================
 // Error Code Types
 // ============================================================================
@@ -144,11 +169,19 @@ export function isNotFoundErrorResponse(
  *
  * @example
  * ```typescript
+ * // Basic usage
  * throw new VeloxError('Something went wrong', 500);
  * ```
  *
  * @example
  * ```typescript
+ * // With catalog code for rich error details
+ * throw new VeloxError('Database connection failed', 503, 'VELOX-4001');
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // With legacy string code
  * throw new VeloxError('Database connection failed', 503, 'DB_CONNECTION_ERROR');
  * ```
  */
@@ -159,22 +192,42 @@ export class VeloxError<TCode extends string = string> extends Error {
   public readonly statusCode: number;
 
   /**
-   * Optional error code for programmatic error handling
+   * Error code for programmatic error handling
+   * Can be a catalog code (VELOX-XXXX) or legacy string code
    */
   public readonly code?: TCode;
+
+  /**
+   * Fix suggestion for developers (populated from catalog)
+   */
+  public readonly fix?: string;
+
+  /**
+   * Documentation URL for this error
+   */
+  public readonly docsUrl?: string;
 
   /**
    * Creates a new VeloxError instance
    *
    * @param message - Human-readable error message
    * @param statusCode - HTTP status code (default: 500)
-   * @param code - Optional error code for programmatic handling
+   * @param code - Optional error code (VELOX-XXXX catalog code or legacy string)
    */
   constructor(message: string, statusCode: number = 500, code?: TCode) {
     super(message);
     this.name = 'VeloxError';
     this.statusCode = statusCode;
     this.code = code;
+
+    // Look up catalog entry for enhanced error info
+    if (code && typeof code === 'string' && code.startsWith('VELOX-')) {
+      const entry = ERROR_CATALOG[code];
+      if (entry) {
+        this.fix = entry.fix?.suggestion;
+        this.docsUrl = entry.docsUrl;
+      }
+    }
 
     // Maintains proper stack trace for where error was thrown (V8 only)
     if (Error.captureStackTrace) {
@@ -185,15 +238,43 @@ export class VeloxError<TCode extends string = string> extends Error {
   /**
    * Converts error to JSON format for API responses
    *
-   * @returns Error response object
+   * @returns Error response object with optional fix suggestion in development
    */
-  toJSON(): GenericErrorResponse {
-    return {
+  toJSON(): GenericErrorResponse & { fix?: string; docs?: string } {
+    const response: GenericErrorResponse & { fix?: string; docs?: string } = {
       error: this.name,
       message: this.message,
       statusCode: this.statusCode,
       code: this.code,
     };
+
+    // Include fix suggestion in development only
+    if (process.env.NODE_ENV !== 'production' && this.fix) {
+      response.fix = this.fix;
+    }
+
+    // Always include docs URL if available
+    if (this.docsUrl) {
+      response.docs = this.docsUrl;
+    }
+
+    return response;
+  }
+
+  /**
+   * Format error for terminal display with colors and fix suggestions
+   *
+   * @returns Formatted error string
+   */
+  format(): string {
+    return _formatError(this, this.code);
+  }
+
+  /**
+   * Log this error with pretty formatting
+   */
+  log(): void {
+    console.error(this.format());
   }
 }
 
