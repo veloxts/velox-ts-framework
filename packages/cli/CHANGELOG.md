@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.3.5
+
+### Patch Changes
+
+- 658e83f: @veloxts/auth, Full REST Support, Better error messages, Type tests with tsd
+- Updated dependencies [658e83f]
+  - @veloxts/auth@0.3.5
+  - @veloxts/core@0.3.5
+  - @veloxts/orm@0.3.5
+  - @veloxts/router@0.3.5
+  - @veloxts/validation@0.3.5
+
 ## 0.3.4
 
 ### Patch Changes

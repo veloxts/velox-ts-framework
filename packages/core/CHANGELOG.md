@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.3.5
+
+### Patch Changes
+
+- 658e83f: @veloxts/auth, Full REST Support, Better error messages, Type tests with tsd
+
 ## 0.3.4
 
 ### Patch Changes
