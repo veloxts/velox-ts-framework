@@ -75,29 +75,39 @@ export const emailVerified: GuardDefinition<{ user?: User }> = defineGuard({
 /**
  * Creates a guard that checks if user has a specific role
  *
+ * Checks if the user has ANY of the specified roles.
+ *
  * @example
  * ```typescript
  * const adminOnly = hasRole('admin');
  * const moderatorOrAdmin = hasRole(['admin', 'moderator']);
+ *
+ * // User with multiple roles
+ * const user = { id: '1', email: 'a@b.com', roles: ['editor', 'moderator'] };
+ * hasRole('moderator') // passes - user has 'moderator' role
+ * hasRole(['admin', 'editor']) // passes - user has 'editor' role
  * ```
  */
-export function hasRole(
-  roles: string | string[]
-): GuardDefinition<{ user?: User & { role?: string } }> {
-  const roleArray = Array.isArray(roles) ? roles : [roles];
+export function hasRole(roles: string | string[]): GuardDefinition<{ user?: User }> {
+  const requiredRoles = Array.isArray(roles) ? roles : [roles];
 
   return defineGuard({
-    name: `hasRole:${roleArray.join(',')}`,
+    name: `hasRole:${requiredRoles.join(',')}`,
     check: (ctx) => {
-      const userRole = ctx.user?.role;
-      return typeof userRole === 'string' && roleArray.includes(userRole);
+      const userRoles = ctx.user?.roles;
+      if (!Array.isArray(userRoles) || userRoles.length === 0) {
+        return false;
+      }
+      return requiredRoles.some((role) => userRoles.includes(role));
     },
-    message: `Required role: ${roleArray.join(' or ')}`,
+    message: `Required role: ${requiredRoles.join(' or ')}`,
   });
 }
 
 /**
  * Creates a guard that checks if user has specific permissions
+ *
+ * Requires ALL specified permissions (AND logic).
  *
  * @example
  * ```typescript
@@ -105,9 +115,7 @@ export function hasRole(
  * const canManageUsers = hasPermission(['users.create', 'users.delete']);
  * ```
  */
-export function hasPermission(
-  permissions: string | string[]
-): GuardDefinition<{ user?: User & { permissions?: string[] } }> {
+export function hasPermission(permissions: string | string[]): GuardDefinition<{ user?: User }> {
   const required = Array.isArray(permissions) ? permissions : [permissions];
 
   return defineGuard({
@@ -131,9 +139,7 @@ export function hasPermission(
  * const canViewOrEdit = hasAnyPermission(['posts.view', 'posts.edit']);
  * ```
  */
-export function hasAnyPermission(
-  permissions: string[]
-): GuardDefinition<{ user?: User & { permissions?: string[] } }> {
+export function hasAnyPermission(permissions: string[]): GuardDefinition<{ user?: User }> {
   return defineGuard({
     name: `hasAnyPermission:${permissions.join(',')}`,
     check: (ctx) => {

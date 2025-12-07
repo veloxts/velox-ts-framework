@@ -50,6 +50,9 @@ export { AuthError } from './types.js';
 export type { TokenStore } from './jwt.js';
 export {
   createInMemoryTokenStore,
+  // Succinct API
+  jwtManager,
+  // Legacy (deprecated)
   createJwtManager,
   generateTokenId,
   JwtManager,
@@ -61,6 +64,9 @@ export {
 // ============================================================================
 
 export {
+  // Succinct API
+  passwordHasher,
+  // Legacy (deprecated)
   createPasswordHasher,
   hashPassword,
   PasswordHasher,
@@ -119,6 +125,10 @@ export {
 
 export {
   clearRateLimitStore,
+  // Succinct API
+  authMiddleware,
+  rateLimitMiddleware,
+  // Legacy (deprecated)
   createAuthMiddleware,
   createRateLimitMiddleware,
 } from './middleware.js';
@@ -128,7 +138,13 @@ export {
 // ============================================================================
 
 export type { AuthPluginOptions, AuthService } from './plugin.js';
-export { authPlugin, createAuthPlugin } from './plugin.js';
+export {
+  // Succinct API
+  authPlugin,
+  defaultAuthPlugin,
+  // Legacy (deprecated)
+  createAuthPlugin,
+} from './plugin.js';
 
 // ============================================================================
 // CSRF Protection
@@ -146,7 +162,14 @@ export type {
   CsrfTokenResult,
   CsrfValidationConfig,
 } from './csrf.js';
-export { CsrfError, createCsrfManager, createCsrfMiddleware } from './csrf.js';
+export {
+  CsrfError,
+  createCsrfManager,
+  // Succinct API
+  csrfMiddleware,
+  // Legacy (deprecated)
+  createCsrfMiddleware,
+} from './csrf.js';
 
 // ============================================================================
 // Session Management
@@ -177,7 +200,9 @@ export {
   createInMemorySessionStore,
   // Session manager
   createSessionManager,
-  // Middleware factory
+  // Succinct API
+  sessionMiddleware,
+  // Legacy (deprecated)
   createSessionMiddleware,
   // Helper functions
   isSessionAuthenticated,

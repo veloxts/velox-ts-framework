@@ -49,7 +49,7 @@ export class AuthError extends Error {
  * ```typescript
  * declare module '@veloxts/auth' {
  *   interface User {
- *     role: 'admin' | 'user';
+ *     roles: ('admin' | 'user')[];
  *     permissions: string[];
  *   }
  * }
@@ -58,6 +58,10 @@ export class AuthError extends Error {
 export interface User {
   id: string;
   email: string;
+  /** User roles for authorization */
+  roles?: string[];
+  /** User permissions for fine-grained access control */
+  permissions?: string[];
   [key: string]: unknown;
 }
 

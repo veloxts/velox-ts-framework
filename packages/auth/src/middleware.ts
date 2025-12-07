@@ -23,7 +23,7 @@ import { AuthError } from './types.js';
 // ============================================================================
 
 /**
- * Creates an authentication middleware for procedures
+ * Creates an authentication middleware for procedures (succinct API)
  *
  * This middleware:
  * 1. Extracts JWT from Authorization header
@@ -34,7 +34,7 @@ import { AuthError } from './types.js';
  *
  * @example
  * ```typescript
- * const auth = createAuthMiddleware(authConfig);
+ * const auth = authMiddleware(authConfig);
  *
  * // Use in procedures
  * const getProfile = procedure()
@@ -59,7 +59,7 @@ import { AuthError } from './types.js';
  *   });
  * ```
  */
-export function createAuthMiddleware(config: AuthConfig) {
+export function authMiddleware(config: AuthConfig) {
   const jwt = new JwtManager(config.jwt);
 
   /**
@@ -224,6 +224,13 @@ export function createAuthMiddleware(config: AuthConfig) {
   };
 }
 
+/**
+ * Creates an authentication middleware for procedures
+ *
+ * @deprecated Use `authMiddleware()` instead. Will be removed in v0.9.
+ */
+export const createAuthMiddleware = authMiddleware;
+
 // ============================================================================
 // Error Helpers
 // ============================================================================
@@ -241,11 +248,11 @@ export function createAuthMiddleware(config: AuthConfig) {
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 /**
- * Creates a rate limiting middleware
+ * Creates a rate limiting middleware (succinct API)
  *
  * @example
  * ```typescript
- * const rateLimit = createRateLimitMiddleware({
+ * const rateLimit = rateLimitMiddleware({
  *   max: 100,
  *   windowMs: 60000, // 1 minute
  * });
@@ -256,7 +263,7 @@ const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
  *   .mutation(handler);
  * ```
  */
-export function createRateLimitMiddleware<TInput, TContext extends BaseContext, TOutput>(options: {
+export function rateLimitMiddleware<TInput, TContext extends BaseContext, TOutput>(options: {
   max?: number;
   windowMs?: number;
   keyGenerator?: (ctx: TContext) => string;
@@ -301,6 +308,13 @@ export function createRateLimitMiddleware<TInput, TContext extends BaseContext, 
     return next();
   };
 }
+
+/**
+ * Creates a rate limiting middleware
+ *
+ * @deprecated Use `rateLimitMiddleware()` instead. Will be removed in v0.9.
+ */
+export const createRateLimitMiddleware = rateLimitMiddleware;
 
 /**
  * Clears rate limit store (useful for testing)

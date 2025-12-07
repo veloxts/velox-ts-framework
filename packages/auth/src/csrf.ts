@@ -631,11 +631,11 @@ export function createCsrfManager(config: CsrfConfig): CsrfManager {
 // ============================================================================
 
 /**
- * Creates CSRF protection middleware for procedures
+ * Creates CSRF protection middleware for procedures (succinct API)
  *
  * @example
  * ```typescript
- * const csrf = createCsrfMiddleware({
+ * const csrf = csrfMiddleware({
  *   token: { secret: process.env.CSRF_SECRET! },
  * });
  *
@@ -656,7 +656,7 @@ export function createCsrfManager(config: CsrfConfig): CsrfManager {
  *   });
  * ```
  */
-export function createCsrfMiddleware(config: CsrfConfig) {
+export function csrfMiddleware(config: CsrfConfig) {
   const manager = createCsrfManager(config);
 
   /**
@@ -739,3 +739,10 @@ export function createCsrfMiddleware(config: CsrfConfig) {
     clearCookie: (reply: FastifyReplyWithCookies) => manager.clearCookie(reply),
   };
 }
+
+/**
+ * Creates CSRF protection middleware for procedures
+ *
+ * @deprecated Use `csrfMiddleware()` instead. Will be removed in v0.9.
+ */
+export const createCsrfMiddleware = csrfMiddleware;

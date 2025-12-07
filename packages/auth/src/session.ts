@@ -1103,11 +1103,11 @@ export interface SessionMiddlewareOptions {
 // ============================================================================
 
 /**
- * Creates session middleware for procedures
+ * Creates session middleware for procedures (succinct API)
  *
  * @example
  * ```typescript
- * const session = createSessionMiddleware({
+ * const session = sessionMiddleware({
  *   secret: process.env.SESSION_SECRET!,
  *   cookie: { secure: true },
  * });
@@ -1127,7 +1127,7 @@ export interface SessionMiddlewareOptions {
  *   });
  * ```
  */
-export function createSessionMiddleware(config: SessionConfig) {
+export function sessionMiddleware(config: SessionConfig) {
   const manager = createSessionManager(config);
 
   /**
@@ -1399,3 +1399,10 @@ export async function logoutSession(session: Session): Promise<void> {
 export function isSessionAuthenticated(session: Session): boolean {
   return !!session.get('userId');
 }
+
+/**
+ * Creates session middleware for procedures
+ *
+ * @deprecated Use `sessionMiddleware()` instead. Will be removed in v0.9.
+ */
+export const createSessionMiddleware = sessionMiddleware;

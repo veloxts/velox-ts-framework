@@ -23,6 +23,12 @@ Authentication and authorization system for VeloxTS Framework.
 - [JWT Authentication](#jwt-authentication)
 - [CSRF Protection](#csrf-protection)
 - [Guards and Policies](#guards-and-policies)
+  - [User Roles and Permissions](#user-roles-and-permissions)
+  - [Role-Based Guards](#role-based-guards)
+  - [Permission-Based Guards](#permission-based-guards)
+  - [Combining Guards](#combining-guards)
+  - [Custom Guards](#custom-guards)
+  - [Policies](#policies)
 - [Password Hashing](#password-hashing)
 - [Rate Limiting](#rate-limiting)
 
@@ -55,7 +61,7 @@ npm install better-auth @veloxts/auth
 #### Basic Setup
 
 ```typescript
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { createAuthAdapterPlugin, createBetterAuthAdapter } from '@veloxts/auth';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
@@ -82,14 +88,14 @@ const betterAuthAdapter = createBetterAuthAdapter({
 });
 
 // Create the plugin
-const authPlugin = createAuthAdapterPlugin({
+const authAdapterPlugin = createAuthAdapterPlugin({
   adapter: betterAuthAdapter,
   config: betterAuthAdapter.config,
 });
 
 // Create app and register plugin
-const app = createVeloxApp();
-await app.register(authPlugin);
+const app = await veloxApp();
+await app.register(authAdapterPlugin);
 ```
 
 #### Using Authentication in Procedures
@@ -342,11 +348,11 @@ Cookie-based session management with secure defaults and pluggable storage backe
 ### Quick Start
 
 ```typescript
-import { createSessionMiddleware, createInMemorySessionStore } from '@veloxts/auth';
+import { sessionMiddleware, createInMemorySessionStore } from '@veloxts/auth';
 import { defineProcedures, procedure } from '@veloxts/router';
 
 // Create session middleware
-const session = createSessionMiddleware({
+const session = sessionMiddleware({
   secret: process.env.SESSION_SECRET!, // Min 32 characters
   cookie: {
     secure: process.env.NODE_ENV === 'production',
@@ -420,7 +426,7 @@ const sessionManager = createSessionManager({
 ### Middleware Variants
 
 ```typescript
-const session = createSessionMiddleware(config);
+const session = sessionMiddleware(config);
 
 // Basic session middleware - creates session for all requests
 const getPreferences = procedure
@@ -623,7 +629,7 @@ class RedisSessionStore implements SessionStore {
 
 // Use custom store
 const redisStore = new RedisSessionStore(redisClient);
-const session = createSessionMiddleware({
+const session = sessionMiddleware({
   secret: process.env.SESSION_SECRET!,
   store: redisStore,
 });
@@ -706,16 +712,182 @@ The session implementation includes several security protections by default:
 
 ## JWT Authentication
 
-Coming soon in v1.1.0. For now, use session-based authentication.
+Stateless token-based authentication using HMAC-SHA256 signed JWTs.
+
+### Quick Start
+
+```typescript
+import { jwtManager, authMiddleware } from '@veloxts/auth';
+import { defineProcedures, procedure } from '@veloxts/router';
+
+// Create JWT manager
+const jwt = jwtManager({
+  secret: process.env.JWT_SECRET!, // Min 64 characters
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d',
+  issuer: 'my-app',
+  audience: 'my-app-users',
+});
+
+// Create auth middleware
+const auth = authMiddleware({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    accessTokenExpiry: '15m',
+    refreshTokenExpiry: '7d',
+  },
+  userLoader: async (userId) => {
+    return db.user.findUnique({ where: { id: userId } });
+  },
+});
+
+// Use in procedures
+export const authProcedures = defineProcedures('auth', {
+  // Login - return tokens
+  login: procedure
+    .input(z.object({ email: z.string().email(), password: z.string() }))
+    .mutation(async ({ input }) => {
+      const user = await db.user.findUnique({ where: { email: input.email } });
+      if (!user || !await verifyPassword(input.password, user.passwordHash)) {
+        throw new AuthError('Invalid credentials', 401);
+      }
+      return jwt.createTokenPair(user);
+    }),
+
+  // Protected route
+  getProfile: procedure
+    .use(auth.requireAuth())
+    .query(async ({ ctx }) => {
+      return ctx.user; // Guaranteed to exist
+    }),
+
+  // Refresh tokens
+  refresh: procedure
+    .input(z.object({ refreshToken: z.string() }))
+    .mutation(async ({ input }) => {
+      return jwt.refreshTokens(input.refreshToken);
+    }),
+});
+```
+
+### Configuration Options
+
+```typescript
+import { jwtManager } from '@veloxts/auth';
+
+const jwt = jwtManager({
+  // Required: Secret for signing tokens (min 64 chars)
+  // Generate with: openssl rand -base64 64
+  secret: process.env.JWT_SECRET!,
+
+  // Optional: Token expiration times
+  accessTokenExpiry: '15m',    // Default: 15 minutes
+  refreshTokenExpiry: '7d',    // Default: 7 days
+
+  // Optional: Token claims
+  issuer: 'my-app',            // iss claim
+  audience: 'my-app-users',    // aud claim
+});
+```
+
+### Token Operations
+
+```typescript
+// Create token pair for user
+const tokens = jwt.createTokenPair(user);
+// Returns: { accessToken, refreshToken, expiresIn, tokenType }
+
+// Add custom claims (cannot override reserved claims)
+const tokens = jwt.createTokenPair(user, {
+  role: 'admin',
+  permissions: ['read', 'write'],
+});
+
+// Verify access token
+const payload = jwt.verifyToken(accessToken);
+// Returns: { sub, email, iat, exp, type, jti, ... }
+
+// Refresh tokens using refresh token
+const newTokens = jwt.refreshTokens(refreshToken);
+
+// Extract token from Authorization header
+const token = jwt.extractFromHeader(request.headers.authorization);
+```
+
+### Token Revocation
+
+For security-critical applications, implement token revocation:
+
+```typescript
+import { createInMemoryTokenStore } from '@veloxts/auth';
+
+// Development/testing (NOT for production!)
+const tokenStore = createInMemoryTokenStore();
+
+// Configure auth to check revocation
+const auth = authMiddleware({
+  jwt: { secret: process.env.JWT_SECRET! },
+  isTokenRevoked: tokenStore.isRevoked,
+});
+
+// Revoke on logout
+const logout = procedure
+  .use(auth.requireAuth())
+  .mutation(async ({ ctx }) => {
+    if (ctx.auth.token?.jti) {
+      tokenStore.revoke(ctx.auth.token.jti);
+    }
+    return { success: true };
+  });
+```
+
+For production, use Redis or database-backed storage instead of the in-memory store.
+
+### Auth Middleware Options
+
+```typescript
+const auth = authMiddleware(config);
+
+// Require authentication (throws 401 if no valid token)
+const getProfile = procedure
+  .use(auth.requireAuth())
+  .query(({ ctx }) => ctx.user);
+
+// Optional authentication (user may be undefined)
+const getPosts = procedure
+  .use(auth.optionalAuth())
+  .query(({ ctx }) => {
+    if (ctx.user) {
+      return getPrivatePosts(ctx.user.id);
+    }
+    return getPublicPosts();
+  });
+
+// With guards (after authentication)
+const adminOnly = procedure
+  .use(auth.middleware({ guards: [hasRole('admin')] }))
+  .query(({ ctx }) => getAdminData());
+```
+
+### Security Features
+
+The JWT implementation includes several security protections:
+
+- **HS256 algorithm enforcement** - Rejects `none`, RS256, and other algorithms to prevent confusion attacks
+- **Timing-safe signature verification** - Prevents timing attacks on token validation
+- **Secret entropy validation** - Requires at least 64 characters with 16+ unique characters
+- **Reserved claim protection** - Prevents overriding `sub`, `exp`, `iat`, etc. via custom claims
+- **Token expiration** - Access and refresh tokens have separate expiration times
+- **Not-before claim support** - Optionally delay token validity
 
 ## CSRF Protection
 
 CSRF protection is already implemented using the signed double-submit cookie pattern with timing-safe comparison and entropy validation.
 
 ```typescript
-import { createCsrfMiddleware } from '@veloxts/auth';
+import { csrfMiddleware } from '@veloxts/auth';
 
-const csrf = createCsrfMiddleware({
+const csrf = csrfMiddleware({
   secret: process.env.CSRF_SECRET!,
 });
 
@@ -733,18 +905,129 @@ See the CSRF documentation for complete details on configuration and usage.
 
 Guards and policies provide declarative authorization for procedures.
 
-```typescript
-import { authenticated, hasRole, definePolicy } from '@veloxts/auth';
+### User Roles and Permissions
 
-// Use built-in guards
+Users can have multiple roles and permissions:
+
+```typescript
+import type { User } from '@veloxts/auth';
+
+// User with multiple roles
+const user: User = {
+  id: '1',
+  email: 'admin@example.com',
+  roles: ['admin', 'editor'],           // Multiple roles
+  permissions: ['posts.read', 'posts.write', 'users.manage'],
+};
+```
+
+### Role-Based Guards
+
+The `hasRole` guard checks if the user has ANY of the specified roles:
+
+```typescript
+import { hasRole, hasPermission, allOf, anyOf } from '@veloxts/auth';
+
+// Require a single role
 const adminOnly = procedure
-  .use(session.requireAuth())
-  .use(guard(hasRole('admin')))
+  .use(auth.middleware({ guards: [hasRole('admin')] }))
   .query(async ({ ctx }) => {
-    // Only admins can access
+    // Only users with 'admin' role can access
   });
 
-// Define custom policies
+// Require ANY of multiple roles (OR logic)
+const staffAccess = procedure
+  .use(auth.middleware({ guards: [hasRole(['admin', 'moderator', 'editor'])] }))
+  .query(async ({ ctx }) => {
+    // Users with 'admin', 'moderator', OR 'editor' role can access
+  });
+
+// User with roles: ['editor', 'reviewer'] passes hasRole(['admin', 'editor'])
+// because they have the 'editor' role
+```
+
+### Permission-Based Guards
+
+```typescript
+// Require ALL specified permissions (AND logic)
+const canManagePosts = procedure
+  .use(auth.middleware({ guards: [hasPermission(['posts.read', 'posts.write'])] }))
+  .query(async ({ ctx }) => {
+    // User must have BOTH permissions
+  });
+
+// Require ANY of the permissions (OR logic)
+const canViewPosts = procedure
+  .use(auth.middleware({ guards: [hasAnyPermission(['posts.read', 'posts.admin'])] }))
+  .query(async ({ ctx }) => {
+    // User needs at least one of these permissions
+  });
+```
+
+### Combining Guards
+
+```typescript
+// Require BOTH role AND permission (AND logic)
+const adminWithPermission = procedure
+  .use(auth.middleware({
+    guards: [hasRole('admin'), hasPermission('users.delete')]
+  }))
+  .mutation(async ({ ctx }) => {
+    // Must be admin AND have users.delete permission
+  });
+
+// Using allOf for explicit AND
+const strictAccess = procedure
+  .use(auth.middleware({
+    guards: [allOf([hasRole('admin'), hasPermission('sensitive.access')])]
+  }))
+  .query(async ({ ctx }) => {
+    // Both conditions must pass
+  });
+
+// Using anyOf for explicit OR
+const flexibleAccess = procedure
+  .use(auth.middleware({
+    guards: [anyOf([hasRole('admin'), hasPermission('special.access')])]
+  }))
+  .query(async ({ ctx }) => {
+    // Either condition can pass
+  });
+```
+
+### Custom Guards
+
+```typescript
+import { guard, defineGuard } from '@veloxts/auth';
+
+// Simple custom guard
+const isVerifiedEmail = guard('isVerifiedEmail', (ctx) => {
+  return ctx.user?.emailVerified === true;
+});
+
+// Guard with configuration
+const isPremiumUser = defineGuard({
+  name: 'isPremiumUser',
+  check: (ctx) => ctx.user?.subscription === 'premium',
+  message: 'Premium subscription required',
+  statusCode: 403,
+});
+
+// Use in procedures
+const premiumContent = procedure
+  .use(auth.middleware({ guards: [isPremiumUser] }))
+  .query(async ({ ctx }) => {
+    return getPremiumContent();
+  });
+```
+
+### Policies
+
+Define resource-specific authorization logic:
+
+```typescript
+import { definePolicy } from '@veloxts/auth';
+
 const postPolicy = definePolicy<{ postId: string }>('post', {
   view: async (user, { postId }) => {
     // Anyone can view public posts
@@ -752,7 +1035,13 @@ const postPolicy = definePolicy<{ postId: string }>('post', {
   },
   edit: async (user, { postId }) => {
     const post = await db.post.findUnique({ where: { id: postId } });
-    return post?.authorId === user.id;
+    // Only author or admin can edit
+    return post?.authorId === user.id || user.roles?.includes('admin');
+  },
+  delete: async (user, { postId }) => {
+    const post = await db.post.findUnique({ where: { id: postId } });
+    // Only admin can delete
+    return user.roles?.includes('admin') ?? false;
   },
 });
 ```
@@ -773,7 +1062,120 @@ const valid = await verifyPassword('user-password', hash);
 
 ## Rate Limiting
 
-Coming soon.
+Protect your endpoints from abuse with request rate limiting.
+
+### Quick Start
+
+```typescript
+import { rateLimitMiddleware } from '@veloxts/auth';
+import { defineProcedures, procedure } from '@veloxts/router';
+
+// Create rate limit middleware
+const rateLimit = rateLimitMiddleware({
+  max: 100,           // Maximum requests per window
+  windowMs: 60000,    // Window size in milliseconds (1 minute)
+});
+
+// Stricter limit for auth endpoints
+const authRateLimit = rateLimitMiddleware({
+  max: 5,
+  windowMs: 60000,
+  message: 'Too many login attempts, please try again later',
+});
+
+export const authProcedures = defineProcedures('auth', {
+  // Protected with stricter rate limit
+  login: procedure
+    .use(authRateLimit)
+    .input(LoginSchema)
+    .mutation(async ({ input }) => {
+      // Login logic
+    }),
+
+  // Normal rate limit
+  getProfile: procedure
+    .use(rateLimit)
+    .use(auth.requireAuth())
+    .query(({ ctx }) => ctx.user),
+});
+```
+
+### Configuration Options
+
+```typescript
+const rateLimit = rateLimitMiddleware({
+  // Maximum requests allowed in window
+  max: 100,               // Default: 100
+
+  // Time window in milliseconds
+  windowMs: 60000,        // Default: 60000 (1 minute)
+
+  // Custom key generator (default: request IP)
+  keyGenerator: (ctx) => {
+    // Rate limit by user ID if authenticated
+    return ctx.user?.id ?? ctx.request.ip ?? 'anonymous';
+  },
+
+  // Custom error message
+  message: 'Rate limit exceeded',
+});
+```
+
+### Response Headers
+
+Rate limit info is included in response headers:
+
+```
+X-RateLimit-Limit: 100        # Max requests allowed
+X-RateLimit-Remaining: 95     # Remaining requests in window
+X-RateLimit-Reset: 1234567890 # Unix timestamp when window resets
+```
+
+### Production Considerations
+
+The built-in rate limiter uses in-memory storage, which:
+- Does **not** persist across server restarts
+- Does **not** work across multiple server instances
+
+For production, implement a custom middleware using Redis:
+
+```typescript
+import { Redis } from 'ioredis';
+import type { MiddlewareFunction } from '@veloxts/router';
+import { AuthError } from '@veloxts/auth';
+
+const redis = new Redis();
+
+function redisRateLimitMiddleware(options: {
+  max: number;
+  windowMs: number;
+  prefix?: string;
+}): MiddlewareFunction {
+  const { max, windowMs, prefix = 'ratelimit:' } = options;
+
+  return async ({ ctx, next }) => {
+    const key = `${prefix}${ctx.request.ip}`;
+    const current = await redis.incr(key);
+
+    if (current === 1) {
+      await redis.pexpire(key, windowMs);
+    }
+
+    const ttl = await redis.pttl(key);
+    const remaining = Math.max(0, max - current);
+
+    ctx.reply.header('X-RateLimit-Limit', String(max));
+    ctx.reply.header('X-RateLimit-Remaining', String(remaining));
+    ctx.reply.header('X-RateLimit-Reset', String(Math.ceil((Date.now() + ttl) / 1000)));
+
+    if (current > max) {
+      throw new AuthError('Too many requests', 429, 'RATE_LIMIT_EXCEEDED');
+    }
+
+    return next();
+  };
+}
+```
 
 ## Related Packages
 

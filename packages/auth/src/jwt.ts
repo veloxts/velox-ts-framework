@@ -406,11 +406,18 @@ export class JwtManager {
 }
 
 /**
- * Creates a new JWT manager instance
+ * Creates a new JWT manager instance (succinct API)
  */
-export function createJwtManager(config: JwtConfig): JwtManager {
+export function jwtManager(config: JwtConfig): JwtManager {
   return new JwtManager(config);
 }
+
+/**
+ * Creates a new JWT manager instance
+ *
+ * @deprecated Use `jwtManager()` instead. Will be removed in v0.9.
+ */
+export const createJwtManager = jwtManager;
 
 // ============================================================================
 // Token Revocation Store (Critical Fix #4)

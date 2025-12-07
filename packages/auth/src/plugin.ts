@@ -96,7 +96,7 @@ declare module 'fastify' {
 // ============================================================================
 
 /**
- * Creates the VeloxTS auth plugin
+ * Creates the VeloxTS auth plugin (succinct API)
  *
  * This plugin provides:
  * - JWT token management (access + refresh tokens)
@@ -106,9 +106,9 @@ declare module 'fastify' {
  *
  * @example
  * ```typescript
- * import { createAuthPlugin } from '@veloxts/auth';
+ * import { authPlugin } from '@veloxts/auth';
  *
- * const authPlugin = createAuthPlugin({
+ * const auth = authPlugin({
  *   jwt: {
  *     secret: process.env.JWT_SECRET!,
  *     accessTokenExpiry: '15m',
@@ -124,7 +124,7 @@ declare module 'fastify' {
  * });
  *
  * // Register with VeloxApp
- * app.register(authPlugin);
+ * await app.register(auth);
  *
  * // Use in procedures
  * const { middleware, requireAuth } = app.auth.middleware;
@@ -134,11 +134,12 @@ declare module 'fastify' {
  *   .query(async ({ ctx }) => ctx.user);
  * ```
  */
-export function createAuthPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOptions> {
+export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOptions> {
   return {
     name: '@veloxts/auth',
     version: AUTH_VERSION,
-    dependencies: ['@veloxts/core'],
+    // No explicit dependencies - works with any Fastify instance
+    // The plugin decorates Fastify with auth functionality
 
     async register(server: FastifyInstance, _opts: AuthPluginOptions) {
       const config = { ...options, ..._opts };
@@ -254,10 +255,29 @@ export function createAuthPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPl
 }
 
 /**
- * Default auth plugin with minimal configuration
- * Requires JWT_SECRET environment variable
+ * Creates the VeloxTS auth plugin
+ *
+ * @deprecated Use `authPlugin()` instead. Will be removed in v0.9.
  */
-export function authPlugin(): VeloxPlugin<AuthPluginOptions> {
+export const createAuthPlugin = authPlugin;
+
+/**
+ * Default auth plugin with minimal configuration
+ *
+ * Uses environment variables for configuration:
+ * - `JWT_SECRET` (required): Secret for signing JWT tokens
+ *
+ * @throws {Error} If JWT_SECRET environment variable is not set
+ *
+ * @example
+ * ```typescript
+ * import { defaultAuthPlugin } from '@veloxts/auth';
+ *
+ * // Requires JWT_SECRET environment variable
+ * await app.register(defaultAuthPlugin());
+ * ```
+ */
+export function defaultAuthPlugin(): VeloxPlugin<AuthPluginOptions> {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error(
@@ -266,7 +286,7 @@ export function authPlugin(): VeloxPlugin<AuthPluginOptions> {
     );
   }
 
-  return createAuthPlugin({
+  return authPlugin({
     jwt: { secret },
   });
 }
