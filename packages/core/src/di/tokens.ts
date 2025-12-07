@@ -180,6 +180,50 @@ export function createSymbolToken<T>(description?: string): SymbolToken<T> {
 }
 
 // ============================================================================
+// Succinct Token API
+// ============================================================================
+
+/**
+ * Creates a typed string token for service registration
+ *
+ * This is the preferred API for creating tokens. String tokens are
+ * useful when you want human-readable identifiers.
+ *
+ * @template T - The type of service this token represents
+ * @param name - The string identifier for this token
+ * @returns A typed string token
+ *
+ * @example
+ * ```typescript
+ * const DATABASE = token<DatabaseClient>('DATABASE');
+ * const CONFIG = token<AppConfig>('CONFIG');
+ *
+ * container.register({ provide: DATABASE, useFactory: createDb });
+ * ```
+ */
+export function token<T>(name: string): StringToken<T> {
+  return name as StringToken<T>;
+}
+
+/**
+ * Token creation namespace with factory methods
+ *
+ * Provides a succinct, grouped API for creating different token types.
+ *
+ * @example
+ * ```typescript
+ * // String token (most common)
+ * const DATABASE = token<DatabaseClient>('DATABASE');
+ *
+ * // Symbol token (guaranteed unique)
+ * const LOGGER = token.symbol<Logger>('LOGGER');
+ * ```
+ */
+token.symbol = function symbolToken<T>(description?: string): SymbolToken<T> {
+  return Symbol(description) as SymbolToken<T>;
+};
+
+// ============================================================================
 // Token Utilities
 // ============================================================================
 

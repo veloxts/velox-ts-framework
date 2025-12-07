@@ -28,7 +28,7 @@ import { LifecycleManager } from './utils/lifecycle.js';
  *
  * @example
  * ```typescript
- * const app = await createVeloxApp({
+ * const app = await veloxApp({
  *   port: 3210,
  *   logger: true
  * });
@@ -261,12 +261,12 @@ export class VeloxApp {
    *
    * @example
    * ```typescript
-   * await app.use(databasePlugin, {
+   * await app.register(databasePlugin, {
    *   connectionString: 'postgresql://...'
    * });
    * ```
    */
-  async use<Options extends PluginOptions>(
+  async register<Options extends PluginOptions>(
     plugin: VeloxPlugin<Options>,
     options?: Options
   ): Promise<void> {
@@ -290,6 +290,21 @@ export class VeloxApp {
         'PLUGIN_REGISTRATION_ERROR'
       );
     }
+  }
+
+  /**
+   * Registers a plugin with the application
+   *
+   * @deprecated Use `register()` instead. This alias will be removed in v2.0.
+   * @template Options - Type of options the plugin accepts
+   * @param plugin - Plugin to register
+   * @param options - Options to pass to the plugin
+   */
+  async use<Options extends PluginOptions>(
+    plugin: VeloxPlugin<Options>,
+    options?: Options
+  ): Promise<void> {
+    return this.register(plugin, options);
   }
 
   /**
@@ -410,23 +425,34 @@ export class VeloxApp {
   }
 
   /**
-   * Adds a shutdown handler
+   * Adds a handler to run before shutdown
    *
    * Shutdown handlers are called when the server stops, either via `stop()`
-   * or when receiving SIGINT/SIGTERM signals
+   * or when receiving SIGINT/SIGTERM signals. Use this to clean up resources
+   * like database connections, file handles, etc.
    *
-   * @param handler - Async function to call during shutdown
+   * @param handler - Async function to call before shutdown
    *
    * @example
    * ```typescript
-   * app.onShutdown(async () => {
+   * app.beforeShutdown(async () => {
    *   await database.disconnect();
    *   console.log('Database connection closed');
    * });
    * ```
    */
-  onShutdown(handler: ShutdownHandler): void {
+  beforeShutdown(handler: ShutdownHandler): void {
     this._lifecycle.addShutdownHandler(handler);
+  }
+
+  /**
+   * Adds a shutdown handler
+   *
+   * @deprecated Use `beforeShutdown()` instead. This alias will be removed in v2.0.
+   * @param handler - Async function to call during shutdown
+   */
+  onShutdown(handler: ShutdownHandler): void {
+    this.beforeShutdown(handler);
   }
 }
 
@@ -441,7 +467,7 @@ export class VeloxApp {
  *
  * @example
  * ```typescript
- * const app = await createVeloxApp({
+ * const app = await veloxApp({
  *   port: 3210,
  *   host: '0.0.0.0',
  *   logger: true
@@ -451,14 +477,14 @@ export class VeloxApp {
  * @example
  * ```typescript
  * // With default configuration
- * const app = await createVeloxApp();
+ * const app = await veloxApp();
  * await app.start(); // Listens on port 3210
  * ```
  *
  * @example
  * ```typescript
  * // With custom Fastify options
- * const app = await createVeloxApp({
+ * const app = await veloxApp({
  *   port: 4000,
  *   fastify: {
  *     requestTimeout: 30000,
@@ -467,8 +493,17 @@ export class VeloxApp {
  * });
  * ```
  */
-export async function createVeloxApp(config: VeloxAppConfig = {}): Promise<VeloxApp> {
+export async function veloxApp(config: VeloxAppConfig = {}): Promise<VeloxApp> {
   const app = new VeloxApp(config);
   await app.initialize();
   return app;
 }
+
+/**
+ * Creates a new VeloxTS application instance
+ *
+ * @deprecated Use `veloxApp()` instead. This alias will be removed in v2.0.
+ * @param config - Application configuration
+ * @returns Promise resolving to VeloxApp instance
+ */
+export const createVeloxApp = veloxApp;

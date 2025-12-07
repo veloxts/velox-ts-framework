@@ -484,6 +484,124 @@ export function asExisting<T>(
 }
 
 // ============================================================================
+// Succinct Scope Helpers
+// ============================================================================
+
+/**
+ * Creates a singleton class provider
+ *
+ * Singleton services are instantiated once and shared across all requests.
+ * This is the default scope and the most common pattern.
+ *
+ * @param cls - The class to provide as a singleton
+ * @returns A class provider configured as singleton
+ *
+ * @example
+ * ```typescript
+ * container.register(singleton(ConfigService));
+ * container.register(singleton(DatabasePool));
+ * ```
+ */
+export function singleton<T>(cls: ClassConstructor<T>): ClassProvider<T> {
+  return {
+    provide: cls,
+    useClass: cls,
+    scope: Scope.SINGLETON,
+  };
+}
+
+/**
+ * Creates a request-scoped class provider
+ *
+ * Request-scoped services are instantiated once per HTTP request.
+ * Ideal for services that need request-specific state.
+ *
+ * @param cls - The class to provide with request scope
+ * @returns A class provider configured as request-scoped
+ *
+ * @example
+ * ```typescript
+ * container.register(scoped(RequestContext));
+ * container.register(scoped(UserSession));
+ * ```
+ */
+export function scoped<T>(cls: ClassConstructor<T>): ClassProvider<T> {
+  return {
+    provide: cls,
+    useClass: cls,
+    scope: Scope.REQUEST,
+  };
+}
+
+/**
+ * Creates a transient class provider
+ *
+ * Transient services are instantiated every time they are resolved.
+ * Useful for stateful objects that should not be shared.
+ *
+ * @param cls - The class to provide as transient
+ * @returns A class provider configured as transient
+ *
+ * @example
+ * ```typescript
+ * container.register(transient(EmailBuilder));
+ * container.register(transient(RequestId));
+ * ```
+ */
+export function transient<T>(cls: ClassConstructor<T>): ClassProvider<T> {
+  return {
+    provide: cls,
+    useClass: cls,
+    scope: Scope.TRANSIENT,
+  };
+}
+
+/**
+ * Creates a value provider (convenience alias)
+ *
+ * @param token - The token to provide
+ * @param val - The value to use
+ * @returns A value provider configuration
+ *
+ * @example
+ * ```typescript
+ * container.register(value(CONFIG, { port: 3210 }));
+ * ```
+ */
+export function value<T>(token: InjectionToken<T>, val: T): ValueProvider<T> {
+  return {
+    provide: token,
+    useValue: val,
+  };
+}
+
+/**
+ * Creates a factory provider (convenience alias)
+ *
+ * @param token - The token to provide
+ * @param factoryFn - The factory function
+ * @param deps - Dependencies to inject into the factory
+ * @returns A factory provider configuration
+ *
+ * @example
+ * ```typescript
+ * container.register(factory(DATABASE, createDb, [ConfigService]));
+ * ```
+ */
+export function factory<T>(
+  token: InjectionToken<T>,
+  factoryFn: (...args: never[]) => T | Promise<T>,
+  deps?: InjectionToken[]
+): FactoryProvider<T> {
+  return {
+    provide: token,
+    useFactory: factoryFn,
+    inject: deps,
+    scope: Scope.SINGLETON,
+  };
+}
+
+// ============================================================================
 // Provider Description (for debugging)
 // ============================================================================
 

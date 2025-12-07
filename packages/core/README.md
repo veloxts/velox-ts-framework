@@ -15,10 +15,10 @@ pnpm add @veloxts/core
 ## Quick Start
 
 ```typescript
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 
 // Create application
-const app = await createVeloxApp({
+const app = await veloxApp({
   port: 3210,
   host: '0.0.0.0',
   logger: true,
@@ -31,7 +31,7 @@ console.log(`Server running on ${app.address}`);
 
 ## Core API
 
-### `createVeloxApp(config?)`
+### `veloxApp(config?)`
 
 Creates a new VeloxTS application instance with sensible defaults.
 
@@ -49,7 +49,7 @@ interface VeloxAppConfig {
 **Example:**
 
 ```typescript
-const app = await createVeloxApp({
+const app = await veloxApp({
   port: 4000,
   host: '127.0.0.1',
   logger: {
@@ -80,21 +80,21 @@ interface VeloxApp {
   start(): Promise<void>;         // Start the server
   stop(): Promise<void>;          // Stop the server gracefully
   register(plugin, options?): Promise<void>;  // Register a plugin
-  onShutdown(handler): void;      // Add shutdown handler
+  beforeShutdown(handler): void;  // Add shutdown handler
 }
 ```
 
 **Example:**
 
 ```typescript
-const app = await createVeloxApp();
+const app = await veloxApp();
 
 // Register plugins
 await app.register(databasePlugin);
 await app.register(routerPlugin);
 
 // Add shutdown hook
-app.onShutdown(async () => {
+app.beforeShutdown(async () => {
   console.log('Cleaning up resources...');
 });
 
@@ -205,7 +205,7 @@ declare module '@veloxts/core' {
 }
 
 // Use in app
-const app = await createVeloxApp();
+const app = await veloxApp();
 await app.register(databasePlugin);
 ```
 
@@ -392,7 +392,7 @@ app.server.get('/users/:id', async (request, reply) => {
 ### Environment-Based Configuration
 
 ```typescript
-const app = await createVeloxApp({
+const app = await veloxApp({
   port: Number(process.env.PORT) || 3210,
   host: process.env.HOST || '0.0.0.0',
   logger: process.env.NODE_ENV !== 'production',
@@ -405,7 +405,7 @@ const app = await createVeloxApp({
 ### Production Configuration
 
 ```typescript
-const app = await createVeloxApp({
+const app = await veloxApp({
   port: 3210,
   host: '0.0.0.0',
   logger: {
@@ -426,10 +426,10 @@ const app = await createVeloxApp({
 ### Graceful Shutdown
 
 ```typescript
-const app = await createVeloxApp();
+const app = await veloxApp();
 
 // Add custom shutdown handlers
-app.onShutdown(async () => {
+app.beforeShutdown(async () => {
   console.log('Cleaning up resources...');
   await database.disconnect();
   await cache.flush();
@@ -494,7 +494,7 @@ const fastify = Fastify({
   trustProxy: true,
 });
 
-const app = await createVeloxApp({ fastify });
+const app = await veloxApp({ fastify });
 ```
 
 ### Accessing Fastify Directly
@@ -502,7 +502,7 @@ const app = await createVeloxApp({ fastify });
 The underlying Fastify instance is available via `app.server`:
 
 ```typescript
-const app = await createVeloxApp();
+const app = await veloxApp();
 
 // Add Fastify plugins
 await app.server.register(fastifyCors, {
@@ -520,7 +520,7 @@ app.server.get('/custom', async (request, reply) => {
 ### Complete Application Setup
 
 ```typescript
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { createDatabasePlugin } from '@veloxts/orm';
 import { registerRestRoutes } from '@veloxts/router';
 import { PrismaClient } from '@prisma/client';
@@ -528,7 +528,7 @@ import { userProcedures } from './procedures/users';
 
 // Initialize
 const prisma = new PrismaClient();
-const app = await createVeloxApp({
+const app = await veloxApp({
   port: Number(process.env.PORT) || 3210,
   logger: true,
 });
@@ -578,7 +578,7 @@ The DI container manages service creation, dependency resolution, and lifecycle:
 Every VeloxApp instance has a DI container available:
 
 ```typescript
-const app = await createVeloxApp();
+const app = await veloxApp();
 
 // Access the container
 app.container.register({ /* ... */ });
@@ -614,13 +614,13 @@ const userService = app.container.resolve(UserService);
 Use string literals for named services:
 
 ```typescript
-import { createStringToken } from '@veloxts/core';
+import { token } from '@veloxts/core';
 
 interface DatabaseClient {
   query(sql: string): Promise<unknown>;
 }
 
-const DATABASE = createStringToken<DatabaseClient>('DATABASE');
+const DATABASE = token<DatabaseClient>('DATABASE');
 
 app.container.register({
   provide: DATABASE,
@@ -635,13 +635,13 @@ const db = app.container.resolve(DATABASE);
 Use symbols for guaranteed uniqueness:
 
 ```typescript
-import { createSymbolToken } from '@veloxts/core';
+import { token } from '@veloxts/core';
 
 interface Logger {
   log(message: string): void;
 }
 
-const LOGGER = createSymbolToken<Logger>('Logger');
+const LOGGER = token.symbol<Logger>('Logger');
 
 app.container.register({
   provide: LOGGER,
@@ -653,7 +653,36 @@ const logger = app.container.resolve(LOGGER);
 
 ### Provider Types
 
-The container supports four provider types for different use cases.
+The container supports four provider types for different use cases. For common patterns, VeloxTS provides succinct provider helpers that simplify registration.
+
+#### Succinct Provider Helpers
+
+VeloxTS provides convenient helpers for common provider patterns:
+
+```typescript
+import { singleton, scoped, transient, value, factory } from '@veloxts/core';
+
+// Singleton scope (one instance for entire app)
+app.container.register(singleton(ConfigService));
+
+// Request scope (one instance per HTTP request)
+app.container.register(scoped(UserContext));
+
+// Transient scope (new instance every time)
+app.container.register(transient(RequestIdGenerator));
+
+// Value provider (provide existing value)
+app.container.register(value(CONFIG, { port: 3210 }));
+
+// Factory provider (use factory function)
+app.container.register(
+  factory(DATABASE, (config: ConfigService) => {
+    return new PrismaClient({ datasources: { db: { url: config.databaseUrl } } });
+  }, [ConfigService])
+);
+```
+
+These helpers are equivalent to the full provider syntax but more concise and readable.
 
 #### Class Provider
 
@@ -668,6 +697,10 @@ class UserService {
   ) {}
 }
 
+// Using succinct helper (recommended)
+app.container.register(singleton(UserService));
+
+// Or using full syntax
 app.container.register({
   provide: UserService,
   useClass: UserService,
@@ -680,6 +713,14 @@ app.container.register({
 Use a factory function to create instances:
 
 ```typescript
+// Using succinct helper (recommended)
+app.container.register(
+  factory(DATABASE, (config: ConfigService) => {
+    return createDatabaseClient(config.databaseUrl);
+  }, [ConfigService])
+);
+
+// Or using full syntax
 app.container.register({
   provide: DATABASE,
   useFactory: (config: ConfigService) => {
@@ -695,8 +736,18 @@ app.container.register({
 Provide an existing value directly:
 
 ```typescript
-const CONFIG = createStringToken<AppConfig>('CONFIG');
+const CONFIG = token<AppConfig>('CONFIG');
 
+// Using succinct helper (recommended)
+app.container.register(
+  value(CONFIG, {
+    port: 3210,
+    host: 'localhost',
+    debug: true
+  })
+);
+
+// Or using full syntax
 app.container.register({
   provide: CONFIG,
   useValue: {
@@ -743,6 +794,9 @@ One instance for the entire application (default):
 class ConfigService {
   // Shared across all requests
 }
+
+// Register using succinct helper
+app.container.register(singleton(ConfigService));
 ```
 
 **Best for:**
@@ -760,6 +814,9 @@ New instance on every resolution:
 class RequestIdGenerator {
   readonly id = crypto.randomUUID();
 }
+
+// Register using succinct helper
+app.container.register(transient(RequestIdGenerator));
 ```
 
 **Best for:**
@@ -780,6 +837,9 @@ class UserContext {
     return this.request.user?.id;
   }
 }
+
+// Register using succinct helper
+app.container.register(scoped(UserContext));
 ```
 
 **Best for:**
@@ -811,7 +871,7 @@ Import `reflect-metadata` at your app's entry point:
 
 ```typescript
 import 'reflect-metadata';
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 ```
 
 #### @Injectable()
@@ -835,7 +895,7 @@ class RequestLogger {
 Explicitly specifies the injection token:
 
 ```typescript
-const DATABASE = createStringToken<DatabaseClient>('DATABASE');
+const DATABASE = token<DatabaseClient>('DATABASE');
 
 @Injectable()
 class UserService {
@@ -880,6 +940,10 @@ If an optional dependency cannot be resolved, `undefined` is injected instead of
 Register a single provider:
 
 ```typescript
+// Using succinct helper (recommended)
+app.container.register(scoped(UserService));
+
+// Or using full syntax
 app.container.register({
   provide: UserService,
   useClass: UserService,
@@ -890,6 +954,14 @@ app.container.register({
 Register multiple providers:
 
 ```typescript
+// Using succinct helpers (recommended)
+app.container.registerMany([
+  singleton(UserService),
+  singleton(PostService),
+  value(CONFIG, appConfig)
+]);
+
+// Or using full syntax
 app.container.registerMany([
   { provide: UserService, useClass: UserService },
   { provide: PostService, useClass: PostService },
@@ -908,15 +980,14 @@ const userService = app.container.resolve(UserService);
 Asynchronous resolution (for async factories):
 
 ```typescript
-app.container.register({
-  provide: DATABASE,
-  useFactory: async (config) => {
+// Using succinct helper (recommended)
+app.container.register(
+  factory(DATABASE, async (config: ConfigService) => {
     const client = createClient(config.dbUrl);
     await client.connect();
     return client;
-  },
-  inject: [ConfigService]
-});
+  }, [ConfigService])
+);
 
 const db = await app.container.resolveAsync(DATABASE);
 ```
@@ -948,7 +1019,7 @@ app.server.get('/users', async (request, reply) => {
 The container is automatically attached to the Fastify server for request-scoped services:
 
 ```typescript
-const app = await createVeloxApp();
+const app = await veloxApp();
 
 // Container is already attached to app.server
 // Request-scoped services work automatically
@@ -958,10 +1029,8 @@ class RequestLogger {
   constructor(private request: FastifyRequest) {}
 }
 
-app.container.register({
-  provide: RequestLogger,
-  useClass: RequestLogger
-});
+// Register using succinct helper
+app.container.register(scoped(RequestLogger));
 
 app.server.get('/log', async (request, reply) => {
   const ctx = Container.createContext(request);
@@ -978,17 +1047,20 @@ app.server.get('/log', async (request, reply) => {
 ```typescript
 import 'reflect-metadata';
 import {
-  createVeloxApp,
+  veloxApp,
   Injectable,
   Inject,
   Scope,
-  createStringToken
+  token,
+  singleton,
+  scoped,
+  factory
 } from '@veloxts/core';
 import { PrismaClient } from '@prisma/client';
 
 // Define tokens
-const DATABASE = createStringToken<PrismaClient>('DATABASE');
-const CONFIG = createStringToken<AppConfig>('CONFIG');
+const DATABASE = token<PrismaClient>('DATABASE');
+const CONFIG = token<AppConfig>('CONFIG');
 
 // Configuration service
 @Injectable()
@@ -1022,35 +1094,20 @@ class UserService {
 }
 
 // Create app
-const app = await createVeloxApp();
+const app = await veloxApp();
 
-// Register services
-app.container.register({
-  provide: DATABASE,
-  useFactory: (config: ConfigService) => {
+// Register services using succinct helpers
+app.container.register(
+  factory(DATABASE, (config: ConfigService) => {
     return new PrismaClient({
       datasources: { db: { url: config.databaseUrl } }
     });
-  },
-  inject: [ConfigService],
-  scope: Scope.SINGLETON
-});
+  }, [ConfigService])
+);
 
-app.container.register({
-  provide: ConfigService,
-  useClass: ConfigService
-});
-
-app.container.register({
-  provide: DatabaseService,
-  useClass: DatabaseService
-});
-
-app.container.register({
-  provide: UserService,
-  useClass: UserService,
-  scope: Scope.REQUEST
-});
+app.container.register(singleton(ConfigService));
+app.container.register(singleton(DatabaseService));
+app.container.register(scoped(UserService));
 
 // Use in routes
 app.server.get('/users/:id', async (request, reply) => {

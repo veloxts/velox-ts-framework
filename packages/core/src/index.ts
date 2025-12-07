@@ -7,9 +7,9 @@
  *
  * @example
  * ```typescript
- * import { createVeloxApp, definePlugin, Container, Injectable } from '@veloxts/core';
+ * import { veloxApp, definePlugin, Container, Injectable } from '@veloxts/core';
  *
- * const app = await createVeloxApp({ port: 3210 });
+ * const app = await veloxApp({ port: 3210 });
  * await app.start();
  * ```
  *
@@ -29,7 +29,7 @@ const packageJson = require('../package.json') as { version: string };
 export const VELOX_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // App creation and types
-export { createVeloxApp, VeloxApp } from './app.js';
+export { veloxApp, createVeloxApp, VeloxApp } from './app.js';
 // Context system
 export type { BaseContext } from './context.js';
 export { createContext, isContext } from './context.js';
@@ -98,20 +98,29 @@ export {
   getOptionalParams,
   makeInjectable,
   setInjectTokens,
-  // Provider type guards and builders
+  // Provider helpers (succinct API)
+  singleton,
+  scoped,
+  transient,
+  value,
+  factory,
+  // Provider helpers (legacy)
+  asClass,
+  asFactory,
+  asValue,
+  asExisting,
+  // Provider type guards
   isClassProvider,
   isFactoryProvider,
   isValueProvider,
   isExistingProvider,
   validateProvider,
-  asClass,
-  asFactory,
-  asValue,
-  asExisting,
   // Scope
   Scope,
   ScopeManager,
-  // Tokens
+  // Tokens (succinct API)
+  token,
+  // Tokens (legacy - deprecated)
   createStringToken,
   createSymbolToken,
   getTokenName,

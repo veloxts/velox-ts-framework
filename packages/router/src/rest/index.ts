@@ -7,7 +7,11 @@
 export type { RestAdapterOptions, RestRoute } from './adapter.js';
 // REST adapter - public API
 export {
+  // Succinct API (preferred)
+  rest,
+  // Legacy API (deprecated)
   createRoutesRegistrar,
+  // Internal utilities
   generateRestRoutes,
   getRouteSummary,
   registerRestRoutes,

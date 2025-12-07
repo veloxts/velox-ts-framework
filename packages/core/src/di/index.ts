@@ -18,11 +18,12 @@
  *   Injectable,
  *   Inject,
  *   Scope,
- *   createStringToken
+ *   token
  * } from '@veloxts/core';
  *
  * // Create tokens for interfaces
- * const DATABASE = createStringToken<DatabaseClient>('DATABASE');
+ * const DATABASE = token<DatabaseClient>('DATABASE');
+ * const LOGGER = token.symbol<Logger>('LOGGER');
  *
  * // Define injectable services
  * @Injectable({ scope: Scope.REQUEST })
@@ -80,10 +81,18 @@ export type {
   ValueProvider,
 } from './providers.js';
 export {
+  // Succinct scope helpers (preferred)
+  singleton,
+  scoped,
+  transient,
+  value,
+  factory,
+  // Legacy helpers (still supported)
   asClass,
   asExisting,
   asFactory,
   asValue,
+  // Type guards
   isClassProvider,
   isExistingProvider,
   isFactoryProvider,
@@ -100,8 +109,12 @@ export type {
   TokenType,
 } from './tokens.js';
 export {
+  // Succinct API (preferred)
+  token,
+  // Legacy (deprecated) - keep for backwards compatibility
   createStringToken,
   createSymbolToken,
+  // Utilities
   getTokenName,
   isClassToken,
   isStringToken,

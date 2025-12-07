@@ -359,23 +359,64 @@ export function getRouteSummary(
  * @param options - Registration options
  * @returns A function that registers routes on a Fastify instance
  *
+ * @deprecated Use `rest()` instead. This alias will be removed in v2.0.
+ *
  * @example
  * ```typescript
- * import { createVeloxApp } from '@veloxts/core';
- * import { createRoutesRegistrar, defineProcedures, procedure } from '@veloxts/router';
+ * import { veloxApp } from '@veloxts/core';
+ * import { rest, defineProcedures, procedure } from '@veloxts/router';
  *
  * const users = defineProcedures('users', {
  *   listUsers: procedure().query(async () => []),
  * });
  *
- * const app = await createVeloxApp();
+ * const app = await veloxApp();
  *
- * app.routes(createRoutesRegistrar([users], { prefix: '/api' }));
+ * app.routes(rest([users], { prefix: '/api' }));
  *
  * await app.start();
  * ```
  */
 export function createRoutesRegistrar(
+  collections: ProcedureCollection[],
+  options: RestAdapterOptions = {}
+): (server: FastifyInstance) => void {
+  return (server: FastifyInstance) => {
+    registerRestRoutes(server, collections, options);
+  };
+}
+
+/**
+ * Creates a routes registrar for REST endpoints (succinct API)
+ *
+ * This is the preferred way to register procedure collections as REST routes.
+ * Use with `app.routes()` for a fluent API experience.
+ *
+ * @param collections - Procedure collections to register as REST routes
+ * @param options - REST adapter options (prefix, validation, etc.)
+ * @returns A function that registers routes on a Fastify instance
+ *
+ * @example
+ * ```typescript
+ * import { veloxApp } from '@veloxts/core';
+ * import { rest, defineProcedures, procedure } from '@veloxts/router';
+ *
+ * const users = defineProcedures('users', {
+ *   listUsers: procedure().query(async () => []),
+ *   createUser: procedure()
+ *     .input(z.object({ name: z.string() }))
+ *     .mutation(async ({ input }) => ({ id: '1', ...input })),
+ * });
+ *
+ * const app = await veloxApp();
+ *
+ * // Succinct registration
+ * app.routes(rest([users], { prefix: '/api' }));
+ *
+ * await app.start();
+ * ```
+ */
+export function rest(
   collections: ProcedureCollection[],
   options: RestAdapterOptions = {}
 ): (server: FastifyInstance) => void {
