@@ -281,3 +281,24 @@ export type {
   BetterAuthUser,
 } from './adapters/better-auth.js';
 export { BetterAuthAdapter, createBetterAuthAdapter } from './adapters/better-auth.js';
+
+// ============================================================================
+// Password Policy
+// ============================================================================
+
+export type {
+  PasswordPolicyConfig,
+  PasswordValidationResult,
+  UserInfo,
+} from './password-policy.js';
+export {
+  checkPasswordBreach,
+  checkPasswordStrength,
+  // Legacy (deprecated)
+  createPasswordPolicy,
+  isCommonPassword,
+  PasswordPolicy,
+  // Succinct API
+  passwordPolicy,
+  PasswordStrength,
+} from './password-policy.js';

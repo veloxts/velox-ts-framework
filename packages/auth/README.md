@@ -9,10 +9,11 @@ Authentication and authorization system for VeloxTS Framework.
 - **Pluggable Auth Adapters** - Integrate external providers like BetterAuth, Clerk, Auth0
 - **Session Management** - Cookie-based sessions with pluggable storage backends
 - **JWT Authentication** - Stateless token-based authentication with refresh tokens
-- **Password Hashing** - Secure bcrypt hashing with configurable cost factors
-- **CSRF Protection** - Signed double-submit cookie pattern
+- **Password Hashing** - Secure bcrypt/argon2 hashing with configurable cost factors
+- **Password Policy** - Configurable strength requirements and breach detection
+- **CSRF Protection** - Signed double-submit cookie pattern with timing-safe validation
 - **Guards and Policies** - Declarative authorization for procedures
-- **Rate Limiting** - Built-in request rate limiting middleware
+- **Rate Limiting** - Auth-specific rate limiting with progressive backoff and lockout detection
 
 ## Table of Contents
 
