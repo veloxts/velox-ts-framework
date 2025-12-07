@@ -50,14 +50,16 @@ export { AuthError } from './types.js';
 export type { TokenStore } from './jwt.js';
 export {
   createInMemoryTokenStore,
-  // Succinct API
-  jwtManager,
   // Legacy (deprecated)
   createJwtManager,
   generateTokenId,
   isValidTimespan,
   JwtManager,
+  // Succinct API
+  jwtManager,
   parseTimeToSeconds,
+  // Security validation
+  validateTokenExpiration,
 } from './jwt.js';
 
 // ============================================================================
@@ -65,12 +67,12 @@ export {
 // ============================================================================
 
 export {
-  // Succinct API
-  passwordHasher,
   // Legacy (deprecated)
   createPasswordHasher,
   hashPassword,
   PasswordHasher,
+  // Succinct API
+  passwordHasher,
   verifyPassword,
 } from './hash.js';
 
@@ -125,14 +127,29 @@ export {
 // ============================================================================
 
 export {
-  clearRateLimitStore,
   // Succinct API
   authMiddleware,
-  rateLimitMiddleware,
+  clearRateLimitStore,
   // Legacy (deprecated)
   createAuthMiddleware,
   createRateLimitMiddleware,
+  rateLimitMiddleware,
 } from './middleware.js';
+
+// ============================================================================
+// Auth-Specific Rate Limiting
+// ============================================================================
+
+export type { AuthRateLimitConfig, AuthRateLimiterConfig } from './rate-limit.js';
+export {
+  // Pre-configured instance
+  authRateLimiter,
+  // Store management (for testing)
+  clearAuthRateLimitStore,
+  // Factory
+  createAuthRateLimiter,
+  stopAuthRateLimitCleanup,
+} from './rate-limit.js';
 
 // ============================================================================
 // Plugin
@@ -142,9 +159,9 @@ export type { AuthPluginOptions, AuthService } from './plugin.js';
 export {
   // Succinct API
   authPlugin,
-  defaultAuthPlugin,
   // Legacy (deprecated)
   createAuthPlugin,
+  defaultAuthPlugin,
 } from './plugin.js';
 
 // ============================================================================
@@ -166,10 +183,10 @@ export type {
 export {
   CsrfError,
   createCsrfManager,
-  // Succinct API
-  csrfMiddleware,
   // Legacy (deprecated)
   createCsrfMiddleware,
+  // Succinct API
+  csrfMiddleware,
 } from './csrf.js';
 
 // ============================================================================
@@ -201,14 +218,14 @@ export {
   createInMemorySessionStore,
   // Session manager
   createSessionManager,
-  // Succinct API
-  sessionMiddleware,
   // Legacy (deprecated)
   createSessionMiddleware,
   // Helper functions
   isSessionAuthenticated,
   loginSession,
   logoutSession,
+  // Succinct API
+  sessionMiddleware,
 } from './session.js';
 
 // ============================================================================

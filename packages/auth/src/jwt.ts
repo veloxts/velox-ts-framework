@@ -25,6 +25,45 @@ const MIN_SECRET_LENGTH = 64;
  */
 const MIN_SECRET_ENTROPY_CHARS = 16;
 
+// ============================================================================
+// Token Expiration Bounds (Security Phase 3.1)
+// ============================================================================
+
+/**
+ * Minimum access token expiry: 1 minute
+ * Shorter tokens increase security but may impact UX
+ */
+const MIN_ACCESS_TOKEN_SECONDS = 60;
+
+/**
+ * Maximum access token expiry: 1 hour
+ * Longer lived tokens are a security risk if stolen
+ */
+const MAX_ACCESS_TOKEN_SECONDS = 60 * 60;
+
+/**
+ * Minimum refresh token expiry: 1 hour
+ * Too short reduces usability
+ */
+const MIN_REFRESH_TOKEN_SECONDS = 60 * 60;
+
+/**
+ * Maximum refresh token expiry: 30 days
+ * Longer lived refresh tokens increase risk window
+ */
+const MAX_REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
+
+/**
+ * Recommended maximum access token expiry: 15 minutes
+ * Beyond this, consider shorter lived tokens with refresh
+ */
+const RECOMMENDED_MAX_ACCESS_SECONDS = 15 * 60;
+
+/**
+ * Recommended maximum refresh token expiry: 7 days
+ */
+const RECOMMENDED_MAX_REFRESH_SECONDS = 7 * 24 * 60 * 60;
+
 /**
  * Reserved JWT claims that cannot be overridden via additionalClaims
  */
@@ -121,6 +160,71 @@ export function generateTokenId(): string {
   return randomBytes(16).toString('hex');
 }
 
+/**
+ * Validates token expiration against security bounds
+ *
+ * @param accessExpiry - Access token expiry string (e.g., '15m')
+ * @param refreshExpiry - Refresh token expiry string (e.g., '7d')
+ * @throws Error if expiration times are outside security bounds
+ */
+export function validateTokenExpiration(accessExpiry: string, refreshExpiry: string): void {
+  const accessSeconds = parseTimeToSeconds(accessExpiry);
+  const refreshSeconds = parseTimeToSeconds(refreshExpiry);
+
+  // Validate access token bounds
+  if (accessSeconds < MIN_ACCESS_TOKEN_SECONDS) {
+    throw new Error(
+      `Access token expiry (${accessExpiry} = ${accessSeconds}s) is below minimum of ` +
+        `${MIN_ACCESS_TOKEN_SECONDS}s (1 minute). Very short tokens cause excessive refreshes.`
+    );
+  }
+
+  if (accessSeconds > MAX_ACCESS_TOKEN_SECONDS) {
+    throw new Error(
+      `Access token expiry (${accessExpiry} = ${accessSeconds}s) exceeds maximum of ` +
+        `${MAX_ACCESS_TOKEN_SECONDS}s (1 hour). Long-lived access tokens are a security risk.`
+    );
+  }
+
+  // Validate refresh token bounds
+  if (refreshSeconds < MIN_REFRESH_TOKEN_SECONDS) {
+    throw new Error(
+      `Refresh token expiry (${refreshExpiry} = ${refreshSeconds}s) is below minimum of ` +
+        `${MIN_REFRESH_TOKEN_SECONDS}s (1 hour). Very short refresh tokens impact usability.`
+    );
+  }
+
+  if (refreshSeconds > MAX_REFRESH_TOKEN_SECONDS) {
+    throw new Error(
+      `Refresh token expiry (${refreshExpiry} = ${refreshSeconds}s) exceeds maximum of ` +
+        `${MAX_REFRESH_TOKEN_SECONDS}s (30 days). Long-lived refresh tokens increase attack window.`
+    );
+  }
+
+  // Warn about exceeding recommended limits (non-fatal)
+  if (accessSeconds > RECOMMENDED_MAX_ACCESS_SECONDS) {
+    console.warn(
+      `[Security] Access token expiry (${accessExpiry}) exceeds recommended maximum of 15 minutes. ` +
+        'Consider using shorter-lived access tokens with refresh.'
+    );
+  }
+
+  if (refreshSeconds > RECOMMENDED_MAX_REFRESH_SECONDS) {
+    console.warn(
+      `[Security] Refresh token expiry (${refreshExpiry}) exceeds recommended maximum of 7 days. ` +
+        'Long-lived refresh tokens increase the window for token theft attacks.'
+    );
+  }
+
+  // Ensure refresh tokens outlive access tokens
+  if (refreshSeconds <= accessSeconds) {
+    throw new Error(
+      `Refresh token expiry (${refreshExpiry} = ${refreshSeconds}s) must be longer than ` +
+        `access token expiry (${accessExpiry} = ${accessSeconds}s).`
+    );
+  }
+}
+
 // ============================================================================
 // JWT Manager Class
 // ============================================================================
@@ -189,15 +293,28 @@ export class JwtManager {
       );
     }
 
+    // Store config with defaults
+    const accessExpiry = config.accessTokenExpiry ?? DEFAULT_ACCESS_EXPIRY;
+    const refreshExpiry = config.refreshTokenExpiry ?? DEFAULT_REFRESH_EXPIRY;
+
+    // Validate expiration bounds (Security Phase 3.1)
+    // This prevents developers from setting insecure expiration times
+    validateTokenExpiration(accessExpiry, refreshExpiry);
+
     this.config = {
       ...config,
-      accessTokenExpiry: config.accessTokenExpiry ?? DEFAULT_ACCESS_EXPIRY,
-      refreshTokenExpiry: config.refreshTokenExpiry ?? DEFAULT_REFRESH_EXPIRY,
+      accessTokenExpiry: accessExpiry,
+      refreshTokenExpiry: refreshExpiry,
     };
   }
 
   /**
    * Creates a JWT token with the given payload
+   *
+   * @param payload - Token payload (sub, email, type required)
+   * @param expiresIn - Expiration time string (e.g., '15m', '7d')
+   * @param options - Additional options
+   * @param options.notBefore - Delay in seconds before token becomes valid (default: 0)
    */
   createToken(
     payload: Omit<TokenPayload, 'iat' | 'exp'> & {
@@ -205,15 +322,21 @@ export class JwtManager {
       email: string;
       type: TokenPayload['type'];
     },
-    expiresIn: string
+    expiresIn: string,
+    options?: { notBefore?: number }
   ): string {
     const now = Math.floor(Date.now() / 1000);
     const exp = now + parseTimeToSeconds(expiresIn);
+
+    // Security Phase 3.3: Add not-before (nbf) claim
+    // nbf = issued at + optional delay (default: 0, meaning valid immediately)
+    const nbf = now + (options?.notBefore ?? 0);
 
     const fullPayload: TokenPayload = {
       ...payload,
       iat: now,
       exp,
+      nbf, // Token is not valid before this time
     };
 
     // Create header

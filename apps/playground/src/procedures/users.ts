@@ -11,8 +11,8 @@
  * - searchUsers -> GET /users/search (custom override)
  */
 
-import { authenticated, hasRole } from '@veloxts/auth';
-import { defineProcedures, procedure } from '@veloxts/router';
+import { authenticated, AuthError, hasRole } from '@veloxts/auth';
+import { defineProcedures, GuardError, procedure } from '@veloxts/router';
 import { paginationInputSchema } from '@veloxts/validation';
 import { z } from 'zod';
 
@@ -198,13 +198,21 @@ export const userProcedures = defineProcedures('users', {
       const db = getDb(ctx);
       const { id, ...data } = input;
 
+      // Defensive check: ensure user is populated by authenticated guard
+      if (!ctx.user) {
+        throw new AuthError('Authentication required', 401, 'NOT_AUTHENTICATED');
+      }
+
       // Policy: Users can only update their own profile, admins can update anyone
-      const user = ctx.user;
-      const isOwner = user?.id === id;
-      const isAdmin = user?.roles?.includes('admin') ?? false;
+      const isOwner = ctx.user.id === id;
+      const isAdmin = Array.isArray(ctx.user.roles) && ctx.user.roles.includes('admin');
 
       if (!isOwner && !isAdmin) {
-        throw new Error('You can only update your own profile');
+        throw new GuardError(
+          'ownership',
+          'You can only update your own profile unless you are an admin',
+          403
+        );
       }
 
       const updated = await db.user.update({ where: { id }, data });
@@ -227,13 +235,21 @@ export const userProcedures = defineProcedures('users', {
       const db = getDb(ctx);
       const { id, ...data } = input;
 
+      // Defensive check: ensure user is populated by authenticated guard
+      if (!ctx.user) {
+        throw new AuthError('Authentication required', 401, 'NOT_AUTHENTICATED');
+      }
+
       // Policy: Users can only update their own profile, admins can update anyone
-      const user = ctx.user;
-      const isOwner = user?.id === id;
-      const isAdmin = user?.roles?.includes('admin') ?? false;
+      const isOwner = ctx.user.id === id;
+      const isAdmin = Array.isArray(ctx.user.roles) && ctx.user.roles.includes('admin');
 
       if (!isOwner && !isAdmin) {
-        throw new Error('You can only update your own profile');
+        throw new GuardError(
+          'ownership',
+          'You can only update your own profile unless you are an admin',
+          403
+        );
       }
 
       const updated = await db.user.update({ where: { id }, data });
