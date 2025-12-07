@@ -13,7 +13,7 @@
 import { defineProcedures, type ProcedureCollection, procedure, rest } from '@veloxts/router';
 import { z } from '@veloxts/validation';
 import type { FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authMiddleware } from '../middleware.js';
 import type { User } from '../types.js';
@@ -227,47 +227,56 @@ describe('Auth Middleware Integration', () => {
     });
 
     it('should reject expired tokens', async () => {
-      // Create a token with very short expiry (1 second is the minimum valid format)
-      const shortLivedServer = await createTestServer({
-        authOptions: {
-          jwt: {
-            secret: createTestAuthConfig().jwt.secret,
-            accessTokenExpiry: '1s', // Minimum valid format
+      // Use fake timers to test token expiration without actually waiting
+      vi.useFakeTimers();
+
+      try {
+        // Create a token with minimum valid expiry (60 seconds)
+        const shortLivedServer = await createTestServer({
+          authOptions: {
+            jwt: {
+              secret: createTestAuthConfig().jwt.secret,
+              refreshSecret: createTestAuthConfig().jwt.refreshSecret,
+              accessTokenExpiry: '1m', // Minimum allowed (60 seconds)
+              refreshTokenExpiry: '1h',
+            },
           },
-        },
-      });
+        });
 
-      const shortToken = shortLivedServer.auth.jwt.createTokenPair(TEST_USERS.admin).accessToken;
+        const shortToken = shortLivedServer.auth.jwt.createTokenPair(TEST_USERS.admin).accessToken;
 
-      // Wait for token to expire
-      await new Promise((resolve) => setTimeout(resolve, 1100));
+        // Advance time by 61 seconds to expire the token
+        vi.advanceTimersByTime(61 * 1000);
 
-      // Create new server for the request (fresh instance)
-      const freshServer = await createTestServer();
+        // Create new server for the request (fresh instance)
+        const freshServer = await createTestServer();
 
-      // Define a simple protected route
-      const auth = authMiddleware(createTestAuthConfig());
-      const procs = defineProcedures('test', {
-        getTest: procedure()
-          .input(z.object({ id: z.string() }))
-          .use(auth.requireAuth())
-          .query(async () => ({ success: true })),
-      });
+        // Define a simple protected route
+        const auth = authMiddleware(createTestAuthConfig());
+        const procs = defineProcedures('test', {
+          getTest: procedure()
+            .input(z.object({ id: z.string() }))
+            .use(auth.requireAuth())
+            .query(async () => ({ success: true })),
+        });
 
-      rest([procs], { prefix: '/api' })(freshServer);
+        rest([procs], { prefix: '/api' })(freshServer);
 
-      await freshServer.ready();
+        await freshServer.ready();
 
-      const response = await freshServer.inject({
-        method: 'GET',
-        url: '/api/test/123',
-        headers: authHeader(shortToken),
-      });
+        const response = await freshServer.inject({
+          method: 'GET',
+          url: '/api/test/123',
+          headers: authHeader(shortToken),
+        });
 
-      expect(response.statusCode).toBe(401);
+        expect(response.statusCode).toBe(401);
 
-      await shortLivedServer.close();
-      await freshServer.close();
+        await shortLivedServer.close();
+        await freshServer.close();
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 });

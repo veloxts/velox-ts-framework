@@ -24,8 +24,7 @@ export type ProcedureType = 'query' | 'mutation';
 /**
  * HTTP methods supported by the REST adapter
  *
- * MVP (v0.1.0): GET and POST only
- * v1.1+: Full REST (GET, POST, PUT, PATCH, DELETE)
+ * Full REST support: GET, POST, PUT, PATCH, DELETE
  */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -36,8 +35,9 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
  * - getUser -> GET
  * - listUsers -> GET
  * - createUser -> POST
- * - updateUser -> PUT (v1.1+)
- * - deleteUser -> DELETE (v1.1+)
+ * - updateUser -> PUT
+ * - patchUser -> PATCH
+ * - deleteUser -> DELETE
  */
 export const PROCEDURE_METHOD_MAP: Record<string, HttpMethod> = {
   get: 'GET',

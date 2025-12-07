@@ -30,6 +30,11 @@
       "inputs": ["src/**/*.{ts,tsx}", "vitest.config.ts", "tsconfig.json"],
       "outputs": ["coverage/**"]
     },
+    "test:coverage": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**/*.{ts,tsx}", "vitest.config.ts", "tsconfig.json"],
+      "outputs": ["coverage/**"]
+    },
     "clean": {
       "cache": false
     }

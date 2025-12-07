@@ -29,7 +29,8 @@
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@veloxts/core": "workspace:*",
@@ -56,9 +57,10 @@
     "@types/bcrypt": "5.0.2",
     "@veloxts/testing": "workspace:*",
     "@veloxts/validation": "workspace:*",
+    "@vitest/coverage-v8": "4.0.15",
     "fastify-plugin": "5.1.0",
     "typescript": "5.9.3",
-    "vitest": "3.1.4"
+    "vitest": "4.0.15"
   },
   "keywords": [
     "velox",
