@@ -8,14 +8,14 @@ import type { MiddlewareFunction } from '@veloxts/router';
 
 import { executeGuards } from './guards.js';
 import { JwtManager } from './jwt.js';
-import {
-  type AuthConfig,
-  type AuthContext,
-  AuthError,
-  type AuthMiddlewareOptions,
-  type GuardDefinition,
-  type TokenPayload,
-  type User,
+import { AuthError } from './types.js';
+import type {
+  AuthConfig,
+  AuthContext,
+  AuthMiddlewareOptions,
+  GuardDefinition,
+  TokenPayload,
+  User,
 } from './types.js';
 
 // ============================================================================
