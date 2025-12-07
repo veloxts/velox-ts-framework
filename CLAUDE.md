@@ -404,11 +404,11 @@ The project is in early foundation work. Focus is on:
 - Keeping scope tight to hit MVP in 6 weeks
 
 ### Reference Documents
-Key planning documents in `/plan/`:
-- `requirements.md` - Full specification with Laravel inspiration philosophy
-- `ARCHITECTURE.md` - Technical architecture and design patterns
-- `MVP-SCOPE.md` - What's included vs deferred to v1.1
-- `ROADMAP.md` - 6-week implementation timeline
+Key planning documents in `/.plans/`:
+- `/.plans/0.requirements.md` - Full specification with Laravel inspiration philosophy
+- `/.plans/ROADMAP.md` - 6-week implementation timeline
+- `/.plans/ARCHITECTURE.md` - Technical architecture and design patterns
+- `/plan/MVP-SCOPE.md` - What's included vs deferred to v1.1
 
 ## Deployment Targets
 
