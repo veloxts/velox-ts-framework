@@ -55,7 +55,7 @@
     }
   },
   "devDependencies": {
-    "@types/bcrypt": "5.0.2",
+    "@types/bcrypt": "6.0.0",
     "@veloxts/testing": "workspace:*",
     "@veloxts/validation": "workspace:*",
     "@vitest/coverage-v8": "4.0.15",

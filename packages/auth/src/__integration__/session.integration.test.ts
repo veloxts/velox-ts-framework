@@ -26,9 +26,9 @@ import {
   isSessionAuthenticated,
   loginSession,
   logoutSession,
-  sessionMiddleware,
   type Session,
   type SessionStore,
+  sessionMiddleware,
 } from '../session.js';
 import type { User } from '../types.js';
 import { TEST_USERS, testUserLoader } from './fixtures.js';
@@ -185,7 +185,14 @@ describe('Session Management Integration', () => {
 
     // Register routes
     rest(
-      [procedures, flashProcedures, authProcedures, protectedProcedures, optionalProcedures, regenProcedures],
+      [
+        procedures,
+        flashProcedures,
+        authProcedures,
+        protectedProcedures,
+        optionalProcedures,
+        regenProcedures,
+      ],
       { prefix: '/api' }
     )(server);
 
@@ -579,7 +586,7 @@ describe('Session Management Integration', () => {
       const oldCookie = String(setResponse.headers['set-cookie']).split(';')[0];
 
       // Regenerate
-      const regenResponse = await server.inject({
+      const _regenResponse = await server.inject({
         method: 'POST',
         url: '/api/regen',
         headers: {
