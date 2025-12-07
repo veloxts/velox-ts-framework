@@ -558,6 +558,630 @@ await app.start();
 console.log(`Server running at ${app.address}`);
 ```
 
+## Dependency Injection
+
+VeloxTS provides a powerful, type-safe dependency injection container inspired by Angular and NestJS. The DI system enables automatic constructor injection, lifecycle management, and clean separation of concerns.
+
+### Overview
+
+The DI container manages service creation, dependency resolution, and lifecycle:
+
+- **Automatic constructor injection** via TypeScript decorators
+- **Multiple provider types**: classes, factories, values, aliases
+- **Lifecycle scopes**: singleton, transient, request-scoped
+- **Type safety**: Full TypeScript inference without code generation
+- **Circular dependency detection**
+- **Fastify integration** for request-scoped services
+
+### Accessing the Container
+
+Every VeloxApp instance has a DI container available:
+
+```typescript
+const app = await createVeloxApp();
+
+// Access the container
+app.container.register({ /* ... */ });
+const service = app.container.resolve(MyService);
+```
+
+### Tokens
+
+Tokens are unique identifiers for services. VeloxTS supports three token types:
+
+#### Class Tokens
+
+Use the class itself as a token:
+
+```typescript
+@Injectable()
+class UserService {
+  getUsers() { /* ... */ }
+}
+
+// Register with class token
+app.container.register({
+  provide: UserService,
+  useClass: UserService
+});
+
+// Resolve with class token
+const userService = app.container.resolve(UserService);
+```
+
+#### String Tokens
+
+Use string literals for named services:
+
+```typescript
+import { createStringToken } from '@veloxts/core';
+
+interface DatabaseClient {
+  query(sql: string): Promise<unknown>;
+}
+
+const DATABASE = createStringToken<DatabaseClient>('DATABASE');
+
+app.container.register({
+  provide: DATABASE,
+  useFactory: () => createDatabaseClient()
+});
+
+const db = app.container.resolve(DATABASE);
+```
+
+#### Symbol Tokens
+
+Use symbols for guaranteed uniqueness:
+
+```typescript
+import { createSymbolToken } from '@veloxts/core';
+
+interface Logger {
+  log(message: string): void;
+}
+
+const LOGGER = createSymbolToken<Logger>('Logger');
+
+app.container.register({
+  provide: LOGGER,
+  useClass: ConsoleLogger
+});
+
+const logger = app.container.resolve(LOGGER);
+```
+
+### Provider Types
+
+The container supports four provider types for different use cases.
+
+#### Class Provider
+
+Instantiate a class with automatic dependency injection:
+
+```typescript
+@Injectable()
+class UserService {
+  constructor(
+    private db: DatabaseClient,
+    private logger: Logger
+  ) {}
+}
+
+app.container.register({
+  provide: UserService,
+  useClass: UserService,
+  scope: Scope.SINGLETON
+});
+```
+
+#### Factory Provider
+
+Use a factory function to create instances:
+
+```typescript
+app.container.register({
+  provide: DATABASE,
+  useFactory: (config: ConfigService) => {
+    return createDatabaseClient(config.databaseUrl);
+  },
+  inject: [ConfigService],
+  scope: Scope.SINGLETON
+});
+```
+
+#### Value Provider
+
+Provide an existing value directly:
+
+```typescript
+const CONFIG = createStringToken<AppConfig>('CONFIG');
+
+app.container.register({
+  provide: CONFIG,
+  useValue: {
+    port: 3210,
+    host: 'localhost',
+    debug: true
+  }
+});
+```
+
+#### Existing Provider (Alias)
+
+Create an alias to another token:
+
+```typescript
+// Register concrete implementation
+app.container.register({
+  provide: ConsoleLogger,
+  useClass: ConsoleLogger
+});
+
+// Create an alias
+app.container.register({
+  provide: LOGGER,
+  useExisting: ConsoleLogger
+});
+
+// Both resolve to the same instance
+const logger1 = app.container.resolve(LOGGER);
+const logger2 = app.container.resolve(ConsoleLogger);
+// logger1 === logger2
+```
+
+### Lifecycle Scopes
+
+Scopes determine how service instances are created and shared.
+
+#### Singleton Scope
+
+One instance for the entire application (default):
+
+```typescript
+@Injectable({ scope: Scope.SINGLETON })
+class ConfigService {
+  // Shared across all requests
+}
+```
+
+**Best for:**
+- Configuration services
+- Database connection pools
+- Cache clients
+- Stateless utility services
+
+#### Transient Scope
+
+New instance on every resolution:
+
+```typescript
+@Injectable({ scope: Scope.TRANSIENT })
+class RequestIdGenerator {
+  readonly id = crypto.randomUUID();
+}
+```
+
+**Best for:**
+- Services with mutable state
+- Factories that produce unique objects
+- Services where isolation is critical
+
+#### Request Scope
+
+One instance per HTTP request:
+
+```typescript
+@Injectable({ scope: Scope.REQUEST })
+class UserContext {
+  constructor(private request: FastifyRequest) {}
+
+  get userId(): string {
+    return this.request.user?.id;
+  }
+}
+```
+
+**Best for:**
+- User context/session data
+- Request-specific caching
+- Transaction management
+- Audit logging with request context
+
+**Note:** Request-scoped services require a Fastify request context. Resolving them outside a request handler throws an error.
+
+### Decorators
+
+Use TypeScript decorators for automatic dependency injection.
+
+#### Prerequisites
+
+Enable decorators in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+Import `reflect-metadata` at your app's entry point:
+
+```typescript
+import 'reflect-metadata';
+import { createVeloxApp } from '@veloxts/core';
+```
+
+#### @Injectable()
+
+Marks a class as injectable:
+
+```typescript
+@Injectable()
+class UserService {
+  constructor(private db: DatabaseClient) {}
+}
+
+@Injectable({ scope: Scope.REQUEST })
+class RequestLogger {
+  constructor(private request: FastifyRequest) {}
+}
+```
+
+#### @Inject()
+
+Explicitly specifies the injection token:
+
+```typescript
+const DATABASE = createStringToken<DatabaseClient>('DATABASE');
+
+@Injectable()
+class UserService {
+  constructor(
+    @Inject(DATABASE) private db: DatabaseClient,
+    private config: ConfigService // Auto-injected by class token
+  ) {}
+}
+```
+
+Use `@Inject()` when:
+- Injecting by string or symbol token
+- Injecting an interface (TypeScript interfaces are erased at runtime)
+- Automatic type resolution doesn't work
+
+#### @Optional()
+
+Marks a dependency as optional:
+
+```typescript
+@Injectable()
+class NotificationService {
+  constructor(
+    @Optional() private emailService?: EmailService,
+    @Optional() @Inject(SMS_SERVICE) private smsService?: SmsService
+  ) {}
+
+  notify(message: string) {
+    // Gracefully handle missing services
+    this.emailService?.send(message);
+    this.smsService?.send(message);
+  }
+}
+```
+
+If an optional dependency cannot be resolved, `undefined` is injected instead of throwing an error.
+
+### Container API
+
+#### Registering Services
+
+Register a single provider:
+
+```typescript
+app.container.register({
+  provide: UserService,
+  useClass: UserService,
+  scope: Scope.REQUEST
+});
+```
+
+Register multiple providers:
+
+```typescript
+app.container.registerMany([
+  { provide: UserService, useClass: UserService },
+  { provide: PostService, useClass: PostService },
+  { provide: CONFIG, useValue: appConfig }
+]);
+```
+
+#### Resolving Services
+
+Synchronous resolution:
+
+```typescript
+const userService = app.container.resolve(UserService);
+```
+
+Asynchronous resolution (for async factories):
+
+```typescript
+app.container.register({
+  provide: DATABASE,
+  useFactory: async (config) => {
+    const client = createClient(config.dbUrl);
+    await client.connect();
+    return client;
+  },
+  inject: [ConfigService]
+});
+
+const db = await app.container.resolveAsync(DATABASE);
+```
+
+Optional resolution (returns `undefined` if not found):
+
+```typescript
+const service = app.container.resolveOptional(OptionalService);
+if (service) {
+  service.doSomething();
+}
+```
+
+#### Request Context
+
+Resolve request-scoped services with context:
+
+```typescript
+app.server.get('/users', async (request, reply) => {
+  const ctx = Container.createContext(request);
+  const userContext = app.container.resolve(UserContext, ctx);
+
+  return { userId: userContext.userId };
+});
+```
+
+### Integration with VeloxApp
+
+The container is automatically attached to the Fastify server for request-scoped services:
+
+```typescript
+const app = await createVeloxApp();
+
+// Container is already attached to app.server
+// Request-scoped services work automatically
+
+@Injectable({ scope: Scope.REQUEST })
+class RequestLogger {
+  constructor(private request: FastifyRequest) {}
+}
+
+app.container.register({
+  provide: RequestLogger,
+  useClass: RequestLogger
+});
+
+app.server.get('/log', async (request, reply) => {
+  const ctx = Container.createContext(request);
+  const logger = app.container.resolve(RequestLogger, ctx);
+  logger.log('Request received');
+  return { ok: true };
+});
+```
+
+### Practical Examples
+
+#### Complete Service Layer
+
+```typescript
+import 'reflect-metadata';
+import {
+  createVeloxApp,
+  Injectable,
+  Inject,
+  Scope,
+  createStringToken
+} from '@veloxts/core';
+import { PrismaClient } from '@prisma/client';
+
+// Define tokens
+const DATABASE = createStringToken<PrismaClient>('DATABASE');
+const CONFIG = createStringToken<AppConfig>('CONFIG');
+
+// Configuration service
+@Injectable()
+class ConfigService {
+  get databaseUrl(): string {
+    return process.env.DATABASE_URL!;
+  }
+}
+
+// Database service
+@Injectable()
+class DatabaseService {
+  constructor(@Inject(DATABASE) private db: PrismaClient) {}
+
+  async findUser(id: string) {
+    return this.db.user.findUnique({ where: { id } });
+  }
+}
+
+// Business logic service
+@Injectable({ scope: Scope.REQUEST })
+class UserService {
+  constructor(
+    private database: DatabaseService,
+    private config: ConfigService
+  ) {}
+
+  async getUser(id: string) {
+    return this.database.findUser(id);
+  }
+}
+
+// Create app
+const app = await createVeloxApp();
+
+// Register services
+app.container.register({
+  provide: DATABASE,
+  useFactory: (config: ConfigService) => {
+    return new PrismaClient({
+      datasources: { db: { url: config.databaseUrl } }
+    });
+  },
+  inject: [ConfigService],
+  scope: Scope.SINGLETON
+});
+
+app.container.register({
+  provide: ConfigService,
+  useClass: ConfigService
+});
+
+app.container.register({
+  provide: DatabaseService,
+  useClass: DatabaseService
+});
+
+app.container.register({
+  provide: UserService,
+  useClass: UserService,
+  scope: Scope.REQUEST
+});
+
+// Use in routes
+app.server.get('/users/:id', async (request, reply) => {
+  const ctx = Container.createContext(request);
+  const userService = app.container.resolve(UserService, ctx);
+
+  const user = await userService.getUser(request.params.id);
+  return user;
+});
+
+await app.start();
+```
+
+#### Testing with Child Containers
+
+```typescript
+import { createContainer, asClass } from '@veloxts/core';
+
+// Create a child container for testing
+const testContainer = app.container.createChild();
+
+// Override services with mocks
+class MockDatabaseService {
+  async findUser(id: string) {
+    return { id, name: 'Test User' };
+  }
+}
+
+testContainer.register({
+  provide: DatabaseService,
+  useClass: MockDatabaseService
+});
+
+// Test with mocked dependencies
+const userService = testContainer.resolve(UserService);
+const user = await userService.getUser('123');
+// user comes from MockDatabaseService
+```
+
+#### Auto-Registration
+
+Enable auto-registration to automatically register `@Injectable` classes:
+
+```typescript
+const app = await createVeloxApp();
+const autoContainer = createContainer({ autoRegister: true });
+
+@Injectable()
+class AutoService {}
+
+// No need to manually register
+const service = autoContainer.resolve(AutoService);
+// Automatically registers and resolves
+```
+
+### Advanced Features
+
+#### Circular Dependency Detection
+
+The container detects circular dependencies:
+
+```typescript
+@Injectable()
+class ServiceA {
+  constructor(private b: ServiceB) {}
+}
+
+@Injectable()
+class ServiceB {
+  constructor(private a: ServiceA) {}
+}
+
+// Throws: Circular dependency detected: ServiceA -> ServiceB -> ServiceA
+const service = app.container.resolve(ServiceA);
+```
+
+#### Container Hierarchy
+
+Create parent-child container hierarchies:
+
+```typescript
+const parentContainer = createContainer();
+parentContainer.register({
+  provide: ConfigService,
+  useClass: ConfigService
+});
+
+const childContainer = parentContainer.createChild();
+// Child inherits ConfigService from parent
+// Can override with its own providers
+
+childContainer.register({
+  provide: UserService,
+  useClass: UserService
+});
+```
+
+#### Debug Information
+
+Get container statistics:
+
+```typescript
+const info = app.container.getDebugInfo();
+console.log(info);
+// {
+//   providerCount: 5,
+//   providers: [
+//     'class(UserService, request)',
+//     'factory(DATABASE, singleton)',
+//     'value(CONFIG)',
+//     'existing(LOGGER => ConsoleLogger)'
+//   ],
+//   hasParent: false,
+//   autoRegister: false
+// }
+```
+
+### Best Practices
+
+1. **Use tokens for interfaces**: Create string or symbol tokens for interface types since TypeScript interfaces don't exist at runtime.
+
+2. **Prefer singleton scope**: Use `Scope.SINGLETON` by default for stateless services to improve performance.
+
+3. **Use request scope for user context**: Store user authentication, request-specific state, and transactions in request-scoped services.
+
+4. **Avoid circular dependencies**: Refactor shared logic into a third service to break circular dependencies.
+
+5. **Use `@Inject()` for clarity**: Explicitly specify tokens with `@Inject()` to make dependencies clear and avoid runtime type resolution issues.
+
+6. **Test with child containers**: Create child containers in tests to override services with mocks without affecting the main container.
+
 ## Related Packages
 
 - [@veloxts/router](/packages/router) - Procedure-based routing
