@@ -19,6 +19,6 @@ export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
  * Model User
- * User model for basic CRUD demonstration
+ * User model with authentication support
  */
 export type User = Prisma.UserModel

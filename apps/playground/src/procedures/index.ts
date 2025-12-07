@@ -5,6 +5,7 @@
  * Import this in your router configuration.
  */
 
+export { type AuthProcedures, authProcedures } from './auth.js';
 export { type HealthProcedures, healthProcedures } from './health.js';
 export { type UserProcedures, userProcedures } from './users.js';
 
@@ -12,6 +13,7 @@ export { type UserProcedures, userProcedures } from './users.js';
 // Aggregated Types for Client
 // ============================================================================
 
+import type { AuthProcedures } from './auth.js';
 import type { HealthProcedures } from './health.js';
 import type { UserProcedures } from './users.js';
 
@@ -35,6 +37,7 @@ import type { UserProcedures } from './users.js';
  * ```
  */
 export interface AppRouter {
+  auth: AuthProcedures;
   users: UserProcedures;
   health: HealthProcedures;
 }

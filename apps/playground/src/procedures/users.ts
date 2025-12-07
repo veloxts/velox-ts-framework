@@ -11,6 +11,7 @@
  * - searchUsers -> GET /users/search (custom override)
  */
 
+import { authenticated, hasRole } from '@veloxts/auth';
 import { defineProcedures, procedure } from '@veloxts/router';
 import { paginationInputSchema } from '@veloxts/validation';
 import { z } from 'zod';
@@ -139,8 +140,11 @@ export const userProcedures = defineProcedures('users', {
    *
    * REST: POST /users
    * tRPC: users.createUser({ name: "...", email: "..." })
+   *
+   * Requires: Authenticated user
    */
   createUser: procedure()
+    .guard(authenticated)
     .input(CreateUserInput)
     .output(UserSchema)
     .mutation(async ({ input, ctx }) => {
@@ -183,15 +187,28 @@ export const userProcedures = defineProcedures('users', {
    *
    * REST: PUT /users/:id
    * tRPC: users.updateUser({ id: "...", name: "...", email: "..." })
+   *
+   * Requires: Authenticated user (own profile) or admin
    */
   updateUser: procedure()
+    .guard(authenticated)
     .input(z.object({ id: z.string().uuid() }).merge(UpdateUserInput))
     .output(UserSchema)
     .mutation(async ({ input, ctx }) => {
       const db = getDb(ctx);
       const { id, ...data } = input;
-      const user = await db.user.update({ where: { id }, data });
-      return toUserResponse(user);
+
+      // Policy: Users can only update their own profile, admins can update anyone
+      const user = ctx.user;
+      const isOwner = user?.id === id;
+      const isAdmin = user?.roles?.includes('admin') ?? false;
+
+      if (!isOwner && !isAdmin) {
+        throw new Error('You can only update your own profile');
+      }
+
+      const updated = await db.user.update({ where: { id }, data });
+      return toUserResponse(updated);
     }),
 
   /**
@@ -199,15 +216,28 @@ export const userProcedures = defineProcedures('users', {
    *
    * REST: PATCH /users/:id
    * tRPC: users.patchUser({ id: "...", name: "..." })
+   *
+   * Requires: Authenticated user (own profile) or admin
    */
   patchUser: procedure()
+    .guard(authenticated)
     .input(z.object({ id: z.string().uuid() }).merge(UpdateUserInput))
     .output(UserSchema)
     .mutation(async ({ input, ctx }) => {
       const db = getDb(ctx);
       const { id, ...data } = input;
-      const user = await db.user.update({ where: { id }, data });
-      return toUserResponse(user);
+
+      // Policy: Users can only update their own profile, admins can update anyone
+      const user = ctx.user;
+      const isOwner = user?.id === id;
+      const isAdmin = user?.roles?.includes('admin') ?? false;
+
+      if (!isOwner && !isAdmin) {
+        throw new Error('You can only update your own profile');
+      }
+
+      const updated = await db.user.update({ where: { id }, data });
+      return toUserResponse(updated);
     }),
 
   /**
@@ -215,8 +245,11 @@ export const userProcedures = defineProcedures('users', {
    *
    * REST: DELETE /users/:id
    * tRPC: users.deleteUser({ id: "..." })
+   *
+   * Requires: Admin role
    */
   deleteUser: procedure()
+    .guard(hasRole('admin'))
     .input(z.object({ id: z.string().uuid() }))
     .output(z.object({ success: z.boolean() }))
     .mutation(async ({ input, ctx }) => {

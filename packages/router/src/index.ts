@@ -58,6 +58,8 @@ export type {
   ContextExtensions,
   ContextFactory,
   ExtendedContext,
+  // Guard types (for procedure authorization)
+  GuardLike,
   HttpMethod,
   InferProcedureContext,
   InferProcedureInput,

@@ -12,6 +12,7 @@ import type { BaseContext } from '@veloxts/core';
 
 import type {
   CompiledProcedure,
+  GuardLike,
   MiddlewareFunction,
   ProcedureCollection,
   ProcedureHandler,
@@ -56,6 +57,7 @@ export function procedure(): ProcedureBuilder<unknown, unknown, BaseContext> {
     inputSchema: undefined,
     outputSchema: undefined,
     middlewares: [],
+    guards: [],
     restOverride: undefined,
   });
 }
@@ -125,6 +127,16 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
+     * Adds an authorization guard
+     */
+    guard(guardDef: GuardLike<TContext>): ProcedureBuilder<TInput, TOutput, TContext> {
+      return createBuilder<TInput, TOutput, TContext>({
+        ...state,
+        guards: [...state.guards, guardDef as GuardLike<unknown>],
+      });
+    },
+
+    /**
      * Sets REST route override
      */
     rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext> {
@@ -186,6 +198,7 @@ function compileProcedure<TInput, TOutput, TContext extends BaseContext>(
     inputSchema: state.inputSchema as { parse: (input: unknown) => TInput } | undefined,
     outputSchema: state.outputSchema as { parse: (output: unknown) => TOutput } | undefined,
     middlewares: typedMiddlewares,
+    guards: state.guards as ReadonlyArray<GuardLike<TContext>>,
     restOverride: state.restOverride,
     // Store pre-compiled executor for performance
     _precompiledExecutor: precompiledExecutor,
@@ -328,12 +341,32 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   rawInput: unknown,
   ctx: TContext
 ): Promise<TOutput> {
-  // Step 1: Validate input if schema provided
+  // Step 1: Execute guards if any
+  if (procedure.guards.length > 0) {
+    for (const guard of procedure.guards) {
+      // Get request and reply from context for guard execution
+      const request = ctx.request;
+      const reply = ctx.reply;
+
+      const passed = await guard.check(ctx, request, reply);
+      if (!passed) {
+        const statusCode = guard.statusCode ?? 403;
+        const message = guard.message ?? `Guard "${guard.name}" check failed`;
+
+        // Create an error that REST/tRPC adapters can handle
+        const error = new Error(message);
+        (error as { statusCode?: number }).statusCode = statusCode;
+        throw error;
+      }
+    }
+  }
+
+  // Step 2: Validate input if schema provided
   const input: TInput = procedure.inputSchema
     ? procedure.inputSchema.parse(rawInput)
     : (rawInput as TInput);
 
-  // Step 2: Execute handler (with or without middleware)
+  // Step 3: Execute handler (with or without middleware)
   let result: TOutput;
 
   if (procedure._precompiledExecutor) {
@@ -352,7 +385,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     );
   }
 
-  // Step 3: Validate output if schema provided
+  // Step 4: Validate output if schema provided
   if (procedure.outputSchema) {
     return procedure.outputSchema.parse(result);
   }
@@ -421,7 +454,8 @@ export function isCompiledProcedure(value: unknown): value is CompiledProcedure 
   return (
     (obj.type === 'query' || obj.type === 'mutation') &&
     typeof obj.handler === 'function' &&
-    Array.isArray(obj.middlewares)
+    Array.isArray(obj.middlewares) &&
+    Array.isArray(obj.guards)
   );
 }
 

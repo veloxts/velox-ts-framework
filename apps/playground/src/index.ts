@@ -20,13 +20,14 @@ import 'dotenv/config';
 import path from 'node:path';
 
 import fastifyStatic from '@fastify/static';
+import { authPlugin } from '@veloxts/auth';
 import { createVeloxApp, VELOX_VERSION } from '@veloxts/core';
 import { createDatabasePlugin } from '@veloxts/orm';
 import { createRoutesRegistrar, getRouteSummary, registerTRPCPlugin } from '@veloxts/router';
 
-import { config } from './config/index.js';
+import { authConfig, config } from './config/index.js';
 import { createMockPrismaClient, prisma } from './database/index.js';
-import { healthProcedures, userProcedures } from './procedures/index.js';
+import { authProcedures, healthProcedures, userProcedures } from './procedures/index.js';
 import { appRouter } from './trpc/index.js';
 
 // ============================================================================
@@ -61,6 +62,10 @@ async function createApp() {
 
   console.log(`[Database] Using ${USE_MOCK_DB ? 'mock in-memory' : 'Prisma SQLite'} database`);
 
+  // Register auth plugin
+  await app.use(authPlugin(authConfig));
+  console.log('[Auth] JWT authentication enabled');
+
   // Register static file serving for frontend demo
   await app.server.register(fastifyStatic, {
     root: path.join(process.cwd(), 'public'),
@@ -76,7 +81,7 @@ async function createApp() {
   console.log('[tRPC] Registered at /trpc');
 
   // Register REST API routes at /api
-  const collections = [userProcedures, healthProcedures];
+  const collections = [authProcedures, userProcedures, healthProcedures];
   app.routes(createRoutesRegistrar(collections, { prefix: config.apiPrefix }));
 
   return { app, collections };
@@ -111,15 +116,27 @@ function printBanner(collections: Parameters<typeof getRouteSummary>[0]) {
 
   // Print example curl commands
   console.log('📝 Example requests:\n');
+  console.log('   # Health check');
   console.log(`   curl http://localhost:${config.port}${config.apiPrefix}/health`);
+  console.log('');
+  console.log('   # Public user endpoints');
   console.log(`   curl http://localhost:${config.port}${config.apiPrefix}/users`);
   console.log(
     `   curl http://localhost:${config.port}${config.apiPrefix}/users/550e8400-e29b-41d4-a716-446655440001`
   );
-  console.log(`   curl "http://localhost:${config.port}${config.apiPrefix}/users/search?q=alice"`);
-  console.log(`   curl -X POST http://localhost:${config.port}${config.apiPrefix}/users \\`);
+  console.log('');
+  console.log('   # Authentication');
+  console.log(`   curl -X POST http://localhost:${config.port}${config.apiPrefix}/auth/register \\`);
   console.log('        -H "Content-Type: application/json" \\');
-  console.log('        -d \'{"name":"Dave Wilson","email":"dave@example.com"}\'');
+  console.log('        -d \'{"name":"John Doe","email":"john@example.com","password":"secret123"}\'');
+  console.log('');
+  console.log(`   curl -X POST http://localhost:${config.port}${config.apiPrefix}/auth/login \\`);
+  console.log('        -H "Content-Type: application/json" \\');
+  console.log('        -d \'{"email":"john@example.com","password":"secret123"}\'');
+  console.log('');
+  console.log('   # Protected endpoint (use token from login response)');
+  console.log(`   curl http://localhost:${config.port}${config.apiPrefix}/auth/me \\`);
+  console.log('        -H "Authorization: Bearer <your-access-token>"');
   console.log('');
 }
 

@@ -244,11 +244,16 @@ function gatherInput(request: FastifyRequest, route: RestRoute): unknown {
  * Extract context from Fastify request
  *
  * The context is decorated onto the request by @veloxts/core's onRequest hook.
- * This function expects the context to already be present.
+ * This function expects the context to already be present and also merges
+ * any auth properties added by @veloxts/auth's preHandler hook.
  */
 function getContextFromRequest(request: FastifyRequest): BaseContext {
   // Type assertion is safe because @veloxts/core decorates this in onRequest hook
-  const requestWithContext = request as FastifyRequest & { context: BaseContext };
+  const requestWithContext = request as FastifyRequest & {
+    context: BaseContext;
+    auth?: unknown;
+    user?: unknown;
+  };
 
   // The context should always be present if @veloxts/core is properly initialized
   // If it's not, we throw an error to help developers debug
@@ -258,7 +263,18 @@ function getContextFromRequest(request: FastifyRequest): BaseContext {
     );
   }
 
-  return requestWithContext.context;
+  // Merge auth properties from request if @veloxts/auth has added them
+  // This allows guards to access ctx.auth and ctx.user
+  const context = requestWithContext.context;
+  if (requestWithContext.auth !== undefined || requestWithContext.user !== undefined) {
+    return {
+      ...context,
+      auth: requestWithContext.auth,
+      user: requestWithContext.user,
+    } as BaseContext;
+  }
+
+  return context;
 }
 
 // ============================================================================

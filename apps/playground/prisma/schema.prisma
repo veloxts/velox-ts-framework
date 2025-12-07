@@ -20,11 +20,13 @@ datasource db {
 // User Model
 // ============================================================================
 
-/// User model for basic CRUD demonstration
+/// User model with authentication support
 model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
+  password  String?  // Hashed password (optional for social auth)
+  roles     String   @default("[\"user\"]") // JSON array of roles
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

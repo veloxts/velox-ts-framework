@@ -104,6 +104,29 @@ export type ProcedureHandler<TInput, TOutput, TContext extends BaseContext = Bas
 ) => TOutput | Promise<TOutput>;
 
 // ============================================================================
+// Guard Types
+// ============================================================================
+
+/**
+ * Guard-like type for authorization checks
+ *
+ * This interface is compatible with @veloxts/auth guards but doesn't create
+ * a hard dependency. Any object matching this shape can be used as a guard.
+ *
+ * @template TContext - The context type the guard operates on
+ */
+export interface GuardLike<TContext = unknown> {
+  /** Guard name for error messages */
+  name: string;
+  /** Guard check function - returns true if access is allowed */
+  check: (ctx: TContext, request: unknown, reply: unknown) => boolean | Promise<boolean>;
+  /** Custom error message (optional) */
+  message?: string;
+  /** HTTP status code on failure (default: 403) */
+  statusCode?: number;
+}
+
+// ============================================================================
 // Middleware Types
 // ============================================================================
 
@@ -253,6 +276,8 @@ export interface CompiledProcedure<
   readonly outputSchema?: { parse: (output: unknown) => TOutput };
   /** Middleware chain to execute before handler */
   readonly middlewares: ReadonlyArray<MiddlewareFunction<TInput, TContext, TContext, TOutput>>;
+  /** Guards to execute before handler (checked before middleware) */
+  readonly guards: ReadonlyArray<GuardLike<TContext>>;
   /** REST route override (if specified) */
   readonly restOverride?: RestRouteOverride;
   /**

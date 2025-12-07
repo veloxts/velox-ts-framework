@@ -15,6 +15,7 @@ import type { ZodType, ZodTypeDef } from 'zod';
 
 import type {
   CompiledProcedure,
+  GuardLike,
   MiddlewareFunction,
   ProcedureHandler,
   RestRouteOverride,
@@ -178,6 +179,35 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<TInput, TOutput, TNewContext>;
 
   /**
+   * Adds an authorization guard to the procedure
+   *
+   * Guards are executed before the handler and middleware chain.
+   * If the guard check fails, a 401/403 error is returned.
+   *
+   * Guards are compatible with @veloxts/auth guards (authenticated, hasRole, etc.)
+   * but can be any object implementing the GuardLike interface.
+   *
+   * @param guard - Guard definition to apply
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * import { authenticated, hasRole } from '@veloxts/auth';
+   *
+   * // Require authentication
+   * procedure()
+   *   .guard(authenticated)
+   *   .query(async ({ ctx }) => { ... });
+   *
+   * // Require admin role
+   * procedure()
+   *   .guard(hasRole('admin'))
+   *   .mutation(async ({ input, ctx }) => { ... });
+   * ```
+   */
+  guard(guard: GuardLike<TContext>): ProcedureBuilder<TInput, TOutput, TContext>;
+
+  /**
    * Configures REST route override
    *
    * By default, REST routes are auto-generated from procedure names.
@@ -256,6 +286,8 @@ export interface BuilderRuntimeState {
   outputSchema?: ValidSchema;
   /** Middleware chain */
   middlewares: MiddlewareFunction<unknown, BaseContext, BaseContext, unknown>[];
+  /** Guards to execute before handler */
+  guards: GuardLike<unknown>[];
   /** REST route override */
   restOverride?: RestRouteOverride;
 }
