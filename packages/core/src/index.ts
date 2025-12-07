@@ -32,7 +32,7 @@ export const VELOX_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 export { veloxApp, createVeloxApp, VeloxApp } from './app.js';
 // Context system
 export type { BaseContext } from './context.js';
-export { createContext, isContext } from './context.js';
+export { createContext, isContext, setupTestContext } from './context.js';
 // Error handling
 export type {
   ErrorResponse,

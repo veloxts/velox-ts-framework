@@ -10,7 +10,7 @@ import Fastify, {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { createContext, type BaseContext } from '@veloxts/core';
+import { setupTestContext } from '@veloxts/core';
 
 // ============================================================================
 // Types
@@ -73,9 +73,7 @@ export async function createTestServer(
 
   // Setup context decoration like VeloxApp does
   if (!skipContext) {
-    server.addHook('onRequest', async (request, reply) => {
-      (request as { context: BaseContext }).context = createContext(request, reply);
-    });
+    setupTestContext(server);
   }
 
   // Register any plugins

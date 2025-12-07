@@ -39,6 +39,9 @@
 export { createTestServer, wrapVeloxPlugin } from './server.js';
 export type { TestServerOptions } from './server.js';
 
+// Re-export setupTestContext from core for convenience
+export { setupTestContext } from '@veloxts/core';
+
 // Helper utilities
 export {
   authHeader,

@@ -4,7 +4,7 @@
  * @module context
  */
 
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 /**
  * Base context interface available in all request handlers
@@ -102,6 +102,36 @@ export function isContext(value: unknown): value is BaseContext {
     typeof ctx.reply === 'object' &&
     ctx.reply !== null
   );
+}
+
+/**
+ * Sets up the test context hook on a Fastify server
+ *
+ * This replicates the `onRequest` hook that VeloxApp uses internally
+ * to populate `request.context`. Use this in integration tests when
+ * testing with a raw Fastify server instead of VeloxApp.
+ *
+ * @param server - Fastify server instance
+ *
+ * @example
+ * ```typescript
+ * import Fastify from 'fastify';
+ * import { setupTestContext } from '@veloxts/core';
+ *
+ * const server = Fastify();
+ * setupTestContext(server);
+ *
+ * // Now request.context is available in all routes
+ * server.get('/test', async (request) => {
+ *   console.log(request.context.request.url);
+ *   return { ok: true };
+ * });
+ * ```
+ */
+export function setupTestContext(server: FastifyInstance): void {
+  server.addHook('onRequest', async (request, reply) => {
+    (request as { context: BaseContext }).context = createContext(request, reply);
+  });
 }
 
 /**
