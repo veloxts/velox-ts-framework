@@ -55,8 +55,8 @@ export const TEST_SECRETS = {
   /** Refresh token secret */
   refresh:
     'test-refresh-secret-key-for-integration-tests-must-be-64-characters-long-at-minimum-for-hmac',
-  /** Session secret (32+ chars) */
-  session: 'test-session-secret-for-integration-tests-32chars',
+  /** Session secret (32+ chars, needs 16+ unique chars for entropy validation) */
+  session: 'test-session-secret-for-integration-xyz123!@#$%^&*()_+testing456789',
   /** CSRF secret */
   csrf: 'test-csrf-secret-for-integration-tests-must-be-32-characters-minimum',
 } as const;

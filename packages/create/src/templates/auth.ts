@@ -84,6 +84,15 @@ API_PREFIX=/api
 #
 # NOTE: In development mode, temporary secrets will be generated with a warning.
 # Always set these in production!
+
+# ============================================================================
+# Session Authentication (Alternative to JWT)
+# ============================================================================
+# If using cookie-based sessions instead of JWT, configure these:
+#
+# SESSION_SECRET=<your-session-secret>
+#
+# Generate with: openssl rand -base64 32
 `;
 }
 
@@ -1069,14 +1078,50 @@ if (!isOwner && !isAdmin) {
 }
 \`\`\`
 
+## Alternative: Session-Based Authentication
+
+VeloxTS also supports cookie-based session authentication as an alternative to JWT.
+Session auth is useful for:
+- Traditional web applications with server-side rendering
+- Applications where token storage in the browser is a concern
+- Simple authentication flows without refresh token management
+
+\`\`\`typescript
+import { sessionMiddleware, loginSession, logoutSession } from '@veloxts/velox';
+
+// Create session middleware
+const session = sessionMiddleware({
+  secret: process.env.SESSION_SECRET!,
+  cookie: { secure: true, httpOnly: true, sameSite: 'lax' },
+  expiration: { ttl: 86400, sliding: true },
+  userLoader: async (userId) => prisma.user.findUnique({ where: { id: userId } }),
+});
+
+// Use in procedures
+const getProfile = procedure()
+  .use(session.requireAuth())
+  .query(async ({ ctx }) => ctx.user);
+
+// Login helper
+await loginSession(ctx.session, user); // Regenerates session ID
+
+// Logout helper
+await logoutSession(ctx.session); // Destroys session
+\`\`\`
+
 ## Environment Variables
 
 \`\`\`bash
-# Required for production
+# Required for JWT authentication
 JWT_SECRET=<64+ chars>
 JWT_REFRESH_SECRET=<64+ chars>
 
 # Generate with: openssl rand -base64 64
+
+# Required for session-based authentication (alternative to JWT)
+SESSION_SECRET=<32+ chars>
+
+# Generate with: openssl rand -base64 32
 \`\`\`
 
 ## Project Structure

@@ -107,7 +107,7 @@ packages/
 ├── router/         # @veloxts/router - tRPC + REST routing with procedures
 ├── validation/     # @veloxts/validation - Zod integration
 ├── orm/            # @veloxts/orm - Prisma wrapper with enhanced DX
-├── auth/           # @veloxts/auth - Authentication & authorization (v1.1+)
+├── auth/           # @veloxts/auth - Authentication & authorization (JWT + Sessions)
 ├── client/         # @veloxts/client - Type-safe frontend API client
 ├── cli/            # @veloxts/cli - Developer tooling
 └── create/         # create-velox-app - Project scaffolder
@@ -127,7 +127,7 @@ Build order follows these layers:
 1. **Foundation:** `@veloxts/core` (no framework dependencies)
 2. **Core features:** `@veloxts/validation`, `@veloxts/orm` (depend on core)
 3. **Routing:** `@veloxts/router` (depends on validation + orm)
-4. **High-level:** `@veloxts/auth` (depends on router) - v1.1+
+4. **High-level:** `@veloxts/auth` (depends on router)
 5. **Tooling:** `@veloxts/cli` (depends on all), `@veloxts/client` (standalone)
 
 ### Key Abstractions
@@ -185,10 +185,102 @@ interface BaseContext {
 declare module '@veloxts/core' {
   interface BaseContext {
     db: PrismaClient;    // from @veloxts/orm
-    user?: User;         // from @veloxts/auth (v1.1)
+    user?: User;         // from @veloxts/auth
   }
 }
 ```
+
+### Authentication (`@veloxts/auth`)
+
+The auth package provides two authentication strategies:
+
+#### JWT Authentication
+Stateless token-based auth using access/refresh token pairs:
+
+```typescript
+import { authPlugin, jwtManager, authenticated, hasRole } from '@veloxts/auth';
+
+// Configure JWT auth
+const jwt = jwtManager({
+  secret: process.env.JWT_SECRET!,
+  refreshSecret: process.env.JWT_REFRESH_SECRET!,
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d',
+});
+
+// Use guards in procedures
+const getProfile = procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => ctx.user);
+
+const adminOnly = procedure()
+  .guard(hasRole('admin'))
+  .mutation(({ ctx, input }) => { /* ... */ });
+```
+
+#### Session-Based Authentication
+Cookie-based sessions as alternative to JWT. Useful for SSR apps or when token storage is a concern:
+
+```typescript
+import {
+  sessionMiddleware,
+  loginSession,
+  logoutSession,
+  createInMemorySessionStore
+} from '@veloxts/auth';
+
+// Create session middleware
+const session = sessionMiddleware({
+  secret: process.env.SESSION_SECRET!,  // 32+ chars, 16+ unique
+  store: createInMemorySessionStore(),  // Use Redis in production
+  cookie: {
+    name: 'session',
+    secure: true,
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 86400,  // 24 hours
+  },
+  expiration: {
+    ttl: 86400,           // Session lifetime in seconds
+    sliding: true,        // Reset TTL on activity
+    absoluteTimeout: 604800,  // Max lifetime (7 days)
+  },
+  userLoader: async (userId) => db.user.findUnique({ where: { id: userId } }),
+});
+
+// Apply middleware to procedures
+const getProfile = procedure()
+  .use(session.requireAuth())  // Requires authenticated session
+  .query(({ ctx }) => ctx.user);
+
+const publicPage = procedure()
+  .use(session.optionalAuth())  // User optional
+  .query(({ ctx }) => ({ user: ctx.user ?? null }));
+
+// Login helper - regenerates session ID for security
+await loginSession(ctx.session, { id: user.id, email: user.email });
+
+// Logout helper - destroys session completely
+await logoutSession(ctx.session);
+
+// Check authentication status
+if (isSessionAuthenticated(ctx)) {
+  // ctx.user is available
+}
+
+// Flash messages (one-time data)
+ctx.session.flash('success', 'Profile updated!');
+const message = ctx.session.getFlash('success');  // Returns once, then removed
+```
+
+**Session Features:**
+- HMAC-SHA256 signed session IDs with timing-safe verification
+- Sliding expiration with optional absolute timeout
+- Flash messages for one-time notifications
+- Session regeneration on login (prevents session fixation)
+- In-memory store (development) or Redis (production)
+- Cookie security: httpOnly, secure, sameSite
 
 ## MVP Scope (v0.1.0)
 
@@ -200,12 +292,12 @@ Currently building toward MVP with these constraints:
 - `@veloxts/validation` - Zod integration
 - `@veloxts/router` - Procedure API with tRPC + REST adapter (full REST verb support)
 - `@veloxts/orm` - Prisma client wrapper (manual migrations)
+- `@veloxts/auth` - JWT authentication, session management, guards, rate limiting
 - `@veloxts/client` - Type-safe API client for frontend
 - `@veloxts/cli` - Basic commands (`velox dev`, `velox migrate`)
-- `create-velox-app` - Project scaffolding with one default template
+- `create-velox-app` - Project scaffolding with default and auth templates
 
 ### Deferred to v1.1+
-- Authentication system (`@veloxts/auth`)
 - Nested resource routing
 - Full DI container with decorators
 - Code generators
