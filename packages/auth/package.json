@@ -1,7 +1,7 @@
 {
   "name": "@veloxts/auth",
-  "version": "0.3.3",
-  "description": "Authentication and authorization system for VeloxTS framework (v1.1+)",
+  "version": "0.3.2",
+  "description": "Authentication and authorization system for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,21 +19,40 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@veloxts/core": "workspace:*",
     "@veloxts/router": "workspace:*",
-    "@veloxts/orm": "workspace:*"
+    "fastify": "5.6.2"
+  },
+  "peerDependencies": {
+    "bcrypt": ">=5.0.0",
+    "argon2": ">=0.30.0"
+  },
+  "peerDependenciesMeta": {
+    "bcrypt": {
+      "optional": true
+    },
+    "argon2": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "@types/bcrypt": "5.0.2",
+    "typescript": "5.9.3",
+    "vitest": "3.1.4"
   },
   "keywords": [
     "velox",
     "auth",
     "authentication",
     "authorization",
+    "jwt",
+    "guards",
+    "policies",
     "typescript"
   ],
   "license": "MIT",

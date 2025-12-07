@@ -1,55 +1,120 @@
 /**
  * @veloxts/auth - Authentication and authorization system
  *
- * Provides authentication middleware, session management, and authorization
- * guards for VeloxTS applications. Deferred to v1.1+ release.
+ * Provides JWT authentication, password hashing, authorization guards,
+ * resource policies, and rate limiting for VeloxTS applications.
  *
- * @note This package is a placeholder for MVP (v0.1.0)
+ * @packageDocumentation
+ * @module @veloxts/auth
  */
 
-import { createRequire } from 'node:module';
+// ============================================================================
+// Version Export
+// ============================================================================
 
-// Read version from package.json dynamically
-const require = createRequire(import.meta.url);
-const packageJson = require('../package.json') as { version: string };
+export { AUTH_VERSION } from './plugin.js';
 
-/** Auth package version */
-export const AUTH_VERSION: string = packageJson.version ?? '0.0.0-unknown';
+// ============================================================================
+// Types
+// ============================================================================
 
-/**
- * User interface for authenticated requests
- */
-export interface User {
-  id: string;
-  email: string;
-  [key: string]: unknown;
-}
+export type {
+  AuthConfig,
+  AuthContext,
+  AuthMiddlewareOptions,
+  GuardDefinition,
+  // Guard types
+  GuardFunction,
+  HashConfig,
+  // Configuration types
+  JwtConfig,
+  // Policy types
+  PolicyAction,
+  PolicyDefinition,
+  RateLimitConfig,
+  SessionConfig,
+  TokenPair,
+  TokenPayload,
+  // Core types
+  User,
+} from './types.js';
 
-/**
- * Creates an authentication plugin for VeloxTS
- *
- * @param _config
- * @returns Auth plugin
- *
- * @note Full implementation coming in v1.1+
- */
-export function createAuth(_config: { secret?: string; sessionStore?: unknown } = {}) {
-  return {
-    version: AUTH_VERSION,
-    middleware: () => {
-      console.log('Auth middleware placeholder (v1.1+)');
-    },
-  };
-}
+// ============================================================================
+// JWT Authentication
+// ============================================================================
 
-/**
- * Authorization guard decorator (placeholder)
- *
- * @note Full implementation coming in v1.1+
- */
-export function guard(permissions: string[]) {
-  return (target: unknown) => {
-    console.log(`Guard decorator placeholder: ${permissions.join(', ')}`);
-    return target;
-  };
-}
+export { createJwtManager, generateTokenId, JwtManager, parseTimeToSeconds } from './jwt.js';
+
+// ============================================================================
+// Password Hashing
+// ============================================================================
+
+export {
+  createPasswordHasher,
+  hashPassword,
+  PasswordHasher,
+  verifyPassword,
+} from './hash.js';
+
+// ============================================================================
+// Guards
+// ============================================================================
+
+export {
+  // Combinators
+  allOf,
+  anyOf,
+  // Built-in guards
+  authenticated,
+  // Factory functions
+  defineGuard,
+  emailVerified,
+  // Execution
+  executeGuard,
+  executeGuards,
+  guard,
+  hasAnyPermission,
+  hasPermission,
+  hasRole,
+  not,
+  userCan,
+} from './guards.js';
+
+// ============================================================================
+// Policies
+// ============================================================================
+
+export {
+  authorize,
+  // Authorization checks
+  can,
+  cannot,
+  clearPolicies,
+  createAdminOnlyPolicy,
+  // Common patterns
+  createOwnerOrAdminPolicy,
+  createPolicyBuilder,
+  createReadOnlyPolicy,
+  // Factory
+  definePolicy,
+  getPolicy,
+  // Registry
+  registerPolicy,
+} from './policies.js';
+
+// ============================================================================
+// Middleware
+// ============================================================================
+
+export {
+  clearRateLimitStore,
+  createAuthMiddleware,
+  createRateLimitMiddleware,
+} from './middleware.js';
+
+// ============================================================================
+// Plugin
+// ============================================================================
+
+export type { AuthPluginOptions, AuthService } from './plugin.js';
+export { authPlugin, createAuthPlugin } from './plugin.js';
