@@ -20,6 +20,7 @@ import type { FastifyInstance } from 'fastify';
  */
 export type AnyRouter = TRPCAnyRouter;
 
+import { isGuardError } from '../errors.js';
 import type { CompiledProcedure, ProcedureCollection } from '../types.js';
 
 // ============================================================================
@@ -328,6 +329,7 @@ export function createTRPCContextFactory() {
  * Convert a VeloxTS error to a tRPC error
  *
  * Maps VeloxTS error codes to appropriate tRPC error codes.
+ * Handles GuardError specifically to preserve guard metadata.
  *
  * @param error - Error to convert
  * @param defaultCode - Default tRPC code if mapping not found
@@ -351,6 +353,18 @@ export function veloxErrorToTRPCError(
   };
 
   const trpcCode = error.statusCode ? (statusToTRPC[error.statusCode] ?? defaultCode) : defaultCode;
+
+  // Handle GuardError specifically to preserve guard metadata
+  if (isGuardError(error)) {
+    return new TRPCError({
+      code: trpcCode,
+      message: error.message,
+      cause: {
+        code: error.code,
+        guardName: error.guardName,
+      },
+    });
+  }
 
   return new TRPCError({
     code: trpcCode,

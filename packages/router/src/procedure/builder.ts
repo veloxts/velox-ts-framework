@@ -10,6 +10,7 @@
 
 import type { BaseContext } from '@veloxts/core';
 
+import { GuardError } from '../errors.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -343,20 +344,26 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
 ): Promise<TOutput> {
   // Step 1: Execute guards if any
   if (procedure.guards.length > 0) {
-    for (const guard of procedure.guards) {
-      // Get request and reply from context for guard execution
-      const request = ctx.request;
-      const reply = ctx.reply;
+    // Defensive check: ensure request and reply exist in context
+    // These are required for guard execution but may be missing in test contexts
+    const request = ctx.request;
+    const reply = ctx.reply;
 
+    if (!request || !reply) {
+      throw new GuardError(
+        'context',
+        'Guard execution requires request and reply in context. ' +
+          'Ensure the procedure is being called from a valid HTTP context.',
+        500
+      );
+    }
+
+    for (const guard of procedure.guards) {
       const passed = await guard.check(ctx, request, reply);
       if (!passed) {
         const statusCode = guard.statusCode ?? 403;
         const message = guard.message ?? `Guard "${guard.name}" check failed`;
-
-        // Create an error that REST/tRPC adapters can handle
-        const error = new Error(message);
-        (error as { statusCode?: number }).statusCode = statusCode;
-        throw error;
+        throw new GuardError(guard.name, message, statusCode);
       }
     }
   }
