@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineProcedures, procedure } from '../procedure/builder.js';
-import { generateRestRoutes, getRouteSummary, registerRestRoutes } from '../rest';
+import { generateRestRoutes, getRouteSummary, registerRestRoutes, rest } from '../rest';
 
 describe('generateRestRoutes', () => {
   it('should generate routes from naming conventions', () => {
@@ -844,5 +844,214 @@ describe('Input gathering', () => {
       id: '888',
       status: 'active',
     });
+  });
+});
+
+describe('rest() - Fastify plugin pattern', () => {
+  let app: Awaited<ReturnType<typeof createVeloxApp>>;
+
+  beforeEach(async () => {
+    app = await createVeloxApp({ port: 0, logger: false });
+  });
+
+  afterEach(async () => {
+    if (app.isRunning) {
+      await app.stop();
+    }
+  });
+
+  it('should work with server.register() and prefix option', async () => {
+    const collection = defineProcedures('users', {
+      listUsers: procedure().query(async () => [{ id: '1', name: 'John' }]),
+    });
+
+    // Modern Fastify pattern
+    await app.server.register(rest([collection]), { prefix: '/api' });
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/api/users',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual([{ id: '1', name: 'John' }]);
+  });
+
+  it('should work with server.register() with different prefix', async () => {
+    const collection = defineProcedures('users', {
+      getUser: procedure()
+        .input(z.object({ id: z.string() }))
+        .query(async ({ input }) => ({ id: input.id, name: 'Test' })),
+    });
+
+    await app.server.register(rest([collection]), { prefix: '/v2' });
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/v2/users/123',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ id: '123', name: 'Test' });
+  });
+
+  it('should work with server.register() without prefix (routes at root)', async () => {
+    const collection = defineProcedures('users', {
+      listUsers: procedure().query(async () => []),
+    });
+
+    await app.server.register(rest([collection]));
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/users',
+    });
+
+    expect(response.statusCode).toBe(200);
+  });
+
+  it('should support legacy callable pattern for backward compatibility', async () => {
+    const collection = defineProcedures('users', {
+      listUsers: procedure().query(async () => [{ id: '1' }]),
+    });
+
+    // Legacy pattern: rest([...])(server)
+    rest([collection], { prefix: '/api' })(app.server);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/api/users',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual([{ id: '1' }]);
+  });
+
+  it('should work with app.routes() pattern', async () => {
+    const collection = defineProcedures('posts', {
+      listPosts: procedure().query(async () => [{ id: '1', title: 'Post 1' }]),
+    });
+
+    // VeloxApp pattern
+    app.routes(rest([collection], { prefix: '/api' }));
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/api/posts',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual([{ id: '1', title: 'Post 1' }]);
+  });
+
+  it('should register multiple route methods with server.register()', async () => {
+    const collection = defineProcedures('users', {
+      getUser: procedure()
+        .input(z.object({ id: z.string() }))
+        .query(async ({ input }) => ({ id: input.id })),
+      listUsers: procedure().query(async () => []),
+      createUser: procedure()
+        .input(z.object({ name: z.string() }))
+        .mutation(async ({ input }) => ({ id: 'new', name: input.name })),
+      updateUser: procedure()
+        .input(z.object({ id: z.string(), name: z.string() }))
+        .mutation(async ({ input }) => ({ id: input.id, name: input.name })),
+      deleteUser: procedure()
+        .input(z.object({ id: z.string() }))
+        .mutation(async () => ({ deleted: true })),
+    });
+
+    await app.server.register(rest([collection]), { prefix: '/api' });
+    await app.start();
+
+    // Test GET with ID
+    const getResponse = await app.server.inject({
+      method: 'GET',
+      url: '/api/users/123',
+    });
+    expect(getResponse.statusCode).toBe(200);
+
+    // Test GET list
+    const listResponse = await app.server.inject({
+      method: 'GET',
+      url: '/api/users',
+    });
+    expect(listResponse.statusCode).toBe(200);
+
+    // Test POST
+    const createResponse = await app.server.inject({
+      method: 'POST',
+      url: '/api/users',
+      payload: { name: 'John' },
+    });
+    expect(createResponse.statusCode).toBe(201);
+
+    // Test PUT
+    const updateResponse = await app.server.inject({
+      method: 'PUT',
+      url: '/api/users/123',
+      payload: { name: 'Updated' },
+    });
+    expect(updateResponse.statusCode).toBe(200);
+
+    // Test DELETE
+    const deleteResponse = await app.server.inject({
+      method: 'DELETE',
+      url: '/api/users/123',
+    });
+    expect(deleteResponse.statusCode).toBe(200);
+  });
+
+  it('should support registering multiple collections with server.register()', async () => {
+    const users = defineProcedures('users', {
+      listUsers: procedure().query(async () => [{ type: 'user' }]),
+    });
+
+    const posts = defineProcedures('posts', {
+      listPosts: procedure().query(async () => [{ type: 'post' }]),
+    });
+
+    await app.server.register(rest([users, posts]), { prefix: '/api' });
+    await app.start();
+
+    const usersResponse = await app.server.inject({
+      method: 'GET',
+      url: '/api/users',
+    });
+
+    const postsResponse = await app.server.inject({
+      method: 'GET',
+      url: '/api/posts',
+    });
+
+    expect(usersResponse.json()).toEqual([{ type: 'user' }]);
+    expect(postsResponse.json()).toEqual([{ type: 'post' }]);
+  });
+
+  it('should allow nested prefix registration', async () => {
+    const users = defineProcedures('users', {
+      listUsers: procedure().query(async () => []),
+    });
+
+    // Nested plugin registration with prefix
+    await app.server.register(
+      async (instance) => {
+        await instance.register(rest([users]), { prefix: '/users-service' });
+      },
+      { prefix: '/api/v1' }
+    );
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/api/v1/users-service/users',
+    });
+
+    expect(response.statusCode).toBe(200);
   });
 });

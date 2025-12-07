@@ -9,7 +9,7 @@
  */
 
 import { type BaseContext, ConfigurationError } from '@veloxts/core';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 
 import { executeProcedure } from '../procedure/builder.js';
 import type { CompiledProcedure, HttpMethod, ProcedureCollection } from '../types.js';
@@ -35,12 +35,35 @@ export interface RestRoute {
 
 /**
  * Options for REST route registration
+ *
+ * When using `server.register(rest(...), options)`, the `prefix` option is
+ * handled by Fastify's built-in prefix mechanism. When using the legacy
+ * `rest(...)(server)` pattern, the prefix is applied manually.
  */
 export interface RestAdapterOptions {
-  /** API prefix (default: '/api') */
+  /**
+   * API prefix for routes.
+   *
+   * - With `server.register()`: Use Fastify's built-in prefix option instead
+   * - With legacy `rest(...)(server)`: Prefix is applied manually (default: '/api')
+   *
+   * @default '/api' (legacy mode only)
+   */
   prefix?: string;
   /** Custom error handler */
   onError?: (error: unknown, request: FastifyRequest, reply: FastifyReply) => void;
+}
+
+/**
+ * Internal options used during route registration
+ * @internal
+ */
+interface InternalRegistrationOptions extends RestAdapterOptions {
+  /**
+   * When true, the prefix is handled by Fastify's register() mechanism
+   * and should not be manually prepended to routes.
+   */
+  _prefixHandledByFastify?: boolean;
 }
 
 // ============================================================================
@@ -280,15 +303,17 @@ function getContextFromRequest(request: FastifyRequest): BaseContext {
 export function registerRestRoutes(
   server: FastifyInstance,
   collections: ProcedureCollection[],
-  options: RestAdapterOptions = {}
+  options: InternalRegistrationOptions = {}
 ): void {
-  const { prefix = '/api' } = options;
+  const { prefix = '/api', _prefixHandledByFastify = false } = options;
 
   for (const collection of collections) {
     const routes = generateRestRoutes(collection);
 
     for (const route of routes) {
-      const fullPath = `${prefix}${route.path}`;
+      // When used with server.register(), Fastify handles the prefix automatically.
+      // When used in legacy mode, we prepend the prefix manually.
+      const fullPath = _prefixHandledByFastify ? route.path : `${prefix}${route.path}`;
       const handler = createRouteHandler(route);
 
       // Register route based on method
@@ -387,18 +412,36 @@ export function createRoutesRegistrar(
 }
 
 /**
- * Creates a routes registrar for REST endpoints (succinct API)
+ * Legacy callable signature for backward compatibility.
+ * @deprecated Use `server.register(rest([...]), { prefix: '/api' })` instead.
+ */
+type LegacyRestCallable = (server: FastifyInstance) => void;
+
+/**
+ * A callable Fastify plugin type that can be used both as:
+ * - A Fastify plugin: `server.register(rest([...]), { prefix: '/api' })`
+ * - A direct callable: `rest([...])(server)` or `app.routes(rest([...]))`
+ *
+ * This type represents a function that is both:
+ * 1. A FastifyPluginAsync (for server.register())
+ * 2. A callable that returns void (for legacy app.routes() usage)
+ */
+export type RestPlugin = FastifyPluginAsync<RestAdapterOptions> & LegacyRestCallable;
+
+/**
+ * Creates a Fastify plugin for REST endpoints from procedure collections.
  *
  * This is the preferred way to register procedure collections as REST routes.
- * Use with `app.routes()` for a fluent API experience.
+ * The function returns a dual-mode plugin that works with both modern Fastify
+ * `register()` pattern and the legacy `app.routes()` pattern.
  *
  * @param collections - Procedure collections to register as REST routes
- * @param options - REST adapter options (prefix, validation, etc.)
- * @returns A function that registers routes on a Fastify instance
+ * @param defaultOptions - Default REST adapter options (can be overridden at registration)
+ * @returns A Fastify plugin that can be used with `server.register()` or called directly
  *
- * @example
+ * @example Modern API (recommended)
  * ```typescript
- * import { veloxApp } from '@veloxts/core';
+ * import Fastify from 'fastify';
  * import { rest, defineProcedures, procedure } from '@veloxts/router';
  *
  * const users = defineProcedures('users', {
@@ -408,19 +451,93 @@ export function createRoutesRegistrar(
  *     .mutation(async ({ input }) => ({ id: '1', ...input })),
  * });
  *
+ * const server = Fastify();
+ *
+ * // Register with Fastify's built-in prefix handling
+ * await server.register(rest([users]), { prefix: '/api' });
+ *
+ * // Generates:
+ * // GET  /api/users      -> listUsers
+ * // POST /api/users      -> createUser
+ * ```
+ *
+ * @example Legacy API (backward compatible)
+ * ```typescript
+ * import { veloxApp } from '@veloxts/core';
+ * import { rest, defineProcedures, procedure } from '@veloxts/router';
+ *
  * const app = await veloxApp();
  *
- * // Succinct registration
+ * // Legacy registration with manual prefix
  * app.routes(rest([users], { prefix: '/api' }));
  *
  * await app.start();
  * ```
+ *
+ * @example Merging options
+ * ```typescript
+ * // Options passed to rest() are defaults
+ * const plugin = rest([users], { onError: customHandler });
+ *
+ * // Options passed to register() override/merge with defaults
+ * await server.register(plugin, { prefix: '/v1' });
+ * ```
  */
 export function rest(
   collections: ProcedureCollection[],
-  options: RestAdapterOptions = {}
-): (server: FastifyInstance) => void {
-  return (server: FastifyInstance) => {
-    registerRestRoutes(server, collections, options);
+  defaultOptions: RestAdapterOptions = {}
+): RestPlugin {
+  /**
+   * The async plugin function for Fastify's register() method.
+   * When used with register(), Fastify handles the prefix automatically.
+   */
+  const plugin: FastifyPluginAsync<RestAdapterOptions> = async (
+    instance: FastifyInstance,
+    opts: RestAdapterOptions
+  ): Promise<void> => {
+    // Merge default options with options passed to register()
+    // Options from register() take precedence
+    const mergedOptions: InternalRegistrationOptions = {
+      ...defaultOptions,
+      ...opts,
+      // When used via register(), Fastify handles the prefix automatically
+      // We signal this to registerRestRoutes so it doesn't double-prefix
+      _prefixHandledByFastify: true,
+    };
+
+    registerRestRoutes(instance, collections, mergedOptions);
   };
+
+  /**
+   * Create a callable wrapper that supports both patterns:
+   * 1. As a Fastify plugin: server.register(rest([...]), opts)
+   * 2. As a direct call: rest([...])(server) - legacy pattern
+   *
+   * The trick is that FastifyPluginAsync expects (instance, opts) => Promise<void>
+   * but the legacy pattern expects (server) => void.
+   *
+   * We detect which mode based on the second argument:
+   * - If second arg is undefined/missing: legacy callable mode
+   * - If second arg is present: Fastify plugin mode (called by register())
+   */
+  const dualModePlugin = (
+    instance: FastifyInstance,
+    opts?: RestAdapterOptions
+  ): void | Promise<void> => {
+    // If opts is provided, we're being called by Fastify's register()
+    // In this case, return the promise from the async plugin
+    if (opts !== undefined) {
+      return plugin(instance, opts);
+    }
+
+    // Legacy mode: called directly as rest([...])(server)
+    // Use default options and apply prefix manually
+    registerRestRoutes(instance, collections, defaultOptions);
+  };
+
+  // Cast to RestPlugin - TypeScript needs help understanding this dual nature
+  // The function satisfies both signatures:
+  // - (instance, opts) => Promise<void> for Fastify register
+  // - (server) => void for legacy callable
+  return dualModePlugin as RestPlugin;
 }
