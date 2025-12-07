@@ -80,7 +80,8 @@ export const ERROR_CATALOG: Record<string, ErrorCatalogEntry> = {
     description: 'Attempted to start a VeloxTS server that is already running.',
     statusCode: 500,
     fix: {
-      suggestion: 'Stop the existing server before starting a new one, or check if another process is using the port.',
+      suggestion:
+        'Stop the existing server before starting a new one, or check if another process is using the port.',
       example: `// Stop the server before restarting
 await app.stop();
 await app.start();
@@ -113,7 +114,8 @@ await app.stop();  // Now safe to stop`,
     description: 'A plugin failed to register with the VeloxTS application.',
     statusCode: 500,
     fix: {
-      suggestion: 'Check that the plugin is correctly configured and all required dependencies are available.',
+      suggestion:
+        'Check that the plugin is correctly configured and all required dependencies are available.',
       example: `// Ensure plugin is awaited and properly configured
 await app.register(databasePlugin({
   client: prisma  // Required: pass Prisma client
@@ -186,7 +188,8 @@ const myPlugin: VeloxPlugin = {
   'VELOX-2002': {
     code: 'VELOX-2002',
     title: 'Procedure Missing Output Schema',
-    description: 'A procedure was defined without an output schema. Output schemas ensure type safety.',
+    description:
+      'A procedure was defined without an output schema. Output schemas ensure type safety.',
     statusCode: 500,
     fix: {
       suggestion: 'Add .output() to your procedure definition for type-safe responses.',
@@ -407,7 +410,8 @@ docker ps  # Check if database container is up`,
     description: 'Attempted to connect to a database that is already connected.',
     statusCode: 500,
     fix: {
-      suggestion: 'The database client is already connected. Avoid calling connect() multiple times.',
+      suggestion:
+        'The database client is already connected. Avoid calling connect() multiple times.',
       example: `// Connection is typically managed automatically
 // Only call connect manually if needed
 if (!isConnected) {

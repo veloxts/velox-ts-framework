@@ -5,14 +5,18 @@
  */
 
 // Import catalog for use in error classes
-import { ERROR_CATALOG, getErrorEntry as _getErrorEntry } from './errors/catalog.js';
+import { getErrorEntry as _getErrorEntry, ERROR_CATALOG } from './errors/catalog.js';
 import { formatError as _formatError } from './errors/formatter.js';
 
 // Re-export the enhanced error catalog and formatter
 export {
   ERROR_CATALOG,
   ERROR_DOMAINS,
+  type ErrorCatalogEntry,
+  type ErrorDomain,
+  type ErrorLocation,
   extractErrorLocation,
+  type FormatErrorOptions,
   formatError,
   formatErrorForApi,
   formatErrorOneLine,
@@ -23,10 +27,6 @@ export {
   logDeprecation,
   logError,
   logWarning,
-  type ErrorCatalogEntry,
-  type ErrorDomain,
-  type ErrorLocation,
-  type FormatErrorOptions,
 } from './errors/index.js';
 
 // ============================================================================

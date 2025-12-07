@@ -19,10 +19,21 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
+    "test:types": "tsd",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
+  },
+  "tsd": {
+    "directory": "src/__type-tests__",
+    "compilerOptions": {
+      "paths": {
+        "@veloxts/core": [
+          "dist"
+        ]
+      }
+    }
   },
   "dependencies": {
     "fastify": "5.6.2",

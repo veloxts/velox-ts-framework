@@ -2,24 +2,25 @@
  * Tests for Error Catalog and Formatter
  */
 
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   ERROR_CATALOG,
   ERROR_DOMAINS,
+  getDocsUrl,
   getErrorEntry,
   getErrorsByDomain,
   isKnownErrorCode,
-  getDocsUrl,
 } from '../errors/catalog.js';
 import {
+  extractErrorLocation,
   formatError,
   formatErrorForApi,
   formatErrorOneLine,
-  extractErrorLocation,
-  logWarning,
   logDeprecation,
+  logWarning,
 } from '../errors/formatter.js';
-import { VeloxError, ValidationError, ConfigurationError, NotFoundError } from '../errors.js';
+import { ConfigurationError, NotFoundError, ValidationError, VeloxError } from '../errors.js';
 
 // ============================================================================
 // Error Catalog Tests

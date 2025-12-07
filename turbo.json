@@ -35,6 +35,16 @@
       "inputs": ["src/**/*.{ts,tsx}", "vitest.config.ts", "tsconfig.json"],
       "outputs": ["coverage/**"]
     },
+    "test:types": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**/*.ts",
+        "src/__type-tests__/**/*.test-d.ts",
+        "tsconfig.json",
+        "package.json"
+      ],
+      "outputs": []
+    },
     "clean": {
       "cache": false
     }

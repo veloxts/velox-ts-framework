@@ -212,9 +212,7 @@ export function formatError(
 
   // Error code and title
   if (entry) {
-    lines.push(
-      `  ${color(entry.code, 'red', 'bold')}  ${color(entry.title, 'white', 'bold')}`
-    );
+    lines.push(`  ${color(entry.code, 'red', 'bold')}  ${color(entry.title, 'white', 'bold')}`);
   } else {
     lines.push(`  ${color(error.name, 'red', 'bold')}`);
   }
@@ -288,7 +286,9 @@ export function formatError(
 
   // Related errors
   if (includeSeeAlso && entry?.seeAlso && entry.seeAlso.length > 0) {
-    lines.push(`  ${color('See also:', 'gray')} ${entry.seeAlso.map((c) => color(c, 'yellow')).join(', ')}`);
+    lines.push(
+      `  ${color('See also:', 'gray')} ${entry.seeAlso.map((c) => color(c, 'yellow')).join(', ')}`
+    );
     lines.push('');
   }
 

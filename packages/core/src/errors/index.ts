@@ -14,23 +14,22 @@
 export {
   ERROR_CATALOG,
   ERROR_DOMAINS,
+  type ErrorCatalogEntry,
+  type ErrorDomain,
   getDocsUrl,
   getErrorEntry,
   getErrorsByDomain,
   isKnownErrorCode,
-  type ErrorCatalogEntry,
-  type ErrorDomain,
 } from './catalog.js';
-
 // Re-export formatter
 export {
+  type ErrorLocation,
   extractErrorLocation,
+  type FormatErrorOptions,
   formatError,
   formatErrorForApi,
   formatErrorOneLine,
   logDeprecation,
   logError,
   logWarning,
-  type ErrorLocation,
-  type FormatErrorOptions,
 } from './formatter.js';
