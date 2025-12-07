@@ -160,6 +160,9 @@ importers:
       fastify-plugin:
         specifier: 5.1.0
         version: 5.1.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
     devDependencies:
       '@types/node':
         specifier: 24.10.1
@@ -2124,6 +2127,9 @@ packages:
   real-require@0.2.0:
     resolution: {integrity: sha512-57frrGM/OCTLqLOAh0mhVA9VBMHd+9U7Zb2THMGdBUoZVOtGbJzjxsYGDJ3A9AYYCP4hn6y1TVbaOfzWtm5GFg==}
     engines: {node: '>= 12.13.0'}
+
+  reflect-metadata@0.2.2:
+    resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
 
   regexp-to-ast@0.5.0:
     resolution: {integrity: sha512-tlbJqcMHnPKI9zSrystikWKwHkBqu2a/Sgw01h3zFjvYrMxEDYHzzoMZnUrbIfpTFEsoRnnviOXNCzFiSc54Qw==}
@@ -4397,6 +4403,8 @@ snapshots:
   readdirp@4.1.2: {}
 
   real-require@0.2.0: {}
+
+  reflect-metadata@0.2.2: {}
 
   regexp-to-ast@0.5.0: {}
 

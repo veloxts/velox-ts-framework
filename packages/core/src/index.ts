@@ -1,12 +1,13 @@
 /**
  * @veloxts/core - Foundation package for the VeloxTS framework
  *
- * Provides the core Fastify wrapper, plugin system, and base context
- * that all other framework packages build upon.
+ * Provides the core Fastify wrapper, plugin system, base context,
+ * and dependency injection container that all other framework
+ * packages build upon.
  *
  * @example
  * ```typescript
- * import { createVeloxApp, definePlugin } from '@veloxts/core';
+ * import { createVeloxApp, definePlugin, Container, Injectable } from '@veloxts/core';
  *
  * const app = await createVeloxApp({ port: 3210 });
  * await app.start();
@@ -14,6 +15,9 @@
  *
  * @module @veloxts/core
  */
+
+// Import reflect-metadata for decorator support
+import 'reflect-metadata';
 
 import { createRequire } from 'node:module';
 
@@ -75,3 +79,64 @@ export type {
   VeloxFastifyOptions,
 } from './utils/config.js';
 export { isValidHost, isValidPort } from './utils/config.js';
+
+// Dependency Injection
+export {
+  // Container
+  Container,
+  container,
+  createContainer,
+  // Decorators
+  Injectable,
+  Inject,
+  Optional,
+  // Decorator utilities
+  isInjectable,
+  getInjectableScope,
+  getConstructorTokens,
+  getExplicitInjectTokens,
+  getOptionalParams,
+  makeInjectable,
+  setInjectTokens,
+  // Provider type guards and builders
+  isClassProvider,
+  isFactoryProvider,
+  isValueProvider,
+  isExistingProvider,
+  validateProvider,
+  asClass,
+  asFactory,
+  asValue,
+  asExisting,
+  // Scope
+  Scope,
+  ScopeManager,
+  // Tokens
+  createStringToken,
+  createSymbolToken,
+  getTokenName,
+  isClassToken,
+  isStringToken,
+  isSymbolToken,
+  validateToken,
+} from './di/index.js';
+export type {
+  // Container types
+  ContainerOptions,
+  ResolutionContext,
+  // Decorator types
+  InjectableOptions,
+  // Provider types
+  Provider,
+  ClassProvider,
+  FactoryProvider,
+  ValueProvider,
+  ExistingProvider,
+  // Token types
+  InjectionToken,
+  ClassConstructor,
+  AbstractClass,
+  StringToken,
+  SymbolToken,
+  TokenType,
+} from './di/index.js';

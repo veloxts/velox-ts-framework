@@ -8,6 +8,7 @@ import fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 import fp from 'fastify-plugin';
 
 import { type BaseContext, createContext } from './context.js';
+import { container, type Container } from './di/index.js';
 import { isVeloxError, VeloxError } from './errors.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
 import { validatePluginMetadata } from './plugin.js';
@@ -40,6 +41,7 @@ export class VeloxApp {
   private readonly _server: FastifyInstance;
   private readonly _config: FrozenVeloxAppConfig;
   private readonly _lifecycle: LifecycleManager;
+  private readonly _container: Container;
   private _isRunning = false;
   private _address: string | null = null;
 
@@ -66,6 +68,12 @@ export class VeloxApp {
 
     // Initialize lifecycle manager
     this._lifecycle = new LifecycleManager();
+
+    // Use global container by default
+    this._container = container;
+
+    // Attach container to Fastify for request-scoped services
+    this._container.attachToFastify(this._server);
 
     // Set up context decorator
     this._setupContext();
@@ -103,6 +111,39 @@ export class VeloxApp {
    */
   get config(): FrozenVeloxAppConfig {
     return this._config;
+  }
+
+  /**
+   * DI container for the application
+   *
+   * Provides access to the dependency injection container.
+   * Use this to register services and resolve dependencies.
+   *
+   * @example
+   * ```typescript
+   * import { Injectable, createStringToken } from '@veloxts/core';
+   *
+   * const DATABASE = createStringToken<DatabaseClient>('DATABASE');
+   *
+   * @Injectable()
+   * class UserService {
+   *   constructor(@Inject(DATABASE) private db: DatabaseClient) {}
+   * }
+   *
+   * // Register services
+   * app.container.register({
+   *   provide: DATABASE,
+   *   useFactory: () => createDatabaseClient()
+   * });
+   *
+   * app.container.register({
+   *   provide: UserService,
+   *   useClass: UserService
+   * });
+   * ```
+   */
+  get container(): Container {
+    return this._container;
   }
 
   /**
