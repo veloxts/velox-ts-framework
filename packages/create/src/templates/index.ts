@@ -15,6 +15,7 @@ import { getAvailableTemplates, isValidTemplate, TEMPLATE_METADATA } from './typ
 // ============================================================================
 
 export { VELOXTS_VERSION };
+
 export type { TemplateConfig, TemplateFile, TemplateMetadata, TemplateType } from './types.js';
 export { getAvailableTemplates, isValidTemplate, TEMPLATE_METADATA };
 
@@ -29,7 +30,6 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
   switch (config.template) {
     case 'auth':
       return generateAuthTemplate(config);
-    case 'default':
     default:
       return generateDefaultTemplate(config);
   }

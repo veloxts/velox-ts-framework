@@ -43,7 +43,7 @@ describe('Plugin - Unit Tests', () => {
       const plugin = definePlugin<MyOptions>({
         name: 'typed-plugin',
         version: '1.0.0',
-        async register(server, options) {
+        async register(_server, options) {
           // Options should be typed as MyOptions
           const key: string = options.apiKey;
           const timeout: number | undefined = options.timeout;
@@ -434,7 +434,7 @@ describe('Plugin - Unit Tests', () => {
       const plugin: VeloxPlugin<CustomOptions> = {
         name: 'test',
         version: '1.0.0',
-        async register(server, options) {
+        async register(_server, options) {
           // TypeScript should know options is CustomOptions
           const key: string = options.apiKey;
           const timeout: number = options.timeout;
@@ -455,7 +455,7 @@ describe('Plugin - Unit Tests', () => {
       const plugin: VeloxPlugin<OptionalOptions> = {
         name: 'test',
         version: '1.0.0',
-        async register(server, options) {
+        async register(_server, options) {
           // TypeScript should know these are optional
           const debug: boolean | undefined = options.debug;
           const level: string | undefined = options.level;

@@ -474,7 +474,7 @@ describe('VeloxApp - Enhanced Features', () => {
         dependencies: ['base-plugin'],
         async register(server) {
           server.get('/dependent', async () => ({
-            base: (server as never)['baseValue'],
+            base: (server as never).baseValue,
             dependent: true,
           }));
         },

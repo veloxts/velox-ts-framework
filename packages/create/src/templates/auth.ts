@@ -25,7 +25,8 @@ function generatePackageJson(config: TemplateConfig): string {
         start: 'node dist/index.js',
         dev: 'tsx watch src/index.ts',
         'type-check': 'tsc --noEmit',
-        clean: 'node -e "require(\'fs\').rmSync(\'dist\',{recursive:true,force:true});require(\'fs\').rmSync(\'tsconfig.tsbuildinfo\',{force:true})"',
+        clean:
+          "node -e \"require('fs').rmSync('dist',{recursive:true,force:true});require('fs').rmSync('tsconfig.tsbuildinfo',{force:true})\"",
         'db:generate': 'prisma generate',
         'db:push': 'prisma db push',
         'db:studio': 'prisma studio',

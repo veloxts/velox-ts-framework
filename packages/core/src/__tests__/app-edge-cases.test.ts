@@ -133,7 +133,7 @@ describe('VeloxApp - Edge Cases', () => {
       const plugin = {
         name: 'options-test',
         version: '1.0.0',
-        async register(server, options) {
+        async register(_server, options) {
           receivedOptions = options;
         },
       };

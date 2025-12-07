@@ -197,6 +197,22 @@ export class ScopeManager {
   }
 
   /**
+   * Gets a singleton instance from cache, throwing if not found
+   *
+   * Use this when you've already verified with hasSingleton()
+   *
+   * @param token - The service token
+   * @returns The cached instance
+   * @throws {VeloxError} If no singleton is cached for this token
+   */
+  getSingletonOrThrow<T>(token: unknown): T {
+    if (!this.singletonCache.has(token)) {
+      throw new VeloxError('Singleton not found for token', 500, 'SINGLETON_NOT_FOUND');
+    }
+    return this.singletonCache.get(token) as T;
+  }
+
+  /**
    * Gets a request-scoped instance from the current request's cache
    *
    * @param token - The service token
@@ -240,6 +256,28 @@ export class ScopeManager {
   hasRequestScoped(token: unknown, request: FastifyRequest): boolean {
     const cache = request[REQUEST_SCOPE_KEY];
     return cache?.has(token) ?? false;
+  }
+
+  /**
+   * Gets a request-scoped instance from cache, throwing if not found
+   *
+   * Use this when you've already verified with hasRequestScoped()
+   *
+   * @param token - The service token
+   * @param request - The current Fastify request
+   * @returns The cached instance
+   * @throws {VeloxError} If no request-scoped instance is cached for this token
+   */
+  getRequestScopedOrThrow<T>(token: unknown, request: FastifyRequest): T {
+    const cache = request[REQUEST_SCOPE_KEY];
+    if (!cache || !cache.has(token)) {
+      throw new VeloxError(
+        'Request-scoped instance not found for token',
+        500,
+        'REQUEST_SCOPED_NOT_FOUND'
+      );
+    }
+    return cache.get(token) as T;
   }
 
   /**

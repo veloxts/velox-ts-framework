@@ -184,17 +184,25 @@ async function main() {
       // Provide contextual help based on error type
       const msg = error.message.toLowerCase();
       if (msg.includes('eacces') || msg.includes('permission')) {
-        console.error('\nTry running with appropriate permissions or choose a different directory.');
+        console.error(
+          '\nTry running with appropriate permissions or choose a different directory.'
+        );
       } else if (msg.includes('enospc') || msg.includes('no space')) {
         console.error('\nInsufficient disk space. Free up some space and try again.');
-      } else if (msg.includes('enotfound') || msg.includes('network') || msg.includes('etimedout')) {
+      } else if (
+        msg.includes('enotfound') ||
+        msg.includes('network') ||
+        msg.includes('etimedout')
+      ) {
         console.error('\nCheck your internet connection and try again.');
       } else if (msg.includes('already exists')) {
         console.error('\nChoose a different project name or remove the existing directory.');
       }
     } else {
       console.error('\nAn unexpected error occurred');
-      console.error('Please report this issue at: https://github.com/veloxts/velox-ts-framework/issues');
+      console.error(
+        'Please report this issue at: https://github.com/veloxts/velox-ts-framework/issues'
+      );
     }
     process.exit(1);
   }

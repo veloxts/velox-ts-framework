@@ -25,7 +25,7 @@ import { authHeader, createTestServer } from './setup.js';
 
 describe('Rate Limiting Integration', () => {
   let server: FastifyInstance;
-  let accessToken: string;
+  let _accessToken: string;
   let procedures: ProcedureCollection;
 
   beforeEach(async () => {
@@ -33,7 +33,7 @@ describe('Rate Limiting Integration', () => {
     clearRateLimitStore();
 
     server = await createTestServer();
-    accessToken = server.auth.jwt.createTokenPair(TEST_USERS.admin).accessToken;
+    _accessToken = server.auth.jwt.createTokenPair(TEST_USERS.admin).accessToken;
 
     // Create rate-limited procedures
     procedures = defineProcedures('limited', {

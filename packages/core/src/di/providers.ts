@@ -307,22 +307,70 @@ export function validateProvider(provider: unknown): asserts provider is Provide
 // ============================================================================
 
 /**
+ * Normalized class provider
+ * @internal
+ */
+interface NormalizedClassProvider<T = unknown> {
+  provide: InjectionToken<T>;
+  scope: Scope;
+  type: 'class';
+  implementation: {
+    class: ClassConstructor<T>;
+  };
+}
+
+/**
+ * Normalized factory provider
+ * @internal
+ */
+export interface NormalizedFactoryProvider<T = unknown> {
+  provide: InjectionToken<T>;
+  scope: Scope;
+  type: 'factory';
+  implementation: {
+    factory: (...args: never[]) => T | Promise<T>;
+    inject?: InjectionToken[];
+  };
+}
+
+/**
+ * Normalized value provider
+ * @internal
+ */
+interface NormalizedValueProvider<T = unknown> {
+  provide: InjectionToken<T>;
+  scope: Scope;
+  type: 'value';
+  implementation: {
+    value: T;
+  };
+}
+
+/**
+ * Normalized existing/alias provider
+ * @internal
+ */
+interface NormalizedExistingProvider<T = unknown> {
+  provide: InjectionToken<T>;
+  scope: Scope;
+  type: 'existing';
+  implementation: {
+    existing: InjectionToken<T>;
+  };
+}
+
+/**
  * Normalized provider with all optional fields filled in
+ *
+ * Uses discriminated union based on 'type' field for proper type narrowing.
  *
  * @internal
  */
-export interface NormalizedProvider<T = unknown> {
-  provide: InjectionToken<T>;
-  scope: Scope;
-  type: 'class' | 'factory' | 'value' | 'existing';
-  implementation: {
-    class?: ClassConstructor<T>;
-    factory?: (...args: never[]) => T | Promise<T>;
-    inject?: InjectionToken[];
-    value?: T;
-    existing?: InjectionToken<T>;
-  };
-}
+export type NormalizedProvider<T = unknown> =
+  | NormalizedClassProvider<T>
+  | NormalizedFactoryProvider<T>
+  | NormalizedValueProvider<T>
+  | NormalizedExistingProvider<T>;
 
 /**
  * Normalizes a provider to a consistent internal format

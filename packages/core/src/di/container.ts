@@ -20,7 +20,7 @@ import {
   getOptionalParams,
   isInjectable,
 } from './decorators.js';
-import type { NormalizedProvider, Provider } from './providers.js';
+import type { NormalizedFactoryProvider, NormalizedProvider, Provider } from './providers.js';
 import { normalizeProvider, validateProvider } from './providers.js';
 import { Scope, ScopeManager } from './scope.js';
 import type { ClassConstructor, InjectionToken } from './tokens.js';
@@ -354,7 +354,7 @@ export class Container {
       case Scope.SINGLETON: {
         // Check cache first
         if (this.scopeManager.hasSingleton(token)) {
-          return this.scopeManager.getSingleton<T>(token)!;
+          return this.scopeManager.getSingletonOrThrow<T>(token);
         }
 
         // Create and cache
@@ -374,7 +374,7 @@ export class Container {
 
         // Check request cache first
         if (this.scopeManager.hasRequestScoped(token, request)) {
-          return this.scopeManager.getRequestScoped<T>(token, request)!;
+          return this.scopeManager.getRequestScopedOrThrow<T>(token, request);
         }
 
         // Create and cache in request scope
@@ -405,19 +405,26 @@ export class Container {
     try {
       switch (provider.type) {
         case 'class':
-          return this.instantiateClass(provider.implementation.class!, context);
+          return this.instantiateClass(provider.implementation.class, context);
 
         case 'factory':
           return this.invokeFactory(provider, context);
 
         case 'value':
-          return provider.implementation.value!;
+          return provider.implementation.value;
 
         case 'existing':
-          return this.resolve(provider.implementation.existing!, context);
+          return this.resolve(provider.implementation.existing, context);
 
-        default:
-          throw new VeloxError(`Unknown provider type: ${provider.type}`, 500, 'INVALID_PROVIDER');
+        default: {
+          // This should never happen - use never type for exhaustive check
+          const exhaustiveCheck: never = provider;
+          throw new VeloxError(
+            `Unknown provider type: ${(exhaustiveCheck as { type: string }).type}`,
+            500,
+            'INVALID_PROVIDER'
+          );
+        }
       }
     } finally {
       this.resolutionStack.delete(token);
@@ -482,8 +489,8 @@ export class Container {
    *
    * @internal
    */
-  private invokeFactory<T>(provider: NormalizedProvider<T>, context?: ResolutionContext): T {
-    const factory = provider.implementation.factory!;
+  private invokeFactory<T>(provider: NormalizedFactoryProvider<T>, context?: ResolutionContext): T {
+    const factory = provider.implementation.factory;
     const injectTokens = provider.implementation.inject ?? [];
 
     // Resolve factory dependencies
@@ -601,7 +608,7 @@ export class Container {
     switch (provider.scope) {
       case Scope.SINGLETON: {
         if (this.scopeManager.hasSingleton(token)) {
-          return this.scopeManager.getSingleton<T>(token)!;
+          return this.scopeManager.getSingletonOrThrow<T>(token);
         }
 
         const instance = await this.createInstanceAsync(token, provider, context);
@@ -618,7 +625,7 @@ export class Container {
         const request = this.scopeManager.ensureRequestScope(context?.request);
 
         if (this.scopeManager.hasRequestScoped(token, request)) {
-          return this.scopeManager.getRequestScoped<T>(token, request)!;
+          return this.scopeManager.getRequestScopedOrThrow<T>(token, request);
         }
 
         const instance = await this.createInstanceAsync(token, provider, context);
@@ -647,19 +654,26 @@ export class Container {
     try {
       switch (provider.type) {
         case 'class':
-          return await this.instantiateClassAsync(provider.implementation.class!, context);
+          return await this.instantiateClassAsync(provider.implementation.class, context);
 
         case 'factory':
           return await this.invokeFactoryAsync(provider, context);
 
         case 'value':
-          return provider.implementation.value!;
+          return provider.implementation.value;
 
         case 'existing':
-          return await this.resolveAsync(provider.implementation.existing!, context);
+          return await this.resolveAsync(provider.implementation.existing, context);
 
-        default:
-          throw new VeloxError(`Unknown provider type: ${provider.type}`, 500, 'INVALID_PROVIDER');
+        default: {
+          // This should never happen - use never type for exhaustive check
+          const exhaustiveCheck: never = provider;
+          throw new VeloxError(
+            `Unknown provider type: ${(exhaustiveCheck as { type: string }).type}`,
+            500,
+            'INVALID_PROVIDER'
+          );
+        }
       }
     } finally {
       this.resolutionStack.delete(token);
@@ -721,10 +735,10 @@ export class Container {
    * @internal
    */
   private async invokeFactoryAsync<T>(
-    provider: NormalizedProvider<T>,
+    provider: NormalizedFactoryProvider<T>,
     context?: ResolutionContext
   ): Promise<T> {
-    const factory = provider.implementation.factory!;
+    const factory = provider.implementation.factory;
     const injectTokens = provider.implementation.inject ?? [];
 
     const dependencies = await Promise.all(

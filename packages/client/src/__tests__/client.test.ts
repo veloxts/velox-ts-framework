@@ -1033,7 +1033,7 @@ describe('createClient', () => {
       });
 
       // Call with undefined/null input
-      await client.items.listItems(undefined as unknown as void);
+      await client.items.listItems(undefined as unknown as undefined);
 
       expect(mockFetch).toHaveBeenCalledWith('/api/items', expect.any(Object));
     });

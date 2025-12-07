@@ -232,8 +232,6 @@ function gatherInput(request: FastifyRequest, route: RestRoute): unknown {
     case 'PATCH':
       // PUT/PATCH: params (for :id) + body (for data)
       return { ...params, ...body };
-
-    case 'POST':
     default:
       // POST: body only (no ID in params for creates)
       return request.body;

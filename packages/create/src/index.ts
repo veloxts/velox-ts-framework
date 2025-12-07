@@ -440,7 +440,9 @@ function printSuccessMessage(config: ProjectConfig): void {
   const dbCommand = `${config.packageManager} db:push`;
 
   console.log('');
-  console.log(pc.green(`  Success! Created ${pc.bold(config.name)} with ${config.template} template`));
+  console.log(
+    pc.green(`  Success! Created ${pc.bold(config.name)} with ${config.template} template`)
+  );
   console.log('');
   console.log('  Next steps:');
   console.log('');
