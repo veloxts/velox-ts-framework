@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createInMemoryTokenStore,
   generateTokenId,
+  isValidTimespan,
   JwtManager,
   parseTimeToSeconds,
 } from '../jwt.js';
@@ -47,6 +48,27 @@ describe('JWT Authentication', () => {
       expect(() => parseTimeToSeconds('invalid')).toThrow('Invalid time format');
       expect(() => parseTimeToSeconds('15')).toThrow('Invalid time format');
       expect(() => parseTimeToSeconds('15x')).toThrow('Invalid time format');
+    });
+  });
+
+  describe('isValidTimespan', () => {
+    it('should return true for valid formats', () => {
+      expect(isValidTimespan('1s')).toBe(true);
+      expect(isValidTimespan('30s')).toBe(true);
+      expect(isValidTimespan('15m')).toBe(true);
+      expect(isValidTimespan('1h')).toBe(true);
+      expect(isValidTimespan('7d')).toBe(true);
+      expect(isValidTimespan('365d')).toBe(true);
+    });
+
+    it('should return false for invalid formats', () => {
+      expect(isValidTimespan('invalid')).toBe(false);
+      expect(isValidTimespan('15')).toBe(false);
+      expect(isValidTimespan('15x')).toBe(false);
+      expect(isValidTimespan('1ms')).toBe(false); // milliseconds not supported
+      expect(isValidTimespan('')).toBe(false);
+      expect(isValidTimespan('0s')).toBe(false); // zero not allowed
+      expect(isValidTimespan('0m')).toBe(false);
     });
   });
 
@@ -93,6 +115,65 @@ describe('JWT Authentication', () => {
         const tokens = manager.createTokenPair(user);
 
         expect(tokens.expiresIn).toBe(30 * 60); // 30 minutes
+      });
+
+      it('should throw for invalid accessTokenExpiry format', () => {
+        expect(
+          () =>
+            new JwtManager({
+              secret: validSecret,
+              accessTokenExpiry: '1ms',
+            })
+        ).toThrow('Invalid accessTokenExpiry "1ms"');
+
+        expect(
+          () =>
+            new JwtManager({
+              secret: validSecret,
+              accessTokenExpiry: 'invalid',
+            })
+        ).toThrow('Invalid accessTokenExpiry "invalid". Use formats like "15m", "1h", "7d"');
+
+        expect(
+          () =>
+            new JwtManager({
+              secret: validSecret,
+              accessTokenExpiry: '0s',
+            })
+        ).toThrow('Invalid accessTokenExpiry "0s"');
+      });
+
+      it('should throw for invalid refreshTokenExpiry format', () => {
+        expect(
+          () =>
+            new JwtManager({
+              secret: validSecret,
+              refreshTokenExpiry: '1ms',
+            })
+        ).toThrow('Invalid refreshTokenExpiry "1ms"');
+
+        expect(
+          () =>
+            new JwtManager({
+              secret: validSecret,
+              refreshTokenExpiry: 'bad-format',
+            })
+        ).toThrow('Invalid refreshTokenExpiry "bad-format". Use formats like "15m", "1h", "7d"');
+      });
+
+      it('should provide helpful error message with examples', () => {
+        try {
+          new JwtManager({
+            secret: validSecret,
+            accessTokenExpiry: 'wrong',
+          });
+          expect.fail('Should have thrown');
+        } catch (error) {
+          expect((error as Error).message).toContain('15m');
+          expect((error as Error).message).toContain('1h');
+          expect((error as Error).message).toContain('7d');
+          expect((error as Error).message).toContain('Minimum is "1s"');
+        }
       });
     });
 

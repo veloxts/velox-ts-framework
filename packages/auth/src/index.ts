@@ -55,6 +55,7 @@ export {
   // Legacy (deprecated)
   createJwtManager,
   generateTokenId,
+  isValidTimespan,
   JwtManager,
   parseTimeToSeconds,
 } from './jwt.js';

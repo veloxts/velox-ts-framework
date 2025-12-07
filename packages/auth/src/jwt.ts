@@ -45,6 +45,23 @@ const RESERVED_JWT_CLAIMS = new Set([
 // ============================================================================
 
 /**
+ * Validates a time string format
+ * Supports: '1s', '15m', '1h', '7d', etc.
+ * Minimum valid value is '1s' (1 second)
+ *
+ * @returns true if valid, false otherwise
+ */
+export function isValidTimespan(time: string): boolean {
+  const match = time.match(/^(\d+)([smhd])$/);
+  if (!match) {
+    return false;
+  }
+  const value = parseInt(match[1], 10);
+  // Value must be at least 1
+  return value >= 1;
+}
+
+/**
  * Parses time string to seconds
  * Supports: '15m', '1h', '7d', '30d', etc.
  */
@@ -153,6 +170,22 @@ export class JwtManager {
       throw new Error(
         `JWT secret has insufficient entropy (only ${uniqueChars} unique characters). ` +
           'Use cryptographically random data with at least 16 unique characters.'
+      );
+    }
+
+    // Validate accessTokenExpiry format if provided
+    if (config.accessTokenExpiry !== undefined && !isValidTimespan(config.accessTokenExpiry)) {
+      throw new Error(
+        `Invalid accessTokenExpiry "${config.accessTokenExpiry}". ` +
+          `Use formats like "15m", "1h", "7d". Minimum is "1s".`
+      );
+    }
+
+    // Validate refreshTokenExpiry format if provided
+    if (config.refreshTokenExpiry !== undefined && !isValidTimespan(config.refreshTokenExpiry)) {
+      throw new Error(
+        `Invalid refreshTokenExpiry "${config.refreshTokenExpiry}". ` +
+          `Use formats like "15m", "1h", "7d". Minimum is "1s".`
       );
     }
 
