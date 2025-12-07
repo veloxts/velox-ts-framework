@@ -3,7 +3,11 @@
  * @module testing/server
  */
 
-import Fastify, { type FastifyInstance, type FastifyPluginAsync } from 'fastify';
+import Fastify, {
+  type FastifyInstance,
+  type FastifyPluginAsync,
+  type FastifyPluginOptions,
+} from 'fastify';
 import fp from 'fastify-plugin';
 
 import { createContext, type BaseContext } from '@veloxts/core';
@@ -97,7 +101,7 @@ export async function createTestServer(
  * await server.register(wrapVeloxPlugin(authPlugin(config)), config);
  * ```
  */
-export function wrapVeloxPlugin<TOptions extends Record<string, unknown>>(
+export function wrapVeloxPlugin<TOptions extends FastifyPluginOptions>(
   veloxPlugin: {
     name: string;
     register: (instance: FastifyInstance, options: TOptions) => Promise<void>;

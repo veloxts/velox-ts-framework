@@ -40,7 +40,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
 
   // Register auth plugin if not skipped
   if (!options.skipAuth) {
-    const authOptions = options.authOptions ?? createTestAuthConfig();
+    const authOptions: AuthPluginOptions = options.authOptions ?? createTestAuthConfig();
     const plugin = authPlugin(authOptions);
 
     await server.register(wrapVeloxPlugin(plugin), authOptions);
