@@ -129,13 +129,13 @@ This document defines what features were **included** in the MVP release and wha
 - ✅ Security hardening (CVE-2015-9235 prevention, timing-safe comparison, entropy validation)
 - ✅ Token revocation infrastructure (TokenStore interface)
 - ✅ CSRF protection (Signed Double Submit Cookie pattern, HMAC-SHA256)
+- ✅ Session management (cookie-based sessions with pluggable stores)
 
 ---
 
 ## ⏳ DEFERRED to v0.4+ and Beyond
 
 ### Authentication Advanced Features - v0.4+
-- ⏳ Session management (cookie-based)
 - ⏳ Pluggable auth adapters (BetterAuth, Clerk, Auth0)
 
 ### Advanced Routing - v0.4

@@ -138,9 +138,11 @@ export interface HashConfig {
 }
 
 /**
- * Session configuration
+ * Legacy session cookie configuration (used by AuthConfig)
+ *
+ * @deprecated Use SessionConfig from session.ts for full session management
  */
-export interface SessionConfig {
+export interface LegacySessionConfig {
   /** Cookie name (default: 'velox.session') */
   cookieName?: string;
   /** Session expiration in seconds (default: 86400 = 24h) */
@@ -179,8 +181,11 @@ export interface AuthConfig {
   jwt: JwtConfig;
   /** Password hashing configuration */
   hash?: HashConfig;
-  /** Session configuration */
-  session?: SessionConfig;
+  /**
+   * Legacy session cookie configuration
+   * @deprecated Use createSessionMiddleware from session.ts for full session management
+   */
+  session?: LegacySessionConfig;
   /** Rate limiting configuration */
   rateLimit?: RateLimitConfig;
   /**

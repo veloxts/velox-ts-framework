@@ -28,11 +28,14 @@ export type {
   HashConfig,
   // Configuration types
   JwtConfig,
+  /**
+   * @deprecated Use SessionConfig from session.ts for full session management
+   */
+  LegacySessionConfig,
   // Policy types
   PolicyAction,
   PolicyDefinition,
   RateLimitConfig,
-  SessionConfig,
   TokenPair,
   TokenPayload,
   // Core types
@@ -143,4 +146,41 @@ export type {
   CsrfTokenResult,
   CsrfValidationConfig,
 } from './csrf.js';
-export { createCsrfManager, createCsrfMiddleware, CsrfError } from './csrf.js';
+export { CsrfError, createCsrfManager, createCsrfMiddleware } from './csrf.js';
+
+// ============================================================================
+// Session Management
+// ============================================================================
+
+export type {
+  // Session handle
+  Session,
+  // Context types
+  SessionAuthContext,
+  // Configuration types
+  SessionConfig,
+  SessionContext,
+  SessionCookieConfig,
+  // Session data types
+  SessionData,
+  SessionExpirationConfig,
+  // Session manager
+  SessionManager,
+  // Middleware options
+  SessionMiddlewareOptions,
+  // Store interface
+  SessionStore,
+  StoredSession,
+} from './session.js';
+export {
+  // Store implementations
+  createInMemorySessionStore,
+  // Session manager
+  createSessionManager,
+  // Middleware factory
+  createSessionMiddleware,
+  // Helper functions
+  isSessionAuthenticated,
+  loginSession,
+  logoutSession,
+} from './session.js';
