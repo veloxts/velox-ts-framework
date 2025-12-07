@@ -31,6 +31,25 @@ const packageJson = require('../package.json') as { version: string };
 /** Create-velox-app package version */
 export const CREATE_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
+/** Timeout for exec commands (5 minutes) */
+const EXEC_TIMEOUT_MS = 5 * 60 * 1000;
+
+/** Reserved project names that could cause issues */
+const RESERVED_NAMES = new Set([
+  'node_modules',
+  'test',
+  'tests',
+  'src',
+  'dist',
+  'build',
+  'public',
+  'lib',
+  'package',
+  'npm',
+  'pnpm',
+  'yarn',
+]);
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -40,6 +59,19 @@ interface ProjectConfig {
   directory: string;
   packageManager: 'npm' | 'pnpm' | 'yarn';
   template: TemplateType;
+}
+
+// ============================================================================
+// Security Utilities
+// ============================================================================
+
+/**
+ * Check if a file path is safe (no path traversal attacks)
+ */
+function isPathSafe(baseDir: string, targetPath: string): boolean {
+  const resolved = path.resolve(baseDir, targetPath);
+  const normalizedBase = path.normalize(baseDir);
+  return resolved.startsWith(normalizedBase);
 }
 
 // ============================================================================
@@ -57,15 +89,20 @@ export async function createVeloxApp(
   console.log('');
   p.intro(pc.cyan(pc.bold('create-velox-app')));
 
+  let projectDirectory: string | undefined;
+  let projectCreated = false;
+
   try {
     // Collect project configuration
     const config = await promptProjectConfig(initialProjectName, initialTemplate);
+    projectDirectory = config.directory;
 
     // Validate project directory doesn't exist
     await validateProjectDirectory(config.directory);
 
     // Create project structure
     await createProjectStructure(config);
+    projectCreated = true;
 
     // Install dependencies
     await installDependencies(config);
@@ -83,14 +120,31 @@ export async function createVeloxApp(
   } catch (error) {
     // Handle cancellation
     if (error === Symbol.for('clack.cancel') || (error as Error).message === 'canceled') {
+      // Clean up partial project on cancellation
+      if (projectCreated && projectDirectory) {
+        try {
+          await fs.rm(projectDirectory, { recursive: true, force: true });
+        } catch {
+          // Ignore cleanup errors on cancellation
+        }
+      }
       p.cancel('Setup cancelled');
       process.exit(0);
     }
 
-    // Handle other errors
+    // Handle other errors - provide recovery instructions
     p.cancel('Setup failed');
     if (error instanceof Error) {
       console.error(pc.red(`\nError: ${error.message}`));
+
+      // If project was created but install failed, provide recovery instructions
+      if (projectCreated && projectDirectory) {
+        const projectName = path.basename(projectDirectory);
+        console.error(pc.yellow('\nTo recover your project:'));
+        console.error(pc.dim(`  cd ${projectName}`));
+        console.error(pc.dim('  npm install'));
+        console.error(pc.dim('  npx prisma generate'));
+      }
     }
     process.exit(1);
   }
@@ -118,6 +172,9 @@ async function promptProjectConfig(
           if (!/^[a-z0-9-]+$/.test(value)) {
             return 'Use lowercase letters, numbers, and hyphens only';
           }
+          if (RESERVED_NAMES.has(value)) {
+            return `"${value}" is a reserved name. Please choose another.`;
+          }
           return undefined;
         },
       });
@@ -126,9 +183,14 @@ async function promptProjectConfig(
     throw new Error('canceled');
   }
 
-  // Validate project name format
-  if (typeof name === 'string' && !/^[a-z0-9-]+$/.test(name)) {
-    throw new Error('Project name must use lowercase letters, numbers, and hyphens only');
+  // Validate project name format (for CLI-provided names)
+  if (typeof name === 'string') {
+    if (!/^[a-z0-9-]+$/.test(name)) {
+      throw new Error('Project name must use lowercase letters, numbers, and hyphens only');
+    }
+    if (RESERVED_NAMES.has(name)) {
+      throw new Error(`"${name}" is a reserved name. Please choose another.`);
+    }
   }
 
   // Template selection (if not provided via CLI flag)
@@ -203,6 +265,10 @@ async function createProjectStructure(config: ProjectConfig): Promise<void> {
     // Create directory structure
     const directories = getTemplateDirectories(config.template);
     for (const dir of directories) {
+      // Validate path safety
+      if (!isPathSafe(config.directory, dir)) {
+        throw new Error(`Invalid directory path detected: ${dir}`);
+      }
       await fs.mkdir(path.join(config.directory, dir), { recursive: true });
     }
 
@@ -217,6 +283,11 @@ async function createProjectStructure(config: ProjectConfig): Promise<void> {
 
     // Write all files
     for (const file of files) {
+      // Validate path safety to prevent path traversal attacks
+      if (!isPathSafe(config.directory, file.path)) {
+        throw new Error(`Invalid file path detected: ${file.path}`);
+      }
+
       const filePath = path.join(config.directory, file.path);
       const fileDir = path.dirname(filePath);
 
@@ -256,11 +327,16 @@ async function installDependencies(config: ProjectConfig): Promise<void> {
     execSync(installCommand, {
       cwd: config.directory,
       stdio: 'ignore',
+      timeout: EXEC_TIMEOUT_MS,
     });
 
     spinner.stop('Dependencies installed');
   } catch (error) {
     spinner.stop('Failed to install dependencies');
+    // Enhance error message for timeout
+    if (error instanceof Error && error.message.includes('ETIMEDOUT')) {
+      throw new Error('Dependency installation timed out. Check your network connection.');
+    }
     throw error;
   }
 }
@@ -299,6 +375,7 @@ async function generatePrismaClient(config: ProjectConfig): Promise<void> {
     execSync('npx prisma generate', {
       cwd: config.directory,
       stdio: 'ignore',
+      timeout: EXEC_TIMEOUT_MS,
     });
 
     spinner.stop('Prisma client generated');
@@ -323,22 +400,30 @@ async function initializeGit(config: ProjectConfig): Promise<void> {
     execSync('git init', {
       cwd: config.directory,
       stdio: 'ignore',
+      timeout: 30000, // 30 seconds for git operations
     });
 
     execSync('git add .', {
       cwd: config.directory,
       stdio: 'ignore',
+      timeout: 30000,
     });
 
     execSync('git commit -m "Initial commit from create-velox-app"', {
       cwd: config.directory,
       stdio: 'ignore',
+      timeout: 30000,
     });
 
     spinner.stop('Git repository initialized');
-  } catch (_error) {
-    // Git init is optional - don't fail if it doesn't work
-    spinner.stop('Skipped git initialization');
+  } catch (error) {
+    // Git init is optional - provide context on why it was skipped
+    const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
+    if (errorMessage.includes('command not found') || errorMessage.includes('not recognized')) {
+      spinner.stop('Skipped git initialization (git not installed)');
+    } else {
+      spinner.stop('Skipped git initialization');
+    }
   }
 }
 

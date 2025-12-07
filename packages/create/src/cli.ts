@@ -9,7 +9,18 @@
 
 import { CREATE_VERSION, createVeloxApp } from './index.js';
 import type { TemplateType } from './templates/index.js';
-import { isValidTemplate, TEMPLATE_METADATA } from './templates/index.js';
+import { getAvailableTemplates, isValidTemplate, TEMPLATE_METADATA } from './templates/index.js';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Get list of available template names for error messages */
+function getTemplateNames(): string {
+  return getAvailableTemplates()
+    .map((t) => t.type)
+    .join(', ');
+}
 
 // ============================================================================
 // Help & Version
@@ -24,7 +35,7 @@ Usage:
 
 Options:
   -t, --template <name>  Template to use (default: "default")
-                         Available: default, auth
+                         Available: ${getTemplateNames()}
   -h, --help             Show this help message
   -v, --version          Show version number
 
@@ -55,6 +66,9 @@ function parseArgs(args: string[]): ParsedArgs {
     version: false,
   };
 
+  const unexpectedArgs: string[] = [];
+  let templateFlagSeen = false;
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
@@ -72,11 +86,22 @@ function parseArgs(args: string[]): ParsedArgs {
 
     // Handle --template=<value> or -t=<value>
     if (arg.startsWith('--template=') || arg.startsWith('-t=')) {
+      // Check for duplicate flag
+      if (templateFlagSeen) {
+        console.error('Error: --template flag specified multiple times');
+        process.exit(1);
+      }
+      templateFlagSeen = true;
+
       const value = arg.split('=')[1];
+      if (!value) {
+        console.error(`Error: --template requires a value. Available: ${getTemplateNames()}`);
+        process.exit(1);
+      }
       if (isValidTemplate(value)) {
         result.template = value;
       } else {
-        console.error(`Invalid template: ${value}. Available: default, auth`);
+        console.error(`Invalid template: ${value}. Available: ${getTemplateNames()}`);
         process.exit(1);
       }
       continue;
@@ -84,23 +109,42 @@ function parseArgs(args: string[]): ParsedArgs {
 
     // Handle --template <value> or -t <value>
     if (arg === '--template' || arg === '-t') {
+      // Check for duplicate flag
+      if (templateFlagSeen) {
+        console.error('Error: --template flag specified multiple times');
+        process.exit(1);
+      }
+      templateFlagSeen = true;
+
       const value = args[i + 1];
-      if (value && !value.startsWith('-')) {
-        if (isValidTemplate(value)) {
-          result.template = value;
-          i++; // Skip next arg
-        } else {
-          console.error(`Invalid template: ${value}. Available: default, auth`);
-          process.exit(1);
-        }
+      if (!value || value.startsWith('-')) {
+        console.error(`Error: --template requires a value. Available: ${getTemplateNames()}`);
+        process.exit(1);
+      }
+      if (isValidTemplate(value)) {
+        result.template = value;
+        i++; // Skip next arg
+      } else {
+        console.error(`Invalid template: ${value}. Available: ${getTemplateNames()}`);
+        process.exit(1);
       }
       continue;
     }
 
-    // Non-flag argument is the project name
-    if (!arg.startsWith('-') && !result.projectName) {
-      result.projectName = arg;
+    // Non-flag argument
+    if (!arg.startsWith('-')) {
+      if (!result.projectName) {
+        result.projectName = arg;
+      } else {
+        // Track unexpected positional arguments
+        unexpectedArgs.push(arg);
+      }
     }
+  }
+
+  // Warn about unexpected arguments
+  if (unexpectedArgs.length > 0) {
+    console.warn(`Warning: Unexpected arguments ignored: ${unexpectedArgs.join(', ')}`);
   }
 
   return result;
@@ -133,11 +177,24 @@ async function main() {
     // Run scaffolder
     await createVeloxApp(parsed.projectName, parsed.template);
   } catch (error) {
-    // Handle unexpected errors
+    // Handle unexpected errors with actionable guidance
     if (error instanceof Error) {
       console.error(`\nError: ${error.message}`);
+
+      // Provide contextual help based on error type
+      const msg = error.message.toLowerCase();
+      if (msg.includes('eacces') || msg.includes('permission')) {
+        console.error('\nTry running with appropriate permissions or choose a different directory.');
+      } else if (msg.includes('enospc') || msg.includes('no space')) {
+        console.error('\nInsufficient disk space. Free up some space and try again.');
+      } else if (msg.includes('enotfound') || msg.includes('network') || msg.includes('etimedout')) {
+        console.error('\nCheck your internet connection and try again.');
+      } else if (msg.includes('already exists')) {
+        console.error('\nChoose a different project name or remove the existing directory.');
+      }
     } else {
       console.error('\nAn unexpected error occurred');
+      console.error('Please report this issue at: https://github.com/veloxts/velox-ts-framework/issues');
     }
     process.exit(1);
   }
