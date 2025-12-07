@@ -1,45 +1,28 @@
 /**
  * create-velox-app - Project scaffolding tool
  *
- * CLI tool for bootstrapping new VeloxTS applications with a default template.
+ * CLI tool for bootstrapping new VeloxTS applications with multiple templates.
  * Provides an interactive setup experience similar to create-next-app.
  */
 
 import { execSync } from 'node:child_process';
 import fs from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 
-import type { ProjectTemplate } from './templates.js';
+import type { TemplateConfig, TemplateType } from './templates/index.js';
 import {
-  generateClaudeMd,
-  generateConfigApp,
-  generateConfigIndex,
-  generateDatabaseIndex,
-  generateEnvExample,
-  generateGitignore,
-  generateHealthProcedures,
-  generateIndexHtml,
-  generateIndexTs,
-  generatePackageJson,
-  generatePrismaConfig,
-  generatePrismaSchema,
-  generateProceduresIndex,
-  generateReadme,
-  generateSchemasIndex,
-  generateTsConfig,
-  generateTsupConfig,
-  generateUserProcedures,
-  generateUserSchema,
-} from './templates.js';
+  generateTemplateFiles,
+  getAvailableTemplates,
+  getTemplateDirectories,
+} from './templates/index.js';
 
 // ============================================================================
 // Constants
 // ============================================================================
-
-import { createRequire } from 'node:module';
 
 // Read version from package.json dynamically
 const require = createRequire(import.meta.url);
@@ -56,6 +39,7 @@ interface ProjectConfig {
   name: string;
   directory: string;
   packageManager: 'npm' | 'pnpm' | 'yarn';
+  template: TemplateType;
 }
 
 // ============================================================================
@@ -65,14 +49,17 @@ interface ProjectConfig {
 /**
  * Main scaffolding function that creates a new VeloxTS project
  */
-export async function createVeloxApp(initialProjectName?: string): Promise<void> {
+export async function createVeloxApp(
+  initialProjectName?: string,
+  initialTemplate?: TemplateType
+): Promise<void> {
   // Print welcome banner
   console.log('');
   p.intro(pc.cyan(pc.bold('create-velox-app')));
 
   try {
     // Collect project configuration
-    const config = await promptProjectConfig(initialProjectName);
+    const config = await promptProjectConfig(initialProjectName, initialTemplate);
 
     // Validate project directory doesn't exist
     await validateProjectDirectory(config.directory);
@@ -116,7 +103,10 @@ export async function createVeloxApp(initialProjectName?: string): Promise<void>
 /**
  * Prompt user for project configuration
  */
-async function promptProjectConfig(initialName?: string): Promise<ProjectConfig> {
+async function promptProjectConfig(
+  initialName?: string,
+  initialTemplate?: TemplateType
+): Promise<ProjectConfig> {
   // Project name
   const name = initialName
     ? initialName
@@ -141,6 +131,26 @@ async function promptProjectConfig(initialName?: string): Promise<ProjectConfig>
     throw new Error('Project name must use lowercase letters, numbers, and hyphens only');
   }
 
+  // Template selection (if not provided via CLI flag)
+  let template = initialTemplate;
+  if (!template) {
+    const templates = getAvailableTemplates();
+    const selectedTemplate = await p.select({
+      message: 'Choose a template',
+      options: templates.map((t) => ({
+        value: t.type,
+        label: t.label,
+        hint: t.hint,
+      })),
+    });
+
+    if (p.isCancel(selectedTemplate)) {
+      throw new Error('canceled');
+    }
+
+    template = selectedTemplate as TemplateType;
+  }
+
   // Detect package manager
   const packageManager = detectPackageManager();
 
@@ -148,6 +158,7 @@ async function promptProjectConfig(initialName?: string): Promise<ProjectConfig>
     name: name as string,
     directory: path.resolve(process.cwd(), name as string),
     packageManager,
+    template,
   };
 }
 
@@ -186,84 +197,35 @@ async function validateProjectDirectory(directory: string): Promise<void> {
  */
 async function createProjectStructure(config: ProjectConfig): Promise<void> {
   const spinner = p.spinner();
-  spinner.start('Creating project files');
+  spinner.start(`Creating project files (template: ${config.template})`);
 
   try {
     // Create directory structure
-    await fs.mkdir(config.directory, { recursive: true });
-    await fs.mkdir(path.join(config.directory, 'src'), { recursive: true });
-    await fs.mkdir(path.join(config.directory, 'src', 'config'), { recursive: true });
-    await fs.mkdir(path.join(config.directory, 'src', 'database'), { recursive: true });
-    await fs.mkdir(path.join(config.directory, 'src', 'procedures'), { recursive: true });
-    await fs.mkdir(path.join(config.directory, 'src', 'schemas'), { recursive: true });
-    await fs.mkdir(path.join(config.directory, 'prisma'), { recursive: true });
-    await fs.mkdir(path.join(config.directory, 'public'), { recursive: true });
+    const directories = getTemplateDirectories(config.template);
+    for (const dir of directories) {
+      await fs.mkdir(path.join(config.directory, dir), { recursive: true });
+    }
 
-    // Template data
-    const template: ProjectTemplate = {
+    // Generate template files
+    const templateConfig: TemplateConfig = {
       projectName: config.name,
       packageManager: config.packageManager,
+      template: config.template,
     };
 
-    // Write root files
-    await fs.writeFile(path.join(config.directory, 'package.json'), generatePackageJson(template));
-    await fs.writeFile(path.join(config.directory, 'tsconfig.json'), generateTsConfig());
-    await fs.writeFile(path.join(config.directory, 'tsup.config.ts'), generateTsupConfig());
-    await fs.writeFile(path.join(config.directory, '.env.example'), generateEnvExample());
-    await fs.writeFile(path.join(config.directory, '.env'), generateEnvExample());
-    await fs.writeFile(path.join(config.directory, '.gitignore'), generateGitignore());
-    await fs.writeFile(path.join(config.directory, 'README.md'), generateReadme(config.name));
-    await fs.writeFile(path.join(config.directory, 'CLAUDE.md'), generateClaudeMd(config.name));
+    const files = generateTemplateFiles(templateConfig);
 
-    // Write Prisma files
-    await fs.writeFile(
-      path.join(config.directory, 'prisma', 'schema.prisma'),
-      generatePrismaSchema()
-    );
-    await fs.writeFile(path.join(config.directory, 'prisma.config.ts'), generatePrismaConfig());
+    // Write all files
+    for (const file of files) {
+      const filePath = path.join(config.directory, file.path);
+      const fileDir = path.dirname(filePath);
 
-    // Write source files
-    await fs.writeFile(path.join(config.directory, 'src', 'index.ts'), generateIndexTs());
+      // Ensure directory exists
+      await fs.mkdir(fileDir, { recursive: true });
 
-    // Write config files
-    await fs.writeFile(
-      path.join(config.directory, 'src', 'config', 'index.ts'),
-      generateConfigIndex()
-    );
-    await fs.writeFile(path.join(config.directory, 'src', 'config', 'app.ts'), generateConfigApp());
-
-    // Write database files
-    await fs.writeFile(
-      path.join(config.directory, 'src', 'database', 'index.ts'),
-      generateDatabaseIndex()
-    );
-
-    // Write procedure files
-    await fs.writeFile(
-      path.join(config.directory, 'src', 'procedures', 'index.ts'),
-      generateProceduresIndex()
-    );
-    await fs.writeFile(
-      path.join(config.directory, 'src', 'procedures', 'health.ts'),
-      generateHealthProcedures()
-    );
-    await fs.writeFile(
-      path.join(config.directory, 'src', 'procedures', 'users.ts'),
-      generateUserProcedures()
-    );
-
-    // Write schema files
-    await fs.writeFile(
-      path.join(config.directory, 'src', 'schemas', 'index.ts'),
-      generateSchemasIndex()
-    );
-    await fs.writeFile(
-      path.join(config.directory, 'src', 'schemas', 'user.ts'),
-      generateUserSchema()
-    );
-
-    // Write public files
-    await fs.writeFile(path.join(config.directory, 'public', 'index.html'), generateIndexHtml());
+      // Write file
+      await fs.writeFile(filePath, file.content);
+    }
 
     spinner.stop('Project files created');
   } catch (error) {
@@ -393,7 +355,7 @@ function printSuccessMessage(config: ProjectConfig): void {
   const dbCommand = `${config.packageManager} db:push`;
 
   console.log('');
-  console.log(pc.green(`  Success! Created ${pc.bold(config.name)}`));
+  console.log(pc.green(`  Success! Created ${pc.bold(config.name)} with ${config.template} template`));
   console.log('');
   console.log('  Next steps:');
   console.log('');
@@ -410,5 +372,12 @@ function printSuccessMessage(config: ProjectConfig): void {
   console.log(`    ${pc.cyan(devCommand)}${pc.dim('   # Start dev server')}`);
   console.log('');
   console.log(`  Your app will be available at ${pc.cyan('http://localhost:3210')}`);
+
+  // Auth template specific message
+  if (config.template === 'auth') {
+    console.log('');
+    console.log(pc.yellow('  Note: Set JWT_SECRET and JWT_REFRESH_SECRET in .env for production'));
+  }
+
   console.log('');
 }

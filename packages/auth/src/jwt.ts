@@ -6,6 +6,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 import type { JwtConfig, TokenPair, TokenPayload, User } from './types.js';
+import { AuthError } from './types.js';
 
 // ============================================================================
 // Constants
@@ -107,7 +108,11 @@ export function isValidTimespan(time: string): boolean {
 export function parseTimeToSeconds(time: string): number {
   const match = time.match(/^(\d+)([smhd])$/);
   if (!match) {
-    throw new Error(`Invalid time format: ${time}. Use format like '15m', '1h', '7d'`);
+    throw new AuthError(
+      `Invalid time format: ${time}. Use format like '15m', '1h', '7d'`,
+      400,
+      'INVALID_TIME_FORMAT'
+    );
   }
 
   const value = parseInt(match[1], 10);
@@ -123,7 +128,7 @@ export function parseTimeToSeconds(time: string): number {
     case 'd':
       return value * 60 * 60 * 24;
     default:
-      throw new Error(`Unknown time unit: ${unit}`);
+      throw new AuthError(`Unknown time unit: ${unit}`, 400, 'INVALID_TIME_UNIT');
   }
 }
 
@@ -173,31 +178,39 @@ export function validateTokenExpiration(accessExpiry: string, refreshExpiry: str
 
   // Validate access token bounds
   if (accessSeconds < MIN_ACCESS_TOKEN_SECONDS) {
-    throw new Error(
+    throw new AuthError(
       `Access token expiry (${accessExpiry} = ${accessSeconds}s) is below minimum of ` +
-        `${MIN_ACCESS_TOKEN_SECONDS}s (1 minute). Very short tokens cause excessive refreshes.`
+        `${MIN_ACCESS_TOKEN_SECONDS}s (1 minute). Very short tokens cause excessive refreshes.`,
+      400,
+      'INVALID_TOKEN_EXPIRY'
     );
   }
 
   if (accessSeconds > MAX_ACCESS_TOKEN_SECONDS) {
-    throw new Error(
+    throw new AuthError(
       `Access token expiry (${accessExpiry} = ${accessSeconds}s) exceeds maximum of ` +
-        `${MAX_ACCESS_TOKEN_SECONDS}s (1 hour). Long-lived access tokens are a security risk.`
+        `${MAX_ACCESS_TOKEN_SECONDS}s (1 hour). Long-lived access tokens are a security risk.`,
+      400,
+      'INVALID_TOKEN_EXPIRY'
     );
   }
 
   // Validate refresh token bounds
   if (refreshSeconds < MIN_REFRESH_TOKEN_SECONDS) {
-    throw new Error(
+    throw new AuthError(
       `Refresh token expiry (${refreshExpiry} = ${refreshSeconds}s) is below minimum of ` +
-        `${MIN_REFRESH_TOKEN_SECONDS}s (1 hour). Very short refresh tokens impact usability.`
+        `${MIN_REFRESH_TOKEN_SECONDS}s (1 hour). Very short refresh tokens impact usability.`,
+      400,
+      'INVALID_TOKEN_EXPIRY'
     );
   }
 
   if (refreshSeconds > MAX_REFRESH_TOKEN_SECONDS) {
-    throw new Error(
+    throw new AuthError(
       `Refresh token expiry (${refreshExpiry} = ${refreshSeconds}s) exceeds maximum of ` +
-        `${MAX_REFRESH_TOKEN_SECONDS}s (30 days). Long-lived refresh tokens increase attack window.`
+        `${MAX_REFRESH_TOKEN_SECONDS}s (30 days). Long-lived refresh tokens increase attack window.`,
+      400,
+      'INVALID_TOKEN_EXPIRY'
     );
   }
 
@@ -218,9 +231,11 @@ export function validateTokenExpiration(accessExpiry: string, refreshExpiry: str
 
   // Ensure refresh tokens outlive access tokens
   if (refreshSeconds <= accessSeconds) {
-    throw new Error(
+    throw new AuthError(
       `Refresh token expiry (${refreshExpiry} = ${refreshSeconds}s) must be longer than ` +
-        `access token expiry (${accessExpiry} = ${accessSeconds}s).`
+        `access token expiry (${accessExpiry} = ${accessSeconds}s).`,
+      400,
+      'INVALID_TOKEN_EXPIRY'
     );
   }
 }
@@ -262,34 +277,42 @@ export class JwtManager {
   constructor(config: JwtConfig) {
     // Validate secret length (Critical Fix #1)
     if (!config.secret || config.secret.length < MIN_SECRET_LENGTH) {
-      throw new Error(
+      throw new AuthError(
         `JWT secret must be at least ${MIN_SECRET_LENGTH} characters long (512 bits). ` +
-          'Generate with: openssl rand -base64 64'
+          'Generate with: openssl rand -base64 64',
+        500,
+        'INVALID_JWT_SECRET'
       );
     }
 
     // Validate secret entropy - check for sufficient unique characters
     const uniqueChars = new Set(config.secret).size;
     if (uniqueChars < MIN_SECRET_ENTROPY_CHARS) {
-      throw new Error(
+      throw new AuthError(
         `JWT secret has insufficient entropy (only ${uniqueChars} unique characters). ` +
-          'Use cryptographically random data with at least 16 unique characters.'
+          'Use cryptographically random data with at least 16 unique characters.',
+        500,
+        'INVALID_JWT_SECRET'
       );
     }
 
     // Validate accessTokenExpiry format if provided
     if (config.accessTokenExpiry !== undefined && !isValidTimespan(config.accessTokenExpiry)) {
-      throw new Error(
+      throw new AuthError(
         `Invalid accessTokenExpiry "${config.accessTokenExpiry}". ` +
-          `Use formats like "15m", "1h", "7d". Minimum is "1s".`
+          `Use formats like "15m", "1h", "7d". Minimum is "1s".`,
+        400,
+        'INVALID_TOKEN_EXPIRY'
       );
     }
 
     // Validate refreshTokenExpiry format if provided
     if (config.refreshTokenExpiry !== undefined && !isValidTimespan(config.refreshTokenExpiry)) {
-      throw new Error(
+      throw new AuthError(
         `Invalid refreshTokenExpiry "${config.refreshTokenExpiry}". ` +
-          `Use formats like "15m", "1h", "7d". Minimum is "1s".`
+          `Use formats like "15m", "1h", "7d". Minimum is "1s".`,
+        400,
+        'INVALID_TOKEN_EXPIRY'
       );
     }
 
@@ -354,12 +377,12 @@ export class JwtManager {
   /**
    * Verifies a JWT token and returns the payload
    *
-   * @throws Error if token is invalid or expired
+   * @throws AuthError if token is invalid or expired
    */
   verifyToken(token: string): TokenPayload {
     const parts = token.split('.');
     if (parts.length !== 3) {
-      throw new Error('Invalid token format');
+      throw new AuthError('Invalid token format', 401, 'INVALID_TOKEN');
     }
 
     const [encodedHeader, encodedPayload, signature] = parts;
@@ -370,16 +393,20 @@ export class JwtManager {
     try {
       header = JSON.parse(base64urlDecode(encodedHeader)) as { alg: string; typ: string };
     } catch {
-      throw new Error('Invalid token header');
+      throw new AuthError('Invalid token header', 401, 'INVALID_TOKEN');
     }
 
     // Only allow HS256 - reject "none", RS256, and other algorithms
     if (header.alg !== 'HS256') {
-      throw new Error(`Invalid algorithm: ${header.alg}. Only HS256 is supported.`);
+      throw new AuthError(
+        `Invalid algorithm: ${header.alg}. Only HS256 is supported.`,
+        401,
+        'INVALID_TOKEN'
+      );
     }
 
     if (header.typ !== 'JWT') {
-      throw new Error('Invalid token type in header');
+      throw new AuthError('Invalid token type in header', 401, 'INVALID_TOKEN');
     }
 
     // Verify signature using timing-safe comparison to prevent timing attacks
@@ -390,7 +417,7 @@ export class JwtManager {
     const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
 
     if (sigBuffer.length !== expectedBuffer.length || !timingSafeEqual(sigBuffer, expectedBuffer)) {
-      throw new Error('Invalid token signature');
+      throw new AuthError('Invalid token signature', 401, 'INVALID_TOKEN');
     }
 
     // Decode payload
@@ -406,33 +433,40 @@ export class JwtManager {
         typeof decoded.exp !== 'number' ||
         (decoded.type !== 'access' && decoded.type !== 'refresh')
       ) {
-        throw new Error('Missing required token fields');
+        throw new AuthError('Missing required token fields', 401, 'INVALID_TOKEN');
       }
 
       payload = decoded as TokenPayload;
     } catch (error) {
-      throw new Error(error instanceof Error ? error.message : 'Invalid token payload');
+      if (error instanceof AuthError) {
+        throw error;
+      }
+      throw new AuthError(
+        error instanceof Error ? error.message : 'Invalid token payload',
+        401,
+        'INVALID_TOKEN'
+      );
     }
 
     // Check expiration
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp < now) {
-      throw new Error('Token has expired');
+      throw new AuthError('Token has expired', 401, 'TOKEN_EXPIRED');
     }
 
     // Check not-before claim if present (Medium Fix #10)
     if (typeof payload.nbf === 'number' && payload.nbf > now) {
-      throw new Error('Token not yet valid');
+      throw new AuthError('Token not yet valid', 401, 'TOKEN_NOT_YET_VALID');
     }
 
     // Verify issuer if configured
     if (this.config.issuer && payload.iss !== this.config.issuer) {
-      throw new Error('Invalid token issuer');
+      throw new AuthError('Invalid token issuer', 401, 'INVALID_TOKEN');
     }
 
     // Verify audience if configured
     if (this.config.audience && payload.aud !== this.config.audience) {
-      throw new Error('Invalid token audience');
+      throw new AuthError('Invalid token audience', 401, 'INVALID_TOKEN');
     }
 
     return payload;
@@ -443,16 +477,18 @@ export class JwtManager {
    *
    * @param user - The user to create tokens for
    * @param additionalClaims - Custom claims to include (cannot override reserved claims)
-   * @throws Error if additionalClaims contains reserved JWT claims
+   * @throws AuthError if additionalClaims contains reserved JWT claims
    */
   createTokenPair(user: User, additionalClaims?: Record<string, unknown>): TokenPair {
     // Critical Fix #3: Validate additionalClaims don't contain reserved claims
     if (additionalClaims) {
       for (const key of Object.keys(additionalClaims)) {
         if (RESERVED_JWT_CLAIMS.has(key)) {
-          throw new Error(
+          throw new AuthError(
             `Cannot override reserved JWT claim: ${key}. ` +
-              `Reserved claims are: ${[...RESERVED_JWT_CLAIMS].join(', ')}`
+              `Reserved claims are: ${[...RESERVED_JWT_CLAIMS].join(', ')}`,
+            400,
+            'INVALID_CLAIMS'
           );
         }
       }
@@ -490,7 +526,7 @@ export class JwtManager {
   /**
    * Refreshes tokens using a valid refresh token
    *
-   * @throws Error if refresh token is invalid or not a refresh token
+   * @throws AuthError if refresh token is invalid or not a refresh token
    */
   refreshTokens(
     refreshToken: string,
@@ -504,14 +540,14 @@ export class JwtManager {
     const payload = this.verifyToken(refreshToken);
 
     if (payload.type !== 'refresh') {
-      throw new Error('Invalid token type: expected refresh token');
+      throw new AuthError('Invalid token type: expected refresh token', 401, 'INVALID_TOKEN');
     }
 
     // If userLoader provided, fetch fresh user data
     if (userLoader) {
       return userLoader(payload.sub).then((user) => {
         if (!user) {
-          throw new Error('User not found');
+          throw new AuthError('User not found', 401, 'USER_NOT_FOUND');
         }
         return this.createTokenPair(user);
       });

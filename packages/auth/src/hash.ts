@@ -207,8 +207,18 @@ export class PasswordHasher {
       return true;
     }
 
-    // TODO: Check bcrypt rounds from hash and compare
-    // bcrypt hashes include rounds in format: $2b$XX$...
+    // Check bcrypt rounds from hash and compare with configured rounds
+    // bcrypt hashes include rounds in format: $2b$XX$... where XX is the rounds (cost factor)
+    if (this.config.algorithm === 'bcrypt' && hash.startsWith('$2')) {
+      const parts = hash.split('$');
+      // Format: ['', '2b', 'rounds', 'salt+hash']
+      if (parts.length >= 4) {
+        const hashRounds = parseInt(parts[2], 10);
+        if (!Number.isNaN(hashRounds) && hashRounds !== this.config.bcryptRounds) {
+          return true;
+        }
+      }
+    }
 
     return false;
   }
