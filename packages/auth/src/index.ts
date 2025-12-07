@@ -126,3 +126,21 @@ export {
 
 export type { AuthPluginOptions, AuthService } from './plugin.js';
 export { authPlugin, createAuthPlugin } from './plugin.js';
+
+// ============================================================================
+// CSRF Protection
+// ============================================================================
+
+export type {
+  CsrfConfig,
+  CsrfContext,
+  CsrfCookieConfig,
+  CsrfErrorCode,
+  CsrfManager,
+  CsrfMiddlewareOptions,
+  CsrfTokenConfig,
+  CsrfTokenData,
+  CsrfTokenResult,
+  CsrfValidationConfig,
+} from './csrf.js';
+export { createCsrfManager, createCsrfMiddleware, CsrfError } from './csrf.js';

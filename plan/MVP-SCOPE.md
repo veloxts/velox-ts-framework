@@ -118,16 +118,24 @@ This document defines what features were **included** in the MVP release and wha
 
 ---
 
+## ✅ COMPLETED in v0.4.x
+
+### Authentication (@veloxts/auth) - v0.4 ✅
+- ✅ JWT authentication system (HS256, token pairs, refresh tokens)
+- ✅ Guards and policies (role-based, permission-based, composable)
+- ✅ User model helpers (declaration merging for extensibility)
+- ✅ Password hashing (bcrypt/argon2 with scrypt fallback)
+- ✅ Rate limiting (in-memory with Redis documentation)
+- ✅ Security hardening (CVE-2015-9235 prevention, timing-safe comparison, entropy validation)
+- ✅ Token revocation infrastructure (TokenStore interface)
+- ✅ CSRF protection (Signed Double Submit Cookie pattern, HMAC-SHA256)
+
+---
+
 ## ⏳ DEFERRED to v0.4+ and Beyond
 
-### Authentication (@veloxts/auth) - v0.4
-- ⏳ JWT authentication system
-- ⏳ Guards and policies
-- ⏳ User model helpers
-- ⏳ Password hashing (bcrypt/argon2)
-- ⏳ CSRF protection
-- ⏳ Rate limiting
-- ⏳ Session management
+### Authentication Advanced Features - v0.4+
+- ⏳ Session management (cookie-based)
 - ⏳ Pluggable auth adapters (BetterAuth, Clerk, Auth0)
 
 ### Advanced Routing - v0.4
