@@ -5,12 +5,16 @@
  * Provides an interactive setup experience similar to create-next-app.
  */
 
-import { execSync } from 'node:child_process';
+import { exec } from 'node:child_process';
 import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { promisify } from 'node:util';
+
+const execAsync = promisify(exec);
 
 import * as p from '@clack/prompts';
+import ora from 'ora';
 import pc from 'picocolors';
 
 import type { DatabaseType, TemplateConfig, TemplateType } from './templates/index.js';
@@ -251,8 +255,26 @@ async function promptProjectConfig(
     }
   }
 
-  // Detect package manager
-  const packageManager = detectPackageManager();
+  // Package manager selection (only in interactive mode)
+  let packageManager: 'npm' | 'pnpm' | 'yarn' = detectPackageManager();
+
+  if (!initialTemplate) {
+    const selectedPackageManager = await p.select({
+      message: 'Choose a package manager',
+      initialValue: packageManager,
+      options: [
+        { value: 'npm', label: 'npm', hint: 'Default Node.js package manager' },
+        { value: 'pnpm', label: 'pnpm', hint: 'Fast, disk space efficient' },
+        { value: 'yarn', label: 'yarn', hint: 'Classic yarn v1' },
+      ],
+    });
+
+    if (p.isCancel(selectedPackageManager)) {
+      throw new Error('canceled');
+    }
+
+    packageManager = selectedPackageManager as 'npm' | 'pnpm' | 'yarn';
+  }
 
   return {
     name: name as string,
@@ -297,8 +319,10 @@ async function validateProjectDirectory(directory: string): Promise<void> {
  * Create the complete project structure with all files
  */
 async function createProjectStructure(config: ProjectConfig): Promise<void> {
-  const spinner = p.spinner();
-  spinner.start(`Creating project files (template: ${config.template}, database: ${config.database})`);
+  const spinner = ora({
+    text: `Creating project files (template: ${config.template}, database: ${config.database})`,
+    color: 'cyan',
+  }).start();
 
   try {
     // Create directory structure
@@ -338,9 +362,9 @@ async function createProjectStructure(config: ProjectConfig): Promise<void> {
       await fs.writeFile(filePath, file.content);
     }
 
-    spinner.stop(`Project files created ${pc.dim(`(${files.length} files)`)}`);
+    spinner.succeed(pc.green(`Project files created ${pc.dim(`(${files.length} files)`)}`));
   } catch (error) {
-    spinner.stop('Failed to create project files');
+    spinner.fail(pc.red('Failed to create project files'));
     throw error;
   }
 }
@@ -358,21 +382,22 @@ async function installDependencies(config: ProjectConfig): Promise<void> {
     return;
   }
 
-  const spinner = p.spinner();
-  spinner.start('Installing dependencies');
+  const spinner = ora({
+    text: `Installing dependencies with ${config.packageManager}`,
+    color: 'cyan',
+  }).start();
 
   try {
     const installCommand = getInstallCommand(config.packageManager);
 
-    execSync(installCommand, {
+    await execAsync(installCommand, {
       cwd: config.directory,
-      stdio: 'ignore',
       timeout: EXEC_TIMEOUT_MS,
     });
 
-    spinner.stop('Dependencies installed');
+    spinner.succeed(pc.green('Dependencies installed'));
   } catch (error) {
-    spinner.stop('Failed to install dependencies');
+    spinner.fail(pc.red('Failed to install dependencies'));
     // Enhance error message for timeout
     if (error instanceof Error && error.message.includes('ETIMEDOUT')) {
       throw new Error('Dependency installation timed out. Check your network connection.');
@@ -408,19 +433,20 @@ async function generatePrismaClient(config: ProjectConfig): Promise<void> {
     return;
   }
 
-  const spinner = p.spinner();
-  spinner.start('Generating Prisma client');
+  const spinner = ora({
+    text: 'Generating Prisma client',
+    color: 'cyan',
+  }).start();
 
   try {
-    execSync('npx prisma generate', {
+    await execAsync('npx prisma generate', {
       cwd: config.directory,
-      stdio: 'ignore',
       timeout: EXEC_TIMEOUT_MS,
     });
 
-    spinner.stop('Prisma client generated');
+    spinner.succeed(pc.green('Prisma client generated'));
   } catch (error) {
-    spinner.stop('Failed to generate Prisma client');
+    spinner.fail(pc.red('Failed to generate Prisma client'));
     throw error;
   }
 }
@@ -433,36 +459,37 @@ async function generatePrismaClient(config: ProjectConfig): Promise<void> {
  * Initialize git repository
  */
 async function initializeGit(config: ProjectConfig): Promise<void> {
-  const spinner = p.spinner();
-  spinner.start('Initializing git repository');
+  const spinner = ora({
+    text: 'Initializing git repository',
+    color: 'cyan',
+  }).start();
+
+  const gitTimeout = 30000; // 30 seconds for git operations
 
   try {
-    execSync('git init', {
+    await execAsync('git init', {
       cwd: config.directory,
-      stdio: 'ignore',
-      timeout: 30000, // 30 seconds for git operations
+      timeout: gitTimeout,
     });
 
-    execSync('git add .', {
+    await execAsync('git add .', {
       cwd: config.directory,
-      stdio: 'ignore',
-      timeout: 30000,
+      timeout: gitTimeout,
     });
 
-    execSync('git commit -m "Initial commit from create-velox-app"', {
+    await execAsync('git commit -m "Initial commit from create-velox-app"', {
       cwd: config.directory,
-      stdio: 'ignore',
-      timeout: 30000,
+      timeout: gitTimeout,
     });
 
-    spinner.stop('Git repository initialized');
+    spinner.succeed(pc.green('Git repository initialized'));
   } catch (error) {
     // Git init is optional - provide context on why it was skipped
     const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
     if (errorMessage.includes('command not found') || errorMessage.includes('not recognized')) {
-      spinner.stop('Skipped git initialization (git not installed)');
+      spinner.warn(pc.yellow('Skipped git initialization (git not installed)'));
     } else {
-      spinner.stop('Skipped git initialization');
+      spinner.warn(pc.yellow('Skipped git initialization'));
     }
   }
 }
@@ -476,8 +503,9 @@ async function initializeGit(config: ProjectConfig): Promise<void> {
  */
 function printSuccessMessage(config: ProjectConfig): void {
   const cdCommand = `cd ${config.name}`;
-  const devCommand = `${config.packageManager} dev`;
-  const dbCommand = `${config.packageManager} db:push`;
+  const runCmd = config.packageManager === 'npm' ? 'npm run' : config.packageManager;
+  const devCommand = `${runCmd} dev`;
+  const dbCommand = `${runCmd} db:push`;
 
   console.log('');
   console.log(
