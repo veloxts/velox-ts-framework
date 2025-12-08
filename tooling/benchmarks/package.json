@@ -1,0 +1,24 @@
+{
+  "name": "@veloxts/benchmarks",
+  "version": "0.1.0",
+  "description": "Performance benchmarks for VeloxTS framework",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "bench": "pnpm build && node dist/run-all.js",
+    "bench:throughput": "pnpm build && node dist/benchmarks/throughput.js",
+    "bench:latency": "pnpm build && node dist/benchmarks/latency.js",
+    "bench:memory": "pnpm build && node dist/benchmarks/memory.js",
+    "bench:startup": "pnpm build && node dist/benchmarks/startup.js"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "autocannon": "8.0.0",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

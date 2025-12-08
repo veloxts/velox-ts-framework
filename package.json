@@ -23,7 +23,12 @@
     "ci:build": "turbo run build --color --no-daemon",
     "ci:test": "turbo run test --color --no-daemon && turbo run test:types",
     "ci:lint": "turbo run lint --color --no-daemon",
-    "ci:type-check": "turbo run type-check --color --no-daemon"
+    "ci:type-check": "turbo run type-check --color --no-daemon",
+    "benchmark": "pnpm --filter @veloxts/benchmarks bench",
+    "bench:throughput": "pnpm --filter @veloxts/benchmarks bench:throughput",
+    "bench:latency": "pnpm --filter @veloxts/benchmarks bench:latency",
+    "bench:memory": "pnpm --filter @veloxts/benchmarks bench:memory",
+    "bench:startup": "pnpm --filter @veloxts/benchmarks bench:startup"
   },
   "repository": {
     "type": "git",
