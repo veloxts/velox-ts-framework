@@ -58,7 +58,8 @@ const migrationWithoutRollback: MigrationFile = {
   hasRollback: false,
 };
 
-expectType<null>(migrationWithoutRollback.downPath);
+// The type is still string | null from the interface, even when assigned null
+expectType<string | null>(migrationWithoutRollback.downPath);
 
 // ============================================================================
 // PrismaMigrationRecord Type Tests
@@ -121,8 +122,9 @@ const pendingMigration: MigrationStatus = {
   duration: null,
 };
 
-expectType<null>(pendingMigration.appliedAt);
-expectType<null>(pendingMigration.duration);
+// The types are still unions from the interface, even when assigned null
+expectType<Date | null>(pendingMigration.appliedAt);
+expectType<number | null>(pendingMigration.duration);
 
 // ============================================================================
 // Command Options Type Tests
@@ -325,17 +327,11 @@ expectType<Record<string, unknown>>(jsonError);
 // MigrationFile fields are readonly
 declare const readonlyMigrationFile: MigrationFile;
 expectType<string>(readonlyMigrationFile.name);
-// @ts-expect-error - Should not be able to assign to readonly property
-// readonlyMigrationFile.name = 'test';
 
 // MigrationStatus fields are readonly
 declare const readonlyStatus: MigrationStatus;
 expectType<string>(readonlyStatus.name);
-// @ts-expect-error - Should not be able to assign to readonly property
-// readonlyStatus.name = 'test';
 
 // BatchRollbackResult.results is readonly array
 declare const readonlyBatch: BatchRollbackResult;
 expectType<ReadonlyArray<RollbackResult>>(readonlyBatch.results);
-// @ts-expect-error - Should not be able to push to readonly array
-// readonlyBatch.results.push(rollbackResult);
