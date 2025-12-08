@@ -8,6 +8,7 @@ import { registerGenerator } from '../registry.js';
 import { createMigrationGenerator } from './migration.js';
 import { createModelGenerator } from './model.js';
 import { createProcedureGenerator } from './procedure.js';
+import { createResourceGenerator } from './resource.js';
 import { createSchemaGenerator } from './schema.js';
 import { createTestGenerator } from './test.js';
 
@@ -20,6 +21,7 @@ export { ModelGenerator, createModelGenerator } from './model.js';
 export { MigrationGenerator, createMigrationGenerator } from './migration.js';
 export { SchemaGenerator, createSchemaGenerator } from './schema.js';
 export { TestGenerator, createTestGenerator } from './test.js';
+export { ResourceGenerator, createResourceGenerator } from './resource.js';
 
 // ============================================================================
 // Auto-Registration
@@ -45,6 +47,6 @@ export function registerBuiltinGenerators(): void {
   // Register test generator
   registerGenerator(createTestGenerator());
 
-  // Future generators will be registered here:
-  // registerGenerator(createResourceGenerator());
+  // Register resource generator (full stack)
+  registerGenerator(createResourceGenerator());
 }

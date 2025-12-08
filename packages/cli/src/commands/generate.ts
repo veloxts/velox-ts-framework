@@ -72,6 +72,11 @@ export function createGenerateCommand(): Command {
     // Test generator options
     .option('-T, --type <type>', 'Test type: unit, integration, e2e', 'unit')
     .option('-G, --target <target>', 'Test target: procedure, schema, model, service, generic', 'generic')
+    // Resource generator options
+    .option('-W, --with-tests', 'Include test files (resource generator)', true)
+    .option('--skip-model', 'Skip Prisma model generation', false)
+    .option('--skip-schema', 'Skip Zod schema generation', false)
+    .option('--skip-procedure', 'Skip procedure generation', false)
     .action(async (type: string | undefined, name: string | undefined, options: GenerateOptions) => {
       await runGenerate(type, name, options);
     });
@@ -83,12 +88,12 @@ export function createGenerateCommand(): Command {
 Available generators:${formatGeneratorList()}
 
 Examples:
-  ${formatCommand('velox generate procedure users')}      Generate a users procedure
-  ${formatCommand('velox g p User --crud')}              Generate CRUD procedures (short form)
-  ${formatCommand('velox generate model Post')}          Generate a Post model with procedures
-  ${formatCommand('velox g test User -G procedure')}     Generate procedure unit tests
-  ${formatCommand('velox g t User -T e2e')}              Generate E2E tests
-  ${formatCommand('velox generate --dry-run p User')}    Preview without writing files
+  ${formatCommand('velox generate resource Post')}       Generate complete Post resource
+  ${formatCommand('velox g r User --soft-delete')}       Resource with soft delete support
+  ${formatCommand('velox g p User --crud')}              Generate CRUD procedures only
+  ${formatCommand('velox g s User --crud')}              Generate Zod schemas only
+  ${formatCommand('velox g t User -G procedure')}        Generate procedure unit tests
+  ${formatCommand('velox generate --dry-run r Post')}    Preview resource generation
 `
   );
 
