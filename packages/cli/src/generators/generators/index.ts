@@ -16,12 +16,12 @@ import { createTestGenerator } from './test.js';
 // Generator Exports
 // ============================================================================
 
-export { ProcedureGenerator, createProcedureGenerator } from './procedure.js';
-export { ModelGenerator, createModelGenerator } from './model.js';
-export { MigrationGenerator, createMigrationGenerator } from './migration.js';
-export { SchemaGenerator, createSchemaGenerator } from './schema.js';
-export { TestGenerator, createTestGenerator } from './test.js';
-export { ResourceGenerator, createResourceGenerator } from './resource.js';
+export { createMigrationGenerator, MigrationGenerator } from './migration.js';
+export { createModelGenerator, ModelGenerator } from './model.js';
+export { createProcedureGenerator, ProcedureGenerator } from './procedure.js';
+export { createResourceGenerator, ResourceGenerator } from './resource.js';
+export { createSchemaGenerator, SchemaGenerator } from './schema.js';
+export { createTestGenerator, TestGenerator } from './test.js';
 
 // ============================================================================
 // Auto-Registration

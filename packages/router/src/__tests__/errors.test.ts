@@ -7,8 +7,8 @@
 import { VeloxError } from '@veloxts/core';
 import { describe, expect, it } from 'vitest';
 
-import { GuardError, isGuardError } from '../errors.js';
 import type { GuardErrorResponse, RouterErrorCode } from '../errors.js';
+import { GuardError, isGuardError } from '../errors.js';
 
 // ============================================================================
 // GuardError Class Tests
@@ -455,9 +455,7 @@ describe('GuardError integration scenarios', () => {
   });
 
   it('should work with Promise.catch pattern', async () => {
-    const guardPromise = Promise.reject(
-      new GuardError('permission', 'Access denied', 403)
-    );
+    const guardPromise = Promise.reject(new GuardError('permission', 'Access denied', 403));
 
     const result = await guardPromise.catch((error) => {
       if (isGuardError(error)) {

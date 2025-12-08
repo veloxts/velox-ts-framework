@@ -12,9 +12,9 @@ import pc from 'picocolors';
 
 import { error, info, success, warning } from '../../utils/output.js';
 import { fileExists } from '../../utils/paths.js';
-import type { MigrateFreshOptions } from '../types.js';
-import { prismaMigrateReset, prismaDbSeed } from '../prisma-wrapper.js';
 import { MigrationError } from '../errors.js';
+import { prismaDbSeed, prismaMigrateReset } from '../prisma-wrapper.js';
+import type { MigrateFreshOptions } from '../types.js';
 
 /**
  * Create the migrate:fresh command
@@ -117,11 +117,13 @@ async function runMigrateFresh(options: MigrateFreshOptions): Promise<void> {
         }
 
         if (options.json) {
-          console.log(JSON.stringify({
-            success: true,
-            message: 'Database reset complete but seeding failed',
-            seedError: seedResult.error,
-          }));
+          console.log(
+            JSON.stringify({
+              success: true,
+              message: 'Database reset complete but seeding failed',
+              seedError: seedResult.error,
+            })
+          );
         } else {
           console.log('');
           warning('Database reset complete but seeding failed.');
@@ -140,17 +142,18 @@ async function runMigrateFresh(options: MigrateFreshOptions): Promise<void> {
 
     // Success output
     if (options.json) {
-      console.log(JSON.stringify({
-        success: true,
-        message: options.seed
-          ? 'Database reset and seeded successfully'
-          : 'Database reset successfully',
-      }));
+      console.log(
+        JSON.stringify({
+          success: true,
+          message: options.seed
+            ? 'Database reset and seeded successfully'
+            : 'Database reset successfully',
+        })
+      );
     } else {
       console.log('');
-      success(options.seed
-        ? 'Database reset and seeded successfully!'
-        : 'Database reset successfully!'
+      success(
+        options.seed ? 'Database reset and seeded successfully!' : 'Database reset successfully!'
       );
       console.log('');
     }

@@ -4,82 +4,77 @@
  * Public API for the VeloxTS migration runner system.
  */
 
-// Types
-export type {
-  MigrationFile,
-  PrismaMigrationRecord,
-  MigrationStatus,
-  MigrationStatusType,
-  MigrateStatusOptions,
-  MigrateRunOptions,
-  MigrateRollbackOptions,
-  MigrateFreshOptions,
-  MigrateResetOptions,
-  PrismaResult,
-  RollbackResult,
-  BatchRollbackResult,
-  DatabaseType,
-  MigrationConfig,
-} from './types.js';
-
+// Commands
+export {
+  createMigrateFreshCommand,
+  createMigrateResetCommand,
+  createMigrateRollbackCommand,
+  createMigrateRunCommand,
+  createMigrateStatusCommand,
+} from './commands/index.js';
 // Errors
 export {
+  checksumMismatch,
+  databaseError,
   MigrationError,
   type MigrationErrorCode,
-  prismaNotFound,
-  migrationsDirNotFound,
   migrationNotFound,
-  noRollbackFile,
-  rollbackFailed,
-  prismaError,
-  databaseError,
-  noPendingMigrations,
+  migrationsDirNotFound,
   noAppliedMigrations,
-  checksumMismatch,
+  noPendingMigrations,
+  noRollbackFile,
+  prismaError,
+  prismaNotFound,
+  rollbackFailed,
 } from './errors.js';
-
 // Loader
 export {
-  DEFAULT_MIGRATIONS_PATH,
-  loadMigrations,
-  getMigrationByName,
-  readMigrationSql,
   computeMigrationStatus,
-  getPendingMigrations,
+  DEFAULT_MIGRATIONS_PATH,
   getAppliedMigrationsWithRollback,
+  getMigrationByName,
+  getPendingMigrations,
+  loadMigrations,
   migrationsDirExists,
+  readMigrationSql,
 } from './loader.js';
-
 // Prisma Wrapper
 export {
-  runPrismaCommand,
-  runPrismaCommandInteractive,
-  prismaMigrateStatus,
+  isPrismaAvailable,
+  type ParsedMigrationStatus,
+  parseMigrateStatusOutput,
+  prismaDbPush,
+  prismaDbSeed,
   prismaMigrateDeploy,
   prismaMigrateDev,
   prismaMigrateReset,
-  prismaDbPush,
-  prismaDbSeed,
-  parseMigrateStatusOutput,
-  isPrismaAvailable,
-  type ParsedMigrationStatus,
+  prismaMigrateStatus,
+  runPrismaCommand,
+  runPrismaCommandInteractive,
 } from './prisma-wrapper.js';
-
 // Rollback Runner
 export {
+  checkMigrationsTableExists,
+  getAppliedMigrations,
+  type RollbackOptions,
+  rollbackAll,
   rollbackMigration,
   rollbackMultiple,
-  rollbackAll,
-  getAppliedMigrations,
-  checkMigrationsTableExists,
-  type RollbackOptions,
 } from './rollback-runner.js';
-
-// Commands
-export {
-  createMigrateStatusCommand,
-  createMigrateRunCommand,
-  createMigrateRollbackCommand,
-  createMigrateFreshCommand,
-  createMigrateResetCommand,
-} from './commands/index.js';
+// Types
+export type {
+  BatchRollbackResult,
+  DatabaseType,
+  MigrateFreshOptions,
+  MigrateResetOptions,
+  MigrateRollbackOptions,
+  MigrateRunOptions,
+  MigrateStatusOptions,
+  MigrationConfig,
+  MigrationFile,
+  MigrationStatus,
+  MigrationStatusType,
+  PrismaMigrationRecord,
+  PrismaResult,
+  RollbackResult,
+} from './types.js';

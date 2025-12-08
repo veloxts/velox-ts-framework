@@ -12,10 +12,10 @@ import pc from 'picocolors';
 
 import { error, info, success, warning } from '../../utils/output.js';
 import { fileExists } from '../../utils/paths.js';
-import type { MigrateStatusOptions, MigrationStatus } from '../types.js';
-import { loadMigrations, migrationsDirExists, computeMigrationStatus } from '../loader.js';
-import { prismaMigrateStatus, parseMigrateStatusOutput } from '../prisma-wrapper.js';
 import { MigrationError } from '../errors.js';
+import { computeMigrationStatus, loadMigrations, migrationsDirExists } from '../loader.js';
+import { parseMigrateStatusOutput, prismaMigrateStatus } from '../prisma-wrapper.js';
+import type { MigrateStatusOptions, MigrationStatus } from '../types.js';
 
 /**
  * Create the migrate:status command
@@ -87,12 +87,18 @@ async function runMigrateStatus(options: MigrateStatusOptions): Promise<void> {
 
     // JSON output
     if (options.json) {
-      console.log(JSON.stringify({
-        migrations: displayStatuses,
-        pending: statuses.filter((s) => s.status === 'pending').length,
-        applied: statuses.filter((s) => s.status === 'applied').length,
-        total: statuses.length,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            migrations: displayStatuses,
+            pending: statuses.filter((s) => s.status === 'pending').length,
+            applied: statuses.filter((s) => s.status === 'applied').length,
+            total: statuses.length,
+          },
+          null,
+          2
+        )
+      );
       return;
     }
 
@@ -112,23 +118,21 @@ async function runMigrateStatus(options: MigrateStatusOptions): Promise<void> {
     }
 
     // Print table header
-    console.log(`  ${pc.dim('Status')}     ${pc.dim('Migration')}                          ${pc.dim('Rollback')}`);
+    console.log(
+      `  ${pc.dim('Status')}     ${pc.dim('Migration')}                          ${pc.dim('Rollback')}`
+    );
     console.log(`  ${pc.dim('─'.repeat(70))}`);
 
     // Print each migration
     for (const status of displayStatuses) {
-      const statusIcon = status.status === 'applied'
-        ? pc.green('✓ Applied')
-        : pc.yellow('○ Pending');
+      const statusIcon =
+        status.status === 'applied' ? pc.green('✓ Applied') : pc.yellow('○ Pending');
 
-      const rollbackIcon = status.hasRollback
-        ? pc.green('Yes')
-        : pc.dim('No');
+      const rollbackIcon = status.hasRollback ? pc.green('Yes') : pc.dim('No');
 
       // Truncate name if too long
-      const displayName = status.name.length > 40
-        ? status.name.slice(0, 37) + '...'
-        : status.name.padEnd(40);
+      const displayName =
+        status.name.length > 40 ? status.name.slice(0, 37) + '...' : status.name.padEnd(40);
 
       console.log(`  ${statusIcon}  ${displayName}  ${rollbackIcon}`);
     }

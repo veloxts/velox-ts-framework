@@ -9,22 +9,22 @@ import { expectAssignable, expectType } from 'tsd';
 
 // Import from the compiled dist folder
 import {
-  MigrationError,
-  type MigrationFile,
-  type PrismaMigrationRecord,
-  type MigrationStatus,
-  type MigrationStatusType,
-  type MigrateStatusOptions,
-  type MigrateRunOptions,
-  type MigrateRollbackOptions,
-  type MigrateFreshOptions,
-  type MigrateResetOptions,
-  type PrismaResult,
-  type RollbackResult,
   type BatchRollbackResult,
   type DatabaseType,
+  type MigrateFreshOptions,
+  type MigrateResetOptions,
+  type MigrateRollbackOptions,
+  type MigrateRunOptions,
+  type MigrateStatusOptions,
   type MigrationConfig,
+  MigrationError,
   type MigrationErrorCode,
+  type MigrationFile,
+  type MigrationStatus,
+  type MigrationStatusType,
+  type PrismaMigrationRecord,
+  type PrismaResult,
+  type RollbackResult,
 } from '../../../dist/index.js';
 
 // ============================================================================

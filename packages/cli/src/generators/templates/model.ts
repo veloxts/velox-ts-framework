@@ -4,7 +4,7 @@
  * Generates Prisma model, Zod schema, and optionally procedures.
  */
 
-import type { TemplateContext, TemplateFunction, GeneratedFile } from '../types.js';
+import type { GeneratedFile, TemplateContext, TemplateFunction } from '../types.js';
 
 // ============================================================================
 // Template Options
@@ -31,9 +31,7 @@ export interface ModelOptions {
 function generatePrismaModel(ctx: TemplateContext<ModelOptions>): string {
   const { entity, options } = ctx;
 
-  const fields: string[] = [
-    '  id        String   @id @default(uuid())',
-  ];
+  const fields: string[] = ['  id        String   @id @default(uuid())'];
 
   // Add timestamps if enabled
   if (options.timestamps) {
@@ -70,9 +68,7 @@ ${fields.join('\n')}
 function generateZodSchema(ctx: TemplateContext<ModelOptions>): string {
   const { entity, options } = ctx;
 
-  const schemaFields: string[] = [
-    '  id: z.string().uuid(),',
-  ];
+  const schemaFields: string[] = ['  id: z.string().uuid(),'];
 
   // Add timestamps if enabled
   if (options.timestamps) {
@@ -160,9 +156,7 @@ function generateProcedures(ctx: TemplateContext<ModelOptions>): string {
       })`
     : `z.array(${entity.pascal}Schema)`;
 
-  const listInput = options.paginated
-    ? `.input(paginationInputSchema.optional())`
-    : '';
+  const listInput = options.paginated ? `.input(paginationInputSchema.optional())` : '';
 
   const listLogic = options.paginated
     ? `const page = input?.page ?? 1;

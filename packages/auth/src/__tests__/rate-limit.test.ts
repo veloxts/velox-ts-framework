@@ -165,9 +165,7 @@ describe('Auth Rate Limiting', () => {
       await middleware({ ctx, input: undefined, next: next.fn });
 
       // Third request should be blocked
-      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(
-        AuthError
-      );
+      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(AuthError);
     });
 
     it('should use identifier function for key generation', async () => {
@@ -175,8 +173,7 @@ describe('Auth Rate Limiting', () => {
         login: { maxAttempts: 2, windowMs: 60000 },
       });
 
-      const identifierFn = (ctx: { input?: { email?: string } }) =>
-        ctx.input?.email ?? 'unknown';
+      const identifierFn = (ctx: { input?: { email?: string } }) => ctx.input?.email ?? 'unknown';
 
       const middleware = limiter.login<
         { email: string },
@@ -219,10 +216,7 @@ describe('Auth Rate Limiting', () => {
 
       expect(ctx.reply.header).toHaveBeenCalledWith('X-RateLimit-Limit', '5');
       expect(ctx.reply.header).toHaveBeenCalledWith('X-RateLimit-Remaining', '4');
-      expect(ctx.reply.header).toHaveBeenCalledWith(
-        'X-RateLimit-Reset',
-        expect.any(String)
-      );
+      expect(ctx.reply.header).toHaveBeenCalledWith('X-RateLimit-Reset', expect.any(String));
     });
 
     it('should enable progressive backoff by default for login', async () => {
@@ -236,9 +230,7 @@ describe('Auth Rate Limiting', () => {
 
       // Exceed limit
       await middleware({ ctx, input: undefined, next: next.fn });
-      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(
-        AuthError
-      );
+      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(AuthError);
 
       // Wait for first lockout to expire
       vi.advanceTimersByTime(1001);
@@ -276,9 +268,7 @@ describe('Auth Rate Limiting', () => {
       await middleware({ ctx, input: undefined, next: next.fn });
 
       // Third request blocked
-      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(
-        AuthError
-      );
+      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(AuthError);
 
       // Different IP should have separate limit
       const ctx2 = createMockContext('10.0.0.2');
@@ -304,8 +294,7 @@ describe('Auth Rate Limiting', () => {
         passwordReset: { maxAttempts: 2, windowMs: 60000 },
       });
 
-      const identifierFn = (ctx: { input?: { email?: string } }) =>
-        ctx.input?.email ?? 'unknown';
+      const identifierFn = (ctx: { input?: { email?: string } }) => ctx.input?.email ?? 'unknown';
 
       const middleware = limiter.passwordReset<
         { email: string },
@@ -334,7 +323,11 @@ describe('Auth Rate Limiting', () => {
         },
       });
 
-      const middleware = limiter.passwordReset<unknown, ReturnType<typeof createMockContext>, unknown>();
+      const middleware = limiter.passwordReset<
+        unknown,
+        ReturnType<typeof createMockContext>,
+        unknown
+      >();
       const ctx = createMockContext();
       const next = createMockNext();
 
@@ -370,9 +363,7 @@ describe('Auth Rate Limiting', () => {
       }
 
       // 6th should fail
-      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(
-        AuthError
-      );
+      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(AuthError);
     });
   });
 
@@ -699,9 +690,7 @@ describe('Auth Rate Limiting', () => {
       const ctx = createMockContext();
       const next = createMockNext();
 
-      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(
-        AuthError
-      );
+      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(AuthError);
     });
 
     it('should format duration in seconds', async () => {
@@ -944,9 +933,7 @@ describe('Auth Rate Limiting', () => {
       const next = createMockNext();
 
       // Even first request should fail with 0 max attempts
-      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(
-        AuthError
-      );
+      await expect(middleware({ ctx, input: undefined, next: next.fn })).rejects.toThrow(AuthError);
     });
 
     it('should handle singular/plural in duration formatting', async () => {

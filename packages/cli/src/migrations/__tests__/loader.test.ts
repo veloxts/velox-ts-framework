@@ -4,17 +4,18 @@
  * Tests for loading migration files from the filesystem.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
-  loadMigrations,
-  getMigrationByName,
   computeMigrationStatus,
-  getPendingMigrations,
-  getAppliedMigrationsWithRollback,
   DEFAULT_MIGRATIONS_PATH,
+  getAppliedMigrationsWithRollback,
+  getMigrationByName,
+  getPendingMigrations,
+  loadMigrations,
 } from '../loader.js';
 import type { MigrationFile, PrismaMigrationRecord } from '../types.js';
 
@@ -111,9 +112,9 @@ describe('Migration Loader', () => {
       vi.mocked(fs.access).mockResolvedValue(undefined);
       vi.mocked(fs.readdir).mockResolvedValue([]);
 
-      await expect(
-        getMigrationByName(mockCwd, 'nonexistent')
-      ).rejects.toThrow('Migration not found');
+      await expect(getMigrationByName(mockCwd, 'nonexistent')).rejects.toThrow(
+        'Migration not found'
+      );
     });
   });
 

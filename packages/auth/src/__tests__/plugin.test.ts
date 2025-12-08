@@ -686,9 +686,7 @@ describe('Auth Plugin', () => {
     it('should throw if JWT_SECRET is not set', () => {
       delete process.env.JWT_SECRET;
 
-      expect(() => defaultAuthPlugin()).toThrow(
-        'JWT_SECRET environment variable is required'
-      );
+      expect(() => defaultAuthPlugin()).toThrow('JWT_SECRET environment variable is required');
     });
 
     it('should create plugin when JWT_SECRET is set', () => {

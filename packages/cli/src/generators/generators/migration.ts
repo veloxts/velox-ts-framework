@@ -15,17 +15,17 @@
  */
 
 import { BaseGenerator, detectProjectContext } from '../base.js';
+import {
+  generateMigrationFiles,
+  getMigrationInstructions,
+  type MigrationOptions,
+} from '../templates/migration.js';
 import type {
   GeneratorConfig,
   GeneratorMetadata,
   GeneratorOption,
   GeneratorOutput,
 } from '../types.js';
-import {
-  generateMigrationFiles,
-  getMigrationInstructions,
-  type MigrationOptions,
-} from '../templates/migration.js';
 
 // ============================================================================
 // Generator Implementation

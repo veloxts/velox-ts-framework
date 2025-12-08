@@ -7,8 +7,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import type { MigrationFile, PrismaMigrationRecord, MigrationStatus } from './types.js';
-import { migrationsDirNotFound, migrationNotFound } from './errors.js';
+import { migrationNotFound, migrationsDirNotFound } from './errors.js';
+import type { MigrationFile, MigrationStatus, PrismaMigrationRecord } from './types.js';
 
 // ============================================================================
 // Constants
@@ -184,9 +184,10 @@ export function computeMigrationStatus(
         status: record.finished_at ? 'applied' : 'failed',
         appliedAt: record.finished_at,
         hasRollback: file.hasRollback,
-        duration: record.finished_at && record.started_at
-          ? new Date(record.finished_at).getTime() - new Date(record.started_at).getTime()
-          : null,
+        duration:
+          record.finished_at && record.started_at
+            ? new Date(record.finished_at).getTime() - new Date(record.started_at).getTime()
+            : null,
       };
       statuses.push(status);
     } else {
@@ -223,9 +224,7 @@ export function getAppliedMigrationsWithRollback(
   records: PrismaMigrationRecord[]
 ): MigrationFile[] {
   const appliedNames = new Set(records.map((r) => r.migration_name));
-  return files
-    .filter((f) => appliedNames.has(f.name))
-    .reverse(); // Most recent first for rollback order
+  return files.filter((f) => appliedNames.has(f.name)).reverse(); // Most recent first for rollback order
 }
 
 /**

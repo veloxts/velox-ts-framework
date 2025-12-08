@@ -6,12 +6,17 @@
  */
 
 import { BaseGenerator } from '../base.js';
-import type { GeneratorConfig, GeneratorMetadata, GeneratorOption, GeneratorOutput } from '../types.js';
 import {
-  type ResourceOptions,
   generateResourceFiles,
   getResourceInstructions,
+  type ResourceOptions,
 } from '../templates/resource.js';
+import type {
+  GeneratorConfig,
+  GeneratorMetadata,
+  GeneratorOption,
+  GeneratorOutput,
+} from '../types.js';
 
 // ============================================================================
 // Generator Metadata

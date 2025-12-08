@@ -4,7 +4,7 @@
  * Generates Zod validation schemas for VeloxTS applications.
  */
 
-import type { TemplateContext, TemplateFunction, GeneratedFile } from '../types.js';
+import type { GeneratedFile, TemplateContext, TemplateFunction } from '../types.js';
 
 // ============================================================================
 // Template Options
@@ -186,9 +186,7 @@ export type ${pascal}ListResponse = z.infer<typeof ${camel}ListResponseSchema>;
 /**
  * Generate simple response schemas (non-CRUD)
  */
-function generateSimpleResponseSchemas(
-  entity: { pascal: string; camel: string }
-): string {
+function generateSimpleResponseSchemas(entity: { pascal: string; camel: string }): string {
   const { pascal, camel } = entity;
 
   return `

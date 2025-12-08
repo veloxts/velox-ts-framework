@@ -74,9 +74,7 @@ function generateCrudProcedures(ctx: TemplateContext<ProcedureOptions>): string 
       })`
     : `z.array(${entity.pascal}Schema)`;
 
-  const listInput = options.paginated
-    ? `.input(paginationInputSchema.optional())`
-    : '';
+  const listInput = options.paginated ? `.input(paginationInputSchema.optional())` : '';
 
   const listLogic = options.paginated
     ? `const page = input?.page ?? 1;

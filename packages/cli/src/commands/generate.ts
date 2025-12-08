@@ -14,9 +14,8 @@ import * as p from '@clack/prompts';
 import { Command } from 'commander';
 import pc from 'picocolors';
 
+import type { GeneratorConfig, GeneratorOutput } from '../generators/index.js';
 import {
-  GeneratorError,
-  GeneratorErrorCode,
   applyCliFlags,
   detectProjectContext,
   ensureVeloxProject,
@@ -24,12 +23,13 @@ import {
   formatGeneratorList,
   formatWriteResults,
   formatWriteResultsJson,
+  GeneratorError,
+  GeneratorErrorCode,
   getAllGenerators,
   getGenerator,
   registerBuiltinGenerators,
   writeFiles,
 } from '../generators/index.js';
-import type { GeneratorConfig, GeneratorOutput } from '../generators/index.js';
 import { error, formatCommand, info, success } from '../utils/output.js';
 
 // ============================================================================
@@ -71,15 +71,21 @@ export function createGenerateCommand(): Command {
     .option('-D, --database <type>', 'Database type: sqlite, postgresql, mysql', 'sqlite')
     // Test generator options
     .option('-T, --type <type>', 'Test type: unit, integration, e2e', 'unit')
-    .option('-G, --target <target>', 'Test target: procedure, schema, model, service, generic', 'generic')
+    .option(
+      '-G, --target <target>',
+      'Test target: procedure, schema, model, service, generic',
+      'generic'
+    )
     // Resource generator options
     .option('-W, --with-tests', 'Include test files (resource generator)', true)
     .option('--skip-model', 'Skip Prisma model generation', false)
     .option('--skip-schema', 'Skip Zod schema generation', false)
     .option('--skip-procedure', 'Skip procedure generation', false)
-    .action(async (type: string | undefined, name: string | undefined, options: GenerateOptions) => {
-      await runGenerate(type, name, options);
-    });
+    .action(
+      async (type: string | undefined, name: string | undefined, options: GenerateOptions) => {
+        await runGenerate(type, name, options);
+      }
+    );
 
   // Add help showing available generators
   cmd.addHelpText(
@@ -273,10 +279,14 @@ function handleError(err: unknown, json: boolean): void {
   if (err instanceof Error) {
     if (json) {
       console.log(
-        JSON.stringify({
-          code: 'E2005',
-          message: err.message,
-        }, null, 2)
+        JSON.stringify(
+          {
+            code: 'E2005',
+            message: err.message,
+          },
+          null,
+          2
+        )
       );
     } else {
       error(err.message);
@@ -286,10 +296,14 @@ function handleError(err: unknown, json: boolean): void {
 
   if (json) {
     console.log(
-      JSON.stringify({
-        code: 'E2005',
-        message: 'An unknown error occurred',
-      }, null, 2)
+      JSON.stringify(
+        {
+          code: 'E2005',
+          message: 'An unknown error occurred',
+        },
+        null,
+        2
+      )
     );
   } else {
     error('An unknown error occurred');

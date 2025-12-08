@@ -6,9 +6,9 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { authRateLimiter } from '../rate-limit.js';
 import { csrfMiddleware } from '../csrf.js';
 import { PasswordPolicy, PasswordStrength } from '../password-policy.js';
+import { authRateLimiter } from '../rate-limit.js';
 
 describe('Security Hardening Integration', () => {
   describe('Rate Limiting', () => {
@@ -132,13 +132,7 @@ describe('Security Hardening Integration', () => {
         minLength: 4,
       });
 
-      const commonPasswords = [
-        'password',
-        '123456',
-        'qwerty',
-        'letmein',
-        'welcome',
-      ];
+      const commonPasswords = ['password', '123456', 'qwerty', 'letmein', 'welcome'];
 
       for (const pwd of commonPasswords) {
         const result = await policy.validate(pwd);

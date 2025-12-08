@@ -4,7 +4,7 @@
  * Common utilities for benchmark execution and reporting.
  */
 
-import { spawn, type ChildProcess } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import type { BenchmarkConfig, LatencyPercentiles, MemoryResult } from './types.js';
@@ -89,7 +89,9 @@ export function printMetric(
     : `${colors.red}FAIL${colors.reset}`;
   const valueColor = meetsTarget ? colors.green : colors.red;
 
-  console.log(`  ${label.padEnd(25)} ${valueColor}${value.padEnd(15)}${colors.reset} ${colors.dim}(target: ${target})${colors.reset} [${status}]`);
+  console.log(
+    `  ${label.padEnd(25)} ${valueColor}${value.padEnd(15)}${colors.reset} ${colors.dim}(target: ${target})${colors.reset} [${status}]`
+  );
 }
 
 /**
@@ -146,10 +148,7 @@ export function getMemoryUsage(): MemoryResult {
 /**
  * Waits for a server to be ready by polling the health endpoint
  */
-export async function waitForServer(
-  url: string,
-  timeoutMs: number = 30000
-): Promise<boolean> {
+export async function waitForServer(url: string, timeoutMs: number = 30000): Promise<boolean> {
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeoutMs) {
@@ -235,11 +234,7 @@ export function createConfig(overrides: Partial<BenchmarkConfig> = {}): Benchmar
 /**
  * Prints benchmark summary
  */
-export function printSummary(
-  passed: number,
-  failed: number,
-  skipped: number
-): void {
+export function printSummary(passed: number, failed: number, skipped: number): void {
   const total = passed + failed + skipped;
   const divider = '='.repeat(60);
 
@@ -258,7 +253,9 @@ export function printSummary(
   if (failed === 0) {
     console.log(`  ${colors.green}${colors.bold}All benchmarks passed!${colors.reset}`);
   } else {
-    console.log(`  ${colors.red}${colors.bold}Some benchmarks failed. Review results above.${colors.reset}`);
+    console.log(
+      `  ${colors.red}${colors.bold}Some benchmarks failed. Review results above.${colors.reset}`
+    );
   }
 
   console.log('');

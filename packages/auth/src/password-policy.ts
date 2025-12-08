@@ -291,7 +291,7 @@ export class PasswordPolicy {
       requireLowercase: config.requireLowercase ?? false,
       requireDigits: config.requireDigits ?? false,
       requireSpecialChars: config.requireSpecialChars ?? false,
-      specialChars: config.specialChars ?? "!@#$%^&*()_+-=[]{}|;:,.<>?",
+      specialChars: config.specialChars ?? '!@#$%^&*()_+-=[]{}|;:,.<>?',
       disallowCommon: config.disallowCommon ?? true,
       checkBreaches: config.checkBreaches ?? false,
       maxBreachOccurrences: config.maxBreachOccurrences ?? 0,
@@ -398,9 +398,7 @@ export class PasswordPolicy {
         breached = breachCount > this.config.maxBreachOccurrences;
 
         if (breached) {
-          errors.push(
-            `Password has been found in ${breachCount} data breaches and is not secure`
-          );
+          errors.push(`Password has been found in ${breachCount} data breaches and is not secure`);
         }
       } catch (error) {
         // Breach check failed - log but don't fail validation
@@ -656,9 +654,10 @@ export const createPasswordPolicy = passwordPolicy;
  * console.log(score); // 75
  * ```
  */
-export function checkPasswordStrength(
-  password: string
-): { score: number; strength: PasswordStrength } {
+export function checkPasswordStrength(password: string): {
+  score: number;
+  strength: PasswordStrength;
+} {
   const policy = new PasswordPolicy();
   return policy.calculateStrength(password);
 }

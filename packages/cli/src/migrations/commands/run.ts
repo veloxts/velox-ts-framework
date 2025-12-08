@@ -12,15 +12,15 @@ import pc from 'picocolors';
 
 import { error, info, success, warning } from '../../utils/output.js';
 import { fileExists } from '../../utils/paths.js';
-import type { MigrateRunOptions } from '../types.js';
+import { MigrationError, noPendingMigrations } from '../errors.js';
 import { loadMigrations, migrationsDirExists } from '../loader.js';
 import {
+  parseMigrateStatusOutput,
   prismaMigrateDeploy,
   prismaMigrateDev,
   prismaMigrateStatus,
-  parseMigrateStatusOutput,
 } from '../prisma-wrapper.js';
-import { MigrationError, noPendingMigrations } from '../errors.js';
+import type { MigrateRunOptions } from '../types.js';
 
 /**
  * Create the migrate:run command
@@ -92,9 +92,7 @@ async function runMigrateRun(options: MigrateRunOptions): Promise<void> {
         info(`${parsed.pending.length} pending migration${parsed.pending.length > 1 ? 's' : ''}`);
         console.log('');
 
-        const toRun = options.step
-          ? parsed.pending.slice(0, options.step)
-          : parsed.pending;
+        const toRun = options.step ? parsed.pending.slice(0, options.step) : parsed.pending;
 
         for (const name of toRun) {
           console.log(`  ${pc.dim('→')} ${name}`);
@@ -102,7 +100,9 @@ async function runMigrateRun(options: MigrateRunOptions): Promise<void> {
         console.log('');
 
         if (options.step && options.step < parsed.pending.length) {
-          console.log(`  ${pc.dim(`(Limiting to ${options.step} migration${options.step > 1 ? 's' : ''}. ${parsed.pending.length - options.step} remaining.)`)}`);
+          console.log(
+            `  ${pc.dim(`(Limiting to ${options.step} migration${options.step > 1 ? 's' : ''}. ${parsed.pending.length - options.step} remaining.)`)}`
+          );
           console.log('');
         }
       }
@@ -113,15 +113,19 @@ async function runMigrateRun(options: MigrateRunOptions): Promise<void> {
       if (options.json) {
         const statusResult = await prismaMigrateStatus(cwd);
         const parsed = parseMigrateStatusOutput(statusResult.output);
-        const toRun = options.step
-          ? parsed.pending.slice(0, options.step)
-          : parsed.pending;
+        const toRun = options.step ? parsed.pending.slice(0, options.step) : parsed.pending;
 
-        console.log(JSON.stringify({
-          dryRun: true,
-          wouldRun: toRun,
-          count: toRun.length,
-        }, null, 2));
+        console.log(
+          JSON.stringify(
+            {
+              dryRun: true,
+              wouldRun: toRun,
+              count: toRun.length,
+            },
+            null,
+            2
+          )
+        );
       } else {
         warning('Dry run mode - no changes made.');
         console.log(`  ${pc.dim('Remove --dry-run to apply migrations.')}`);

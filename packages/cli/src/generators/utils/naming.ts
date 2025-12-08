@@ -268,11 +268,7 @@ export function isPlural(word: string): boolean {
   }
 
   // Common plural endings
-  return (
-    lower.endsWith('s') ||
-    lower.endsWith('ies') ||
-    lower.endsWith('ves')
-  );
+  return lower.endsWith('s') || lower.endsWith('ies') || lower.endsWith('ves');
 }
 
 // ============================================================================

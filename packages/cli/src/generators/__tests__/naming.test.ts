@@ -4,18 +4,19 @@
  * Tests for entity name transformation utilities.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-  toPascalCase,
-  toCamelCase,
-  toKebabCase,
-  toSnakeCase,
-  toScreamingSnakeCase,
-  toHumanReadable,
+  deriveEntityNames,
+  isPlural,
   pluralize,
   singularize,
-  isPlural,
-  deriveEntityNames,
+  toCamelCase,
+  toHumanReadable,
+  toKebabCase,
+  toPascalCase,
+  toScreamingSnakeCase,
+  toSnakeCase,
 } from '../utils/naming.js';
 
 describe('Naming Utilities', () => {

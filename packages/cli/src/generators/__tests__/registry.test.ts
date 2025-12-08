@@ -4,19 +4,20 @@
  * Tests for generator registration, lookup, and listing.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  registry,
-  registerGenerator,
-  getGenerator,
-  getAllGenerators,
-  getGeneratorsByCategory,
-  findSimilarGenerators,
-} from '../registry.js';
-import { createProcedureGenerator } from '../generators/procedure.js';
-import { createSchemaGenerator } from '../generators/schema.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { createMigrationGenerator } from '../generators/migration.js';
+import { createProcedureGenerator } from '../generators/procedure.js';
 import { createResourceGenerator } from '../generators/resource.js';
+import { createSchemaGenerator } from '../generators/schema.js';
+import {
+  findSimilarGenerators,
+  getAllGenerators,
+  getGenerator,
+  getGeneratorsByCategory,
+  registerGenerator,
+  registry,
+} from '../registry.js';
 
 describe('Generator Registry', () => {
   // Reset registry before each test

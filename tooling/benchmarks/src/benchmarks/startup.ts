@@ -6,20 +6,16 @@
  */
 
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { performance } from 'node:perf_hooks';
+import { fileURLToPath } from 'node:url';
 
-import {
-  TARGET_METRICS,
-  type BenchmarkConfig,
-  type StartupResult,
-} from '../types.js';
+import { type BenchmarkConfig, type StartupResult, TARGET_METRICS } from '../types.js';
 import {
   createConfig,
-  printHeader,
-  printMetric,
-  printInfo,
   formatMs,
+  printHeader,
+  printInfo,
+  printMetric,
   spawnServer,
   stopServer,
   waitForServer,
@@ -42,18 +38,13 @@ interface StartupBenchmarkResult {
 /**
  * Measures a single startup iteration
  */
-async function measureStartup(
-  config: BenchmarkConfig
-): Promise<StartupResult> {
+async function measureStartup(config: BenchmarkConfig): Promise<StartupResult> {
   const startTime = performance.now();
 
   // Spawn server
-  const serverProcess = spawnServer(
-    PLAYGROUND_DIR,
-    'node',
-    ['dist/index.js'],
-    { USE_MOCK_DB: 'true' }
-  );
+  const serverProcess = spawnServer(PLAYGROUND_DIR, 'node', ['dist/index.js'], {
+    USE_MOCK_DB: 'true',
+  });
 
   // Wait for server to be ready
   const ready = await waitForServer(config.targetUrl, 30000);
@@ -111,9 +102,7 @@ function calculateStats(iterations: StartupResult[]): StartupBenchmarkResult {
 /**
  * Runs the startup benchmark
  */
-async function runStartupBenchmark(
-  config: BenchmarkConfig
-): Promise<StartupBenchmarkResult> {
+async function runStartupBenchmark(config: BenchmarkConfig): Promise<StartupBenchmarkResult> {
   printHeader('Startup Time Benchmark');
 
   printInfo('Target', `< ${TARGET_METRICS.startupTime} ms`);
@@ -130,7 +119,9 @@ async function runStartupBenchmark(
     const result = await measureStartup(config);
     iterations.push(result);
 
-    console.log(`    Startup: ${formatMs(result.startupTimeMs)}, First Response: ${formatMs(result.timeToFirstResponse)}`);
+    console.log(
+      `    Startup: ${formatMs(result.startupTimeMs)}, First Response: ${formatMs(result.timeToFirstResponse)}`
+    );
 
     // Small delay between iterations to let OS clean up
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -162,10 +153,8 @@ async function runStartupBenchmark(
 
   // Calculate variance
   const variance =
-    iterations.reduce(
-      (sum, i) => sum + Math.pow(i.startupTimeMs - stats.average.startupTimeMs, 2),
-      0
-    ) / iterations.length;
+    iterations.reduce((sum, i) => sum + (i.startupTimeMs - stats.average.startupTimeMs) ** 2, 0) /
+    iterations.length;
   const stddev = Math.sqrt(variance);
   printInfo('Std Deviation', formatMs(stddev));
 

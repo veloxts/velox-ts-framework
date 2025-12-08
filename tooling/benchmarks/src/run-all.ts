@@ -1,19 +1,20 @@
 #!/usr/bin/env node
+
 /**
  * Run All Benchmarks
  *
  * Executes all benchmark suites and generates a summary report.
  */
 
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 
-import { runThroughputBenchmark } from './benchmarks/throughput.js';
 import { runLatencyBenchmark } from './benchmarks/latency.js';
 import { runMemoryBenchmark } from './benchmarks/memory.js';
 import { runStartupBenchmark } from './benchmarks/startup.js';
+import { runThroughputBenchmark } from './benchmarks/throughput.js';
 import type { BenchmarkResults } from './types.js';
 import {
   createConfig,
@@ -94,12 +95,7 @@ async function main(): Promise<void> {
   if (!serverAlreadyRunning) {
     printHeader('Starting Benchmark Server');
 
-    serverProcess = spawnServer(
-      PLAYGROUND_DIR,
-      'node',
-      ['dist/index.js'],
-      { USE_MOCK_DB: 'true' }
-    );
+    serverProcess = spawnServer(PLAYGROUND_DIR, 'node', ['dist/index.js'], { USE_MOCK_DB: 'true' });
 
     const serverReady = await waitForServer(config.targetUrl, 30000);
     if (!serverReady) {
@@ -160,7 +156,6 @@ async function main(): Promise<void> {
       console.error('  Memory benchmark failed:', err);
       failed++;
     }
-
   } finally {
     // Stop server if we started it
     if (serverProcess) {

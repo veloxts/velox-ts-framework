@@ -6,23 +6,19 @@
  */
 
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 
 import autocannon from 'autocannon';
 
-import {
-  TARGET_METRICS,
-  type BenchmarkConfig,
-  type ThroughputResult,
-} from '../types.js';
+import { type BenchmarkConfig, TARGET_METRICS, type ThroughputResult } from '../types.js';
 import {
   createConfig,
+  formatNumber,
   printHeader,
-  printMetric,
   printInfo,
   printLatency,
-  formatNumber,
+  printMetric,
   spawnServer,
   stopServer,
   waitForServer,
@@ -34,9 +30,7 @@ const PLAYGROUND_DIR = path.resolve(__dirname, '../../../../apps/playground');
 /**
  * Runs the throughput benchmark
  */
-async function runThroughputBenchmark(
-  config: BenchmarkConfig
-): Promise<ThroughputResult> {
+async function runThroughputBenchmark(config: BenchmarkConfig): Promise<ThroughputResult> {
   printHeader('Throughput Benchmark');
 
   printInfo('Target URL', `${config.targetUrl}/api/health`);
@@ -121,12 +115,7 @@ async function main(): Promise<ThroughputResult | null> {
   if (!serverAlreadyRunning) {
     console.log('\n  Starting playground server...');
 
-    serverProcess = spawnServer(
-      PLAYGROUND_DIR,
-      'node',
-      ['dist/index.js'],
-      { USE_MOCK_DB: 'true' }
-    );
+    serverProcess = spawnServer(PLAYGROUND_DIR, 'node', ['dist/index.js'], { USE_MOCK_DB: 'true' });
 
     const serverReady = await waitForServer(config.targetUrl, 30000);
     if (!serverReady) {

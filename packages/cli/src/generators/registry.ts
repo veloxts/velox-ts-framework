@@ -45,9 +45,7 @@ class GeneratorRegistry {
 
     // Check for name conflicts
     if (this.generators.has(name)) {
-      throw new Error(
-        `Generator "${name}" is already registered. Generator names must be unique.`
-      );
+      throw new Error(`Generator "${name}" is already registered. Generator names must be unique.`);
     }
 
     // Check for alias conflicts
@@ -61,9 +59,7 @@ class GeneratorRegistry {
     if (aliases) {
       for (const alias of aliases) {
         if (this.generators.has(alias)) {
-          throw new Error(
-            `Alias "${alias}" conflicts with existing generator "${alias}".`
-          );
+          throw new Error(`Alias "${alias}" conflicts with existing generator "${alias}".`);
         }
         if (this.aliasMap.has(alias)) {
           throw new Error(
@@ -130,9 +126,7 @@ class GeneratorRegistry {
    * Get generators by category
    */
   getByCategory(category: GeneratorCategory): ReadonlyArray<RegisteredGenerator> {
-    return this.getAll().filter(
-      (entry) => entry.generator.metadata.category === category
-    );
+    return this.getAll().filter((entry) => entry.generator.metadata.category === category);
   }
 
   /**

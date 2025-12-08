@@ -6,22 +6,18 @@
  */
 
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 
 import autocannon from 'autocannon';
 
-import {
-  TARGET_METRICS,
-  type BenchmarkConfig,
-  type MemoryResult,
-} from '../types.js';
+import { type BenchmarkConfig, type MemoryResult, TARGET_METRICS } from '../types.js';
 import {
   createConfig,
   printHeader,
-  printMetric,
   printInfo,
   printMemory,
+  printMetric,
   spawnServer,
   stopServer,
   waitForServer,
@@ -168,7 +164,7 @@ async function runMemoryBenchmark(
 
   console.log('\n  Note: For accurate measurements, add a /debug/memory endpoint:');
   console.log('  ```typescript');
-  console.log('  app.get(\'/debug/memory\', async () => process.memoryUsage());');
+  console.log("  app.get('/debug/memory', async () => process.memoryUsage());");
   console.log('  ```');
 
   return {
@@ -193,12 +189,7 @@ async function main(): Promise<MemoryBenchmarkResult | null> {
   if (!serverAlreadyRunning) {
     console.log('\n  Starting playground server...');
 
-    serverProcess = spawnServer(
-      PLAYGROUND_DIR,
-      'node',
-      ['dist/index.js'],
-      { USE_MOCK_DB: 'true' }
-    );
+    serverProcess = spawnServer(PLAYGROUND_DIR, 'node', ['dist/index.js'], { USE_MOCK_DB: 'true' });
 
     const serverReady = await waitForServer(config.targetUrl, 30000);
     if (!serverReady) {

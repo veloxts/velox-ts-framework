@@ -15,10 +15,7 @@ import type { PrismaResult } from './types.js';
 /**
  * Execute a Prisma CLI command
  */
-export async function runPrismaCommand(
-  command: string[],
-  cwd: string
-): Promise<PrismaResult> {
+export async function runPrismaCommand(command: string[], cwd: string): Promise<PrismaResult> {
   return new Promise((resolve) => {
     const fullCommand = ['prisma', ...command];
     let stdout = '';
@@ -118,10 +115,7 @@ export async function prismaMigrateDeploy(cwd: string): Promise<PrismaResult> {
 /**
  * Run `prisma migrate dev` (development)
  */
-export async function prismaMigrateDev(
-  cwd: string,
-  name?: string
-): Promise<PrismaResult> {
+export async function prismaMigrateDev(cwd: string, name?: string): Promise<PrismaResult> {
   const args = ['migrate', 'dev'];
   if (name) {
     args.push('--name', name);
@@ -132,10 +126,7 @@ export async function prismaMigrateDev(
 /**
  * Run `prisma migrate reset` (drop all + re-run)
  */
-export async function prismaMigrateReset(
-  cwd: string,
-  force = false
-): Promise<PrismaResult> {
+export async function prismaMigrateReset(cwd: string, force = false): Promise<PrismaResult> {
   const args = ['migrate', 'reset'];
   if (force) {
     args.push('--force');
@@ -146,10 +137,7 @@ export async function prismaMigrateReset(
 /**
  * Run `prisma db push` (sync schema without migrations)
  */
-export async function prismaDbPush(
-  cwd: string,
-  skipGenerate = false
-): Promise<PrismaResult> {
+export async function prismaDbPush(cwd: string, skipGenerate = false): Promise<PrismaResult> {
   const args = ['db', 'push'];
   if (skipGenerate) {
     args.push('--skip-generate');

@@ -6,6 +6,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+
 import type {
   ConflictStrategy,
   Generator,
@@ -26,11 +27,7 @@ import { deriveEntityNames } from './utils/naming.js';
 /**
  * Markers that indicate a VeloxTS project
  */
-const VELOX_PROJECT_MARKERS = [
-  '@veloxts/velox',
-  '@veloxts/core',
-  '@veloxts/router',
-] as const;
+const VELOX_PROJECT_MARKERS = ['@veloxts/velox', '@veloxts/core', '@veloxts/router'] as const;
 
 /**
  * Ensure the current directory is a VeloxTS project
@@ -54,9 +51,7 @@ export async function ensureVeloxProject(cwd: string): Promise<void> {
     ...packageJson.devDependencies,
   };
 
-  const hasVeloxMarker = VELOX_PROJECT_MARKERS.some(
-    (marker) => marker in dependencies
-  );
+  const hasVeloxMarker = VELOX_PROJECT_MARKERS.some((marker) => marker in dependencies);
 
   if (!hasVeloxMarker) {
     throw new GeneratorError(
@@ -132,18 +127,77 @@ function detectDatabase(cwd: string): 'sqlite' | 'postgresql' | 'mysql' {
  */
 const RESERVED_WORDS = new Set([
   // JavaScript/TypeScript keywords
-  'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger',
-  'default', 'delete', 'do', 'else', 'enum', 'export', 'extends',
-  'false', 'finally', 'for', 'function', 'if', 'import', 'in',
-  'instanceof', 'let', 'new', 'null', 'return', 'static', 'super',
-  'switch', 'this', 'throw', 'true', 'try', 'typeof', 'var', 'void',
-  'while', 'with', 'yield', 'async', 'await', 'implements', 'interface',
-  'package', 'private', 'protected', 'public', 'type', 'any', 'unknown',
-  'never', 'object', 'string', 'number', 'boolean', 'symbol', 'bigint',
+  'break',
+  'case',
+  'catch',
+  'class',
+  'const',
+  'continue',
+  'debugger',
+  'default',
+  'delete',
+  'do',
+  'else',
+  'enum',
+  'export',
+  'extends',
+  'false',
+  'finally',
+  'for',
+  'function',
+  'if',
+  'import',
+  'in',
+  'instanceof',
+  'let',
+  'new',
+  'null',
+  'return',
+  'static',
+  'super',
+  'switch',
+  'this',
+  'throw',
+  'true',
+  'try',
+  'typeof',
+  'var',
+  'void',
+  'while',
+  'with',
+  'yield',
+  'async',
+  'await',
+  'implements',
+  'interface',
+  'package',
+  'private',
+  'protected',
+  'public',
+  'type',
+  'any',
+  'unknown',
+  'never',
+  'object',
+  'string',
+  'number',
+  'boolean',
+  'symbol',
+  'bigint',
 
   // VeloxTS reserved
-  'procedure', 'procedures', 'context', 'router', 'velox', 'api',
-  'query', 'mutation', 'input', 'output', 'guard', 'middleware',
+  'procedure',
+  'procedures',
+  'context',
+  'router',
+  'velox',
+  'api',
+  'query',
+  'mutation',
+  'input',
+  'output',
+  'guard',
+  'middleware',
 ]);
 
 /**
@@ -222,9 +276,7 @@ export abstract class BaseGenerator<TOptions = Record<string, unknown>>
   /**
    * Create a template context for generation
    */
-  protected createContext(
-    config: GeneratorConfig<TOptions>
-  ): TemplateContext<TOptions> {
+  protected createContext(config: GeneratorConfig<TOptions>): TemplateContext<TOptions> {
     return {
       entity: deriveEntityNames(config.entityName),
       project: config.project,
@@ -242,11 +294,7 @@ export abstract class BaseGenerator<TOptions = Record<string, unknown>>
   /**
    * Check if a file would conflict (exists and shouldn't be overwritten)
    */
-  protected wouldConflict(
-    filePath: string,
-    strategy: ConflictStrategy,
-    force: boolean
-  ): boolean {
+  protected wouldConflict(filePath: string, strategy: ConflictStrategy, force: boolean): boolean {
     if (force) {
       return false;
     }
@@ -261,10 +309,7 @@ export abstract class BaseGenerator<TOptions = Record<string, unknown>>
   /**
    * Format a success message for generated files
    */
-  protected formatSuccessMessage(
-    files: ReadonlyArray<{ path: string }>,
-    dryRun: boolean
-  ): string {
+  protected formatSuccessMessage(files: ReadonlyArray<{ path: string }>, dryRun: boolean): string {
     const prefix = dryRun ? '[dry-run] Would create' : 'Created';
     const fileList = files.map((f) => `  • ${f.path}`).join('\n');
     return `${prefix}:\n${fileList}`;

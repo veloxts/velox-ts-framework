@@ -8,8 +8,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineProcedures, procedure } from '../procedure/builder.js';
-import { buildNestedRestPath } from '../rest/naming.js';
 import { generateRestRoutes, registerRestRoutes, rest } from '../rest/adapter.js';
+import { buildNestedRestPath } from '../rest/naming.js';
 import type { ParentResourceConfig } from '../types.js';
 
 describe('buildNestedRestPath', () => {
@@ -106,19 +106,27 @@ describe('procedure().parent()', () => {
 
   it('should derive singular param name from plural namespace', () => {
     // Simple plural
-    const usersProc = procedure().parent('users').query(async () => ({}));
+    const usersProc = procedure()
+      .parent('users')
+      .query(async () => ({}));
     expect(usersProc.parentResource?.paramName).toBe('userId');
 
     // -ies plural
-    const categoriesProc = procedure().parent('categories').query(async () => ({}));
+    const categoriesProc = procedure()
+      .parent('categories')
+      .query(async () => ({}));
     expect(categoriesProc.parentResource?.paramName).toBe('categoryId');
 
     // -es plural
-    const boxesProc = procedure().parent('boxes').query(async () => ({}));
+    const boxesProc = procedure()
+      .parent('boxes')
+      .query(async () => ({}));
     expect(boxesProc.parentResource?.paramName).toBe('boxId');
 
     // Already singular or non-standard
-    const dataProc = procedure().parent('data').query(async () => ({}));
+    const dataProc = procedure()
+      .parent('data')
+      .query(async () => ({}));
     expect(dataProc.parentResource?.paramName).toBe('datumId');
   });
 
@@ -154,7 +162,11 @@ describe('generateRestRoutes with parent', () => {
       createComment: procedure()
         .parent('posts')
         .input(z.object({ postId: z.string(), content: z.string() }))
-        .mutation(async ({ input }) => ({ id: 'new', postId: input.postId, content: input.content })),
+        .mutation(async ({ input }) => ({
+          id: 'new',
+          postId: input.postId,
+          content: input.content,
+        })),
     });
 
     const routes = generateRestRoutes(collection);

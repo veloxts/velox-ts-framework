@@ -8,13 +8,8 @@ import fs from 'node:fs/promises';
 
 import type { PrismaClient } from '@prisma/client';
 
-import type {
-  MigrationFile,
-  RollbackResult,
-  BatchRollbackResult,
-  DatabaseType,
-} from './types.js';
-import { noRollbackFile, rollbackFailed, databaseError } from './errors.js';
+import { databaseError, noRollbackFile, rollbackFailed } from './errors.js';
+import type { BatchRollbackResult, DatabaseType, MigrationFile, RollbackResult } from './types.js';
 
 // ============================================================================
 // Types
@@ -107,9 +102,7 @@ export async function rollbackMultiple(
   let failed = 0;
 
   // Ensure migrations are in reverse chronological order
-  const orderedMigrations = [...migrations].sort((a, b) =>
-    b.timestamp.localeCompare(a.timestamp)
-  );
+  const orderedMigrations = [...migrations].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
   for (const migration of orderedMigrations) {
     try {

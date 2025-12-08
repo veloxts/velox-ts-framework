@@ -12,11 +12,11 @@
 import { Command } from 'commander';
 
 import {
-  createMigrateStatusCommand,
-  createMigrateRunCommand,
-  createMigrateRollbackCommand,
   createMigrateFreshCommand,
   createMigrateResetCommand,
+  createMigrateRollbackCommand,
+  createMigrateRunCommand,
+  createMigrateStatusCommand,
 } from '../migrations/commands/index.js';
 
 /**

@@ -7,22 +7,22 @@
 import path from 'node:path';
 
 import * as p from '@clack/prompts';
+import { PrismaClient } from '@prisma/client';
 import { Command } from 'commander';
 import pc from 'picocolors';
-import { PrismaClient } from '@prisma/client';
 
 import { error, info, success, warning } from '../../utils/output.js';
 import { fileExists } from '../../utils/paths.js';
-import type { MigrateResetOptions, MigrationFile } from '../types.js';
+import { MigrationError } from '../errors.js';
 import { loadMigrations, migrationsDirExists } from '../loader.js';
 import {
-  prismaMigrateStatus,
   parseMigrateStatusOutput,
-  prismaMigrateDeploy,
   prismaDbSeed,
+  prismaMigrateDeploy,
+  prismaMigrateStatus,
 } from '../prisma-wrapper.js';
 import { rollbackAll } from '../rollback-runner.js';
-import { MigrationError } from '../errors.js';
+import type { MigrateResetOptions, MigrationFile } from '../types.js';
 
 /**
  * Create the migrate:reset command
@@ -91,11 +91,13 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
     const withoutRollback = appliedFiles.filter((m) => !m.hasRollback);
     if (withoutRollback.length > 0) {
       if (options.json) {
-        console.log(JSON.stringify({
-          error: 'Cannot reset - missing rollback files',
-          migrations: withoutRollback.map((m) => m.name),
-          suggestion: 'Use "velox migrate:fresh" to drop all tables instead',
-        }));
+        console.log(
+          JSON.stringify({
+            error: 'Cannot reset - missing rollback files',
+            migrations: withoutRollback.map((m) => m.name),
+            suggestion: 'Use "velox migrate:fresh" to drop all tables instead',
+          })
+        );
       } else {
         error('Cannot reset - missing down.sql files:');
         for (const m of withoutRollback) {
@@ -110,7 +112,9 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
     // Show warning
     if (!options.json) {
       console.log('');
-      warning(`This will rollback ${appliedFiles.length} migration${appliedFiles.length > 1 ? 's' : ''} then re-run them.`);
+      warning(
+        `This will rollback ${appliedFiles.length} migration${appliedFiles.length > 1 ? 's' : ''} then re-run them.`
+      );
       console.log('');
     }
 
@@ -133,7 +137,9 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
     // Step 1: Rollback all migrations
     if (!options.json) {
       console.log('');
-      s.start(`Rolling back ${appliedFiles.length} migration${appliedFiles.length > 1 ? 's' : ''}...`);
+      s.start(
+        `Rolling back ${appliedFiles.length} migration${appliedFiles.length > 1 ? 's' : ''}...`
+      );
     }
 
     const rollbackResult = await rollbackAll(prisma, appliedFiles);
@@ -144,12 +150,14 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
       }
 
       if (options.json) {
-        console.log(JSON.stringify({
-          success: false,
-          phase: 'rollback',
-          error: 'Rollback failed',
-          results: rollbackResult.results,
-        }));
+        console.log(
+          JSON.stringify({
+            success: false,
+            phase: 'rollback',
+            error: 'Rollback failed',
+            results: rollbackResult.results,
+          })
+        );
       } else {
         console.log('');
         error('Rollback failed. Database may be in an inconsistent state.');
@@ -162,7 +170,9 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
     }
 
     if (!options.json) {
-      s.stop(`Rolled back ${rollbackResult.successful} migration${rollbackResult.successful > 1 ? 's' : ''}`);
+      s.stop(
+        `Rolled back ${rollbackResult.successful} migration${rollbackResult.successful > 1 ? 's' : ''}`
+      );
     }
 
     // Step 2: Re-run migrations
@@ -183,12 +193,14 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
       }
 
       if (options.json) {
-        console.log(JSON.stringify({
-          success: false,
-          phase: 'deploy',
-          error: deployResult.error,
-          rollbackSuccessful: rollbackResult.successful,
-        }));
+        console.log(
+          JSON.stringify({
+            success: false,
+            phase: 'deploy',
+            error: deployResult.error,
+            rollbackSuccessful: rollbackResult.successful,
+          })
+        );
       } else {
         console.log('');
         error('Migration failed after rollback. Database may be in an inconsistent state.');
@@ -219,11 +231,13 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
         }
 
         if (options.json) {
-          console.log(JSON.stringify({
-            success: true,
-            message: 'Reset complete but seeding failed',
-            seedError: seedResult.error,
-          }));
+          console.log(
+            JSON.stringify({
+              success: true,
+              message: 'Reset complete but seeding failed',
+              seedError: seedResult.error,
+            })
+          );
         } else {
           console.log('');
           warning('Reset complete but seeding failed.');
@@ -242,18 +256,19 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
 
     // Success output
     if (options.json) {
-      console.log(JSON.stringify({
-        success: true,
-        message: options.seed
-          ? 'Database reset and seeded successfully'
-          : 'Database reset successfully',
-        rollbackCount: rollbackResult.successful,
-      }));
+      console.log(
+        JSON.stringify({
+          success: true,
+          message: options.seed
+            ? 'Database reset and seeded successfully'
+            : 'Database reset successfully',
+          rollbackCount: rollbackResult.successful,
+        })
+      );
     } else {
       console.log('');
-      success(options.seed
-        ? 'Database reset and seeded successfully!'
-        : 'Database reset successfully!'
+      success(
+        options.seed ? 'Database reset and seeded successfully!' : 'Database reset successfully!'
       );
       console.log('');
     }

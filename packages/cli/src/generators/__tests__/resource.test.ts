@@ -4,7 +4,8 @@
  * Tests for full-stack resource generation.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { createResourceGenerator } from '../generators/resource.js';
 import type { GeneratorConfig, ProjectContext } from '../types.js';
 
@@ -351,7 +352,9 @@ describe('ResourceGenerator', () => {
       };
 
       const output = await generator.generate(config);
-      const procFile = output.files.find((f) => f.path.endsWith('.ts') && !f.path.includes('__tests__'));
+      const procFile = output.files.find(
+        (f) => f.path.endsWith('.ts') && !f.path.includes('__tests__')
+      );
 
       expect(procFile!.content).toContain('deletedAt: null');
       expect(procFile!.content).toContain('deletedAt: new Date()');

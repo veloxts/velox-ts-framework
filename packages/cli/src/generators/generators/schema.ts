@@ -5,12 +5,17 @@
  */
 
 import { BaseGenerator } from '../base.js';
-import type { GeneratorConfig, GeneratorMetadata, GeneratorOption, GeneratorOutput } from '../types.js';
 import {
-  type SchemaOptions,
   generateSchemaFiles,
   getSchemaInstructions,
+  type SchemaOptions,
 } from '../templates/schema.js';
+import type {
+  GeneratorConfig,
+  GeneratorMetadata,
+  GeneratorOption,
+  GeneratorOutput,
+} from '../types.js';
 
 // ============================================================================
 // Generator Metadata

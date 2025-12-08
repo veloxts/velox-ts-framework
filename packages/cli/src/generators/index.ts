@@ -5,6 +5,42 @@
  * Re-exports all public generator APIs.
  */
 
+// Base infrastructure
+export {
+  applyCliFlags,
+  BaseGenerator,
+  createDefaultConfig,
+  detectProjectContext,
+  ensureVeloxProject,
+  validateEntityNameDefault,
+} from './base.js';
+// Built-in generators
+export {
+  createMigrationGenerator,
+  createModelGenerator,
+  createProcedureGenerator,
+  createResourceGenerator,
+  createSchemaGenerator,
+  createTestGenerator,
+  MigrationGenerator,
+  ModelGenerator,
+  ProcedureGenerator,
+  ResourceGenerator,
+  registerBuiltinGenerators,
+  SchemaGenerator,
+  TestGenerator,
+} from './generators/index.js';
+// Registry
+export type { RegisteredGenerator } from './registry.js';
+export {
+  findSimilarGenerators,
+  formatGeneratorList,
+  getAllGenerators,
+  getGenerator,
+  getGeneratorsByCategory,
+  registerGenerator,
+  registry,
+} from './registry.js';
 // Types
 export type {
   AnyGenerator,
@@ -22,31 +58,18 @@ export type {
   TemplateContext,
   TemplateFunction,
 } from './types.js';
-
 export { GeneratorError, GeneratorErrorCode } from './types.js';
-
-// Base infrastructure
+export type { WriteOptions, WriteResult } from './utils/filesystem.js';
 export {
-  BaseGenerator,
-  applyCliFlags,
-  createDefaultConfig,
-  detectProjectContext,
-  ensureVeloxProject,
-  validateEntityNameDefault,
-} from './base.js';
-
-// Registry
-export type { RegisteredGenerator } from './registry.js';
-export {
-  findSimilarGenerators,
-  formatGeneratorList,
-  getAllGenerators,
-  getGenerator,
-  getGeneratorsByCategory,
-  registerGenerator,
-  registry,
-} from './registry.js';
-
+  dirExists,
+  ensureDir,
+  fileExists,
+  formatWriteResults,
+  formatWriteResultsJson,
+  readFileSafe,
+  writeFile,
+  writeFiles,
+} from './utils/filesystem.js';
 // Utilities
 export {
   deriveEntityNames,
@@ -60,32 +83,3 @@ export {
   toScreamingSnakeCase,
   toSnakeCase,
 } from './utils/naming.js';
-
-export type { WriteOptions, WriteResult } from './utils/filesystem.js';
-export {
-  dirExists,
-  ensureDir,
-  fileExists,
-  formatWriteResults,
-  formatWriteResultsJson,
-  readFileSafe,
-  writeFile,
-  writeFiles,
-} from './utils/filesystem.js';
-
-// Built-in generators
-export {
-  MigrationGenerator,
-  ModelGenerator,
-  ProcedureGenerator,
-  ResourceGenerator,
-  SchemaGenerator,
-  TestGenerator,
-  createMigrationGenerator,
-  createModelGenerator,
-  createProcedureGenerator,
-  createResourceGenerator,
-  createSchemaGenerator,
-  createTestGenerator,
-  registerBuiltinGenerators,
-} from './generators/index.js';

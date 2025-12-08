@@ -7,17 +7,21 @@
 import path from 'node:path';
 
 import * as p from '@clack/prompts';
+import { PrismaClient } from '@prisma/client';
 import { Command } from 'commander';
 import pc from 'picocolors';
-import { PrismaClient } from '@prisma/client';
 
 import { error, info, success, warning } from '../../utils/output.js';
 import { fileExists } from '../../utils/paths.js';
-import type { MigrateRollbackOptions, MigrationFile } from '../types.js';
-import { loadMigrations, migrationsDirExists, getAppliedMigrationsWithRollback } from '../loader.js';
-import { prismaMigrateStatus, parseMigrateStatusOutput } from '../prisma-wrapper.js';
-import { rollbackMultiple, getAppliedMigrations } from '../rollback-runner.js';
 import { MigrationError, noAppliedMigrations, noRollbackFile } from '../errors.js';
+import {
+  getAppliedMigrationsWithRollback,
+  loadMigrations,
+  migrationsDirExists,
+} from '../loader.js';
+import { parseMigrateStatusOutput, prismaMigrateStatus } from '../prisma-wrapper.js';
+import { getAppliedMigrations, rollbackMultiple } from '../rollback-runner.js';
+import type { MigrateRollbackOptions, MigrationFile } from '../types.js';
 
 /**
  * Create the migrate:rollback command
@@ -110,10 +114,12 @@ async function runMigrateRollback(options: MigrateRollbackOptions): Promise<void
     const withoutRollback = toRollback.filter((m) => !m.hasRollback);
     if (withoutRollback.length > 0) {
       if (options.json) {
-        console.log(JSON.stringify({
-          error: 'Missing rollback files',
-          migrations: withoutRollback.map((m) => m.name),
-        }));
+        console.log(
+          JSON.stringify({
+            error: 'Missing rollback files',
+            migrations: withoutRollback.map((m) => m.name),
+          })
+        );
       } else {
         error('Cannot rollback - missing down.sql files:');
         for (const m of withoutRollback) {
@@ -141,11 +147,17 @@ async function runMigrateRollback(options: MigrateRollbackOptions): Promise<void
     // Dry run
     if (options.dryRun) {
       if (options.json) {
-        console.log(JSON.stringify({
-          dryRun: true,
-          wouldRollback: toRollback.map((m) => m.name),
-          count: toRollback.length,
-        }, null, 2));
+        console.log(
+          JSON.stringify(
+            {
+              dryRun: true,
+              wouldRollback: toRollback.map((m) => m.name),
+              count: toRollback.length,
+            },
+            null,
+            2
+          )
+        );
       } else {
         warning('Dry run mode - no changes made.');
         console.log(`  ${pc.dim('Remove --dry-run to execute rollback.')}`);
@@ -185,17 +197,25 @@ async function runMigrateRollback(options: MigrateRollbackOptions): Promise<void
 
     // Output results
     if (options.json) {
-      console.log(JSON.stringify({
-        success: result.failed === 0,
-        rolledBack: result.results.filter((r) => r.success).map((r) => r.migration),
-        failed: result.results.filter((r) => !r.success).map((r) => ({
-          migration: r.migration,
-          error: r.error,
-        })),
-        total: result.total,
-        successful: result.successful,
-        duration: result.duration,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            success: result.failed === 0,
+            rolledBack: result.results.filter((r) => r.success).map((r) => r.migration),
+            failed: result.results
+              .filter((r) => !r.success)
+              .map((r) => ({
+                migration: r.migration,
+                error: r.error,
+              })),
+            total: result.total,
+            successful: result.successful,
+            duration: result.duration,
+          },
+          null,
+          2
+        )
+      );
     } else {
       console.log('');
 

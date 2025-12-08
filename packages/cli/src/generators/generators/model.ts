@@ -15,17 +15,13 @@
  */
 
 import { BaseGenerator } from '../base.js';
+import { generateModelFiles, getModelInstructions, type ModelOptions } from '../templates/model.js';
 import type {
   GeneratorConfig,
   GeneratorMetadata,
   GeneratorOption,
   GeneratorOutput,
 } from '../types.js';
-import {
-  generateModelFiles,
-  getModelInstructions,
-  type ModelOptions,
-} from '../templates/model.js';
 
 // ============================================================================
 // Generator Implementation

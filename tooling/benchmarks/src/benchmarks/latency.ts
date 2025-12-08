@@ -6,22 +6,18 @@
  */
 
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 
 import autocannon from 'autocannon';
 
-import {
-  TARGET_METRICS,
-  type BenchmarkConfig,
-  type LatencyPercentiles,
-} from '../types.js';
+import { type BenchmarkConfig, type LatencyPercentiles, TARGET_METRICS } from '../types.js';
 import {
   createConfig,
-  printHeader,
-  printMetric,
-  printInfo,
   formatMs,
+  printHeader,
+  printInfo,
+  printMetric,
   spawnServer,
   stopServer,
   waitForServer,
@@ -93,9 +89,7 @@ function printLatencyTable(endpoints: Map<string, LatencyPercentiles>): void {
 /**
  * Runs the latency benchmark
  */
-async function runLatencyBenchmark(
-  config: BenchmarkConfig
-): Promise<LatencyResult> {
+async function runLatencyBenchmark(config: BenchmarkConfig): Promise<LatencyResult> {
   printHeader('Latency Benchmark');
 
   printInfo('Target URL', config.targetUrl);
@@ -175,12 +169,7 @@ async function main(): Promise<LatencyResult | null> {
   if (!serverAlreadyRunning) {
     console.log('\n  Starting playground server...');
 
-    serverProcess = spawnServer(
-      PLAYGROUND_DIR,
-      'node',
-      ['dist/index.js'],
-      { USE_MOCK_DB: 'true' }
-    );
+    serverProcess = spawnServer(PLAYGROUND_DIR, 'node', ['dist/index.js'], { USE_MOCK_DB: 'true' });
 
     const serverReady = await waitForServer(config.targetUrl, 30000);
     if (!serverReady) {

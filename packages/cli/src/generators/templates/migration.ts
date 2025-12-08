@@ -4,7 +4,7 @@
  * Generates Prisma migration files with common SQL patterns.
  */
 
-import type { TemplateContext, TemplateFunction, GeneratedFile } from '../types.js';
+import type { GeneratedFile, TemplateContext, TemplateFunction } from '../types.js';
 
 // ============================================================================
 // Template Options
@@ -99,15 +99,14 @@ function parseMigrationName(name: string): ParsedMigration {
  */
 function generateCreateTableSql(table: string, database: string): string {
   const idType = database === 'postgresql' ? 'UUID' : 'TEXT';
-  const idDefault = database === 'postgresql'
-    ? 'DEFAULT gen_random_uuid()'
-    : '';
+  const idDefault = database === 'postgresql' ? 'DEFAULT gen_random_uuid()' : '';
   const timestampType = database === 'mysql' ? 'DATETIME' : 'TIMESTAMP';
-  const timestampDefault = database === 'sqlite'
-    ? "DEFAULT (datetime('now'))"
-    : database === 'postgresql'
-    ? 'DEFAULT CURRENT_TIMESTAMP'
-    : 'DEFAULT CURRENT_TIMESTAMP';
+  const timestampDefault =
+    database === 'sqlite'
+      ? "DEFAULT (datetime('now'))"
+      : database === 'postgresql'
+        ? 'DEFAULT CURRENT_TIMESTAMP'
+        : 'DEFAULT CURRENT_TIMESTAMP';
 
   return `-- CreateTable
 CREATE TABLE "${table}" (
@@ -261,7 +260,11 @@ ALTER TABLE "${table}" ADD COLUMN "${column}" TEXT;
 /**
  * Generate reverse RENAME TABLE SQL for rollback
  */
-function generateRollbackRenameTableSql(oldName: string, newName: string, database: string): string {
+function generateRollbackRenameTableSql(
+  oldName: string,
+  newName: string,
+  database: string
+): string {
   // Reverse the rename: newName -> oldName
   if (database === 'mysql') {
     return `-- RollbackRenameTable

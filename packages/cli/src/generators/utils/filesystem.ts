@@ -7,8 +7,10 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative } from 'node:path';
+
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
+
 import type { ConflictStrategy, GeneratedFile } from '../types.js';
 import { GeneratorError, GeneratorErrorCode } from '../types.js';
 
@@ -49,10 +51,7 @@ export interface WriteOptions {
 /**
  * Write a single file with conflict handling
  */
-export async function writeFile(
-  file: GeneratedFile,
-  options: WriteOptions
-): Promise<WriteResult> {
+export async function writeFile(file: GeneratedFile, options: WriteOptions): Promise<WriteResult> {
   const { conflictStrategy, dryRun, force, cwd } = options;
   const fullPath = file.path.startsWith('/') ? file.path : `${cwd}/${file.path}`;
   const relativePath = relative(cwd, fullPath);
@@ -164,9 +163,7 @@ async function resolveConflict(
 /**
  * Interactively prompt user to resolve a conflict
  */
-async function promptConflictResolution(
-  path: string
-): Promise<'overwrite' | 'skip' | 'error'> {
+async function promptConflictResolution(path: string): Promise<'overwrite' | 'skip' | 'error'> {
   const result = await p.select({
     message: `File ${pc.yellow(path)} already exists. What would you like to do?`,
     options: [
@@ -177,10 +174,7 @@ async function promptConflictResolution(
   });
 
   if (p.isCancel(result)) {
-    throw new GeneratorError(
-      GeneratorErrorCode.CANCELED,
-      'Operation canceled by user'
-    );
+    throw new GeneratorError(GeneratorErrorCode.CANCELED, 'Operation canceled by user');
   }
 
   return result as 'overwrite' | 'skip' | 'error';
@@ -234,10 +228,7 @@ export function dirExists(path: string): boolean {
 /**
  * Format write results for display
  */
-export function formatWriteResults(
-  results: ReadonlyArray<WriteResult>,
-  dryRun: boolean
-): string {
+export function formatWriteResults(results: ReadonlyArray<WriteResult>, dryRun: boolean): string {
   const lines: string[] = [];
 
   for (const result of results) {
@@ -297,9 +288,7 @@ function getActionText(action: WriteResult['action'], dryRun: boolean): string {
 /**
  * Format write results as JSON for machine consumption
  */
-export function formatWriteResultsJson(
-  results: ReadonlyArray<WriteResult>
-): string {
+export function formatWriteResultsJson(results: ReadonlyArray<WriteResult>): string {
   return JSON.stringify(
     {
       success: true,

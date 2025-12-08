@@ -4,7 +4,7 @@
  * Generates Vitest test files for VeloxTS applications.
  */
 
-import type { TemplateContext, TemplateFunction, GeneratedFile } from '../types.js';
+import type { GeneratedFile, TemplateContext, TemplateFunction } from '../types.js';
 
 // ============================================================================
 // Template Options
@@ -24,7 +24,11 @@ export interface TestOptions {
 /**
  * Generate unit test for procedures
  */
-function generateProcedureUnitTest(entity: { pascal: string; camel: string; kebab: string }): string {
+function generateProcedureUnitTest(entity: {
+  pascal: string;
+  camel: string;
+  kebab: string;
+}): string {
   const { pascal, camel, kebab } = entity;
 
   return `/**
@@ -849,10 +853,7 @@ export const testTemplate: TemplateFunction<TestOptions> = (ctx) => {
 /**
  * Get output path for test file
  */
-export function getTestPath(
-  entity: { kebab: string },
-  options: TestOptions
-): string {
+export function getTestPath(entity: { kebab: string }, options: TestOptions): string {
   const { type, target } = options;
 
   const suffix = type === 'e2e' ? 'e2e' : type === 'integration' ? 'integration' : 'test';
@@ -901,11 +902,12 @@ export function generateTestFiles(ctx: TemplateContext<TestOptions>): GeneratedF
 export function getTestInstructions(entityName: string, options: TestOptions): string {
   const { type, target } = options;
 
-  const runCommand = type === 'e2e'
-    ? 'pnpm test:e2e'
-    : type === 'integration'
-    ? 'pnpm test:integration'
-    : 'pnpm test';
+  const runCommand =
+    type === 'e2e'
+      ? 'pnpm test:e2e'
+      : type === 'integration'
+        ? 'pnpm test:integration'
+        : 'pnpm test';
 
   return `
   1. Uncomment and customize the test cases in the generated file.

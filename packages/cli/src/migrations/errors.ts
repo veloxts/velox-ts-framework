@@ -144,14 +144,10 @@ export function migrationNotFound(name: string): MigrationError {
  * Create error for missing rollback file
  */
 export function noRollbackFile(migration: string): MigrationError {
-  return new MigrationError(
-    'NO_ROLLBACK_FILE',
-    `No down.sql found for migration: ${migration}`,
-    {
-      details: { migration },
-      fix: 'Create a down.sql file in the migration folder, or use "velox migrate:fresh" to reset.',
-    }
-  );
+  return new MigrationError('NO_ROLLBACK_FILE', `No down.sql found for migration: ${migration}`, {
+    details: { migration },
+    fix: 'Create a down.sql file in the migration folder, or use "velox migrate:fresh" to reset.',
+  });
 }
 
 /**
@@ -200,13 +196,13 @@ export function noAppliedMigrations(): MigrationError {
 /**
  * Create error for checksum mismatch
  */
-export function checksumMismatch(migration: string, expected: string, actual: string): MigrationError {
-  return new MigrationError(
-    'CHECKSUM_MISMATCH',
-    `Migration checksum mismatch: ${migration}`,
-    {
-      details: { migration, expected, actual },
-      fix: 'The migration file has been modified after it was applied. Use "velox migrate:fresh" to reset.',
-    }
-  );
+export function checksumMismatch(
+  migration: string,
+  expected: string,
+  actual: string
+): MigrationError {
+  return new MigrationError('CHECKSUM_MISMATCH', `Migration checksum mismatch: ${migration}`, {
+    details: { migration, expected, actual },
+    fix: 'The migration file has been modified after it was applied. Use "velox migrate:fresh" to reset.',
+  });
 }

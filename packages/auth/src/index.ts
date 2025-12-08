@@ -298,7 +298,7 @@ export {
   createPasswordPolicy,
   isCommonPassword,
   PasswordPolicy,
+  PasswordStrength,
   // Succinct API
   passwordPolicy,
-  PasswordStrength,
 } from './password-policy.js';

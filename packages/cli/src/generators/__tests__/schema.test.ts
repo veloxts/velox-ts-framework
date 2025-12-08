@@ -4,7 +4,8 @@
  * Tests for Zod schema template generation.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { createSchemaGenerator } from '../generators/schema.js';
 import type { GeneratorConfig, ProjectContext } from '../types.js';
 
@@ -313,8 +314,12 @@ describe('SchemaGenerator', () => {
       const content = output.files[0].content;
 
       expect(content).toContain('export type User = z.infer<typeof userSchema>');
-      expect(content).toContain('export type CreateUserInput = z.infer<typeof createUserInputSchema>');
-      expect(content).toContain('export type UserListResponse = z.infer<typeof userListResponseSchema>');
+      expect(content).toContain(
+        'export type CreateUserInput = z.infer<typeof createUserInputSchema>'
+      );
+      expect(content).toContain(
+        'export type UserListResponse = z.infer<typeof userListResponseSchema>'
+      );
     });
   });
 });

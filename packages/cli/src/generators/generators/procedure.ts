@@ -14,6 +14,12 @@
  */
 
 import { BaseGenerator } from '../base.js';
+import {
+  getProcedureInstructions,
+  getProcedurePath,
+  type ProcedureOptions,
+  procedureTemplate,
+} from '../templates/procedure.js';
 import type {
   GeneratedFile,
   GeneratorConfig,
@@ -21,12 +27,6 @@ import type {
   GeneratorOption,
   GeneratorOutput,
 } from '../types.js';
-import {
-  getProcedureInstructions,
-  getProcedurePath,
-  procedureTemplate,
-  type ProcedureOptions,
-} from '../templates/procedure.js';
 
 // ============================================================================
 // Generator Implementation

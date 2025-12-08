@@ -4,7 +4,8 @@
  * Tests for migration template generation including name parsing.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { createMigrationGenerator } from '../generators/migration.js';
 import type { GeneratorConfig, ProjectContext } from '../types.js';
 
@@ -277,7 +278,9 @@ describe('MigrationGenerator', () => {
       const output = await generator.generate(config);
 
       // Should have timestamped folder
-      expect(output.files[0].path).toMatch(/prisma\/migrations\/\d{14}_create_users\/migration\.sql/);
+      expect(output.files[0].path).toMatch(
+        /prisma\/migrations\/\d{14}_create_users\/migration\.sql/
+      );
       expect(output.files[1].path).toMatch(/prisma\/migrations\/\d{14}_create_users\/down\.sql/);
     });
   });

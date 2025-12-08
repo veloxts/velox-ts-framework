@@ -32,12 +32,11 @@ export const CLI_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 export { createDevCommand } from './commands/dev.js';
 export { createMigrateCommand } from './commands/migrate.js';
 /**
+ * Export migration runner
+ */
+export * from './migrations/index.js';
+/**
  * Export utilities for reuse in other packages
  */
 export * from './utils/output.js';
 export * from './utils/paths.js';
-
-/**
- * Export migration runner
- */
-export * from './migrations/index.js';

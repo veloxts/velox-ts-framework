@@ -4,20 +4,20 @@
  * Tests for migration error classes and factory functions.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
-  MigrationError,
-  prismaNotFound,
-  migrationsDirNotFound,
-  migrationNotFound,
-  noRollbackFile,
-  rollbackFailed,
-  prismaError,
-  databaseError,
-  noPendingMigrations,
-  noAppliedMigrations,
   checksumMismatch,
+  databaseError,
+  MigrationError,
+  migrationNotFound,
+  migrationsDirNotFound,
+  noAppliedMigrations,
+  noPendingMigrations,
+  noRollbackFile,
+  prismaError,
+  prismaNotFound,
+  rollbackFailed,
 } from '../errors.js';
 
 describe('MigrationError', () => {

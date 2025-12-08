@@ -5,7 +5,7 @@
  * This is the "full stack" generator for quickly scaffolding new entities.
  */
 
-import type { TemplateContext, GeneratedFile } from '../types.js';
+import type { GeneratedFile, TemplateContext } from '../types.js';
 
 // ============================================================================
 // Template Options
@@ -269,9 +269,7 @@ export const ${camel}Procedures = defineProcedures('${kebab}s', {
     : `
       return ${camel}s;`;
 
-  const listOutput = paginated
-    ? `${camel}ListResponseSchema`
-    : `z.array(${camel}Schema)`;
+  const listOutput = paginated ? `${camel}ListResponseSchema` : `z.array(${camel}Schema)`;
 
   const deleteOperation = softDelete
     ? `// Soft delete
@@ -566,10 +564,7 @@ export function generateResourceFiles(ctx: TemplateContext<ResourceOptions>): Ge
 /**
  * Generate post-generation instructions
  */
-export function getResourceInstructions(
-  entityName: string,
-  options: ResourceOptions
-): string {
+export function getResourceInstructions(entityName: string, options: ResourceOptions): string {
   const steps: string[] = [];
   let stepNum = 1;
 

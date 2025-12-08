@@ -5,12 +5,13 @@
  */
 
 import { BaseGenerator } from '../base.js';
-import type { GeneratorConfig, GeneratorMetadata, GeneratorOption, GeneratorOutput } from '../types.js';
-import {
-  type TestOptions,
-  generateTestFiles,
-  getTestInstructions,
-} from '../templates/test.js';
+import { generateTestFiles, getTestInstructions, type TestOptions } from '../templates/test.js';
+import type {
+  GeneratorConfig,
+  GeneratorMetadata,
+  GeneratorOption,
+  GeneratorOutput,
+} from '../types.js';
 
 // ============================================================================
 // Generator Metadata
@@ -51,8 +52,8 @@ const options: GeneratorOption[] = [
 const validTypes = ['unit', 'integration', 'e2e'] as const;
 const validTargets = ['procedure', 'schema', 'model', 'service', 'generic'] as const;
 
-type ValidType = typeof validTypes[number];
-type ValidTarget = typeof validTargets[number];
+type ValidType = (typeof validTypes)[number];
+type ValidTarget = (typeof validTargets)[number];
 
 function isValidType(value: string): value is ValidType {
   return validTypes.includes(value as ValidType);
