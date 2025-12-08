@@ -13,70 +13,14 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 import type { BaseContext } from '@veloxts/core';
 import type { MiddlewareFunction } from '@veloxts/router';
-import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import type { User } from './types.js';
 import { AuthError } from './types.js';
-
-// ============================================================================
-// Cookie Plugin Types (from @fastify/cookie)
-// ============================================================================
-
-interface CookieSerializeOptions {
-  domain?: string;
-  path?: string;
-  sameSite?: 'strict' | 'lax' | 'none' | boolean;
-  secure?: boolean;
-  httpOnly?: boolean;
-  maxAge?: number;
-  expires?: Date;
-}
-
-interface FastifyReplyWithCookies extends FastifyReply {
-  cookie(name: string, value: string, options?: CookieSerializeOptions): FastifyReply;
-  clearCookie(name: string, options?: CookieSerializeOptions): FastifyReply;
-}
-
-interface FastifyRequestWithCookies extends FastifyRequest {
-  cookies: Record<string, string | undefined>;
-}
-
-// ============================================================================
-// Type Guards for Cookie Plugin
-// ============================================================================
-
-/**
- * Check if request has cookie support from @fastify/cookie plugin
- */
-function hasCookieSupport(request: FastifyRequest): request is FastifyRequestWithCookies {
-  return 'cookies' in request && request.cookies !== null && typeof request.cookies === 'object';
-}
-
-/**
- * Check if reply has cookie methods from @fastify/cookie plugin
- */
-function hasReplyCookieSupport(reply: FastifyReply): reply is FastifyReplyWithCookies {
-  return 'cookie' in reply && typeof reply.cookie === 'function';
-}
-
-/**
- * Get request and reply with validated cookie support
- * @throws Error with helpful message if @fastify/cookie plugin is not registered
- */
-function getValidatedCookieContext(
-  request: FastifyRequest,
-  reply: FastifyReply
-): { request: FastifyRequestWithCookies; reply: FastifyReplyWithCookies } {
-  if (!hasCookieSupport(request) || !hasReplyCookieSupport(reply)) {
-    throw new Error(
-      'Session middleware requires @fastify/cookie plugin. ' +
-        'Please register it before using session middleware:\n\n' +
-        "  import cookie from '@fastify/cookie';\n" +
-        '  await app.register(cookie);\n'
-    );
-  }
-  return { request, reply };
-}
+import {
+  type FastifyReplyWithCookies,
+  type FastifyRequestWithCookies,
+  getValidatedCookieContext,
+} from './utils/cookie-support.js';
 
 // ============================================================================
 // Constants
@@ -1175,7 +1119,9 @@ export function sessionMiddleware(config: SessionConfig) {
   ): MiddlewareFunction<TInput, TContext, TContext & SessionContext, TOutput> {
     return async ({ ctx, next }) => {
       // Validate @fastify/cookie plugin is registered and get typed context
-      const { request, reply } = getValidatedCookieContext(ctx.request, ctx.reply);
+      const { request, reply } = getValidatedCookieContext(ctx.request, ctx.reply, {
+        middlewareName: 'Session middleware',
+      });
 
       let session: Session;
 
@@ -1247,7 +1193,9 @@ export function sessionMiddleware(config: SessionConfig) {
   > {
     return async ({ ctx, next }) => {
       // Validate @fastify/cookie plugin is registered and get typed context
-      const { request, reply } = getValidatedCookieContext(ctx.request, ctx.reply);
+      const { request, reply } = getValidatedCookieContext(ctx.request, ctx.reply, {
+        middlewareName: 'Session middleware',
+      });
 
       const session = await manager.getOrCreateSession(request, reply);
 
@@ -1316,7 +1264,9 @@ export function sessionMiddleware(config: SessionConfig) {
   > {
     return async ({ ctx, next }) => {
       // Validate @fastify/cookie plugin is registered and get typed context
-      const { request, reply } = getValidatedCookieContext(ctx.request, ctx.reply);
+      const { request, reply } = getValidatedCookieContext(ctx.request, ctx.reply, {
+        middlewareName: 'Session middleware',
+      });
 
       const session = await manager.getOrCreateSession(request, reply);
       const userId = session.get('userId');

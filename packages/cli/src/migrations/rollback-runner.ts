@@ -73,10 +73,8 @@ export async function rollbackMigration(
     }
 
     // Remove migration record from _prisma_migrations using parameterized query
-    await prisma.$executeRawUnsafe(
-      `DELETE FROM "_prisma_migrations" WHERE "migration_name" = $1`,
-      migration.name
-    );
+    // Use database-specific placeholder syntax ($1 for PostgreSQL, ? for SQLite/MySQL)
+    await prisma.$executeRawUnsafe(getDeleteMigrationQuery(options.database), migration.name);
 
     return {
       migration: migration.name,
@@ -207,6 +205,18 @@ export async function checkMigrationsTableExists(
 // ============================================================================
 // SQL Helpers
 // ============================================================================
+
+/**
+ * Get the DELETE query for removing a migration record, with correct
+ * parameter placeholder syntax for the target database.
+ *
+ * - PostgreSQL uses `$1`, `$2`, etc.
+ * - SQLite and MySQL use `?`
+ */
+function getDeleteMigrationQuery(database: DatabaseType = 'postgresql'): string {
+  const placeholder = database === 'postgresql' ? '$1' : '?';
+  return `DELETE FROM "_prisma_migrations" WHERE "migration_name" = ${placeholder}`;
+}
 
 /**
  * Split SQL into individual statements
