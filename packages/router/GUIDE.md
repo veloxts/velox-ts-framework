@@ -251,11 +251,11 @@ const userProcedures = defineProcedures('users', {
 Register REST routes with your VeloxTS app:
 
 ```typescript
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { registerRestRoutes } from '@veloxts/router';
 import { userProcedures } from './procedures/users';
 
-const app = await createVeloxApp({ port: 3210 });
+const app = await veloxApp({ port: 3210 });
 
 // Register REST routes
 await registerRestRoutes(app.server, {

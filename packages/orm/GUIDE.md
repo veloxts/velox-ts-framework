@@ -62,7 +62,7 @@ npx prisma generate
 ### 4. Integrate with VeloxTS
 
 ```typescript
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { createDatabasePlugin } from '@veloxts/orm';
 import { PrismaClient } from '@prisma/client';
 
@@ -70,7 +70,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Create VeloxTS app
-const app = await createVeloxApp({
+const app = await veloxApp({
   port: 3210,
   logger: true,
 });

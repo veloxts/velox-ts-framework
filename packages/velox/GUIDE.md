@@ -4,14 +4,20 @@
 
 Complete VeloxTS framework - batteries included.
 
-## Installation
+## Quick Start
 
 ```bash
-npm install @veloxts/velox
-# or
-pnpm add @veloxts/velox
-# or
-yarn add @veloxts/velox
+# Using npx (recommended)
+npx create-velox-app my-app
+
+# Using pnpm
+pnpm create velox-app my-app
+
+# Using npm
+npm create velox-app my-app
+
+# Using yarn
+yarn create velox-app my-app
 ```
 
 ## Usage
@@ -19,9 +25,10 @@ yarn add @veloxts/velox
 ### Quick Start
 
 ```typescript
-import { createVeloxApp, procedure, defineProcedures, z } from '@veloxts/velox';
+import { veloxApp, procedure, defineProcedures, z } from '@veloxts/velox';
 
-const app = await createVeloxApp({ port: 3000 });
+const app = await veloxApp();
+await app.start(); // Listens on port 3210
 
 const myProcedures = defineProcedures('greet', {
   sayHello: procedure()
@@ -39,13 +46,13 @@ VeloxTS supports three import patterns for different needs:
 #### 1. Main Export (Simplest)
 
 ```typescript
-import { createVeloxApp, procedure, z } from '@veloxts/velox';
+import { veloxApp, procedure, z } from '@veloxts/velox';
 ```
 
 #### 2. Subpath Imports (Better Tree-Shaking)
 
 ```typescript
-import { createVeloxApp } from '@veloxts/velox/core';
+import { veloxApp } from '@veloxts/velox/core';
 import { procedure, defineProcedures } from '@veloxts/velox/router';
 import { z } from '@veloxts/velox/validation';
 import { createDatabasePlugin } from '@veloxts/velox/orm';
@@ -54,7 +61,7 @@ import { createDatabasePlugin } from '@veloxts/velox/orm';
 #### 3. Direct Package Imports (Best Tree-Shaking)
 
 ```typescript
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { procedure, defineProcedures } from '@veloxts/router';
 import { z } from '@veloxts/validation';
 import { createDatabasePlugin } from '@veloxts/orm';

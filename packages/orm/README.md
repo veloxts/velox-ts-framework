@@ -31,12 +31,12 @@ For detailed documentation, usage examples, and API reference, see [GUIDE.md](./
 ## Quick Example
 
 ```typescript
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { createDatabasePlugin } from '@veloxts/orm';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const app = await createVeloxApp({ port: 3210 });
+const app = await veloxApp({ port: 3210 });
 
 await app.register(createDatabasePlugin({ client: prisma }));
 await app.start();

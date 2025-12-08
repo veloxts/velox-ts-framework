@@ -1,6 +1,6 @@
 # @veloxts/velox
 
-**Pre-Alpha Notice:** This framework is in early development (v0.4.x). APIs are subject to change. Not recommended for production use.
+**Pre-Alpha Notice:** This framework is in early development (v0.4.x). APIs are subject to change. Not recommended for production use. Documentation may be incomplete or out of date.
 
 ## What is this?
 
@@ -21,9 +21,9 @@ For detailed documentation, usage examples, and API reference, see [GUIDE.md](./
 ## Quick Example
 
 ```typescript
-import { createVeloxApp, procedure, defineProcedures, z } from '@veloxts/velox';
+import { veloxApp, procedure, defineProcedures, z } from '@veloxts/velox';
 
-const app = await createVeloxApp({ port: 3000 });
+const app = await veloxApp({ port: 3000 });
 
 const myProcedures = defineProcedures('greet', {
   sayHello: procedure()

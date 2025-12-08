@@ -1152,7 +1152,7 @@ const user = await userService.getUser('123');
 Enable auto-registration to automatically register `@Injectable` classes:
 
 ```typescript
-const app = await createVeloxApp();
+const app = await veloxApp();
 const autoContainer = createContainer({ autoRegister: true });
 
 @Injectable()
