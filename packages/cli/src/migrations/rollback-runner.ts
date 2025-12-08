@@ -6,10 +6,14 @@
 
 import fs from 'node:fs/promises';
 
-import type { PrismaClient } from '@prisma/client';
-
 import { databaseError, noRollbackFile, rollbackFailed } from './errors.js';
-import type { BatchRollbackResult, DatabaseType, MigrationFile, RollbackResult } from './types.js';
+import type {
+  BatchRollbackResult,
+  DatabaseType,
+  MigrationFile,
+  PrismaClientLike,
+  RollbackResult,
+} from './types.js';
 
 // ============================================================================
 // Types
@@ -33,7 +37,7 @@ export interface RollbackOptions {
  * Rollback a single migration
  */
 export async function rollbackMigration(
-  prisma: PrismaClient,
+  prisma: PrismaClientLike,
   migration: MigrationFile,
   options: RollbackOptions = {}
 ): Promise<RollbackResult> {
@@ -92,7 +96,7 @@ export async function rollbackMigration(
  * Rollback multiple migrations in order (most recent first)
  */
 export async function rollbackMultiple(
-  prisma: PrismaClient,
+  prisma: PrismaClientLike,
   migrations: MigrationFile[],
   options: RollbackOptions = {}
 ): Promise<BatchRollbackResult> {
@@ -137,7 +141,7 @@ export async function rollbackMultiple(
  * Rollback all migrations
  */
 export async function rollbackAll(
-  prisma: PrismaClient,
+  prisma: PrismaClientLike,
   migrations: MigrationFile[],
   options: RollbackOptions = {}
 ): Promise<BatchRollbackResult> {
@@ -152,7 +156,7 @@ export async function rollbackAll(
  * Get applied migrations from the database
  */
 export async function getAppliedMigrations(
-  prisma: PrismaClient
+  prisma: PrismaClientLike
 ): Promise<{ migration_name: string; started_at: Date; finished_at: Date | null }[]> {
   try {
     return await prisma.$queryRaw<
@@ -173,7 +177,7 @@ export async function getAppliedMigrations(
  * Check if _prisma_migrations table exists
  */
 export async function checkMigrationsTableExists(
-  prisma: PrismaClient,
+  prisma: PrismaClientLike,
   database: DatabaseType = 'postgresql'
 ): Promise<boolean> {
   try {

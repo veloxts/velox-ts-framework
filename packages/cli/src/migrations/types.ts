@@ -5,6 +5,41 @@
  */
 
 // ============================================================================
+// Prisma Client Interface
+// ============================================================================
+
+/**
+ * Minimal Prisma client interface for migration operations.
+ *
+ * This avoids depending on generated Prisma client types which may not exist
+ * in CI environments where `prisma generate` hasn't been run.
+ */
+export interface PrismaClientLike {
+  /**
+   * Execute a raw SQL query and return results.
+   * Uses a tagged template literal for parameterized queries.
+   */
+  $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: unknown[]): Promise<T>;
+
+  /**
+   * Execute a raw SQL query string and return results.
+   * Use with caution - values are not automatically escaped.
+   */
+  $queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Promise<T>;
+
+  /**
+   * Execute a raw SQL statement (INSERT, UPDATE, DELETE, etc.).
+   * Returns the number of affected rows.
+   */
+  $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
+
+  /**
+   * Disconnect from the database.
+   */
+  $disconnect(): Promise<void>;
+}
+
+// ============================================================================
 // Migration File Types
 // ============================================================================
 

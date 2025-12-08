@@ -7,7 +7,6 @@
 import path from 'node:path';
 
 import * as p from '@clack/prompts';
-import { PrismaClient } from '@prisma/client';
 import { Command } from 'commander';
 import pc from 'picocolors';
 
@@ -17,7 +16,7 @@ import { MigrationError } from '../errors.js';
 import { loadMigrations, migrationsDirExists } from '../loader.js';
 import { parseMigrateStatusOutput, prismaMigrateStatus } from '../prisma-wrapper.js';
 import { rollbackMultiple } from '../rollback-runner.js';
-import type { MigrateRollbackOptions, MigrationFile } from '../types.js';
+import type { MigrateRollbackOptions, MigrationFile, PrismaClientLike } from '../types.js';
 
 /**
  * Create the migrate:rollback command
@@ -42,7 +41,7 @@ async function runMigrateRollback(options: MigrateRollbackOptions): Promise<void
   const cwd = process.cwd();
   const s = p.spinner();
 
-  let prisma: PrismaClient | null = null;
+  let prisma: PrismaClientLike | null = null;
 
   try {
     // Check if Prisma schema exists
@@ -180,8 +179,9 @@ async function runMigrateRollback(options: MigrateRollbackOptions): Promise<void
       s.start('Rolling back migrations...');
     }
 
-    // Initialize Prisma client
-    prisma = new PrismaClient();
+    // Initialize Prisma client dynamically (avoids compile-time dependency on generated types)
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient() as PrismaClientLike;
 
     const result = await rollbackMultiple(prisma, toRollback, {
       dryRun: options.dryRun,

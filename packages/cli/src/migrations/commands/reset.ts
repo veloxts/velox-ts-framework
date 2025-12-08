@@ -7,7 +7,6 @@
 import path from 'node:path';
 
 import * as p from '@clack/prompts';
-import { PrismaClient } from '@prisma/client';
 import { Command } from 'commander';
 import pc from 'picocolors';
 
@@ -22,7 +21,7 @@ import {
   prismaMigrateStatus,
 } from '../prisma-wrapper.js';
 import { rollbackAll } from '../rollback-runner.js';
-import type { MigrateResetOptions, MigrationFile } from '../types.js';
+import type { MigrateResetOptions, MigrationFile, PrismaClientLike } from '../types.js';
 
 /**
  * Create the migrate:reset command
@@ -45,7 +44,7 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
   const cwd = process.cwd();
   const s = p.spinner();
 
-  let prisma: PrismaClient | null = null;
+  let prisma: PrismaClientLike | null = null;
 
   try {
     // Check if Prisma schema exists
@@ -131,8 +130,9 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
       }
     }
 
-    // Initialize Prisma client
-    prisma = new PrismaClient();
+    // Initialize Prisma client dynamically (avoids compile-time dependency on generated types)
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient() as PrismaClientLike;
 
     // Step 1: Rollback all migrations
     if (!options.json) {
@@ -296,7 +296,9 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
     process.exit(1);
   } finally {
     // Disconnect Prisma client if still connected
+    // noinspection PointlessBooleanExpressionJS
     if (prisma) {
+      // noinspection JSObjectNullOrUndefined
       await prisma.$disconnect();
     }
   }
