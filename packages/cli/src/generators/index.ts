@@ -78,8 +78,10 @@ export {
   MigrationGenerator,
   ModelGenerator,
   ProcedureGenerator,
+  SchemaGenerator,
   createMigrationGenerator,
   createModelGenerator,
   createProcedureGenerator,
+  createSchemaGenerator,
   registerBuiltinGenerators,
 } from './generators/index.js';
