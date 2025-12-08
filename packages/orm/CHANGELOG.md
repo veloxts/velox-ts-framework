@@ -1,5 +1,13 @@
 # @veloxts/orm
 
+## 0.4.1
+
+### Patch Changes
+
+- 0eea918: Completed CLI generators
+- Updated dependencies [0eea918]
+  - @veloxts/core@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes
