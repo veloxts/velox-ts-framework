@@ -14,6 +14,65 @@
 export type TemplateType = 'default' | 'auth';
 
 /**
+ * Available database types
+ */
+export type DatabaseType = 'sqlite' | 'postgresql' | 'mysql';
+
+/**
+ * Database metadata for CLI display
+ */
+export interface DatabaseMetadata {
+  type: DatabaseType;
+  label: string;
+  hint?: string;
+  disabled?: boolean;
+}
+
+/**
+ * Available databases with metadata
+ */
+export const DATABASE_METADATA: Record<DatabaseType, DatabaseMetadata> = {
+  sqlite: {
+    type: 'sqlite',
+    label: 'SQLite',
+    hint: 'File-based, zero setup (recommended for development)',
+  },
+  postgresql: {
+    type: 'postgresql',
+    label: 'PostgreSQL',
+    hint: 'Coming soon - requires running PostgreSQL server',
+    disabled: true,
+  },
+  mysql: {
+    type: 'mysql',
+    label: 'MySQL',
+    hint: 'Coming soon - requires running MySQL server',
+    disabled: true,
+  },
+};
+
+/**
+ * Get all available database options
+ */
+export function getAvailableDatabases(): DatabaseMetadata[] {
+  return Object.values(DATABASE_METADATA);
+}
+
+/**
+ * Check if a database type is valid
+ */
+export function isValidDatabase(database: string): database is DatabaseType {
+  return database in DATABASE_METADATA;
+}
+
+/**
+ * Check if a database type is available (not disabled)
+ */
+export function isDatabaseAvailable(database: DatabaseType): boolean {
+  return !DATABASE_METADATA[database].disabled;
+}
+
+/**
  * Template metadata for CLI display
  */
 export interface TemplateMetadata {
@@ -30,6 +89,7 @@ export interface TemplateConfig {
   projectName: string;
   packageManager: 'npm' | 'pnpm' | 'yarn';
   template: TemplateType;
+  database: DatabaseType;
 }
 
 /**

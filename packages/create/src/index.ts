@@ -13,11 +13,13 @@ import path from 'node:path';
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 
-import type { TemplateConfig, TemplateType } from './templates/index.js';
+import type { DatabaseType, TemplateConfig, TemplateType } from './templates/index.js';
 import {
   generateTemplateFiles,
+  getAvailableDatabases,
   getAvailableTemplates,
   getTemplateDirectories,
+  isDatabaseAvailable,
 } from './templates/index.js';
 
 // ============================================================================
@@ -59,6 +61,7 @@ interface ProjectConfig {
   directory: string;
   packageManager: 'npm' | 'pnpm' | 'yarn';
   template: TemplateType;
+  database: DatabaseType;
 }
 
 // ============================================================================
@@ -96,6 +99,13 @@ export async function createVeloxApp(
     // Collect project configuration
     const config = await promptProjectConfig(initialProjectName, initialTemplate);
     projectDirectory = config.directory;
+
+    // Show configuration summary
+    p.log.info(pc.dim('Configuration:'));
+    p.log.message(`  ${pc.cyan('Template:')} ${config.template}`);
+    p.log.message(`  ${pc.cyan('Database:')} ${config.database}`);
+    p.log.message(`  ${pc.cyan('Package manager:')} ${config.packageManager}`);
+    console.log('');
 
     // Validate project directory doesn't exist
     await validateProjectDirectory(config.directory);
@@ -213,6 +223,34 @@ async function promptProjectConfig(
     template = selectedTemplate as TemplateType;
   }
 
+  // Database selection (only in interactive mode - default to SQLite for CLI)
+  let database: DatabaseType = 'sqlite';
+
+  // Only show database prompt in interactive mode (when template wasn't provided via CLI)
+  if (!initialTemplate) {
+    const databases = getAvailableDatabases();
+    const selectedDatabase = await p.select({
+      message: 'Choose a database',
+      options: databases.map((db) => ({
+        value: db.type,
+        label: db.disabled ? pc.dim(`${db.label} (coming soon)`) : db.label,
+        hint: db.hint,
+        disabled: db.disabled,
+      })),
+    });
+
+    if (p.isCancel(selectedDatabase)) {
+      throw new Error('canceled');
+    }
+
+    database = selectedDatabase as DatabaseType;
+
+    // Validate database is available
+    if (!isDatabaseAvailable(database)) {
+      throw new Error(`Database "${database}" is not yet available. Please choose SQLite for now.`);
+    }
+  }
+
   // Detect package manager
   const packageManager = detectPackageManager();
 
@@ -221,6 +259,7 @@ async function promptProjectConfig(
     directory: path.resolve(process.cwd(), name as string),
     packageManager,
     template,
+    database,
   };
 }
 
@@ -259,7 +298,7 @@ async function validateProjectDirectory(directory: string): Promise<void> {
  */
 async function createProjectStructure(config: ProjectConfig): Promise<void> {
   const spinner = p.spinner();
-  spinner.start(`Creating project files (template: ${config.template})`);
+  spinner.start(`Creating project files (template: ${config.template}, database: ${config.database})`);
 
   try {
     // Create directory structure
@@ -277,6 +316,7 @@ async function createProjectStructure(config: ProjectConfig): Promise<void> {
       projectName: config.name,
       packageManager: config.packageManager,
       template: config.template,
+      database: config.database,
     };
 
     const files = generateTemplateFiles(templateConfig);
@@ -298,7 +338,7 @@ async function createProjectStructure(config: ProjectConfig): Promise<void> {
       await fs.writeFile(filePath, file.content);
     }
 
-    spinner.stop('Project files created');
+    spinner.stop(`Project files created ${pc.dim(`(${files.length} files)`)}`);
   } catch (error) {
     spinner.stop('Failed to create project files');
     throw error;
