@@ -18,9 +18,9 @@ export default defineConfig({
         '**/__integration__/**',
       ],
       thresholds: {
-        lines: 75,
-        functions: 75,
-        branches: 65,
+        lines: 80,
+        functions: 80,
+        branches: 75,
         statements: 75,
       },
     },
