@@ -213,6 +213,103 @@ function generateCustomSql(name: string): string {
 }
 
 // ============================================================================
+// Rollback SQL Generators
+// ============================================================================
+
+/**
+ * Generate DROP TABLE SQL for rollback of CREATE TABLE
+ */
+function generateRollbackCreateTableSql(table: string): string {
+  return `-- RollbackCreateTable
+DROP TABLE IF EXISTS "${table}";
+`;
+}
+
+/**
+ * Generate DROP COLUMN SQL for rollback of ADD COLUMN
+ */
+function generateRollbackAddColumnSql(table: string, column: string, database: string): string {
+  if (database === 'sqlite') {
+    return `-- RollbackAddColumn
+-- SQLite doesn't support DROP COLUMN directly in older versions.
+-- For SQLite 3.35.0+ you can use:
+ALTER TABLE "${table}" DROP COLUMN "${column}";
+
+-- For older SQLite versions, you need to recreate the table.
+-- See: https://www.sqlite.org/lang_altertable.html
+`;
+  }
+
+  return `-- RollbackAddColumn
+ALTER TABLE "${table}" DROP COLUMN "${column}";
+`;
+}
+
+/**
+ * Generate ADD COLUMN SQL for rollback of REMOVE COLUMN
+ * Note: Data loss warning - column data cannot be recovered
+ */
+function generateRollbackRemoveColumnSql(table: string, column: string): string {
+  return `-- RollbackRemoveColumn
+-- WARNING: Original column data cannot be recovered!
+-- You must manually specify the correct column type.
+ALTER TABLE "${table}" ADD COLUMN "${column}" TEXT;
+-- TODO: Adjust the column type to match the original schema
+`;
+}
+
+/**
+ * Generate reverse RENAME TABLE SQL for rollback
+ */
+function generateRollbackRenameTableSql(oldName: string, newName: string, database: string): string {
+  // Reverse the rename: newName -> oldName
+  if (database === 'mysql') {
+    return `-- RollbackRenameTable
+RENAME TABLE "${newName}" TO "${oldName}";
+`;
+  }
+
+  return `-- RollbackRenameTable
+ALTER TABLE "${newName}" RENAME TO "${oldName}";
+`;
+}
+
+/**
+ * Generate warning for rollback of DROP TABLE
+ * Data loss - cannot recover dropped table
+ */
+function generateRollbackDropTableSql(table: string): string {
+  return `-- RollbackDropTable
+-- WARNING: Cannot automatically rollback DROP TABLE!
+-- The original table data and schema are lost.
+-- You must manually recreate the table with its original schema:
+--
+-- CREATE TABLE "${table}" (
+--     "id" TEXT PRIMARY KEY,
+--     -- TODO: Add original columns here
+--     "created_at" TIMESTAMP NOT NULL,
+--     "updated_at" TIMESTAMP NOT NULL
+-- );
+`;
+}
+
+/**
+ * Generate rollback SQL for custom migrations
+ */
+function generateRollbackCustomSql(name: string): string {
+  return `-- Rollback Migration: ${name}
+--
+-- Write your rollback SQL here.
+-- This should reverse the operations in migration.sql
+--
+-- Example rollback operations:
+-- DROP TABLE IF EXISTS "example";
+-- ALTER TABLE "example" DROP COLUMN "field";
+-- DROP INDEX "example_field_idx";
+`;
+}
+
+// ============================================================================
 // Template Functions
 // ============================================================================
 
@@ -241,6 +338,34 @@ function generateMigrationSql(name: string, database: string): string {
     case 'custom':
     default:
       return generateCustomSql(name);
+  }
+}
+
+/**
+ * Generate rollback SQL based on name and database type
+ */
+function generateRollbackSql(name: string, database: string): string {
+  const parsed = parseMigrationName(name);
+
+  switch (parsed.type) {
+    case 'create':
+      return generateRollbackCreateTableSql(parsed.table!);
+
+    case 'add':
+      return generateRollbackAddColumnSql(parsed.table!, parsed.column!, database);
+
+    case 'remove':
+      return generateRollbackRemoveColumnSql(parsed.table!, parsed.column!);
+
+    case 'rename':
+      return generateRollbackRenameTableSql(parsed.oldName!, parsed.newName!, database);
+
+    case 'drop':
+      return generateRollbackDropTableSql(parsed.table!);
+
+    case 'custom':
+    default:
+      return generateRollbackCustomSql(name);
   }
 }
 
@@ -278,12 +403,17 @@ export function generateMigrationFiles(ctx: TemplateContext<MigrationOptions>): 
   const migrationName = ctx.entity.snake;
   const folderName = `${timestamp}_${migrationName}`;
 
-  const sql = generateMigrationSql(ctx.entity.raw, ctx.options.database);
+  const upSql = generateMigrationSql(ctx.entity.raw, ctx.options.database);
+  const downSql = generateRollbackSql(ctx.entity.raw, ctx.options.database);
 
   return [
     {
       path: `prisma/migrations/${folderName}/migration.sql`,
-      content: sql,
+      content: upSql,
+    },
+    {
+      path: `prisma/migrations/${folderName}/down.sql`,
+      content: downSql,
     },
   ];
 }
@@ -296,6 +426,7 @@ export function getMigrationInstructions(migrationName: string): string {
   1. Review and customize the generated SQL:
 
      Edit prisma/migrations/*_${migrationName}/migration.sql
+     Edit prisma/migrations/*_${migrationName}/down.sql (rollback)
 
   2. Apply the migration:
 
@@ -304,6 +435,13 @@ export function getMigrationInstructions(migrationName: string): string {
 
      For production migrations:
        npx prisma migrate deploy
+
+  3. To rollback (if needed):
+
+     Run the SQL in down.sql manually:
+       sqlite3 prisma/dev.db < prisma/migrations/*_${migrationName}/down.sql
+
+     Or use a database client to execute the rollback SQL.
 
   Note: If using Prisma's migration system, you may prefer:
        npx prisma migrate dev --name ${migrationName}
