@@ -159,6 +159,9 @@ export interface GeneratorOption<T = unknown> {
   /** Short flag (e.g., 'c' for --crud) */
   readonly short?: string;
 
+  /** Commander.js style flag (e.g., '-c, --crud' or '--skip-model') */
+  readonly flag?: string;
+
   /** Description for help text */
   readonly description: string;
 
@@ -250,7 +253,7 @@ export interface Generator<TOptions = Record<string, unknown>> {
  * Type alias for generators with any options type.
  * Used in the registry where we don't know the specific options type.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: we don't know the specific options type
 export type AnyGenerator = Generator<any>;
 
 // ============================================================================

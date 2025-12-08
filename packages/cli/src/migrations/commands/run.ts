@@ -12,15 +12,15 @@ import pc from 'picocolors';
 
 import { error, info, success, warning } from '../../utils/output.js';
 import { fileExists } from '../../utils/paths.js';
-import { MigrationError, noPendingMigrations } from '../errors.js';
-import { loadMigrations, migrationsDirExists } from '../loader.js';
+import { MigrationError } from '../errors.js';
+import { migrationsDirExists } from '../loader.js';
 import {
   parseMigrateStatusOutput,
   prismaMigrateDeploy,
   prismaMigrateDev,
   prismaMigrateStatus,
 } from '../prisma-wrapper.js';
-import type { MigrateRunOptions } from '../types.js';
+import type { MigrateRunOptions, PrismaResult } from '../types.js';
 
 /**
  * Create the migrate:run command
@@ -139,7 +139,7 @@ async function runMigrateRun(options: MigrateRunOptions): Promise<void> {
       s.start('Running migrations...');
     }
 
-    let result;
+    let result: PrismaResult;
 
     if (options.dev) {
       // Development mode: prisma migrate dev

@@ -22,7 +22,6 @@ import type { ZodType, ZodTypeDef } from 'zod';
  * @template TOutput - The validated output type
  * @template TInput - The raw input type (defaults to TOutput)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface Schema<TOutput = unknown, _TInput = TOutput> {
   /**
    * Parses input and returns validated data

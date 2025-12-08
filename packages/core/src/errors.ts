@@ -5,7 +5,7 @@
  */
 
 // Import catalog for use in error classes
-import { getErrorEntry as _getErrorEntry, ERROR_CATALOG } from './errors/catalog.js';
+import { ERROR_CATALOG } from './errors/catalog.js';
 import { formatError as _formatError } from './errors/formatter.js';
 
 // Re-export the enhanced error catalog and formatter
@@ -221,7 +221,7 @@ export class VeloxError<TCode extends string = string> extends Error {
     this.code = code;
 
     // Look up catalog entry for enhanced error info
-    if (code && typeof code === 'string' && code.startsWith('VELOX-')) {
+    if (code != null && String(code).startsWith('VELOX-')) {
       const entry = ERROR_CATALOG[code];
       if (entry) {
         this.fix = entry.fix?.suggestion;

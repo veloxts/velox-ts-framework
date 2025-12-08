@@ -155,7 +155,7 @@ export async function getAppliedMigrations(
   prisma: PrismaClient
 ): Promise<{ migration_name: string; started_at: Date; finished_at: Date | null }[]> {
   try {
-    const records = await prisma.$queryRaw<
+    return await prisma.$queryRaw<
       { migration_name: string; started_at: Date; finished_at: Date | null }[]
     >`
       SELECT "migration_name", "started_at", "finished_at"
@@ -163,7 +163,6 @@ export async function getAppliedMigrations(
       WHERE "finished_at" IS NOT NULL
       ORDER BY "started_at" DESC
     `;
-    return records;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     throw databaseError('getAppliedMigrations', err);
@@ -187,14 +186,14 @@ export async function checkMigrationsTableExists(
       case 'mysql':
         query = `SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME = '_prisma_migrations'`;
         break;
-      case 'postgresql':
+      // case 'postgresql':
       default:
         query = `SELECT tablename FROM pg_tables WHERE tablename = '_prisma_migrations'`;
         break;
     }
 
-    const result = await prisma.$queryRawUnsafe<unknown[]>(query);
-    return result.length > 0;
+    const result = await prisma.$queryRawUnsafe(query);
+    return Array.isArray(result) && result.length > 0;
   } catch {
     return false;
   }

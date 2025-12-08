@@ -38,14 +38,15 @@
     }
   },
   "dependencies": {
+    "@clack/prompts": "0.11.0",
+    "@veloxts/auth": "workspace:*",
     "@veloxts/core": "workspace:*",
+    "@veloxts/orm": "workspace:*",
     "@veloxts/router": "workspace:*",
     "@veloxts/validation": "workspace:*",
-    "@veloxts/orm": "workspace:*",
-    "@veloxts/auth": "workspace:*",
     "commander": "14.0.2",
-    "@clack/prompts": "0.11.0",
     "picocolors": "1.1.1",
+    "pluralize": "8.0.0",
     "tsx": "4.21.0"
   },
   "peerDependencies": {
@@ -54,6 +55,7 @@
   "devDependencies": {
     "@prisma/client": "6.9.0",
     "@types/node": "24.10.1",
+    "@types/pluralize": "0.0.33",
     "tsd": "0.32.0",
     "typescript": "5.9.3",
     "vitest": "4.0.15"

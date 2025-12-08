@@ -154,7 +154,7 @@ async function resolveConflict(
     case 'error':
       return 'error';
 
-    case 'prompt':
+    // case 'prompt':
     default:
       return promptConflictResolution(path);
   }

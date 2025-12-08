@@ -7,20 +7,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ERROR_CATALOG,
   ERROR_DOMAINS,
-  getDocsUrl,
-  getErrorEntry,
-  getErrorsByDomain,
-  isKnownErrorCode,
-} from '../errors/catalog.js';
-import {
   extractErrorLocation,
   formatError,
   formatErrorForApi,
   formatErrorOneLine,
+  getDocsUrl,
+  getErrorEntry,
+  getErrorsByDomain,
+  isKnownErrorCode,
   logDeprecation,
   logWarning,
-} from '../errors/formatter.js';
-import { ConfigurationError, NotFoundError, ValidationError, VeloxError } from '../errors.js';
+  VeloxError,
+} from '../errors';
 
 // ============================================================================
 // Error Catalog Tests

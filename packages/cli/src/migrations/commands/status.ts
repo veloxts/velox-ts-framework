@@ -6,14 +6,13 @@
 
 import path from 'node:path';
 
-import * as p from '@clack/prompts';
 import { Command } from 'commander';
 import pc from 'picocolors';
 
 import { error, info, success, warning } from '../../utils/output.js';
 import { fileExists } from '../../utils/paths.js';
 import { MigrationError } from '../errors.js';
-import { computeMigrationStatus, loadMigrations, migrationsDirExists } from '../loader.js';
+import { loadMigrations, migrationsDirExists } from '../loader.js';
 import { parseMigrateStatusOutput, prismaMigrateStatus } from '../prisma-wrapper.js';
 import type { MigrateStatusOptions, MigrationStatus } from '../types.js';
 
@@ -132,7 +131,7 @@ async function runMigrateStatus(options: MigrateStatusOptions): Promise<void> {
 
       // Truncate name if too long
       const displayName =
-        status.name.length > 40 ? status.name.slice(0, 37) + '...' : status.name.padEnd(40);
+        status.name.length > 40 ? `${status.name.slice(0, 37)}...` : status.name.padEnd(40);
 
       console.log(`  ${statusIcon}  ${displayName}  ${rollbackIcon}`);
     }

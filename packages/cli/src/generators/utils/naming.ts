@@ -5,63 +5,9 @@
  * and handling pluralization for English words.
  */
 
+import pluralizeLib from 'pluralize';
+
 import type { EntityNames } from '../types.js';
-
-// ============================================================================
-// Irregular Plurals
-// ============================================================================
-
-/**
- * Irregular plural forms for common English words
- */
-const IRREGULAR_PLURALS: ReadonlyMap<string, string> = new Map([
-  ['person', 'people'],
-  ['child', 'children'],
-  ['man', 'men'],
-  ['woman', 'women'],
-  ['mouse', 'mice'],
-  ['goose', 'geese'],
-  ['tooth', 'teeth'],
-  ['foot', 'feet'],
-  ['datum', 'data'],
-  ['criterion', 'criteria'],
-  ['phenomenon', 'phenomena'],
-  ['analysis', 'analyses'],
-  ['crisis', 'crises'],
-  ['thesis', 'theses'],
-  ['hypothesis', 'hypotheses'],
-  ['axis', 'axes'],
-  ['index', 'indices'],
-  ['appendix', 'appendices'],
-  ['matrix', 'matrices'],
-  ['vertex', 'vertices'],
-  ['ox', 'oxen'],
-  ['quiz', 'quizzes'],
-  ['status', 'statuses'],
-  ['alias', 'aliases'],
-  ['bus', 'buses'],
-  ['virus', 'viruses'],
-  ['campus', 'campuses'],
-  ['stimulus', 'stimuli'],
-  ['syllabus', 'syllabi'],
-  ['focus', 'foci'],
-  ['fungus', 'fungi'],
-  ['cactus', 'cacti'],
-  ['radius', 'radii'],
-  ['nucleus', 'nuclei'],
-  ['octopus', 'octopi'],
-  ['medium', 'media'],
-  ['curriculum', 'curricula'],
-  ['memorandum', 'memoranda'],
-  ['bacterium', 'bacteria'],
-]);
-
-/**
- * Reverse map for singularization
- */
-const IRREGULAR_SINGULARS: ReadonlyMap<string, string> = new Map(
-  Array.from(IRREGULAR_PLURALS.entries()).map(([singular, plural]) => [plural, singular])
-);
 
 // ============================================================================
 // Case Conversion
@@ -175,60 +121,7 @@ export function toHumanReadable(str: string): string {
  * pluralize('bus') // 'buses'
  */
 export function pluralize(word: string): string {
-  const lower = word.toLowerCase();
-
-  // Check if already plural (irregular)
-  if (IRREGULAR_SINGULARS.has(lower)) {
-    // Already plural, return as-is
-    return word;
-  }
-
-  // Check irregular plurals
-  if (IRREGULAR_PLURALS.has(lower)) {
-    const plural = IRREGULAR_PLURALS.get(lower)!;
-    // Preserve original casing pattern
-    if (word[0] === word[0].toUpperCase()) {
-      return plural.charAt(0).toUpperCase() + plural.slice(1);
-    }
-    return plural;
-  }
-
-  // Check if already looks plural (ends with 's' but not 'ss')
-  // Try singularizing first - if it's different, we're likely already plural
-  if (lower.endsWith('s') && !lower.endsWith('ss')) {
-    const singular = singularize(word);
-    // If singularize returns a different word, this is already plural
-    if (singular.toLowerCase() !== lower) {
-      return word;
-    }
-  }
-
-  // Words ending in consonant + y → ies
-  if (lower.endsWith('y') && !/[aeiou]y$/.test(lower)) {
-    return word.slice(0, -1) + 'ies';
-  }
-
-  // Words ending in s, x, z, ch, sh → es
-  if (
-    lower.endsWith('s') ||
-    lower.endsWith('x') ||
-    lower.endsWith('z') ||
-    lower.endsWith('ch') ||
-    lower.endsWith('sh')
-  ) {
-    return word + 'es';
-  }
-
-  // Words ending in f or fe → ves
-  if (lower.endsWith('f')) {
-    return word.slice(0, -1) + 'ves';
-  }
-  if (lower.endsWith('fe')) {
-    return word.slice(0, -2) + 'ves';
-  }
-
-  // Default: add s
-  return word + 's';
+  return pluralizeLib(word);
 }
 
 /**
@@ -240,63 +133,14 @@ export function pluralize(word: string): string {
  * singularize('categories') // 'category'
  */
 export function singularize(word: string): string {
-  const lower = word.toLowerCase();
-
-  // Check irregular singulars
-  if (IRREGULAR_SINGULARS.has(lower)) {
-    const singular = IRREGULAR_SINGULARS.get(lower)!;
-    // Preserve original casing pattern
-    if (word[0] === word[0].toUpperCase()) {
-      return singular.charAt(0).toUpperCase() + singular.slice(1);
-    }
-    return singular;
-  }
-
-  // Words ending in ies → y
-  if (lower.endsWith('ies') && lower.length > 3) {
-    return word.slice(0, -3) + 'y';
-  }
-
-  // Words ending in ves → f or fe
-  if (lower.endsWith('ves')) {
-    // Could be 'leaves' -> 'leaf' or 'wives' -> 'wife'
-    // Simple heuristic: try both and pick the more common
-    return word.slice(0, -3) + 'f';
-  }
-
-  // Words ending in ses, xes, zes, ches, shes → remove es
-  if (
-    lower.endsWith('ses') ||
-    lower.endsWith('xes') ||
-    lower.endsWith('zes') ||
-    lower.endsWith('ches') ||
-    lower.endsWith('shes')
-  ) {
-    return word.slice(0, -2);
-  }
-
-  // Words ending in s (but not ss) → remove s
-  if (lower.endsWith('s') && !lower.endsWith('ss') && lower.length > 1) {
-    return word.slice(0, -1);
-  }
-
-  // Already singular
-  return word;
+  return pluralizeLib.singular(word);
 }
 
 /**
  * Check if a word is likely plural
  */
 export function isPlural(word: string): boolean {
-  const lower = word.toLowerCase();
-
-  // Check if it's a known plural
-  if (IRREGULAR_SINGULARS.has(lower)) {
-    return true;
-  }
-
-  // Common plural endings
-  return lower.endsWith('s') || lower.endsWith('ies') || lower.endsWith('ves');
+  return pluralizeLib.isPlural(word);
 }
 
 // ============================================================================

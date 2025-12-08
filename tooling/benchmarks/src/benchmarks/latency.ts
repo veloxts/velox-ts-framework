@@ -71,11 +71,11 @@ async function benchmarkEndpoint(
  */
 function printLatencyTable(endpoints: Map<string, LatencyPercentiles>): void {
   console.log('\n  Latency by Endpoint:');
-  console.log('  ' + '-'.repeat(80));
+  console.log(`  ${'-'.repeat(80)}`);
   console.log(
     `  ${'Endpoint'.padEnd(25)} ${'p50'.padStart(10)} ${'p95'.padStart(10)} ${'p99'.padStart(10)} ${'max'.padStart(10)}`
   );
-  console.log('  ' + '-'.repeat(80));
+  console.log(`  ${'-'.repeat(80)}`);
 
   for (const [name, latency] of endpoints) {
     console.log(
@@ -83,7 +83,7 @@ function printLatencyTable(endpoints: Map<string, LatencyPercentiles>): void {
     );
   }
 
-  console.log('  ' + '-'.repeat(80));
+  console.log(`  ${'-'.repeat(80)}`);
 }
 
 /**

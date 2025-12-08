@@ -78,7 +78,7 @@ function deriveParentParamName(namespace: string): string {
 
   if (namespace.endsWith('ies') && namespace.length > 3) {
     // categories -> category
-    singular = namespace.slice(0, -3) + 'y';
+    singular = `${namespace.slice(0, -3)}y`;
   } else if (namespace.endsWith('es') && namespace.length > 2) {
     // Check for -shes, -ches, -xes, -zes, -sses patterns
     const beforeEs = namespace.slice(-4, -2);
@@ -282,7 +282,7 @@ function compileProcedure<TInput, TOutput, TContext extends BaseContext>(
       : undefined;
 
   // Create the final procedure object
-  const procedure: CompiledProcedure<TInput, TOutput, TContext> = {
+  return {
     type,
     handler,
     inputSchema: state.inputSchema as { parse: (input: unknown) => TInput } | undefined,
@@ -294,8 +294,6 @@ function compileProcedure<TInput, TOutput, TContext extends BaseContext>(
     // Store pre-compiled executor for performance
     _precompiledExecutor: precompiledExecutor,
   };
-
-  return procedure;
 }
 
 /**

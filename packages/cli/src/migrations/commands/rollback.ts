@@ -13,14 +13,10 @@ import pc from 'picocolors';
 
 import { error, info, success, warning } from '../../utils/output.js';
 import { fileExists } from '../../utils/paths.js';
-import { MigrationError, noAppliedMigrations, noRollbackFile } from '../errors.js';
-import {
-  getAppliedMigrationsWithRollback,
-  loadMigrations,
-  migrationsDirExists,
-} from '../loader.js';
+import { MigrationError } from '../errors.js';
+import { loadMigrations, migrationsDirExists } from '../loader.js';
 import { parseMigrateStatusOutput, prismaMigrateStatus } from '../prisma-wrapper.js';
-import { getAppliedMigrations, rollbackMultiple } from '../rollback-runner.js';
+import { rollbackMultiple } from '../rollback-runner.js';
 import type { MigrateRollbackOptions, MigrationFile } from '../types.js';
 
 /**

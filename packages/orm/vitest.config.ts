@@ -9,7 +9,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
-      exclude: ['src/__tests__/**', 'src/index.ts'],
+      exclude: ['node_modules/', 'src/__tests__/**', 'src/index.ts'],
       thresholds: {
         lines: 80,
         functions: 80,
