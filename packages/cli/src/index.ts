@@ -36,3 +36,8 @@ export { createMigrateCommand } from './commands/migrate.js';
  */
 export * from './utils/output.js';
 export * from './utils/paths.js';
+
+/**
+ * Export migration runner
+ */
+export * from './migrations/index.js';
