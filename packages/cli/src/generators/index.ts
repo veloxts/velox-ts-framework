@@ -75,7 +75,9 @@ export {
 
 // Built-in generators
 export {
+  ModelGenerator,
   ProcedureGenerator,
+  createModelGenerator,
   createProcedureGenerator,
   registerBuiltinGenerators,
 } from './generators/index.js';

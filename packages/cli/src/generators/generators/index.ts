@@ -5,6 +5,7 @@
  */
 
 import { registerGenerator } from '../registry.js';
+import { createModelGenerator } from './model.js';
 import { createProcedureGenerator } from './procedure.js';
 
 // ============================================================================
@@ -12,6 +13,7 @@ import { createProcedureGenerator } from './procedure.js';
 // ============================================================================
 
 export { ProcedureGenerator, createProcedureGenerator } from './procedure.js';
+export { ModelGenerator, createModelGenerator } from './model.js';
 
 // ============================================================================
 // Auto-Registration
@@ -25,9 +27,11 @@ export function registerBuiltinGenerators(): void {
   // Register procedure generator
   registerGenerator(createProcedureGenerator());
 
+  // Register model generator
+  registerGenerator(createModelGenerator());
+
   // Future generators will be registered here:
   // registerGenerator(createSchemaGenerator());
-  // registerGenerator(createModelGenerator());
   // registerGenerator(createMigrationGenerator());
   // registerGenerator(createTestGenerator());
   // registerGenerator(createResourceGenerator());

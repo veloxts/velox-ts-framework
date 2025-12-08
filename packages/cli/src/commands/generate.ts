@@ -63,9 +63,11 @@ export function createGenerateCommand(): Command {
     .option('-d, --dry-run', 'Preview changes without writing files', false)
     .option('-f, --force', 'Overwrite existing files without prompting', false)
     .option('--json', 'Output results as JSON', false)
-    // Procedure generator options (passed to procedure generator)
+    // Generator-specific options (passed through to generators)
     .option('-c, --crud', 'Generate full CRUD operations', false)
     .option('-P, --paginated', 'Include pagination for list operation', false)
+    .option('-s, --soft-delete', 'Add soft delete support (model generator)', false)
+    .option('-t, --timestamps', 'Include timestamps (model generator)', true)
     .action(async (type: string | undefined, name: string | undefined, options: GenerateOptions) => {
       await runGenerate(type, name, options);
     });
