@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.3.6
+
+### Patch Changes
+
+- 929f2ab: Interactive CLI setup
+- Updated dependencies [929f2ab]
+  - @veloxts/auth@0.3.6
+  - @veloxts/core@0.3.6
+  - @veloxts/orm@0.3.6
+  - @veloxts/router@0.3.6
+  - @veloxts/validation@0.3.6
+
 ## 0.3.5
 
 ### Patch Changes
