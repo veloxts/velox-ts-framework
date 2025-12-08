@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.4.1
+
+### Patch Changes
+
+- 0eea918: Completed CLI generators
+
 ## 0.4.0
 
 ### Minor Changes

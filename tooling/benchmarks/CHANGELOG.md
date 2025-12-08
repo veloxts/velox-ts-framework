@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.2.1
+
+### Patch Changes
+
+- 0eea918: Completed CLI generators
+
 ## 0.2.0
 
 ### Minor Changes
