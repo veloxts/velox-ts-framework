@@ -39,6 +39,27 @@ export interface PrismaClientLike {
   $disconnect(): Promise<void>;
 }
 
+/**
+ * Prisma module structure (for dynamic import typing)
+ */
+interface PrismaModule {
+  PrismaClient: new () => PrismaClientLike;
+}
+
+/**
+ * Create a new PrismaClient instance dynamically.
+ *
+ * This function handles the dynamic import of @prisma/client at runtime,
+ * avoiding compile-time dependency on generated Prisma types.
+ *
+ * @returns A new PrismaClient instance typed as PrismaClientLike
+ */
+export async function createPrismaClient(): Promise<PrismaClientLike> {
+  // Dynamic import with type assertion to handle varying module structures
+  const prismaModule = (await import('@prisma/client')) as unknown as PrismaModule;
+  return new prismaModule.PrismaClient();
+}
+
 // ============================================================================
 // Migration File Types
 // ============================================================================

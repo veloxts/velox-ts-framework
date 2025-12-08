@@ -16,7 +16,12 @@ import { MigrationError } from '../errors.js';
 import { loadMigrations, migrationsDirExists } from '../loader.js';
 import { parseMigrateStatusOutput, prismaMigrateStatus } from '../prisma-wrapper.js';
 import { rollbackMultiple } from '../rollback-runner.js';
-import type { MigrateRollbackOptions, MigrationFile, PrismaClientLike } from '../types.js';
+import {
+  createPrismaClient,
+  type MigrateRollbackOptions,
+  type MigrationFile,
+  type PrismaClientLike,
+} from '../types.js';
 
 /**
  * Create the migrate:rollback command
@@ -180,8 +185,7 @@ async function runMigrateRollback(options: MigrateRollbackOptions): Promise<void
     }
 
     // Initialize Prisma client dynamically (avoids compile-time dependency on generated types)
-    const { PrismaClient } = await import('@prisma/client');
-    prisma = new PrismaClient() as PrismaClientLike;
+    prisma = await createPrismaClient();
 
     const result = await rollbackMultiple(prisma, toRollback, {
       dryRun: options.dryRun,

@@ -21,7 +21,12 @@ import {
   prismaMigrateStatus,
 } from '../prisma-wrapper.js';
 import { rollbackAll } from '../rollback-runner.js';
-import type { MigrateResetOptions, MigrationFile, PrismaClientLike } from '../types.js';
+import {
+  createPrismaClient,
+  type MigrateResetOptions,
+  type MigrationFile,
+  type PrismaClientLike,
+} from '../types.js';
 
 /**
  * Create the migrate:reset command
@@ -131,8 +136,7 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
     }
 
     // Initialize Prisma client dynamically (avoids compile-time dependency on generated types)
-    const { PrismaClient } = await import('@prisma/client');
-    prisma = new PrismaClient() as PrismaClientLike;
+    prisma = await createPrismaClient();
 
     // Step 1: Rollback all migrations
     if (!options.json) {

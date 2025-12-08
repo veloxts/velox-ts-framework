@@ -74,7 +74,9 @@ export type {
   MigrationFile,
   MigrationStatus,
   MigrationStatusType,
+  PrismaClientLike,
   PrismaMigrationRecord,
   PrismaResult,
   RollbackResult,
 } from './types.js';
+export { createPrismaClient } from './types.js';
