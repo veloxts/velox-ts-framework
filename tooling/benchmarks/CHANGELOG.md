@@ -1,5 +1,12 @@
 # @veloxts/benchmarks
 
+## 0.2.2
+
+### Patch Changes
+
+- 5b4f02c: Updated documentations
+- 0d8d775: Updated guides and readme files
+
 ## 0.2.1
 
 ### Patch Changes

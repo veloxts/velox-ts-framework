@@ -1,5 +1,16 @@
 # @veloxts/auth
 
+## 0.4.2
+
+### Patch Changes
+
+- 5b4f02c: Updated documentations
+- 0d8d775: Updated guides and readme files
+- Updated dependencies [5b4f02c]
+- Updated dependencies [0d8d775]
+  - @veloxts/core@0.4.2
+  - @veloxts/router@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes
