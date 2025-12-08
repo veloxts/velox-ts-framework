@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.3.6
+
+### Patch Changes
+
+- 929f2ab: Interactive CLI setup
+
 ## 0.3.5
 
 ### Patch Changes

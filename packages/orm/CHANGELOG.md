@@ -1,5 +1,13 @@
 # @veloxts/orm
 
+## 0.3.6
+
+### Patch Changes
+
+- 929f2ab: Interactive CLI setup
+- Updated dependencies [929f2ab]
+  - @veloxts/core@0.3.6
+
 ## 0.3.5
 
 ### Patch Changes
