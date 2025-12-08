@@ -246,6 +246,13 @@ export interface Generator<TOptions = Record<string, unknown>> {
   generate(config: GeneratorConfig<TOptions>): Promise<GeneratorOutput>;
 }
 
+/**
+ * Type alias for generators with any options type.
+ * Used in the registry where we don't know the specific options type.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyGenerator = Generator<any>;
+
 // ============================================================================
 // Error Handling
 // ============================================================================

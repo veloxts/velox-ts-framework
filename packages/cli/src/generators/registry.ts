@@ -5,7 +5,7 @@
  * Handles registration, lookup by name/alias, and categorization.
  */
 
-import type { Generator, GeneratorCategory } from './types.js';
+import type { AnyGenerator, GeneratorCategory } from './types.js';
 
 // ============================================================================
 // Registry Types
@@ -16,7 +16,7 @@ import type { Generator, GeneratorCategory } from './types.js';
  */
 export interface RegisteredGenerator {
   /** The generator instance */
-  readonly generator: Generator;
+  readonly generator: AnyGenerator;
   /** Primary name (e.g., 'procedure') */
   readonly name: string;
   /** All names that can be used to invoke this generator */
@@ -31,7 +31,7 @@ export interface RegisteredGenerator {
  * Registry for managing code generators
  */
 class GeneratorRegistry {
-  private readonly generators = new Map<string, Generator>();
+  private readonly generators = new Map<string, AnyGenerator>();
   private readonly aliasMap = new Map<string, string>();
 
   /**
@@ -40,7 +40,7 @@ class GeneratorRegistry {
    * @param generator - The generator to register
    * @throws Error if generator name or alias conflicts
    */
-  register(generator: Generator): void {
+  register(generator: AnyGenerator): void {
     const { name, aliases } = generator.metadata;
 
     // Check for name conflicts
@@ -90,7 +90,7 @@ class GeneratorRegistry {
    * @param nameOrAlias - Generator name or alias
    * @returns The generator if found, undefined otherwise
    */
-  get(nameOrAlias: string): Generator | undefined {
+  get(nameOrAlias: string): AnyGenerator | undefined {
     // Direct lookup
     if (this.generators.has(nameOrAlias)) {
       return this.generators.get(nameOrAlias);
@@ -184,14 +184,14 @@ export const registry = new GeneratorRegistry();
 /**
  * Register a generator with the global registry
  */
-export function registerGenerator(generator: Generator): void {
+export function registerGenerator(generator: AnyGenerator): void {
   registry.register(generator);
 }
 
 /**
  * Get a generator from the global registry
  */
-export function getGenerator(nameOrAlias: string): Generator | undefined {
+export function getGenerator(nameOrAlias: string): AnyGenerator | undefined {
   return registry.get(nameOrAlias);
 }
 

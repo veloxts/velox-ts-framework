@@ -7,6 +7,7 @@
 
 // Types
 export type {
+  AnyGenerator,
   ConflictStrategy,
   EntityNames,
   GeneratedFile,
@@ -71,3 +72,10 @@ export {
   writeFile,
   writeFiles,
 } from './utils/filesystem.js';
+
+// Built-in generators
+export {
+  ProcedureGenerator,
+  createProcedureGenerator,
+  registerBuiltinGenerators,
+} from './generators/index.js';

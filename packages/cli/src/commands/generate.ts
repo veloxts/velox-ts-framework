@@ -26,6 +26,7 @@ import {
   formatWriteResultsJson,
   getAllGenerators,
   getGenerator,
+  registerBuiltinGenerators,
   writeFiles,
 } from '../generators/index.js';
 import type { GeneratorConfig, GeneratorOutput } from '../generators/index.js';
@@ -51,6 +52,9 @@ interface GenerateOptions {
  * Create the generate command
  */
 export function createGenerateCommand(): Command {
+  // Register built-in generators
+  registerBuiltinGenerators();
+
   const cmd = new Command('generate')
     .alias('g')
     .description('Generate code for your VeloxTS project')
@@ -59,7 +63,9 @@ export function createGenerateCommand(): Command {
     .option('-d, --dry-run', 'Preview changes without writing files', false)
     .option('-f, --force', 'Overwrite existing files without prompting', false)
     .option('--json', 'Output results as JSON', false)
-    .allowUnknownOption(true)
+    // Procedure generator options (passed to procedure generator)
+    .option('-c, --crud', 'Generate full CRUD operations', false)
+    .option('-P, --paginated', 'Include pagination for list operation', false)
     .action(async (type: string | undefined, name: string | undefined, options: GenerateOptions) => {
       await runGenerate(type, name, options);
     });
