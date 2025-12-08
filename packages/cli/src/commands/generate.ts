@@ -69,6 +69,9 @@ export function createGenerateCommand(): Command {
     .option('-s, --soft-delete', 'Add soft delete support (model generator)', false)
     .option('-t, --timestamps', 'Include timestamps (model generator)', true)
     .option('-D, --database <type>', 'Database type: sqlite, postgresql, mysql', 'sqlite')
+    // Test generator options
+    .option('-T, --type <type>', 'Test type: unit, integration, e2e', 'unit')
+    .option('-G, --target <target>', 'Test target: procedure, schema, model, service, generic', 'generic')
     .action(async (type: string | undefined, name: string | undefined, options: GenerateOptions) => {
       await runGenerate(type, name, options);
     });
@@ -83,6 +86,8 @@ Examples:
   ${formatCommand('velox generate procedure users')}      Generate a users procedure
   ${formatCommand('velox g p User --crud')}              Generate CRUD procedures (short form)
   ${formatCommand('velox generate model Post')}          Generate a Post model with procedures
+  ${formatCommand('velox g test User -G procedure')}     Generate procedure unit tests
+  ${formatCommand('velox g t User -T e2e')}              Generate E2E tests
   ${formatCommand('velox generate --dry-run p User')}    Preview without writing files
 `
   );

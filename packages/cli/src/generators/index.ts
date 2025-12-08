@@ -79,9 +79,11 @@ export {
   ModelGenerator,
   ProcedureGenerator,
   SchemaGenerator,
+  TestGenerator,
   createMigrationGenerator,
   createModelGenerator,
   createProcedureGenerator,
   createSchemaGenerator,
+  createTestGenerator,
   registerBuiltinGenerators,
 } from './generators/index.js';
