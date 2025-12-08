@@ -68,6 +68,7 @@ export function createGenerateCommand(): Command {
     .option('-P, --paginated', 'Include pagination for list operation', false)
     .option('-s, --soft-delete', 'Add soft delete support (model generator)', false)
     .option('-t, --timestamps', 'Include timestamps (model generator)', true)
+    .option('-D, --database <type>', 'Database type: sqlite, postgresql, mysql', 'sqlite')
     .action(async (type: string | undefined, name: string | undefined, options: GenerateOptions) => {
       await runGenerate(type, name, options);
     });

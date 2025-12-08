@@ -75,8 +75,10 @@ export {
 
 // Built-in generators
 export {
+  MigrationGenerator,
   ModelGenerator,
   ProcedureGenerator,
+  createMigrationGenerator,
   createModelGenerator,
   createProcedureGenerator,
   registerBuiltinGenerators,
