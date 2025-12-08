@@ -9,6 +9,7 @@
 import { Command } from 'commander';
 
 import { createDevCommand } from './commands/dev.js';
+import { createGenerateCommand } from './commands/generate.js';
 import { createMigrateCommand } from './commands/migrate.js';
 import { CLI_VERSION } from './index.js';
 
@@ -26,6 +27,7 @@ function createCLI(): Command {
 
   // Register commands
   program.addCommand(createDevCommand(CLI_VERSION));
+  program.addCommand(createGenerateCommand());
   program.addCommand(createMigrateCommand());
 
   return program;
