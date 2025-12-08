@@ -43,7 +43,7 @@ interface FastifyRequestWithCookies extends FastifyRequest {
  * Check if request has cookie support from @fastify/cookie plugin
  */
 function hasCookieSupport(request: FastifyRequest): request is FastifyRequestWithCookies {
-  return 'cookies' in request && typeof request.cookies === 'object';
+  return 'cookies' in request && request.cookies !== null && typeof request.cookies === 'object';
 }
 
 /**

@@ -300,9 +300,7 @@ async function runMigrateReset(options: MigrateResetOptions): Promise<void> {
     process.exit(1);
   } finally {
     // Disconnect Prisma client if still connected
-    // noinspection PointlessBooleanExpressionJS
     if (prisma) {
-      // noinspection JSObjectNullOrUndefined
       await prisma.$disconnect();
     }
   }

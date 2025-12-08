@@ -11,6 +11,7 @@ export default defineConfig({
         '**/node_modules/**',
         '**/dist/**',
         '**/__tests__/**',
+        '**/__type-tests__/**',
         '**/index.ts',
         '**/types.ts',
       ],

@@ -22,6 +22,36 @@ import type { MigrationFile, PrismaMigrationRecord } from '../types.js';
 // Mock fs module
 vi.mock('node:fs/promises');
 
+/**
+ * Helper to create mock Dirent entries for fs.readdir
+ * This avoids @ts-expect-error by properly typing the mock return value
+ */
+function createMockDirents(entries: Array<{ name: string; isDirectory: boolean }>): Dirent[] {
+  return entries.map(
+    (e) =>
+      ({
+        name: e.name,
+        isDirectory: () => e.isDirectory,
+        isFile: () => !e.isDirectory,
+        isBlockDevice: () => false,
+        isCharacterDevice: () => false,
+        isSymbolicLink: () => false,
+        isFIFO: () => false,
+        isSocket: () => false,
+        path: '',
+        parentPath: '',
+      }) as Dirent
+  );
+}
+
+/**
+ * Helper to mock fs.readdir with proper typing
+ */
+function mockReaddir(entries: Array<{ name: string; isDirectory: boolean }>): void {
+  const dirents = createMockDirents(entries);
+  vi.mocked(fs.readdir).mockImplementation(() => Promise.resolve(dirents) as never);
+}
+
 describe('Migration Loader', () => {
   const mockCwd = '/test/project';
 
@@ -32,12 +62,11 @@ describe('Migration Loader', () => {
   describe('loadMigrations', () => {
     it('should load migrations from directory', async () => {
       // Mock directory structure
-      // @ts-expect-error
-      vi.mocked(fs.readdir).mockResolvedValue([
-        { name: '20241208120000_create_users', isDirectory: () => true } as unknown as Dirent,
-        { name: '20241208130000_add_email', isDirectory: () => true } as unknown as Dirent,
-        { name: 'migration_lock.toml', isDirectory: () => false } as unknown as Dirent,
-      ] as unknown as Dirent[]);
+      mockReaddir([
+        { name: '20241208120000_create_users', isDirectory: true },
+        { name: '20241208130000_add_email', isDirectory: true },
+        { name: 'migration_lock.toml', isDirectory: false },
+      ]);
 
       // Mock fs.access: directory exists, migration.sql exists for both, down.sql only for first
       vi.mocked(fs.access).mockImplementation(async (p: PathLike) => {
@@ -68,12 +97,11 @@ describe('Migration Loader', () => {
 
     it('should sort migrations by timestamp', async () => {
       vi.mocked(fs.access).mockResolvedValue(undefined);
-      // @ts-expect-error
-      vi.mocked(fs.readdir, { partial: true }).mockResolvedValue([
-        { name: '20241209000000_third', isDirectory: () => true } as unknown as Dirent,
-        { name: '20241207000000_first', isDirectory: () => true } as unknown as Dirent,
-        { name: '20241208000000_second', isDirectory: () => true } as unknown as Dirent,
-      ] as unknown as Dirent[]);
+      mockReaddir([
+        { name: '20241209000000_third', isDirectory: true },
+        { name: '20241207000000_first', isDirectory: true },
+        { name: '20241208000000_second', isDirectory: true },
+      ]);
 
       const migrations = await loadMigrations(mockCwd);
 
@@ -90,12 +118,11 @@ describe('Migration Loader', () => {
 
     it('should skip non-migration folders', async () => {
       vi.mocked(fs.access).mockResolvedValue(undefined);
-      // @ts-expect-error
-      vi.mocked(fs.readdir).mockResolvedValue([
-        { name: '20241208120000_valid', isDirectory: () => true } as unknown as Dirent,
-        { name: 'not_a_migration', isDirectory: () => true } as unknown as Dirent,
-        { name: '.git', isDirectory: () => true } as unknown as Dirent,
-      ] as unknown as Dirent[]);
+      mockReaddir([
+        { name: '20241208120000_valid', isDirectory: true },
+        { name: 'not_a_migration', isDirectory: true },
+        { name: '.git', isDirectory: true },
+      ]);
 
       const migrations = await loadMigrations(mockCwd);
 
@@ -107,10 +134,7 @@ describe('Migration Loader', () => {
   describe('getMigrationByName', () => {
     it('should return migration by name', async () => {
       vi.mocked(fs.access).mockResolvedValue(undefined);
-      // @ts-expect-error
-      vi.mocked(fs.readdir).mockResolvedValue([
-        { name: '20241208120000_create_users', isDirectory: () => true } as unknown as Dirent,
-      ] as unknown as Dirent[]);
+      mockReaddir([{ name: '20241208120000_create_users', isDirectory: true }]);
 
       const migration = await getMigrationByName(mockCwd, '20241208120000_create_users');
 

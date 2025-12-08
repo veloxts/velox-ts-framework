@@ -250,10 +250,19 @@ export interface Generator<TOptions = Record<string, unknown>> {
 }
 
 /**
- * Type alias for generators with any options type.
- * Used in the registry where we don't know the specific options type.
+ * Type-erased generator alias for registry storage.
+ * Used when storing heterogeneous generators with different option types.
+ *
+ * The `any` type is intentionally used here because:
+ * 1. Generator<T> is invariant in T due to both covariant (validateOptions return)
+ *    and contravariant (generate config parameter) positions
+ * 2. We need to store generators with different TOptions in a single collection
+ * 3. Type safety is maintained at the call site through validateOptions()
+ *
+ * This is a legitimate use of type erasure where the type information is
+ * recovered through runtime validation before use.
  */
-// biome-ignore lint/suspicious/noExplicitAny: we don't know the specific options type
+// biome-ignore lint/suspicious/noExplicitAny: Type erasure for heterogeneous generator storage - see comment above
 export type AnyGenerator = Generator<any>;
 
 // ============================================================================

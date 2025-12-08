@@ -147,14 +147,6 @@ export const GET_APPLIED_MIGRATIONS_SQL = `
   ORDER BY "started_at" ASC
 `;
 
-/**
- * Query to delete a migration record
- */
-export function getDeleteMigrationSql(migrationName: string): string {
-  // Using template literal for clarity, but should use parameterized query in actual execution
-  return `DELETE FROM "_prisma_migrations" WHERE "migration_name" = '${migrationName}'`;
-}
-
 // ============================================================================
 // Status Computation
 // ============================================================================

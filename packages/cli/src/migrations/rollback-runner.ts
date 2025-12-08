@@ -72,9 +72,10 @@ export async function rollbackMigration(
       }
     }
 
-    // Remove migration record from _prisma_migrations
+    // Remove migration record from _prisma_migrations using parameterized query
     await prisma.$executeRawUnsafe(
-      `DELETE FROM "_prisma_migrations" WHERE "migration_name" = '${escapeString(migration.name)}'`
+      `DELETE FROM "_prisma_migrations" WHERE "migration_name" = $1`,
+      migration.name
     );
 
     return {
@@ -252,11 +253,4 @@ function splitSqlStatements(sql: string): string[] {
   }
 
   return statements;
-}
-
-/**
- * Escape single quotes in SQL string
- */
-function escapeString(value: string): string {
-  return value.replace(/'/g, "''");
 }
