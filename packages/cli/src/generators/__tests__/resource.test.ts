@@ -233,12 +233,14 @@ describe('ResourceGenerator', () => {
       const output = await generator.generate(config);
       const modelFile = output.files.find((f) => f.path.endsWith('.prisma'));
 
-      expect(modelFile).toBeDefined();
-      expect(modelFile!.content).toContain('model User');
-      expect(modelFile!.content).toContain('@id @default(uuid())');
-      expect(modelFile!.content).toContain('createdAt DateTime');
-      expect(modelFile!.content).toContain('updatedAt DateTime');
-      expect(modelFile!.content).toContain('@@map("users")');
+      if (!modelFile) {
+        throw new Error('Expected Prisma model file to be generated');
+      }
+      expect(modelFile.content).toContain('model User');
+      expect(modelFile.content).toContain('@id @default(uuid())');
+      expect(modelFile.content).toContain('createdAt DateTime');
+      expect(modelFile.content).toContain('updatedAt DateTime');
+      expect(modelFile.content).toContain('@@map("users")');
     });
 
     it('should include soft delete field when enabled', async () => {
@@ -264,7 +266,10 @@ describe('ResourceGenerator', () => {
       const output = await generator.generate(config);
       const modelFile = output.files.find((f) => f.path.endsWith('.prisma'));
 
-      expect(modelFile!.content).toContain('deletedAt DateTime?');
+      if (!modelFile) {
+        throw new Error('Expected Prisma model file to be generated');
+      }
+      expect(modelFile.content).toContain('deletedAt DateTime?');
     });
   });
 
@@ -292,10 +297,12 @@ describe('ResourceGenerator', () => {
       const output = await generator.generate(config);
       const schemaFile = output.files.find((f) => f.path.endsWith('.schema.ts'));
 
-      expect(schemaFile).toBeDefined();
-      expect(schemaFile!.content).toContain('productSchema');
-      expect(schemaFile!.content).toContain('createProductInputSchema');
-      expect(schemaFile!.content).toContain('productListQuerySchema');
+      if (!schemaFile) {
+        throw new Error('Expected schema file to be generated');
+      }
+      expect(schemaFile.content).toContain('productSchema');
+      expect(schemaFile.content).toContain('createProductInputSchema');
+      expect(schemaFile.content).toContain('productListQuerySchema');
     });
   });
 
@@ -323,12 +330,14 @@ describe('ResourceGenerator', () => {
       const output = await generator.generate(config);
       const procFile = output.files.find((f) => f.path === 'src/procedures/item.ts');
 
-      expect(procFile).toBeDefined();
-      expect(procFile!.content).toContain('getItem');
-      expect(procFile!.content).toContain('listItems');
-      expect(procFile!.content).toContain('createItem');
-      expect(procFile!.content).toContain('updateItem');
-      expect(procFile!.content).toContain('deleteItem');
+      if (!procFile) {
+        throw new Error('Expected procedure file to be generated');
+      }
+      expect(procFile.content).toContain('getItem');
+      expect(procFile.content).toContain('listItems');
+      expect(procFile.content).toContain('createItem');
+      expect(procFile.content).toContain('updateItem');
+      expect(procFile.content).toContain('deleteItem');
     });
 
     it('should include soft delete logic when enabled', async () => {
@@ -356,8 +365,11 @@ describe('ResourceGenerator', () => {
         (f) => f.path.endsWith('.ts') && !f.path.includes('__tests__')
       );
 
-      expect(procFile!.content).toContain('deletedAt: null');
-      expect(procFile!.content).toContain('deletedAt: new Date()');
+      if (!procFile) {
+        throw new Error('Expected procedure file to be generated');
+      }
+      expect(procFile.content).toContain('deletedAt: null');
+      expect(procFile.content).toContain('deletedAt: new Date()');
     });
 
     it('should include pagination meta when enabled', async () => {
@@ -383,8 +395,11 @@ describe('ResourceGenerator', () => {
       const output = await generator.generate(config);
       const procFile = output.files.find((f) => f.path === 'src/procedures/record.ts');
 
-      expect(procFile!.content).toContain('meta:');
-      expect(procFile!.content).toContain('totalPages');
+      if (!procFile) {
+        throw new Error('Expected procedure file to be generated');
+      }
+      expect(procFile.content).toContain('meta:');
+      expect(procFile.content).toContain('totalPages');
     });
   });
 

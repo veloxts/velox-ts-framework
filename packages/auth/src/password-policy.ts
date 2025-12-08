@@ -533,34 +533,7 @@ export class PasswordPolicy {
    * @returns Number of times password appears in breaches (0 = not found)
    */
   private async checkBreaches(password: string): Promise<number> {
-    // Hash password with SHA-1
-    const hash = createHash('sha1').update(password).digest('hex').toUpperCase();
-    const prefix = hash.slice(0, 5);
-    const suffix = hash.slice(5);
-
-    // Query API with hash prefix
-    const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
-      headers: {
-        'User-Agent': 'VeloxTS-Auth-Password-Policy',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HaveIBeenPwned API error: ${response.status}`);
-    }
-
-    const text = await response.text();
-    const lines = text.split('\n');
-
-    // Search for our suffix in results
-    for (const line of lines) {
-      const [hashSuffix, countStr] = line.split(':');
-      if (hashSuffix === suffix) {
-        return parseInt(countStr.trim(), 10);
-      }
-    }
-
-    return 0; // Not found in breaches
+    return queryBreachDatabase(password);
   }
 
   /**
@@ -609,6 +582,47 @@ export class PasswordPolicy {
  */
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Query Have I Been Pwned API for password breach count
+ *
+ * Uses k-anonymity: only sends first 5 chars of SHA-1 hash
+ * to protect password privacy.
+ *
+ * @param password - The password to check
+ * @returns Number of times password appears in breaches (0 = not found)
+ * @internal This is the core implementation used by both PasswordPolicy and checkPasswordBreach
+ */
+async function queryBreachDatabase(password: string): Promise<number> {
+  // Hash password with SHA-1
+  const hash = createHash('sha1').update(password).digest('hex').toUpperCase();
+  const prefix = hash.slice(0, 5);
+  const suffix = hash.slice(5);
+
+  // Query API with hash prefix
+  const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+    headers: {
+      'User-Agent': 'VeloxTS-Auth-Password-Policy',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HaveIBeenPwned API error: ${response.status}`);
+  }
+
+  const text = await response.text();
+  const lines = text.split('\n');
+
+  // Search for our suffix in results
+  for (const line of lines) {
+    const [hashSuffix, countStr] = line.split(':');
+    if (hashSuffix === suffix) {
+      return parseInt(countStr.trim(), 10);
+    }
+  }
+
+  return 0; // Not found in breaches
 }
 
 // ============================================================================
@@ -681,6 +695,9 @@ export function isCommonPassword(password: string): boolean {
 /**
  * Check password against Have I Been Pwned
  *
+ * Uses k-anonymity: only sends first 5 chars of SHA-1 hash
+ * to protect password privacy.
+ *
  * @example
  * ```typescript
  * import { checkPasswordBreach } from '@veloxts/auth';
@@ -692,6 +709,5 @@ export function isCommonPassword(password: string): boolean {
  * ```
  */
 export async function checkPasswordBreach(password: string): Promise<number> {
-  const policy = new PasswordPolicy();
-  return policy['checkBreaches'](password);
+  return queryBreachDatabase(password);
 }

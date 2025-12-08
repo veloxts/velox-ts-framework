@@ -35,6 +35,13 @@ class GeneratorRegistry {
   private readonly aliasMap = new Map<string, string>();
 
   /**
+   * Normalize name for case-insensitive lookups
+   */
+  private normalizeName(name: string): string {
+    return name.toLowerCase();
+  }
+
+  /**
    * Register a generator
    *
    * @param generator - The generator to register
@@ -42,58 +49,62 @@ class GeneratorRegistry {
    */
   register(generator: AnyGenerator): void {
     const { name, aliases } = generator.metadata;
+    const normalizedName = this.normalizeName(name);
 
     // Check for name conflicts
-    if (this.generators.has(name)) {
+    if (this.generators.has(normalizedName)) {
       throw new Error(`Generator "${name}" is already registered. Generator names must be unique.`);
     }
 
     // Check for alias conflicts
-    if (this.aliasMap.has(name)) {
+    if (this.aliasMap.has(normalizedName)) {
       throw new Error(
-        `"${name}" is already registered as an alias for "${this.aliasMap.get(name)}".`
+        `"${name}" is already registered as an alias for "${this.aliasMap.get(normalizedName)}".`
       );
     }
 
     // Check each alias
     if (aliases) {
       for (const alias of aliases) {
-        if (this.generators.has(alias)) {
+        const normalizedAlias = this.normalizeName(alias);
+        if (this.generators.has(normalizedAlias)) {
           throw new Error(`Alias "${alias}" conflicts with existing generator "${alias}".`);
         }
-        if (this.aliasMap.has(alias)) {
+        if (this.aliasMap.has(normalizedAlias)) {
           throw new Error(
-            `Alias "${alias}" is already registered for generator "${this.aliasMap.get(alias)}".`
+            `Alias "${alias}" is already registered for generator "${this.aliasMap.get(normalizedAlias)}".`
           );
         }
       }
     }
 
     // Register the generator
-    this.generators.set(name, generator);
+    this.generators.set(normalizedName, generator);
 
     // Register aliases
     if (aliases) {
       for (const alias of aliases) {
-        this.aliasMap.set(alias, name);
+        this.aliasMap.set(this.normalizeName(alias), normalizedName);
       }
     }
   }
 
   /**
-   * Get a generator by name or alias
+   * Get a generator by name or alias (case-insensitive)
    *
    * @param nameOrAlias - Generator name or alias
    * @returns The generator if found, undefined otherwise
    */
   get(nameOrAlias: string): AnyGenerator | undefined {
+    const normalized = this.normalizeName(nameOrAlias);
+
     // Direct lookup
-    if (this.generators.has(nameOrAlias)) {
-      return this.generators.get(nameOrAlias);
+    if (this.generators.has(normalized)) {
+      return this.generators.get(normalized);
     }
 
     // Alias lookup
-    const resolvedName = this.aliasMap.get(nameOrAlias);
+    const resolvedName = this.aliasMap.get(normalized);
     if (resolvedName) {
       return this.generators.get(resolvedName);
     }
@@ -102,10 +113,11 @@ class GeneratorRegistry {
   }
 
   /**
-   * Check if a generator exists by name or alias
+   * Check if a generator exists by name or alias (case-insensitive)
    */
   has(nameOrAlias: string): boolean {
-    return this.generators.has(nameOrAlias) || this.aliasMap.has(nameOrAlias);
+    const normalized = this.normalizeName(nameOrAlias);
+    return this.generators.has(normalized) || this.aliasMap.has(normalized);
   }
 
   /**
@@ -144,13 +156,14 @@ class GeneratorRegistry {
   }
 
   /**
-   * Resolve an alias to its primary name
+   * Resolve an alias to its primary name (case-insensitive)
    */
   resolveName(nameOrAlias: string): string | undefined {
-    if (this.generators.has(nameOrAlias)) {
-      return nameOrAlias;
+    const normalized = this.normalizeName(nameOrAlias);
+    if (this.generators.has(normalized)) {
+      return normalized;
     }
-    return this.aliasMap.get(nameOrAlias);
+    return this.aliasMap.get(normalized);
   }
 
   /**

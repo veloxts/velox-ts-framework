@@ -32,19 +32,24 @@ describe('Migration Loader', () => {
   describe('loadMigrations', () => {
     it('should load migrations from directory', async () => {
       // Mock directory structure
-      vi.mocked(fs.access).mockResolvedValue(undefined);
       vi.mocked(fs.readdir).mockResolvedValue([
         { name: '20241208120000_create_users', isDirectory: () => true } as unknown as fs.Dirent,
         { name: '20241208130000_add_email', isDirectory: () => true } as unknown as fs.Dirent,
         { name: 'migration_lock.toml', isDirectory: () => false } as unknown as fs.Dirent,
       ] as unknown as fs.Dirent[]);
 
-      // Mock migration.sql exists for both, down.sql only for first
+      // Mock fs.access: directory exists, migration.sql exists for both, down.sql only for first
       vi.mocked(fs.access).mockImplementation(async (p: fs.PathLike) => {
         const pathStr = p.toString();
+        // Directory check passes
+        if (pathStr.endsWith('prisma/migrations')) {
+          return undefined;
+        }
+        // migration.sql exists for both migrations
         if (pathStr.includes('migration.sql')) {
           return undefined;
         }
+        // down.sql only exists for first migration
         if (pathStr.includes('20241208120000_create_users') && pathStr.includes('down.sql')) {
           return undefined;
         }

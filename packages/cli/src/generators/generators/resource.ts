@@ -100,9 +100,8 @@ const options: GeneratorOption[] = [
  * Resource generator implementation
  */
 export class ResourceGenerator extends BaseGenerator<ResourceOptions> {
-  constructor() {
-    super(metadata, options);
-  }
+  readonly metadata: GeneratorMetadata = metadata;
+  readonly options: ReadonlyArray<GeneratorOption> = options;
 
   /**
    * Validate resource-specific options

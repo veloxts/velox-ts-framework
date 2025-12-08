@@ -185,16 +185,20 @@ export function parseMigrateStatusOutput(output: string): ParsedMigrationStatus 
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Detect sections
-    if (trimmed.includes('following migration') && trimmed.includes('applied')) {
-      inAppliedSection = true;
-      inPendingSection = false;
-      continue;
-    }
-
+    // Detect sections - check pending first since "not yet applied" also contains "applied"
     if (trimmed.includes('following migration') && trimmed.includes('not yet applied')) {
       inAppliedSection = false;
       inPendingSection = true;
+      continue;
+    }
+
+    if (
+      trimmed.includes('following migration') &&
+      trimmed.includes('applied') &&
+      !trimmed.includes('not yet')
+    ) {
+      inAppliedSection = true;
+      inPendingSection = false;
       continue;
     }
 

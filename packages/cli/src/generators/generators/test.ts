@@ -71,9 +71,8 @@ function isValidTarget(value: string): value is ValidTarget {
  * Test generator implementation
  */
 export class TestGenerator extends BaseGenerator<TestOptions> {
-  constructor() {
-    super(metadata, options);
-  }
+  readonly metadata: GeneratorMetadata = metadata;
+  readonly options: ReadonlyArray<GeneratorOption> = options;
 
   /**
    * Validate test-specific options

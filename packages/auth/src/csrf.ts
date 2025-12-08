@@ -36,6 +36,43 @@ interface FastifyRequestWithCookies extends FastifyRequest {
 }
 
 // ============================================================================
+// Type Guards for Cookie Plugin
+// ============================================================================
+
+/**
+ * Check if request has cookie support from @fastify/cookie plugin
+ */
+function hasCookieSupport(request: FastifyRequest): request is FastifyRequestWithCookies {
+  return 'cookies' in request && typeof request.cookies === 'object';
+}
+
+/**
+ * Check if reply has cookie methods from @fastify/cookie plugin
+ */
+function hasReplyCookieSupport(reply: FastifyReply): reply is FastifyReplyWithCookies {
+  return 'cookie' in reply && typeof reply.cookie === 'function';
+}
+
+/**
+ * Get request and reply with validated cookie support
+ * @throws Error with helpful message if @fastify/cookie plugin is not registered
+ */
+function getValidatedCookieContext(
+  request: FastifyRequest,
+  reply: FastifyReply
+): { request: FastifyRequestWithCookies; reply: FastifyReplyWithCookies } {
+  if (!hasCookieSupport(request) || !hasReplyCookieSupport(reply)) {
+    throw new Error(
+      'CSRF middleware requires @fastify/cookie plugin. ' +
+        'Please register it before using CSRF protection:\n\n' +
+        "  import cookie from '@fastify/cookie';\n" +
+        '  await app.register(cookie);\n'
+    );
+  }
+  return { request, reply };
+}
+
+// ============================================================================
 // Constants
 // ============================================================================
 
@@ -666,8 +703,8 @@ export function csrfMiddleware(config: CsrfConfig) {
     options: CsrfMiddlewareOptions = {}
   ): MiddlewareFunction<TInput, TContext, TContext & CsrfContext, TOutput> {
     return async ({ ctx, next }) => {
-      const reply = ctx.reply as unknown as FastifyReplyWithCookies;
-      const request = ctx.request as unknown as FastifyRequestWithCookies;
+      // Validate @fastify/cookie plugin is registered and get typed context
+      const { request, reply } = getValidatedCookieContext(ctx.request, ctx.reply);
 
       if (options.skip) {
         return next({
@@ -710,7 +747,8 @@ export function csrfMiddleware(config: CsrfConfig) {
     TOutput
   > {
     return async ({ ctx, next }) => {
-      const reply = ctx.reply as unknown as FastifyReplyWithCookies;
+      // Validate @fastify/cookie plugin is registered and get typed context
+      const { reply } = getValidatedCookieContext(ctx.request, ctx.reply);
 
       return next({
         ctx: {

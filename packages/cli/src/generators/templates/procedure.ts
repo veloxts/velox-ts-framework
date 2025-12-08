@@ -70,6 +70,7 @@ function generateCrudProcedures(ctx: TemplateContext<ProcedureOptions>): string 
           page: z.number(),
           limit: z.number(),
           total: z.number(),
+          totalPages: z.number(),
         }),
       })`
     : `z.array(${entity.pascal}Schema)`;
@@ -86,9 +87,11 @@ function generateCrudProcedures(ctx: TemplateContext<ProcedureOptions>): string 
         ctx.db.${entity.camel}.count(),
       ]);
 
+      const totalPages = Math.ceil(total / limit);
+
       return {
         data: items.map(toResponse),
-        meta: { page, limit, total },
+        meta: { page, limit, total, totalPages },
       };`
     : `const items = await ctx.db.${entity.camel}.findMany();
       return items.map(toResponse);`;

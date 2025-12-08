@@ -617,5 +617,5 @@ export function getResourceInstructions(entityName: string, options: ResourceOpt
      PATCH  /api/${entityName.toLowerCase()}s/:id  - Partial update
      DELETE /api/${entityName.toLowerCase()}s/:id  - Delete`);
 
-  return '\n  ' + steps.join('\n\n  ');
+  return `\n  ${steps.join('\n\n  ')}`;
 }

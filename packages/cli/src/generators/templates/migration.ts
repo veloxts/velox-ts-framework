@@ -19,13 +19,13 @@ export interface MigrationOptions {
 // Migration Name Parser
 // ============================================================================
 
-interface ParsedMigration {
-  type: 'create' | 'add' | 'remove' | 'rename' | 'drop' | 'custom';
-  table?: string;
-  column?: string;
-  oldName?: string;
-  newName?: string;
-}
+type ParsedMigration =
+  | { type: 'create'; table: string }
+  | { type: 'add'; table: string; column: string }
+  | { type: 'remove'; table: string; column: string }
+  | { type: 'rename'; oldName: string; newName: string }
+  | { type: 'drop'; table: string }
+  | { type: 'custom' };
 
 /**
  * Parse migration name to determine type and extract details
@@ -51,31 +51,43 @@ function parseMigrationName(name: string): ParsedMigration {
   // add_<column>_to_<table>
   const addMatch = lower.match(/^add_(.+)_to_(.+)$/);
   if (addMatch) {
-    return {
-      type: 'add',
-      column: addMatch[1],
-      table: addMatch[2],
-    };
+    const column = addMatch[1];
+    const table = addMatch[2];
+    if (column && table) {
+      return {
+        type: 'add',
+        column,
+        table,
+      };
+    }
   }
 
   // remove_<column>_from_<table>
   const removeMatch = lower.match(/^remove_(.+)_from_(.+)$/);
   if (removeMatch) {
-    return {
-      type: 'remove',
-      column: removeMatch[1],
-      table: removeMatch[2],
-    };
+    const column = removeMatch[1];
+    const table = removeMatch[2];
+    if (column && table) {
+      return {
+        type: 'remove',
+        column,
+        table,
+      };
+    }
   }
 
   // rename_<old>_to_<new>
   const renameMatch = lower.match(/^rename_(.+)_to_(.+)$/);
   if (renameMatch) {
-    return {
-      type: 'rename',
-      oldName: renameMatch[1],
-      newName: renameMatch[2],
-    };
+    const oldName = renameMatch[1];
+    const newName = renameMatch[2];
+    if (oldName && newName) {
+      return {
+        type: 'rename',
+        oldName,
+        newName,
+      };
+    }
   }
 
   // drop_<table>
@@ -324,22 +336,21 @@ function generateMigrationSql(name: string, database: string): string {
 
   switch (parsed.type) {
     case 'create':
-      return generateCreateTableSql(parsed.table!, database);
+      return generateCreateTableSql(parsed.table, database);
 
     case 'add':
-      return generateAddColumnSql(parsed.table!, parsed.column!, database);
+      return generateAddColumnSql(parsed.table, parsed.column, database);
 
     case 'remove':
-      return generateRemoveColumnSql(parsed.table!, parsed.column!, database);
+      return generateRemoveColumnSql(parsed.table, parsed.column, database);
 
     case 'rename':
-      return generateRenameTableSql(parsed.oldName!, parsed.newName!, database);
+      return generateRenameTableSql(parsed.oldName, parsed.newName, database);
 
     case 'drop':
-      return generateDropTableSql(parsed.table!);
+      return generateDropTableSql(parsed.table);
 
     case 'custom':
-    default:
       return generateCustomSql(name);
   }
 }
@@ -352,22 +363,21 @@ function generateRollbackSql(name: string, database: string): string {
 
   switch (parsed.type) {
     case 'create':
-      return generateRollbackCreateTableSql(parsed.table!);
+      return generateRollbackCreateTableSql(parsed.table);
 
     case 'add':
-      return generateRollbackAddColumnSql(parsed.table!, parsed.column!, database);
+      return generateRollbackAddColumnSql(parsed.table, parsed.column, database);
 
     case 'remove':
-      return generateRollbackRemoveColumnSql(parsed.table!, parsed.column!);
+      return generateRollbackRemoveColumnSql(parsed.table, parsed.column);
 
     case 'rename':
-      return generateRollbackRenameTableSql(parsed.oldName!, parsed.newName!, database);
+      return generateRollbackRenameTableSql(parsed.oldName, parsed.newName, database);
 
     case 'drop':
-      return generateRollbackDropTableSql(parsed.table!);
+      return generateRollbackDropTableSql(parsed.table);
 
     case 'custom':
-    default:
       return generateRollbackCustomSql(name);
   }
 }
@@ -403,10 +413,11 @@ export const migrationTemplate: TemplateFunction<MigrationOptions> = (ctx) => {
  */
 export function generateMigrationFiles(ctx: TemplateContext<MigrationOptions>): GeneratedFile[] {
   const timestamp = generateTimestamp();
-  const migrationName = ctx.entity.snake;
+  // Use raw entity name to preserve original migration name (e.g., create_users)
+  const migrationName = ctx.entity.raw;
   const folderName = `${timestamp}_${migrationName}`;
 
-  const upSql = generateMigrationSql(ctx.entity.raw, ctx.options.database);
+  const upSql = migrationTemplate(ctx);
   const downSql = generateRollbackSql(ctx.entity.raw, ctx.options.database);
 
   return [

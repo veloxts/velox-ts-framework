@@ -64,9 +64,8 @@ const options: GeneratorOption[] = [
  * Schema generator implementation
  */
 export class SchemaGenerator extends BaseGenerator<SchemaOptions> {
-  constructor() {
-    super(metadata, options);
-  }
+  readonly metadata: GeneratorMetadata = metadata;
+  readonly options: ReadonlyArray<GeneratorOption> = options;
 
   /**
    * Validate schema-specific options

@@ -253,7 +253,8 @@ describe('Naming Utilities', () => {
     it('should handle plural input and derive singular', () => {
       const names = deriveEntityNames('Users');
 
-      expect(names.pascal).toBe('Users');
+      // pascal is normalized to singular form
+      expect(names.pascal).toBe('User');
       expect(names.singular).toBe('user');
       expect(names.plural).toBe('users');
     });

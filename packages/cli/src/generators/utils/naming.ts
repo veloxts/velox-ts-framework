@@ -90,6 +90,16 @@ export function toPascalCase(str: string): string {
  * toCamelCase('UserProfile') // 'userProfile'
  */
 export function toCamelCase(str: string): string {
+  // Handle single word (no separators)
+  if (!/[-_\s]/.test(str)) {
+    // Check if all uppercase - convert to lowercase
+    if (str === str.toUpperCase()) {
+      return str.toLowerCase();
+    }
+    // Mixed case or PascalCase - just lowercase first char
+    return str.charAt(0).toLowerCase() + str.slice(1);
+  }
+  // Has separators - convert through PascalCase
   const pascal = toPascalCase(str);
   return pascal.charAt(0).toLowerCase() + pascal.slice(1);
 }
@@ -146,7 +156,9 @@ export function toHumanReadable(str: string): string {
   return str
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/[-_]+/g, ' ')
-    .replace(/^./, (c) => c.toUpperCase());
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 }
 
 // ============================================================================
@@ -165,6 +177,12 @@ export function toHumanReadable(str: string): string {
 export function pluralize(word: string): string {
   const lower = word.toLowerCase();
 
+  // Check if already plural (irregular)
+  if (IRREGULAR_SINGULARS.has(lower)) {
+    // Already plural, return as-is
+    return word;
+  }
+
   // Check irregular plurals
   if (IRREGULAR_PLURALS.has(lower)) {
     const plural = IRREGULAR_PLURALS.get(lower)!;
@@ -173,6 +191,16 @@ export function pluralize(word: string): string {
       return plural.charAt(0).toUpperCase() + plural.slice(1);
     }
     return plural;
+  }
+
+  // Check if already looks plural (ends with 's' but not 'ss')
+  // Try singularizing first - if it's different, we're likely already plural
+  if (lower.endsWith('s') && !lower.endsWith('ss')) {
+    const singular = singularize(word);
+    // If singularize returns a different word, this is already plural
+    if (singular.toLowerCase() !== lower) {
+      return word;
+    }
   }
 
   // Words ending in consonant + y → ies

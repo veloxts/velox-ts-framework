@@ -91,11 +91,6 @@ function generateCrudSchemas(
     createOmitFields.push('deletedAt');
   }
 
-  const createOmit = createOmitFields.map((f) => `'${f}'`).join(', ');
-
-  // Fields to omit for update schema (same as create, update is full replacement)
-  const updateOmit = createOmit;
-
   return `
 // ============================================================================
 // Input Schemas (for API validation)

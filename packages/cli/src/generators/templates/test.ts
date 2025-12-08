@@ -267,7 +267,7 @@ describe('${pascal} Schema', () => {
  * Generate integration test
  */
 function generateIntegrationTest(entity: { pascal: string; camel: string; kebab: string }): string {
-  const { pascal, camel, kebab } = entity;
+  const { pascal, camel } = entity;
 
   return `/**
  * ${pascal} - Integration Tests
@@ -716,7 +716,7 @@ describe('${pascal} Model', () => {
   describe('findUnique', () => {
     it('should find ${camel} by id', async () => {
       // const mock${pascal} = {
-      //   id: 'test-uuid',
+      //   id: 'test-${kebab}-uuid',
       //   createdAt: new Date(),
       //   updatedAt: new Date(),
       // };
@@ -844,14 +844,13 @@ export const testTemplate: TemplateFunction<TestOptions> = (ctx) => {
       return generateModelUnitTest(ctx.entity);
     case 'service':
       return generateServiceUnitTest(ctx.entity);
-    case 'generic':
     default:
       return generateGenericUnitTest(ctx.entity);
   }
 };
 
 /**
- * Get output path for test file
+ * Get an output path for a test file
  */
 export function getTestPath(entity: { kebab: string }, options: TestOptions): string {
   const { type, target } = options;
@@ -900,7 +899,7 @@ export function generateTestFiles(ctx: TemplateContext<TestOptions>): GeneratedF
  * Generate post-generation instructions
  */
 export function getTestInstructions(entityName: string, options: TestOptions): string {
-  const { type, target } = options;
+  const { type } = options;
 
   const runCommand =
     type === 'e2e'
