@@ -7,6 +7,7 @@
  * @module discovery/loader
  */
 
+import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -205,7 +206,7 @@ async function scanForProcedureFiles(
   }
   visited.add(realPath);
 
-  let entries: Awaited<ReturnType<typeof fs.readdir>>;
+  let entries: Dirent[];
   try {
     entries = await fs.readdir(dirPath, { withFileTypes: true });
   } catch {

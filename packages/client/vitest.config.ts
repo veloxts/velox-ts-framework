@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -10,8 +12,10 @@ export default defineConfig({
         'node_modules/**',
         'dist/**',
         '**/*.test.ts',
+        '**/*.test.tsx',
         '**/*.config.*',
         '**/index.ts', // Re-export file, doesn't need coverage
+        '**/react/index.ts', // Re-export file for React module
       ],
       thresholds: {
         lines: 80,

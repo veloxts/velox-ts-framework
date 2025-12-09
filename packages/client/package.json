@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
     }
   },
   "files": [
@@ -24,9 +28,27 @@
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
-  "dependencies": {},
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@tanstack/react-query": "5.62.11",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.0",
+    "@types/react": "18.3.18",
     "@vitest/coverage-v8": "4.0.15",
+    "jsdom": "26.1.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "typescript": "5.9.3",
     "vitest": "4.0.15"
   },
@@ -35,7 +57,9 @@
     "client",
     "api",
     "fetch",
-    "typescript"
+    "typescript",
+    "react",
+    "react-query"
   ],
   "license": "MIT",
   "repository": {
