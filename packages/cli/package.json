@@ -45,6 +45,7 @@
     "@veloxts/router": "workspace:*",
     "@veloxts/validation": "workspace:*",
     "commander": "14.0.2",
+    "hot-hook": "0.4.0",
     "picocolors": "1.1.1",
     "pluralize": "8.0.0",
     "tsx": "4.21.0"

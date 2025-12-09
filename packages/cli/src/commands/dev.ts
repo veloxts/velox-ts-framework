@@ -10,6 +10,7 @@ import * as p from '@clack/prompts';
 import { Command } from 'commander';
 import pc from 'picocolors';
 
+import { buildWatchArgs, runHMRServer } from '../dev/index.js';
 import {
   error,
   formatCommand,
@@ -17,6 +18,7 @@ import {
   info,
   instruction,
   printBanner,
+  warning,
 } from '../utils/output.js';
 import { findEntryPoint, isVeloxProject, validateEntryPath } from '../utils/paths.js';
 
@@ -24,6 +26,8 @@ interface DevOptions {
   port?: string;
   host?: string;
   entry?: string;
+  clear?: boolean;
+  hmr?: boolean;
 }
 
 /**
@@ -35,6 +39,9 @@ export function createDevCommand(version: string): Command {
     .option('-p, --port <port>', 'Port to listen on', '3210')
     .option('-H, --host <host>', 'Host to bind to', 'localhost')
     .option('-e, --entry <file>', 'Entry point file (auto-detected if not specified)')
+    .option('--clear', 'Clear console on restart (default: true)', true)
+    .option('--no-clear', 'Disable console clearing on restart')
+    .option('--hmr', 'Enable experimental hot module replacement', false)
     .action(async (options: DevOptions) => {
       await runDevServer(options, version);
     });
@@ -112,6 +119,13 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
 
     // Print startup banner
     printBanner(version);
+
+    // Show HMR warning if enabled
+    if (options.hmr) {
+      warning('HMR mode is experimental. Some changes may require a full restart.');
+      console.log('');
+    }
+
     info('Starting development server...');
     console.log('');
 
@@ -123,8 +137,27 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
       NODE_ENV: 'development',
     };
 
-    // Spawn tsx in watch mode
-    const devProcess = spawn('npx', ['tsx', 'watch', entryPoint], {
+    // Check if HMR mode is requested
+    if (options.hmr) {
+      // Run with experimental HMR
+      await runHMRServer({
+        entry: entryPoint,
+        port,
+        host,
+        env,
+      });
+      return; // HMR runner handles its own lifecycle
+    }
+
+    // Build watch arguments with smart ignore patterns
+    const clearScreen = options.clear !== false;
+    const watchArgs = buildWatchArgs({
+      entry: entryPoint,
+      clearScreen,
+    });
+
+    // Spawn tsx in watch mode with optimized file watching
+    const devProcess = spawn('npx', watchArgs, {
       stdio: 'inherit',
       env,
       shell: true,

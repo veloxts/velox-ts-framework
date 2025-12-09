@@ -24,6 +24,7 @@ function generatePackageJson(config: TemplateConfig): string {
         build: 'tsup',
         start: 'node dist/index.js',
         dev: 'tsx watch src/index.ts',
+        'dev:hmr': 'velox dev --hmr',
         'type-check': 'tsc --noEmit',
         clean:
           "node -e \"require('fs').rmSync('dist',{recursive:true,force:true});require('fs').rmSync('tsconfig.tsbuildinfo',{force:true})\"",
@@ -42,10 +43,15 @@ function generatePackageJson(config: TemplateConfig): string {
         zod: '^3.24.4',
       },
       devDependencies: {
+        '@veloxts/cli': `^${VELOXTS_VERSION}`,
+        'hot-hook': '^0.4.0',
         prisma: '^7.1.0',
         tsup: '^8.5.1',
         tsx: '^4.21.0',
         typescript: '^5.9.3',
+      },
+      hotHook: {
+        boundaries: ['./src/procedures/**/*.ts', './src/schemas/**/*.ts', './src/handlers/**/*.ts'],
       },
     },
     null,

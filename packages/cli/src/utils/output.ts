@@ -87,3 +87,27 @@ export function formatCommand(command: string): string {
 export function formatUrl(url: string): string {
   return pc.cyan(url);
 }
+
+/**
+ * Format duration in milliseconds for display
+ */
+export function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  return `${(ms / 1000).toFixed(2)}s`;
+}
+
+/**
+ * Print restart timing information
+ */
+export function restartTiming(ms: number): void {
+  console.log(`${pc.green('✓')} Restarted in ${pc.cyan(formatDuration(ms))}`);
+}
+
+/**
+ * Print startup timing information
+ */
+export function startupTiming(ms: number): void {
+  console.log(`${pc.green('✓')} Server ready in ${pc.cyan(formatDuration(ms))}`);
+}
