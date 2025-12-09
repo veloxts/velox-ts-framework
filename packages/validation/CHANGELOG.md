@@ -1,5 +1,13 @@
 # @veloxts/validation
 
+## 0.4.3
+
+### Patch Changes
+
+- ef8d5d0: Dynamically load VeloxTS version from `package.json` in shared template configuration
+- Updated dependencies [ef8d5d0]
+  - @veloxts/core@0.4.3
+
 ## 0.4.2
 
 ### Patch Changes

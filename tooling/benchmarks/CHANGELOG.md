@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.2.3
+
+### Patch Changes
+
+- ef8d5d0: Dynamically load VeloxTS version from `package.json` in shared template configuration
+
 ## 0.2.2
 
 ### Patch Changes
