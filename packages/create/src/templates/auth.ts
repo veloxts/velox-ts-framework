@@ -1,23 +1,27 @@
 /**
- * Auth Template
+ * Auth Template (Full-Stack with Authentication)
  *
- * Full authentication template with JWT auth, guards, rate limiting,
- * token rotation, and secure password hashing.
+ * Full-stack workspace template with:
+ * - apps/api: REST API with JWT authentication, guards, rate limiting
+ * - apps/web: React frontend with login/register UI
+ *
+ * Complete authentication system ready for production.
  */
 
-import { generateSharedFiles, VELOXTS_VERSION } from './shared.js';
+import { generateRootFiles, generateWebBaseFiles, generateWebStyleFiles } from './shared/index.js';
+import { VELOXTS_VERSION } from './shared.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 
 // ============================================================================
-// Package.json
+// API Package.json
 // ============================================================================
 
-function generatePackageJson(config: TemplateConfig): string {
+function generateApiPackageJson(): string {
   return JSON.stringify(
     {
-      name: config.projectName,
+      name: 'api',
       version: '0.0.1',
-      description: 'A VeloxTS application with full authentication',
+      private: true,
       type: 'module',
       main: 'dist/index.js',
       scripts: {
@@ -34,23 +38,22 @@ function generatePackageJson(config: TemplateConfig): string {
         postinstall: 'prisma generate',
       },
       dependencies: {
-        '@fastify/static': '^8.3.0',
-        '@prisma/adapter-better-sqlite3': '^7.1.0',
-        '@prisma/client': '^7.1.0',
-        '@veloxts/velox': `^${VELOXTS_VERSION}`,
-        bcrypt: '^5.1.1',
-        'better-sqlite3': '^12.5.0',
-        dotenv: '^17.2.3',
-        zod: '^3.24.4',
+        '@prisma/adapter-better-sqlite3': '7.1.0',
+        '@prisma/client': '7.1.0',
+        '@veloxts/velox': `${VELOXTS_VERSION}`,
+        bcrypt: '5.1.1',
+        'better-sqlite3': '12.5.0',
+        dotenv: '17.2.3',
+        zod: '3.24.4',
       },
       devDependencies: {
-        '@types/bcrypt': '^5.0.2',
-        '@veloxts/cli': `^${VELOXTS_VERSION}`,
-        'hot-hook': '^0.4.0',
-        prisma: '^7.1.0',
-        tsup: '^8.5.1',
-        tsx: '^4.21.0',
-        typescript: '^5.9.3',
+        '@types/bcrypt': '5.0.2',
+        '@veloxts/cli': `${VELOXTS_VERSION}`,
+        'hot-hook': '0.4.0',
+        prisma: '7.1.0',
+        tsup: '8.5.1',
+        tsx: '4.21.0',
+        typescript: '5.8.3',
       },
       hotHook: {
         boundaries: ['./src/procedures/**/*.ts', './src/schemas/**/*.ts', './src/handlers/**/*.ts'],
@@ -59,6 +62,47 @@ function generatePackageJson(config: TemplateConfig): string {
     null,
     2
   );
+}
+
+// ============================================================================
+// API tsconfig.json
+// ============================================================================
+
+function generateApiTsConfig(): string {
+  return JSON.stringify(
+    {
+      $schema: 'https://json.schemastore.org/tsconfig',
+      extends: '../../tsconfig.json',
+      compilerOptions: {
+        rootDir: './src',
+        outDir: './dist',
+        declaration: false,
+        declarationMap: false,
+      },
+      include: ['src/**/*'],
+      exclude: ['node_modules', 'dist', '**/*.test.ts', '**/*.spec.ts'],
+    },
+    null,
+    2
+  );
+}
+
+// ============================================================================
+// API tsup.config.ts
+// ============================================================================
+
+function generateApiTsupConfig(): string {
+  return `import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  entry: ['src/index.ts'],
+  format: ['esm'],
+  target: 'node18',
+  clean: true,
+  dts: false,
+  sourcemap: true,
+});
+`;
 }
 
 // ============================================================================
@@ -83,22 +127,11 @@ API_PREFIX=/api
 # ============================================================================
 # Authentication (REQUIRED for production)
 # ============================================================================
-# Generate secrets with: openssl rand -base64 64
+# Generate new secrets with: openssl rand -base64 64
 #
-# JWT_SECRET=<your-access-token-secret>
-# JWT_REFRESH_SECRET=<your-refresh-token-secret>
-#
-# NOTE: In development mode, temporary secrets will be generated with a warning.
-# Always set these in production!
-
-# ============================================================================
-# Session Authentication (Alternative to JWT)
-# ============================================================================
-# If using cookie-based sessions instead of JWT, configure these:
-#
-# SESSION_SECRET=<your-session-secret>
-#
-# Generate with: openssl rand -base64 32
+# IMPORTANT: Replace these development secrets before deploying to production!
+JWT_SECRET=development-only-jwt-secret-replace-in-production-must-be-64-chars-or-longer
+JWT_REFRESH_SECRET=development-only-refresh-secret-replace-in-production-must-be-64-chars
 `;
 }
 
@@ -137,6 +170,30 @@ model User {
 
   @@map("users")
 }
+`;
+}
+
+// ============================================================================
+// Prisma Config
+// ============================================================================
+
+function generatePrismaConfig(): string {
+  return `/**
+ * Prisma Configuration (Prisma 7.x)
+ *
+ * Database URL is configured here instead of schema.prisma.
+ */
+
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
+
+export default defineConfig({
+  earlyAccess: true,
+  schema: './prisma/schema.prisma',
+  datasource: {
+    url: process.env.DATABASE_URL!,
+  },
+});
 `;
 }
 
@@ -357,6 +414,33 @@ function generateConfigIndexWithAuth(): string {
 
 export * from './app.js';
 export * from './auth.js';
+`;
+}
+
+function generateConfigApp(): string {
+  return `/**
+ * Application Configuration
+ */
+
+export interface AppConfig {
+  port: number;
+  host: string;
+  logger: boolean;
+  apiPrefix: string;
+  env: 'development' | 'production' | 'test';
+}
+
+export function createConfig(): AppConfig {
+  return {
+    port: Number(process.env.PORT) || 3210,
+    host: process.env.HOST || '0.0.0.0',
+    logger: process.env.LOG_LEVEL !== 'silent',
+    apiPrefix: process.env.API_PREFIX || '/api',
+    env: (process.env.NODE_ENV as AppConfig['env']) || 'development',
+  };
+}
+
+export const config = createConfig();
 `;
 }
 
@@ -842,9 +926,6 @@ function generateIndexTs(): string {
 
 import 'dotenv/config';
 
-import path from 'node:path';
-
-import fastifyStatic from '@fastify/static';
 import {
   veloxApp,
   VELOX_VERSION,
@@ -878,12 +959,6 @@ async function createApp() {
   await app.register(authPlugin(authConfig));
   console.log('[Auth] JWT authentication enabled');
 
-  // Register static file serving
-  await app.server.register(fastifyStatic, {
-    root: path.join(process.cwd(), 'public'),
-    prefix: '/',
-  });
-
   // Register all procedures
   const collections = [healthProcedures, authProcedures, userProcedures];
   app.routes(rest(collections, { prefix: config.apiPrefix }));
@@ -895,7 +970,7 @@ function printBanner(collections: Parameters<typeof getRouteSummary>[0]) {
   const divider = '═'.repeat(50);
 
   console.log(\`\\n\${divider}\`);
-  console.log(\`  VeloxTS Application v\${VELOX_VERSION}\`);
+  console.log(\`  VeloxTS API v\${VELOX_VERSION}\`);
   console.log(\`  Environment: \${config.env}\`);
   console.log(divider);
 
@@ -909,25 +984,8 @@ function printBanner(collections: Parameters<typeof getRouteSummary>[0]) {
   }
 
   console.log(\`\\n\${divider}\`);
-  console.log(\`  Frontend: http://localhost:\${config.port}\`);
-  console.log(\`  REST API: http://localhost:\${config.port}\${config.apiPrefix}\`);
+  console.log(\`  API: http://localhost:\${config.port}\${config.apiPrefix}\`);
   console.log(\`\${divider}\\n\`);
-
-  console.log('📝 Example requests:\\n');
-  console.log('   # Register');
-  console.log(\`   curl -X POST http://localhost:\${config.port}\${config.apiPrefix}/auth/register \\\\\`);
-  console.log('        -H "Content-Type: application/json" \\\\');
-  console.log('        -d \\'{"name":"John Doe","email":"john@example.com","password":"SecurePass123"}\\'');
-  console.log('');
-  console.log('   # Login');
-  console.log(\`   curl -X POST http://localhost:\${config.port}\${config.apiPrefix}/auth/login \\\\\`);
-  console.log('        -H "Content-Type: application/json" \\\\');
-  console.log('        -d \\'{"email":"john@example.com","password":"SecurePass123"}\\'');
-  console.log('');
-  console.log('   # Protected endpoint');
-  console.log(\`   curl http://localhost:\${config.port}\${config.apiPrefix}/auth/me \\\\\`);
-  console.log('        -H "Authorization: Bearer <your-access-token>"');
-  console.log('');
 }
 
 async function main() {
@@ -961,6 +1019,34 @@ if (!process.env.DATABASE_URL) {
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
 
 export const prisma = new PrismaClient({ adapter });
+`;
+}
+
+function generateHealthProcedures(): string {
+  return `/**
+ * Health Check Procedures
+ */
+
+import { VELOX_VERSION, defineProcedures, procedure, z } from '@veloxts/velox';
+
+export const healthProcedures = defineProcedures('health', {
+  getHealth: procedure()
+    .rest({ method: 'GET', path: '/health' })
+    .output(
+      z.object({
+        status: z.literal('ok'),
+        version: z.string(),
+        timestamp: z.string().datetime(),
+        uptime: z.number(),
+      })
+    )
+    .query(async () => ({
+      status: 'ok' as const,
+      version: VELOX_VERSION,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    })),
+});
 `;
 }
 
@@ -1018,169 +1104,42 @@ export type UpdateUserData = z.infer<typeof UpdateUserInput>;
 }
 
 // ============================================================================
-// CLAUDE.md for Auth
-// ============================================================================
-
-function generateClaudeMd(config: TemplateConfig): string {
-  return `# CLAUDE.md
-
-This file provides guidance to Claude Code and other AI assistants when working with this VeloxTS project.
-
-## Project Overview
-
-**${config.projectName}** is a VeloxTS application with full JWT authentication.
-
-**Features:**
-- JWT authentication with access/refresh tokens
-- Rate limiting on auth endpoints
-- Token rotation with reuse detection
-- Role-based authorization guards
-- Strong password requirements
-
-## Commands
-
-\`\`\`bash
-${config.packageManager} dev          # Start development server
-${config.packageManager} build        # Build for production
-${config.packageManager} db:push      # Push database schema
-${config.packageManager} db:studio    # Open Prisma Studio
-\`\`\`
-
-## Authentication
-
-### Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| \`/auth/register\` | POST | Create new account |
-| \`/auth/login\` | POST | Login and get tokens |
-| \`/auth/refresh\` | POST | Refresh access token |
-| \`/auth/logout\` | POST | Revoke current token |
-| \`/auth/me\` | GET | Get current user (protected) |
-
-### Usage
-
-1. **Register/Login** to get tokens
-2. **Include token** in Authorization header: \`Bearer <accessToken>\`
-3. **Refresh token** when access token expires
-
-### Security Features
-
-- **Rate Limiting**: Login 5/15min, Register 3/hour
-- **Token Rotation**: Refresh tokens are single-use
-- **Reuse Detection**: Token reuse triggers security alert
-- **Password Policy**: 12+ chars, uppercase, lowercase, number
-
-## Guards
-
-\`\`\`typescript
-// Require authentication
-procedure().guard(authenticated)
-
-// Require specific role
-procedure().guard(hasRole('admin'))
-
-// Custom owner-or-admin check
-if (!isOwner && !isAdmin) {
-  throw new GuardError('ownership', 'Access denied', 403);
-}
-\`\`\`
-
-## Alternative: Session-Based Authentication
-
-VeloxTS also supports cookie-based session authentication as an alternative to JWT.
-Session auth is useful for:
-- Traditional web applications with server-side rendering
-- Applications where token storage in the browser is a concern
-- Simple authentication flows without refresh token management
-
-\`\`\`typescript
-import { sessionMiddleware, loginSession, logoutSession } from '@veloxts/velox';
-
-// Create session middleware
-const session = sessionMiddleware({
-  secret: process.env.SESSION_SECRET!,
-  cookie: { secure: true, httpOnly: true, sameSite: 'lax' },
-  expiration: { ttl: 86400, sliding: true },
-  userLoader: async (userId) => prisma.user.findUnique({ where: { id: userId } }),
-});
-
-// Use in procedures
-const getProfile = procedure()
-  .use(session.requireAuth())
-  .query(async ({ ctx }) => ctx.user);
-
-// Login helper
-await loginSession(ctx.session, user); // Regenerates session ID
-
-// Logout helper
-await logoutSession(ctx.session); // Destroys session
-\`\`\`
-
-## Environment Variables
-
-\`\`\`bash
-# Required for JWT authentication
-JWT_SECRET=<64+ chars>
-JWT_REFRESH_SECRET=<64+ chars>
-
-# Generate with: openssl rand -base64 64
-
-# Required for session-based authentication (alternative to JWT)
-SESSION_SECRET=<32+ chars>
-
-# Generate with: openssl rand -base64 32
-\`\`\`
-
-## Project Structure
-
-\`\`\`
-src/
-├── config/
-│   ├── app.ts         # App configuration
-│   └── auth.ts        # Auth configuration + token store
-├── procedures/
-│   ├── auth.ts        # Auth endpoints
-│   ├── users.ts       # User CRUD with guards
-│   └── health.ts      # Health check
-├── schemas/
-│   └── user.ts        # Zod schemas
-└── index.ts           # Entry point
-\`\`\`
-`;
-}
-
-// ============================================================================
 // Auth Template Generator
 // ============================================================================
 
 export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
   const files: TemplateFile[] = [
-    // Root files
-    { path: 'package.json', content: generatePackageJson(config) },
-    { path: '.env.example', content: generateEnvExample() },
-    { path: '.env', content: generateEnvExample() },
-    { path: 'CLAUDE.md', content: generateClaudeMd(config) },
+    // API package files
+    { path: 'apps/api/package.json', content: generateApiPackageJson() },
+    { path: 'apps/api/tsconfig.json', content: generateApiTsConfig() },
+    { path: 'apps/api/tsup.config.ts', content: generateApiTsupConfig() },
+    { path: 'apps/api/prisma.config.ts', content: generatePrismaConfig() },
+    { path: 'apps/api/.env.example', content: generateEnvExample() },
+    { path: 'apps/api/.env', content: generateEnvExample() },
 
     // Prisma
-    { path: 'prisma/schema.prisma', content: generatePrismaSchema() },
+    { path: 'apps/api/prisma/schema.prisma', content: generatePrismaSchema() },
 
-    // Source files
-    { path: 'src/index.ts', content: generateIndexTs() },
-    { path: 'src/config/index.ts', content: generateConfigIndexWithAuth() },
-    { path: 'src/config/auth.ts', content: generateAuthConfig() },
-    { path: 'src/database/index.ts', content: generateDatabaseIndex() },
-    { path: 'src/procedures/index.ts', content: generateProceduresIndex() },
-    { path: 'src/procedures/auth.ts', content: generateAuthProcedures() },
-    { path: 'src/procedures/users.ts', content: generateUserProceduresWithAuth() },
-    { path: 'src/schemas/index.ts', content: generateSchemasIndex() },
-    { path: 'src/schemas/user.ts', content: generateUserSchema() },
+    // API Source files
+    { path: 'apps/api/src/index.ts', content: generateIndexTs() },
+    { path: 'apps/api/src/config/index.ts', content: generateConfigIndexWithAuth() },
+    { path: 'apps/api/src/config/app.ts', content: generateConfigApp() },
+    { path: 'apps/api/src/config/auth.ts', content: generateAuthConfig() },
+    { path: 'apps/api/src/database/index.ts', content: generateDatabaseIndex() },
+    { path: 'apps/api/src/procedures/index.ts', content: generateProceduresIndex() },
+    { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
+    { path: 'apps/api/src/procedures/auth.ts', content: generateAuthProcedures() },
+    { path: 'apps/api/src/procedures/users.ts', content: generateUserProceduresWithAuth() },
+    { path: 'apps/api/src/schemas/index.ts', content: generateSchemasIndex() },
+    { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
   ];
 
-  // Add shared files, but filter out config/index.ts since auth template has its own
-  const sharedFiles = generateSharedFiles(config).filter(
-    (file) => file.path !== 'src/config/index.ts'
-  );
+  // Add root workspace files
+  const rootFiles = generateRootFiles(config, true);
 
-  return [...files, ...sharedFiles];
+  // Add web package files (with auth UI)
+  const webBaseFiles = generateWebBaseFiles(config, true);
+  const webStyleFiles = generateWebStyleFiles();
+
+  return [...files, ...rootFiles, ...webBaseFiles, ...webStyleFiles];
 }

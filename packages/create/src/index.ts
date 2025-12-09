@@ -439,8 +439,9 @@ async function generatePrismaClient(config: ProjectConfig): Promise<void> {
   }).start();
 
   try {
+    // Run prisma generate in the apps/api directory
     await execAsync('npx prisma generate', {
-      cwd: config.directory,
+      cwd: path.join(config.directory, 'apps', 'api'),
       timeout: EXEC_TIMEOUT_MS,
     });
 
@@ -512,6 +513,10 @@ function printSuccessMessage(config: ProjectConfig): void {
     pc.green(`  Success! Created ${pc.bold(config.name)} with ${config.template} template`)
   );
   console.log('');
+  console.log(pc.dim('  Full-stack workspace with:'));
+  console.log(pc.dim('    apps/api - Backend API (Fastify + VeloxTS)'));
+  console.log(pc.dim('    apps/web - Frontend (React + Vite + TanStack Router)'));
+  console.log('');
   console.log('  Next steps:');
   console.log('');
   console.log(`    ${pc.cyan(cdCommand)}`);
@@ -524,14 +529,16 @@ function printSuccessMessage(config: ProjectConfig): void {
   }
 
   console.log(`    ${pc.cyan(dbCommand)}${pc.dim('  # Setup database')}`);
-  console.log(`    ${pc.cyan(devCommand)}${pc.dim('   # Start dev server')}`);
+  console.log(`    ${pc.cyan(devCommand)}${pc.dim('   # Start dev servers')}`);
   console.log('');
-  console.log(`  Your app will be available at ${pc.cyan('http://localhost:3210')}`);
+  console.log(`  Your app will be available at:`);
+  console.log(`    ${pc.cyan('http://localhost:8080')}${pc.dim('  # Web (React)')}`);
+  console.log(`    ${pc.cyan('http://localhost:3210')}${pc.dim('  # API')}`);
 
   // Auth template specific message
   if (config.template === 'auth') {
     console.log('');
-    console.log(pc.yellow('  Note: Set JWT_SECRET and JWT_REFRESH_SECRET in .env for production'));
+    console.log(pc.yellow('  Note: Set JWT_SECRET and JWT_REFRESH_SECRET in apps/api/.env for production'));
   }
 
   console.log('');

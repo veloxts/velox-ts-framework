@@ -62,16 +62,26 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
  * Get directories that need to be created for the template
  */
 export function getTemplateDirectories(_template: TemplateType): string[] {
-  const baseDirectories = [
-    'src',
-    'src/config',
-    'src/database',
-    'src/procedures',
-    'src/schemas',
-    'prisma',
-    'public',
-  ];
+  // Workspace-based directory structure
+  return [
+    // Root
+    'apps',
 
-  // All templates use the same directory structure currently
-  return baseDirectories;
+    // API package
+    'apps/api',
+    'apps/api/src',
+    'apps/api/src/config',
+    'apps/api/src/database',
+    'apps/api/src/procedures',
+    'apps/api/src/schemas',
+    'apps/api/prisma',
+
+    // Web package
+    'apps/web',
+    'apps/web/src',
+    'apps/web/src/routes',
+    'apps/web/src/styles',
+    'apps/web/src/components',
+    'apps/web/public',
+  ];
 }

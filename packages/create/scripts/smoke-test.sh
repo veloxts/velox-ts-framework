@@ -101,36 +101,59 @@ test_template() {
 
   cd "$TEST_DIR/$project_name"
 
-  # Link local packages
+  # Link local packages (in apps/api for workspace structure)
+  # We need to link ALL @veloxts packages because they have workspace:* dependencies
   echo "=== Linking local packages ==="
   node -e "
 const fs = require('fs');
-const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-pkg.dependencies['@veloxts/velox'] = 'file:$MONOREPO_ROOT/packages/velox';
-fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+const apiPkgPath = 'apps/api/package.json';
+const webPkgPath = 'apps/web/package.json';
+const monorepo = '$MONOREPO_ROOT';
+
+// Link API dependencies
+const apiPkg = JSON.parse(fs.readFileSync(apiPkgPath, 'utf8'));
+apiPkg.dependencies['@veloxts/velox'] = 'file:' + monorepo + '/packages/velox';
+apiPkg.dependencies['@veloxts/core'] = 'file:' + monorepo + '/packages/core';
+apiPkg.dependencies['@veloxts/router'] = 'file:' + monorepo + '/packages/router';
+apiPkg.dependencies['@veloxts/validation'] = 'file:' + monorepo + '/packages/validation';
+apiPkg.dependencies['@veloxts/orm'] = 'file:' + monorepo + '/packages/orm';
+apiPkg.dependencies['@veloxts/auth'] = 'file:' + monorepo + '/packages/auth';
+apiPkg.devDependencies['@veloxts/cli'] = 'file:' + monorepo + '/packages/cli';
+fs.writeFileSync(apiPkgPath, JSON.stringify(apiPkg, null, 2));
+
+// Link Web dependencies
+const webPkg = JSON.parse(fs.readFileSync(webPkgPath, 'utf8'));
+webPkg.dependencies['@veloxts/client'] = 'file:' + monorepo + '/packages/client';
+fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
 "
   echo "✓ Local packages linked"
   echo ""
 
-  # Install dependencies
-  echo "=== Installing dependencies ==="
+  # Install API dependencies (where the @veloxts packages are)
+  echo "=== Installing API dependencies ==="
+  cd apps/api
   npm install --legacy-peer-deps
-  echo "✓ Dependencies installed"
+  echo "✓ API dependencies installed"
   echo ""
+
+  # Run Prisma generate
+  echo "=== Generating Prisma client ==="
+  npx prisma generate
+  echo "✓ Prisma client generated"
 
   # Push database schema
   echo "=== Pushing database schema ==="
-  npm run db:push
+  npx prisma db push
   echo "✓ Database schema pushed"
   echo ""
 
-  # Build the app
-  echo "=== Building the app ==="
+  # Build the API
+  echo "=== Building the API ==="
   npm run build
-  echo "✓ App built"
+  echo "✓ API built"
   echo ""
 
-  # Start server and test
+  # Start server from apps/api (where .env is located)
   echo "=== Testing endpoints ==="
   lsof -ti :$test_port 2>/dev/null | xargs kill -9 2>/dev/null || true
   sleep 1
@@ -285,6 +308,9 @@ fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
 
   # Kill the server
   kill $SERVER_PID 2>/dev/null || true
+
+  # Return to project root (we were in apps/api)
+  cd ../..
 
   echo ""
   echo "✓ Template '$template' passed all tests!"

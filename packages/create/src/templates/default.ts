@@ -1,23 +1,27 @@
 /**
- * Default Template (API Only)
+ * Default Template (Full-Stack)
  *
- * Basic REST API template with user CRUD operations.
+ * Full-stack workspace template with:
+ * - apps/api: REST API with user CRUD operations
+ * - apps/web: React frontend with TanStack Router
+ *
  * No authentication - suitable for internal APIs or as a starting point.
  */
 
-import { generateSharedFiles, VELOXTS_VERSION } from './shared.js';
+import { generateRootFiles, generateWebBaseFiles, generateWebStyleFiles } from './shared/index.js';
+import { VELOXTS_VERSION } from './shared.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 
 // ============================================================================
-// Package.json
+// API Package.json
 // ============================================================================
 
-function generatePackageJson(config: TemplateConfig): string {
+function generateApiPackageJson(): string {
   return JSON.stringify(
     {
-      name: config.projectName,
+      name: 'api',
       version: '0.0.1',
-      description: 'A VeloxTS application',
+      private: true,
       type: 'module',
       main: 'dist/index.js',
       scripts: {
@@ -34,21 +38,20 @@ function generatePackageJson(config: TemplateConfig): string {
         postinstall: 'prisma generate',
       },
       dependencies: {
-        '@fastify/static': '^8.3.0',
-        '@prisma/adapter-better-sqlite3': '^7.1.0',
-        '@prisma/client': '^7.1.0',
-        '@veloxts/velox': `^${VELOXTS_VERSION}`,
-        'better-sqlite3': '^12.5.0',
-        dotenv: '^17.2.3',
-        zod: '^3.24.4',
+        '@prisma/adapter-better-sqlite3': '7.1.0',
+        '@prisma/client': '7.1.0',
+        '@veloxts/velox': `${VELOXTS_VERSION}`,
+        'better-sqlite3': '12.5.0',
+        dotenv: '17.2.3',
+        zod: '3.24.4',
       },
       devDependencies: {
-        '@veloxts/cli': `^${VELOXTS_VERSION}`,
-        'hot-hook': '^0.4.0',
-        prisma: '^7.1.0',
-        tsup: '^8.5.1',
-        tsx: '^4.21.0',
-        typescript: '^5.9.3',
+        '@veloxts/cli': `${VELOXTS_VERSION}`,
+        'hot-hook': '0.4.0',
+        prisma: '7.1.0',
+        tsup: '8.5.1',
+        tsx: '4.21.0',
+        typescript: '5.8.3',
       },
       hotHook: {
         boundaries: ['./src/procedures/**/*.ts', './src/schemas/**/*.ts', './src/handlers/**/*.ts'],
@@ -57,6 +60,47 @@ function generatePackageJson(config: TemplateConfig): string {
     null,
     2
   );
+}
+
+// ============================================================================
+// API tsconfig.json
+// ============================================================================
+
+function generateApiTsConfig(): string {
+  return JSON.stringify(
+    {
+      $schema: 'https://json.schemastore.org/tsconfig',
+      extends: '../../tsconfig.json',
+      compilerOptions: {
+        rootDir: './src',
+        outDir: './dist',
+        declaration: false,
+        declarationMap: false,
+      },
+      include: ['src/**/*'],
+      exclude: ['node_modules', 'dist', '**/*.test.ts', '**/*.spec.ts'],
+    },
+    null,
+    2
+  );
+}
+
+// ============================================================================
+// API tsup.config.ts
+// ============================================================================
+
+function generateApiTsupConfig(): string {
+  return `import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  entry: ['src/index.ts'],
+  format: ['esm'],
+  target: 'node18',
+  clean: true,
+  dts: false,
+  sourcemap: true,
+});
+`;
 }
 
 // ============================================================================
@@ -117,6 +161,30 @@ model User {
 }
 
 // ============================================================================
+// Prisma Config
+// ============================================================================
+
+function generatePrismaConfig(): string {
+  return `/**
+ * Prisma Configuration (Prisma 7.x)
+ *
+ * Database URL is configured here instead of schema.prisma.
+ */
+
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
+
+export default defineConfig({
+  earlyAccess: true,
+  schema: './prisma/schema.prisma',
+  datasource: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+`;
+}
+
+// ============================================================================
 // Source Files
 // ============================================================================
 
@@ -127,7 +195,6 @@ function generateIndexTs(): string {
 
 import 'dotenv/config';
 
-import fastifyStatic from '@fastify/static';
 import {
   veloxApp,
   VELOX_VERSION,
@@ -135,7 +202,6 @@ import {
   rest,
   getRouteSummary,
 } from '@veloxts/velox';
-import path from 'node:path';
 
 import { config } from './config/index.js';
 import { prisma } from './database/index.js';
@@ -156,12 +222,6 @@ async function createApp() {
   // Register database plugin
   await app.register(databasePlugin({ client: prisma }));
 
-  // Register static file serving for frontend
-  await app.server.register(fastifyStatic, {
-    root: path.join(process.cwd(), 'public'),
-    prefix: '/',
-  });
-
   // Register all procedures
   const collections = [healthProcedures, userProcedures];
   app.routes(rest(collections, { prefix: config.apiPrefix }));
@@ -173,7 +233,7 @@ function printBanner(collections: Parameters<typeof getRouteSummary>[0]) {
   const divider = '═'.repeat(50);
 
   console.log(\`\\n\${divider}\`);
-  console.log(\`  VeloxTS Application v\${VELOX_VERSION}\`);
+  console.log(\`  VeloxTS API v\${VELOX_VERSION}\`);
   console.log(\`  Environment: \${config.env}\`);
   console.log(divider);
 
@@ -188,8 +248,7 @@ function printBanner(collections: Parameters<typeof getRouteSummary>[0]) {
   }
 
   console.log(\`\\n\${divider}\`);
-  console.log(\`  Frontend: http://localhost:\${config.port}\`);
-  console.log(\`  REST API: http://localhost:\${config.port}\${config.apiPrefix}\`);
+  console.log(\`  API: http://localhost:\${config.port}\${config.apiPrefix}\`);
   console.log(\`\${divider}\\n\`);
 }
 
@@ -205,6 +264,42 @@ async function main() {
 }
 
 main();
+`;
+}
+
+function generateConfigIndex(): string {
+  return `/**
+ * Configuration Exports
+ */
+
+export * from './app.js';
+`;
+}
+
+function generateConfigApp(): string {
+  return `/**
+ * Application Configuration
+ */
+
+export interface AppConfig {
+  port: number;
+  host: string;
+  logger: boolean;
+  apiPrefix: string;
+  env: 'development' | 'production' | 'test';
+}
+
+export function createConfig(): AppConfig {
+  return {
+    port: Number(process.env.PORT) || 3210,
+    host: process.env.HOST || '0.0.0.0',
+    logger: process.env.LOG_LEVEL !== 'silent',
+    apiPrefix: process.env.API_PREFIX || '/api',
+    env: (process.env.NODE_ENV as AppConfig['env']) || 'development',
+  };
+}
+
+export const config = createConfig();
 `;
 }
 
@@ -231,6 +326,34 @@ const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
 
 // Export configured Prisma client
 export const prisma = new PrismaClient({ adapter });
+`;
+}
+
+function generateHealthProcedures(): string {
+  return `/**
+ * Health Check Procedures
+ */
+
+import { VELOX_VERSION, defineProcedures, procedure, z } from '@veloxts/velox';
+
+export const healthProcedures = defineProcedures('health', {
+  getHealth: procedure()
+    .rest({ method: 'GET', path: '/health' })
+    .output(
+      z.object({
+        status: z.literal('ok'),
+        version: z.string(),
+        timestamp: z.string().datetime(),
+        uptime: z.number(),
+      })
+    )
+    .query(async () => ({
+      status: 'ok' as const,
+      version: VELOX_VERSION,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    })),
+});
 `;
 }
 
@@ -410,162 +533,40 @@ export type UpdateUserData = z.infer<typeof UpdateUserInput>;
 }
 
 // ============================================================================
-// CLAUDE.md
-// ============================================================================
-
-function generateClaudeMd(config: TemplateConfig): string {
-  return `# CLAUDE.md
-
-This file provides guidance to Claude Code and other AI assistants when working with this VeloxTS project.
-
-## Project Overview
-
-**${config.projectName}** is a VeloxTS application - a TypeScript full-stack framework built on Fastify, tRPC, Prisma, and Zod.
-
-**Key Characteristics:**
-- Type safety without code generation (direct type imports)
-- Hybrid API: tRPC for internal, REST for external
-- Convention over configuration
-- Laravel-inspired developer experience
-
-## Commands
-
-\`\`\`bash
-${config.packageManager} dev          # Start development server with hot reload
-${config.packageManager} build        # Build for production
-${config.packageManager} start        # Run production server
-${config.packageManager} db:push      # Push database schema changes
-${config.packageManager} db:generate  # Regenerate Prisma client
-${config.packageManager} db:studio    # Open Prisma Studio GUI
-${config.packageManager} type-check   # Run TypeScript type checking
-\`\`\`
-
-## Project Structure
-
-\`\`\`
-src/
-├── config/          # Application configuration
-├── database/        # Prisma client setup
-├── procedures/      # API procedures (business logic)
-├── schemas/         # Zod validation schemas
-├── generated/       # Generated Prisma client (git-ignored)
-└── index.ts         # Application entry point
-
-prisma/
-└── schema.prisma    # Database schema
-
-public/              # Static files served at /
-\`\`\`
-
-## Procedure Naming Conventions
-
-Procedure names automatically map to HTTP methods and routes:
-
-| Procedure Name | HTTP Method | Route | Status Code |
-|----------------|-------------|-------|-------------|
-| \`getUser\` | GET | \`/users/:id\` | 200 |
-| \`listUsers\` | GET | \`/users\` | 200 |
-| \`findUsers\` | GET | \`/users\` | 200 |
-| \`createUser\` | POST | \`/users\` | 201 |
-| \`addUser\` | POST | \`/users\` | 201 |
-| \`updateUser\` | PUT | \`/users/:id\` | 200 |
-| \`editUser\` | PUT | \`/users/:id\` | 200 |
-| \`patchUser\` | PATCH | \`/users/:id\` | 200 |
-| \`deleteUser\` | DELETE | \`/users/:id\` | 200/204 |
-| \`removeUser\` | DELETE | \`/users/:id\` | 200/204 |
-
-## Creating a New Procedure
-
-\`\`\`typescript
-// src/procedures/posts.ts
-import { defineProcedures, procedure, z } from '@veloxts/velox';
-
-export const postProcedures = defineProcedures('posts', {
-  // GET /api/posts/:id
-  getPost: procedure()
-    .input(z.object({ id: z.string().uuid() }))
-    .output(PostSchema)
-    .query(async ({ input, ctx }) => {
-      return ctx.db.post.findUnique({ where: { id: input.id } });
-    }),
-
-  // POST /api/posts
-  createPost: procedure()
-    .input(CreatePostSchema)
-    .output(PostSchema)
-    .mutation(async ({ input, ctx }) => {
-      return ctx.db.post.create({ data: input });
-    }),
-});
-\`\`\`
-
-Then register in \`src/procedures/index.ts\` and add to collections in \`src/index.ts\`.
-
-## Type Safety
-
-VeloxTS provides end-to-end type safety without code generation:
-
-- **Zod schemas** define validation and infer TypeScript types
-- **Procedures** chain \`.input()\` and \`.output()\` for full type inference
-- **Context** provides typed access to database (\`ctx.db\`)
-- Import types directly: \`import type { User } from './schemas/user.js'\`
-
-## Database (Prisma)
-
-- Schema: \`prisma/schema.prisma\`
-- Config: \`prisma.config.ts\` (Prisma 7.x style)
-- Client: Generated to \`src/generated/prisma/\`
-- Access via context: \`ctx.db.user.findMany()\`
-
-After schema changes:
-\`\`\`bash
-${config.packageManager} db:push      # Apply changes to database
-${config.packageManager} db:generate  # Regenerate client types
-\`\`\`
-
-## Environment Variables
-
-Configured in \`.env\`:
-- \`DATABASE_URL\` - Database connection string
-- \`PORT\` - Server port (default: 3210)
-- \`HOST\` - Server host (default: 0.0.0.0)
-- \`NODE_ENV\` - Environment (development/production)
-- \`API_PREFIX\` - API route prefix (default: /api)
-
-## Code Style
-
-- Use Zod for all input/output validation
-- Keep procedures focused - one operation per procedure
-- Use descriptive names following conventions
-- Colocate schemas with their procedures when simple
-- Extract to \`src/schemas/\` when shared across procedures
-`;
-}
-
-// ============================================================================
 // Default Template Generator
 // ============================================================================
 
 export function generateDefaultTemplate(config: TemplateConfig): TemplateFile[] {
   const files: TemplateFile[] = [
-    // Root files
-    { path: 'package.json', content: generatePackageJson(config) },
-    { path: '.env.example', content: generateEnvExample() },
-    { path: '.env', content: generateEnvExample() },
-    { path: 'CLAUDE.md', content: generateClaudeMd(config) },
+    // API package files
+    { path: 'apps/api/package.json', content: generateApiPackageJson() },
+    { path: 'apps/api/tsconfig.json', content: generateApiTsConfig() },
+    { path: 'apps/api/tsup.config.ts', content: generateApiTsupConfig() },
+    { path: 'apps/api/prisma.config.ts', content: generatePrismaConfig() },
+    { path: 'apps/api/.env.example', content: generateEnvExample() },
+    { path: 'apps/api/.env', content: generateEnvExample() },
 
     // Prisma
-    { path: 'prisma/schema.prisma', content: generatePrismaSchema() },
+    { path: 'apps/api/prisma/schema.prisma', content: generatePrismaSchema() },
 
-    // Source files
-    { path: 'src/index.ts', content: generateIndexTs() },
-    { path: 'src/database/index.ts', content: generateDatabaseIndex() },
-    { path: 'src/procedures/index.ts', content: generateProceduresIndex() },
-    { path: 'src/procedures/users.ts', content: generateUserProcedures() },
-    { path: 'src/schemas/index.ts', content: generateSchemasIndex() },
-    { path: 'src/schemas/user.ts', content: generateUserSchema() },
+    // API Source files
+    { path: 'apps/api/src/index.ts', content: generateIndexTs() },
+    { path: 'apps/api/src/config/index.ts', content: generateConfigIndex() },
+    { path: 'apps/api/src/config/app.ts', content: generateConfigApp() },
+    { path: 'apps/api/src/database/index.ts', content: generateDatabaseIndex() },
+    { path: 'apps/api/src/procedures/index.ts', content: generateProceduresIndex() },
+    { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
+    { path: 'apps/api/src/procedures/users.ts', content: generateUserProcedures() },
+    { path: 'apps/api/src/schemas/index.ts', content: generateSchemasIndex() },
+    { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
   ];
 
-  // Add shared files
-  return [...files, ...generateSharedFiles(config)];
+  // Add root workspace files
+  const rootFiles = generateRootFiles(config, false);
+
+  // Add web package files
+  const webBaseFiles = generateWebBaseFiles(config, false);
+  const webStyleFiles = generateWebStyleFiles();
+
+  return [...files, ...rootFiles, ...webBaseFiles, ...webStyleFiles];
 }
