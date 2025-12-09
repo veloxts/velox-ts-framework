@@ -29,12 +29,17 @@ export const CLI_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 /**
  * Export command functions for programmatic usage
  */
+export { createDbCommand } from './commands/db.js';
 export { createDevCommand } from './commands/dev.js';
 export { createMigrateCommand } from './commands/migrate.js';
 /**
  * Export migration runner
  */
 export * from './migrations/index.js';
+/**
+ * Export seeding system
+ */
+export * from './seeding/index.js';
 /**
  * Export utilities for reuse in other packages
  */

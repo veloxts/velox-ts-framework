@@ -8,6 +8,7 @@
 
 import { Command } from 'commander';
 
+import { createDbCommand } from './commands/db.js';
 import { createDevCommand } from './commands/dev.js';
 import { createGenerateCommand } from './commands/generate.js';
 import { createMigrateCommand } from './commands/migrate.js';
@@ -26,6 +27,7 @@ function createCLI(): Command {
     .helpOption('-h, --help', 'Display help for command');
 
   // Register commands
+  program.addCommand(createDbCommand());
   program.addCommand(createDevCommand(CLI_VERSION));
   program.addCommand(createGenerateCommand());
   program.addCommand(createMigrateCommand());
