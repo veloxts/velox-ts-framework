@@ -4,7 +4,6 @@
  * Shared templates for React frontend (Vite config, tsconfig, main.tsx, routes)
  */
 
-import { VELOXTS_VERSION } from '../shared.js';
 import type { TemplateConfig, TemplateFile } from '../types.js';
 
 // ============================================================================
@@ -29,7 +28,6 @@ export function generateWebPackageJson(): string {
         'react-dom': '19.1.0',
         '@tanstack/react-router': '1.140.0',
         '@tanstack/react-query': '5.90.12',
-        '@veloxts/client': `^${VELOXTS_VERSION}`,
       },
       devDependencies: {
         '@types/react': '19.1.6',
@@ -152,7 +150,6 @@ export function generateMainTsx(): string {
 import { createRoot } from 'react-dom/client';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { VeloxProvider } from '@veloxts/client';
 import { routeTree } from './routeTree.gen';
 import './styles/global.css';
 
@@ -183,9 +180,7 @@ if (!rootElement) throw new Error('Root element not found');
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <VeloxProvider baseUrl="/api">
-        <RouterProvider router={router} />
-      </VeloxProvider>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   </StrictMode>
 );
@@ -237,15 +232,34 @@ function RootLayout() {
 
 export function generateDefaultIndexRoute(): string {
   return `import { createFileRoute } from '@tanstack/react-router';
-import { useQuery } from '@veloxts/client';
+import { useQuery } from '@tanstack/react-query';
 import styles from '@/App.module.css';
+
+// API helper
+const api = {
+  get: async <T,>(path: string): Promise<T> => {
+    const res = await fetch(\`/api\${path}\`);
+    if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
+    return res.json();
+  },
+};
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
+interface HealthResponse {
+  status: string;
+  version: string;
+  timestamp: string;
+  uptime: number;
+}
+
 function HomePage() {
-  const { data: health, isLoading, error } = useQuery(['health'], '/health');
+  const { data: health, isLoading, error } = useQuery({
+    queryKey: ['health'],
+    queryFn: () => api.get<HealthResponse>('/health'),
+  });
 
   return (
     <div className={styles.container}>
@@ -304,17 +318,58 @@ function HomePage() {
 // ============================================================================
 
 export function generateAuthIndexRoute(): string {
-  return `import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useQuery, useMutation } from '@veloxts/client';
+  return `import { createFileRoute } from '@tanstack/react-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import styles from '@/App.module.css';
+
+// API helpers
+const api = {
+  get: async <T,>(path: string): Promise<T> => {
+    const token = localStorage.getItem('accessToken');
+    const res = await fetch(\`/api\${path}\`, {
+      headers: token ? { Authorization: \`Bearer \${token}\` } : {},
+    });
+    if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
+    return res.json();
+  },
+  post: async <T,>(path: string, data: unknown): Promise<T> => {
+    const token = localStorage.getItem('accessToken');
+    const res = await fetch(\`/api\${path}\`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: \`Bearer \${token}\` } : {}),
+      },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || \`HTTP \${res.status}\`);
+    }
+    return res.json();
+  },
+};
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  roles?: string[];
+}
+
+interface AuthResponse {
+  user: User;
+  accessToken: string;
+  refreshToken: string;
+}
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
 function HomePage() {
-  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -322,19 +377,19 @@ function HomePage() {
   const [error, setError] = useState('');
 
   // Check if user is logged in
-  const { data: user, isLoading, refetch } = useQuery(['me'], '/auth/me', {
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get<User>('/auth/me'),
     retry: false,
-    onError: () => {
-      // User not authenticated - this is expected
-    },
   });
 
-  const login = useMutation('/auth/login', {
+  const login = useMutation({
+    mutationFn: (data: { email: string; password: string }) =>
+      api.post<AuthResponse>('/auth/login', data),
     onSuccess: (data) => {
-      // Store tokens
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['me'] });
       setError('');
     },
     onError: (err) => {
@@ -342,11 +397,13 @@ function HomePage() {
     },
   });
 
-  const register = useMutation('/auth/register', {
+  const register = useMutation({
+    mutationFn: (data: { name: string; email: string; password: string }) =>
+      api.post<AuthResponse>('/auth/register', data),
     onSuccess: (data) => {
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['me'] });
       setError('');
     },
     onError: (err) => {
@@ -354,11 +411,12 @@ function HomePage() {
     },
   });
 
-  const logout = useMutation('/auth/logout', {
+  const logout = useMutation({
+    mutationFn: () => api.post('/auth/logout', {}),
     onSuccess: () => {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['me'] });
     },
   });
 
@@ -400,7 +458,7 @@ function HomePage() {
           <div className={styles.card}>
             <h2>Actions</h2>
             <button
-              onClick={() => logout.mutate({})}
+              onClick={() => logout.mutate()}
               className={styles.button}
               disabled={logout.isPending}
             >
