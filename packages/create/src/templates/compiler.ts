@@ -19,6 +19,9 @@ import type { TemplateConfig, TemplateFile } from './types.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/** Cached source directory path (memoized for performance) */
+let cachedSourceDir: string | null = null;
+
 /**
  * Get the path to the source directory.
  *
@@ -29,18 +32,26 @@ const __dirname = path.dirname(__filename);
  * We try multiple paths to handle both development and production scenarios:
  * 1. Relative to compiled dist/templates/compiler.js -> ../../src/templates/source
  * 2. Relative to source (when running ts-node or similar)
+ *
+ * Result is memoized since the path doesn't change during execution.
  */
 function getSourceDir(): string {
+  if (cachedSourceDir !== null) {
+    return cachedSourceDir;
+  }
+
   // Try path relative to dist (production build)
   const distRelativePath = path.join(__dirname, '..', '..', 'src', 'templates', 'source');
   if (fs.existsSync(distRelativePath)) {
-    return distRelativePath;
+    cachedSourceDir = distRelativePath;
+    return cachedSourceDir;
   }
 
   // Fallback to path relative to src (development with ts-node/tsx)
   const srcRelativePath = path.join(__dirname, 'source');
   if (fs.existsSync(srcRelativePath)) {
-    return srcRelativePath;
+    cachedSourceDir = srcRelativePath;
+    return cachedSourceDir;
   }
 
   throw new Error(
@@ -105,25 +116,6 @@ export function compileTemplateFile(
     path: outputPath,
     content: compileTemplate(sourcePath, config),
   };
-}
-
-// ============================================================================
-// JSON Template Handling
-// ============================================================================
-
-/**
- * Read a JSON template source file and compile it.
- * JSON templates export their content from a .json.ts file.
- *
- * @param relativePath - Path relative to source/ directory
- * @param config - Template configuration
- * @returns Compiled JSON as formatted string
- */
-export function compileJsonTemplate(relativePath: string, config: TemplateConfig): string {
-  // JSON templates are stored as regular files with placeholders
-  const content = readTemplateSource(relativePath);
-  const withConditionals = processConditionals(content, config.template);
-  return applyPlaceholders(withConditionals, config);
 }
 
 // ============================================================================

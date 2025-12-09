@@ -17,13 +17,42 @@ import type { TemplateConfig } from './types.js';
  * Placeholders use the format __PLACEHOLDER_NAME__
  */
 export const PLACEHOLDERS = {
+  /** User-provided project name (e.g., "my-app") */
   PROJECT_NAME: '__PROJECT_NAME__',
+  /** Package manager choice (npm, pnpm, yarn) */
   PACKAGE_MANAGER: '__PACKAGE_MANAGER__',
+  /** Current VeloxTS framework version */
   VELOXTS_VERSION: '__VELOXTS_VERSION__',
+  /** Package manager run command (npm run, pnpm, yarn) */
   RUN_CMD: '__RUN_CMD__',
+  /** API server port (default: 3210) */
   API_PORT: '__API_PORT__',
+  /** Web dev server port (default: 8080) */
   WEB_PORT: '__WEB_PORT__',
 } as const;
+
+/**
+ * Default template configuration for templates that don't need real values.
+ * Used when compiling templates that only need placeholder markers stripped,
+ * not actual user-provided values (e.g., shared templates, route files).
+ */
+export const DEFAULT_CONFIG: TemplateConfig = {
+  projectName: '',
+  packageManager: 'pnpm',
+  template: 'default',
+  database: 'sqlite',
+};
+
+/**
+ * Auth template configuration for auth-specific templates.
+ * Same as DEFAULT_CONFIG but with template set to 'auth'.
+ */
+export const AUTH_CONFIG: TemplateConfig = {
+  projectName: '',
+  packageManager: 'pnpm',
+  template: 'auth',
+  database: 'sqlite',
+};
 
 // ============================================================================
 // Placeholder Replacement

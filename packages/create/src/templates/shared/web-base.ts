@@ -5,6 +5,7 @@
  */
 
 import { compileTemplate } from '../compiler.js';
+import { AUTH_CONFIG, DEFAULT_CONFIG } from '../placeholders.js';
 import type { TemplateConfig, TemplateFile } from '../types.js';
 
 // ============================================================================
@@ -12,22 +13,11 @@ import type { TemplateConfig, TemplateFile } from '../types.js';
 // ============================================================================
 
 export function generateWebPackageJson(): string {
-  // JSON files use direct reading since they don't have template-specific variants
-  return compileTemplate('web/package.json', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/package.json', DEFAULT_CONFIG);
 }
 
 export function generateWebTsConfig(): string {
-  return compileTemplate('web/tsconfig.json', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/tsconfig.json', DEFAULT_CONFIG);
 }
 
 export function generateViteConfig(config: TemplateConfig): string {
@@ -39,57 +29,27 @@ export function generateWebIndexHtml(config: TemplateConfig): string {
 }
 
 export function generateFavicon(): string {
-  return compileTemplate('web/favicon.svg', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/favicon.svg', DEFAULT_CONFIG);
 }
 
 export function generateMainTsx(): string {
-  return compileTemplate('web/main.tsx', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/main.tsx', DEFAULT_CONFIG);
 }
 
 export function generateRootRoute(): string {
-  return compileTemplate('web/routes/__root.tsx', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/routes/__root.tsx', DEFAULT_CONFIG);
 }
 
 export function generateDefaultIndexRoute(): string {
-  return compileTemplate('web/routes/index.default.tsx', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/routes/index.default.tsx', DEFAULT_CONFIG);
 }
 
 export function generateAuthIndexRoute(): string {
-  return compileTemplate('web/routes/index.auth.tsx', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/routes/index.auth.tsx', AUTH_CONFIG);
 }
 
 export function generateAboutRoute(): string {
-  return compileTemplate('web/routes/about.tsx', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/routes/about.tsx', DEFAULT_CONFIG);
 }
 
 // ============================================================================

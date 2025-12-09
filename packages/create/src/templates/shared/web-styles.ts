@@ -5,6 +5,7 @@
  */
 
 import { compileTemplate } from '../compiler.js';
+import { DEFAULT_CONFIG } from '../placeholders.js';
 import type { TemplateFile } from '../types.js';
 
 // ============================================================================
@@ -12,21 +13,11 @@ import type { TemplateFile } from '../types.js';
 // ============================================================================
 
 export function generateGlobalCss(): string {
-  return compileTemplate('web/styles/global.css', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/styles/global.css', DEFAULT_CONFIG);
 }
 
 export function generateAppModuleCss(): string {
-  return compileTemplate('web/App.module.css', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('web/App.module.css', DEFAULT_CONFIG);
 }
 
 // ============================================================================

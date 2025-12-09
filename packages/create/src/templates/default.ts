@@ -9,6 +9,7 @@
  */
 
 import { compileTemplate } from './compiler.js';
+import { DEFAULT_CONFIG } from './placeholders.js';
 import { generateRootFiles, generateWebBaseFiles, generateWebStyleFiles } from './shared/index.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 
@@ -21,21 +22,11 @@ function generateApiPackageJson(config: TemplateConfig): string {
 }
 
 function generateApiTsConfig(): string {
-  return compileTemplate('api/tsconfig.json', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/tsconfig.json', DEFAULT_CONFIG);
 }
 
 function generateApiTsupConfig(): string {
-  return compileTemplate('api/tsup.config.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/tsup.config.ts', DEFAULT_CONFIG);
 }
 
 function generateEnvExample(config: TemplateConfig): string {
@@ -43,39 +34,19 @@ function generateEnvExample(config: TemplateConfig): string {
 }
 
 function generatePrismaSchema(): string {
-  return compileTemplate('api/prisma/schema.default.prisma', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/prisma/schema.default.prisma', DEFAULT_CONFIG);
 }
 
 function generatePrismaConfig(): string {
-  return compileTemplate('api/prisma.config.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/prisma.config.ts', DEFAULT_CONFIG);
 }
 
 function generateIndexTs(): string {
-  return compileTemplate('api/index.default.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/index.default.ts', DEFAULT_CONFIG);
 }
 
 function generateConfigIndex(): string {
-  return compileTemplate('api/config/index.default.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/config/index.default.ts', DEFAULT_CONFIG);
 }
 
 function generateConfigApp(config: TemplateConfig): string {
@@ -83,57 +54,27 @@ function generateConfigApp(config: TemplateConfig): string {
 }
 
 function generateDatabaseIndex(): string {
-  return compileTemplate('api/database/index.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/database/index.ts', DEFAULT_CONFIG);
 }
 
 function generateHealthProcedures(): string {
-  return compileTemplate('api/procedures/health.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/procedures/health.ts', DEFAULT_CONFIG);
 }
 
 function generateProceduresIndex(): string {
-  return compileTemplate('api/procedures/index.default.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/procedures/index.default.ts', DEFAULT_CONFIG);
 }
 
 function generateUserProcedures(): string {
-  return compileTemplate('api/procedures/users.default.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/procedures/users.default.ts', DEFAULT_CONFIG);
 }
 
 function generateSchemasIndex(): string {
-  return compileTemplate('api/schemas/index.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/schemas/index.ts', DEFAULT_CONFIG);
 }
 
 function generateUserSchema(): string {
-  return compileTemplate('api/schemas/user.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/schemas/user.ts', DEFAULT_CONFIG);
 }
 
 // ============================================================================

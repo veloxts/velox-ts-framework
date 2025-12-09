@@ -9,6 +9,7 @@
  */
 
 import { compileTemplate } from './compiler.js';
+import { AUTH_CONFIG } from './placeholders.js';
 import { generateRootFiles, generateWebBaseFiles, generateWebStyleFiles } from './shared/index.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 
@@ -21,21 +22,11 @@ function generateApiPackageJson(config: TemplateConfig): string {
 }
 
 function generateApiTsConfig(): string {
-  return compileTemplate('api/tsconfig.json', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/tsconfig.json', AUTH_CONFIG);
 }
 
 function generateApiTsupConfig(): string {
-  return compileTemplate('api/tsup.config.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/tsup.config.ts', AUTH_CONFIG);
 }
 
 function generateEnvExample(config: TemplateConfig): string {
@@ -43,39 +34,19 @@ function generateEnvExample(config: TemplateConfig): string {
 }
 
 function generatePrismaSchema(): string {
-  return compileTemplate('api/prisma/schema.auth.prisma', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/prisma/schema.auth.prisma', AUTH_CONFIG);
 }
 
 function generatePrismaConfig(): string {
-  return compileTemplate('api/prisma.config.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/prisma.config.ts', AUTH_CONFIG);
 }
 
 function generateAuthConfig(): string {
-  return compileTemplate('api/config/auth.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/config/auth.ts', AUTH_CONFIG);
 }
 
 function generateConfigIndexWithAuth(): string {
-  return compileTemplate('api/config/index.auth.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/config/index.auth.ts', AUTH_CONFIG);
 }
 
 function generateConfigApp(config: TemplateConfig): string {
@@ -83,75 +54,35 @@ function generateConfigApp(config: TemplateConfig): string {
 }
 
 function generateAuthProcedures(): string {
-  return compileTemplate('api/procedures/auth.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/procedures/auth.ts', AUTH_CONFIG);
 }
 
 function generateUserProceduresWithAuth(): string {
-  return compileTemplate('api/procedures/users.auth.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/procedures/users.auth.ts', AUTH_CONFIG);
 }
 
 function generateIndexTs(): string {
-  return compileTemplate('api/index.auth.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/index.auth.ts', AUTH_CONFIG);
 }
 
 function generateDatabaseIndex(): string {
-  return compileTemplate('api/database/index.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/database/index.ts', AUTH_CONFIG);
 }
 
 function generateHealthProcedures(): string {
-  return compileTemplate('api/procedures/health.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/procedures/health.ts', AUTH_CONFIG);
 }
 
 function generateProceduresIndex(): string {
-  return compileTemplate('api/procedures/index.auth.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/procedures/index.auth.ts', AUTH_CONFIG);
 }
 
 function generateSchemasIndex(): string {
-  return compileTemplate('api/schemas/index.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/schemas/index.ts', AUTH_CONFIG);
 }
 
 function generateUserSchema(): string {
-  return compileTemplate('api/schemas/user.ts', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'auth',
-    database: 'sqlite',
-  });
+  return compileTemplate('api/schemas/user.ts', AUTH_CONFIG);
 }
 
 // ============================================================================

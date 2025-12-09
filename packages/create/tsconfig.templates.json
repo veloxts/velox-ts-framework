@@ -1,5 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
+  // This tsconfig is for optional type-checking of template source files.
+  // Only web templates are included because API templates import @veloxts/velox
+  // which is not installed in this package (templates are copied to generated projects).
+  // Run: pnpm check:templates
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",

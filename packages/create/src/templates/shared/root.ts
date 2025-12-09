@@ -5,6 +5,7 @@
  */
 
 import { compileTemplate } from '../compiler.js';
+import { DEFAULT_CONFIG } from '../placeholders.js';
 import type { TemplateConfig, TemplateFile } from '../types.js';
 
 // ============================================================================
@@ -16,30 +17,15 @@ export function generateRootPackageJson(config: TemplateConfig): string {
 }
 
 export function generatePnpmWorkspaceYaml(): string {
-  return compileTemplate('root/pnpm-workspace.yaml', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('root/pnpm-workspace.yaml', DEFAULT_CONFIG);
 }
 
 export function generateRootTsConfig(): string {
-  return compileTemplate('root/tsconfig.json', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('root/tsconfig.json', DEFAULT_CONFIG);
 }
 
 export function generateRootGitignore(): string {
-  return compileTemplate('root/gitignore', {
-    projectName: '',
-    packageManager: 'pnpm',
-    template: 'default',
-    database: 'sqlite',
-  });
+  return compileTemplate('root/gitignore', DEFAULT_CONFIG);
 }
 
 export function generateRootReadme(config: TemplateConfig): string {
