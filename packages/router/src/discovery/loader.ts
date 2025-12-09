@@ -19,6 +19,7 @@ import {
   fileLoadError,
   invalidExport,
   noProceduresFound,
+  permissionDenied,
 } from './errors.js';
 import {
   DiscoveryErrorCode,
@@ -122,18 +123,20 @@ export async function discoverProceduresVerbose(
     exclude,
   });
 
-  // Load all files in parallel
-  const loadResults = await Promise.all(files.map((file) => loadProcedureFile(file)));
+  // Load all files in parallel, preserving file context with each result
+  const loadResultsWithFiles = await Promise.all(
+    files.map(async (file) => ({
+      file,
+      result: await loadProcedureFile(file),
+    }))
+  );
 
   // Aggregate results
   const collections: ProcedureCollection[] = [];
   const loadedFiles: string[] = [];
   const warnings: DiscoveryWarning[] = [];
 
-  for (let i = 0; i < loadResults.length; i++) {
-    const result = loadResults[i];
-    const file = files[i];
-
+  for (const { file, result } of loadResultsWithFiles) {
     if (result.success) {
       collections.push(...result.collections);
       if (result.collections.length > 0) {
@@ -176,25 +179,72 @@ export async function discoverProceduresVerbose(
 
 /**
  * Scan directory for procedure files
+ *
+ * Uses a visited set to detect and prevent circular symlinks from causing infinite loops.
  */
-async function scanForProcedureFiles(dirPath: string, options: ScanOptions): Promise<string[]> {
+async function scanForProcedureFiles(
+  dirPath: string,
+  options: ScanOptions,
+  visited: Set<string> = new Set()
+): Promise<string[]> {
   const { recursive, extensions, exclude } = options;
   const files: string[] = [];
 
-  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  // Resolve real path to detect circular symlinks
+  let realPath: string;
+  try {
+    realPath = await fs.realpath(dirPath);
+  } catch {
+    // Can't resolve real path (broken symlink?) - skip this directory
+    return files;
+  }
+
+  // Check for circular symlink
+  if (visited.has(realPath)) {
+    return files; // Already visited this directory via another path
+  }
+  visited.add(realPath);
+
+  let entries: Awaited<ReturnType<typeof fs.readdir>>;
+  try {
+    entries = await fs.readdir(dirPath, { withFileTypes: true });
+  } catch {
+    // Can't read directory (permissions?) - skip
+    return files;
+  }
 
   for (const entry of entries) {
     const fullPath = path.join(dirPath, entry.name);
 
-    if (entry.isDirectory()) {
+    if (entry.isDirectory() || entry.isSymbolicLink()) {
+      // For symlinks, check if they point to a directory
+      if (entry.isSymbolicLink()) {
+        try {
+          const stat = await fs.stat(fullPath);
+          if (!stat.isDirectory()) {
+            // Symlink to file - process as file
+            if (stat.isFile()) {
+              const ext = path.extname(entry.name);
+              if (extensions.includes(ext) && !shouldExclude(entry.name, exclude)) {
+                files.push(fullPath);
+              }
+            }
+            continue;
+          }
+        } catch {
+          // Broken symlink - skip
+          continue;
+        }
+      }
+
       // Skip excluded directories
       if (shouldExcludeDirectory(entry.name)) {
         continue;
       }
 
       if (recursive) {
-        // Recursively scan subdirectories
-        const subFiles = await scanForProcedureFiles(fullPath, options);
+        // Recursively scan subdirectories (pass visited set for circular detection)
+        const subFiles = await scanForProcedureFiles(fullPath, options, visited);
         files.push(...subFiles);
       }
     } else if (entry.isFile()) {
@@ -251,6 +301,20 @@ function matchSimplePattern(filename: string, pattern: string): boolean {
 // ============================================================================
 
 /**
+ * Type guard for Node.js errno exceptions
+ *
+ * Safely checks if an error is a Node.js system error with an error code.
+ * This eliminates unsafe type assertions when handling filesystem errors.
+ */
+function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    typeof (error as NodeJS.ErrnoException).code === 'string'
+  );
+}
+
+/**
  * Load a single procedure file and extract collections
  */
 async function loadProcedureFile(filePath: string): Promise<LoadResult> {
@@ -261,6 +325,26 @@ async function loadProcedureFile(filePath: string): Promise<LoadResult> {
     module = (await import(fileUrl)) as Record<string, unknown>;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
+
+    // Check for specific error codes using type guard
+    if (isErrnoException(error)) {
+      if (error.code === 'EACCES' || error.code === 'EPERM') {
+        return {
+          success: false,
+          code: DiscoveryErrorCode.PERMISSION_DENIED,
+          message: `Permission denied: Cannot read file ${filePath}`,
+        };
+      }
+
+      if (error.code === 'ENOENT') {
+        return {
+          success: false,
+          code: DiscoveryErrorCode.FILE_LOAD_ERROR,
+          message: `File not found (possibly broken symlink): ${filePath}`,
+        };
+      }
+    }
+
     return {
       success: false,
       code: DiscoveryErrorCode.FILE_LOAD_ERROR,
@@ -308,7 +392,18 @@ async function loadProcedureFile(filePath: string): Promise<LoadResult> {
 /**
  * Check if a value looks like a procedure collection but might not be valid
  *
- * Used to provide better error messages for almost-correct exports
+ * Used to provide better error messages for almost-correct exports.
+ * This heuristic intentionally returns `true` for objects where `procedures` is `null`,
+ * because `typeof null === 'object'`. This allows us to distinguish between:
+ *
+ * 1. "Not a procedure collection" - objects that don't have the shape at all
+ * 2. "Invalid procedure collection" - objects that have the shape but fail validation
+ *
+ * Objects in category 2 get reported as INVALID_EXPORT errors with helpful messages,
+ * while objects in category 1 are silently ignored (they might be utility functions, etc.)
+ *
+ * Note: `isProcedureCollection` has an explicit `procedures !== null` check, so objects
+ * with `procedures: null` will pass this heuristic but fail actual validation.
  */
 function looksLikeProcedureCollection(value: unknown): boolean {
   if (typeof value !== 'object' || value === null) return false;
@@ -340,6 +435,9 @@ function createDiscoveryError(
   code: DiscoveryErrorCode,
   message: string
 ): DiscoveryError {
+  if (code === DiscoveryErrorCode.PERMISSION_DENIED) {
+    return permissionDenied(filePath);
+  }
   if (code === DiscoveryErrorCode.FILE_LOAD_ERROR) {
     return fileLoadError(filePath, new Error(message));
   }
