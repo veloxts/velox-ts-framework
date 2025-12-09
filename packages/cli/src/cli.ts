@@ -12,6 +12,7 @@ import { createDbCommand } from './commands/db.js';
 import { createDevCommand } from './commands/dev.js';
 import { createGenerateCommand } from './commands/generate.js';
 import { createMigrateCommand } from './commands/migrate.js';
+import { createProceduresCommand } from './commands/procedures.js';
 import { CLI_VERSION } from './index.js';
 
 /**
@@ -31,6 +32,7 @@ function createCLI(): Command {
   program.addCommand(createDevCommand(CLI_VERSION));
   program.addCommand(createGenerateCommand());
   program.addCommand(createMigrateCommand());
+  program.addCommand(createProceduresCommand());
 
   return program;
 }

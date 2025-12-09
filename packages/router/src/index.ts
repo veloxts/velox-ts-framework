@@ -159,3 +159,22 @@ export {
   registerTRPCPlugin,
   veloxErrorToTRPCError,
 } from './trpc/index.js';
+
+// ============================================================================
+// Procedure Discovery
+// ============================================================================
+
+export type { DiscoveryOptions, DiscoveryResult, DiscoveryWarning } from './discovery/index.js';
+export {
+  DiscoveryError,
+  DiscoveryErrorCode,
+  directoryNotFound,
+  discoverProcedures,
+  discoverProceduresVerbose,
+  fileLoadError,
+  invalidExport,
+  invalidFileType,
+  isDiscoveryError,
+  noProceduresFound,
+  permissionDenied,
+} from './discovery/index.js';

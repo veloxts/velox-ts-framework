@@ -126,6 +126,7 @@ import {
   veloxApp,
   VELOX_VERSION,
   databasePlugin,
+  discoverProcedures,
   rest,
   getRouteSummary,
 } from '@veloxts/velox';
@@ -133,7 +134,6 @@ import path from 'node:path';
 
 import { config } from './config/index.js';
 import { prisma } from './database/index.js';
-import { healthProcedures, userProcedures } from './procedures/index.js';
 
 // ============================================================================
 // Application Bootstrap
@@ -155,8 +155,8 @@ async function createApp() {
     prefix: '/',
   });
 
-  // Register REST API routes
-  const collections = [userProcedures, healthProcedures];
+  // Auto-discover and register all procedures from src/procedures/
+  const collections = await discoverProcedures('./src/procedures');
   app.routes(rest(collections, { prefix: config.apiPrefix }));
 
   return { app, collections };
