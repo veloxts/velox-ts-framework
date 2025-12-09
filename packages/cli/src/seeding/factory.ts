@@ -138,7 +138,7 @@ export abstract class BaseFactory<TInput extends Record<string, unknown>, TOutpu
    * Returns a new factory instance with the state applied.
    *
    * @param name - State name to apply
-   * @returns New factory instance with state active
+   * @returns New factory instance with state active (preserves subclass type)
    *
    * @example
    * ```typescript
@@ -147,9 +147,13 @@ export abstract class BaseFactory<TInput extends Record<string, unknown>, TOutpu
    *
    * // Chain multiple states
    * await factory.get(UserFactory).state('admin').state('verified').create();
+   *
+   * // Subclass methods preserved after state()
+   * const factory = new UserFactory(prisma);
+   * await factory.state('verified').admin().create(); // admin() still accessible
    * ```
    */
-  state(name: string): Factory<TInput, TOutput> {
+  state(name: string): this {
     if (!this.states.has(name)) {
       throw stateNotFound(this.constructor.name, name, Array.from(this.states.keys()));
     }

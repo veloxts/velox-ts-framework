@@ -42,6 +42,21 @@ class TestUserFactory extends BaseFactory<TestUserInput> {
       role: 'user',
     };
   }
+
+  /**
+   * Convenience method that applies admin state.
+   * Used to test that subclass methods are preserved after state() calls.
+   */
+  admin(): this {
+    return this.state('admin') as this;
+  }
+
+  /**
+   * Convenience method that applies verified state.
+   */
+  verified(): this {
+    return this.state('verified') as this;
+  }
 }
 
 function createMockPrisma(): PrismaClientLike {
@@ -164,6 +179,51 @@ describe('BaseFactory', () => {
 
       expect(originalResult.role).toBe('user');
       expect(adminResult.role).toBe('admin');
+    });
+
+    it('should preserve subclass methods after state() call', () => {
+      const prisma = createMockPrisma();
+      const factory = new TestUserFactory(prisma);
+
+      // Verify that state() returns this type, preserving subclass methods
+      const statefulFactory = factory.state('verified');
+
+      // The admin() method should still be accessible after state()
+      // This is the critical test for the `state(): this` return type fix
+      expect(typeof (statefulFactory as TestUserFactory).admin).toBe('function');
+    });
+
+    it('should allow chaining subclass methods after state()', () => {
+      const prisma = createMockPrisma();
+      const factory = new TestUserFactory(prisma);
+
+      // Chain state() with subclass method admin()
+      const result = factory.state('verified').admin().make();
+
+      expect(result.role).toBe('admin');
+      expect(result.email).toBe('verified-test@example.com');
+    });
+
+    it('should allow chaining state() after subclass methods', () => {
+      const prisma = createMockPrisma();
+      const factory = new TestUserFactory(prisma);
+
+      // Chain subclass method with state()
+      const result = factory.admin().state('verified').make();
+
+      expect(result.role).toBe('admin');
+      expect(result.email).toBe('verified-test@example.com');
+    });
+
+    it('should support convenience methods that wrap state()', () => {
+      const prisma = createMockPrisma();
+      const factory = new TestUserFactory(prisma);
+
+      // Use convenience methods instead of direct state() calls
+      const result = factory.admin().verified().make();
+
+      expect(result.role).toBe('admin');
+      expect(result.email).toBe('verified-test@example.com');
     });
   });
 
