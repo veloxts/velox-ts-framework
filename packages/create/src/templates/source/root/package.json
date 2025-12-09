@@ -1,0 +1,17 @@
+{
+  "name": "__PROJECT_NAME__",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "__RUN_CMD__ --parallel -r dev",
+    "build": "__RUN_CMD__ -r build",
+    "type-check": "__RUN_CMD__ -r type-check",
+    "db:push": "__RUN_CMD__ -F api db:push",
+    "db:generate": "__RUN_CMD__ -F api db:generate",
+    "db:studio": "__RUN_CMD__ -F api db:studio"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  }
+}

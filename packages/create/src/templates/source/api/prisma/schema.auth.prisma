@@ -1,0 +1,30 @@
+// Prisma Schema
+//
+// This schema defines the database structure with authentication support.
+// Using SQLite for simplicity - easily swap to PostgreSQL for production.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================================
+// User Model
+// ============================================================================
+
+/// User model with authentication support
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String?  // Hashed password (optional for social auth)
+  roles     String   @default("[\"user\"]") // JSON array of roles
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}

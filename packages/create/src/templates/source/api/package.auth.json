@@ -1,0 +1,40 @@
+{
+  "name": "api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "dev:hmr": "velox dev --hmr",
+    "type-check": "tsc --noEmit",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true});require('fs').rmSync('tsconfig.tsbuildinfo',{force:true})\"",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/adapter-better-sqlite3": "7.1.0",
+    "@prisma/client": "7.1.0",
+    "@veloxts/velox": "__VELOXTS_VERSION__",
+    "bcrypt": "5.1.1",
+    "better-sqlite3": "12.5.0",
+    "dotenv": "17.2.3",
+    "zod": "3.24.4"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "5.0.2",
+    "@veloxts/cli": "__VELOXTS_VERSION__",
+    "hot-hook": "0.4.0",
+    "prisma": "7.1.0",
+    "tsup": "8.5.1",
+    "tsx": "4.21.0",
+    "typescript": "5.8.3"
+  },
+  "hotHook": {
+    "boundaries": ["./src/procedures/**/*.ts", "./src/schemas/**/*.ts", "./src/handlers/**/*.ts"]
+  }
+}

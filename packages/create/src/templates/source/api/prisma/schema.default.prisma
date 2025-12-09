@@ -1,0 +1,28 @@
+// Prisma Schema
+//
+// This schema defines the database structure.
+// Using SQLite for simplicity - easily swap to PostgreSQL for production.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================================
+// User Model
+// ============================================================================
+
+/// User model for basic CRUD demonstration
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}

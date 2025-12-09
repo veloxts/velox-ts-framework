@@ -16,12 +16,14 @@
   },
   "files": [
     "dist",
+    "src/templates/source",
     "README.md"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
+    "check:templates": "tsc -p tsconfig.templates.json --noEmit || true",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "smoke-test": "./scripts/smoke-test.sh"
   },
