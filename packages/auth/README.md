@@ -35,8 +35,8 @@ For detailed documentation, usage examples, and API reference, see [GUIDE.md](./
 ## Quick Example
 
 ```typescript
+import { veloxApp, defineProcedures, procedure, rest, z } from '@veloxts/velox';
 import { jwtManager, authMiddleware } from '@veloxts/auth';
-import { procedure } from '@veloxts/router';
 
 const jwt = jwtManager({
   secret: process.env.JWT_SECRET!,
@@ -45,9 +45,17 @@ const jwt = jwtManager({
 
 const auth = authMiddleware({ jwt, userLoader: async (id) => db.user.findUnique({ where: { id } }) });
 
-const getProfile = procedure
-  .use(auth.requireAuth())
-  .query(({ ctx }) => ctx.user);
+const profileProcedures = defineProcedures('profile', {
+  getProfile: procedure()
+    .use(auth.requireAuth())
+    .output(z.object({ id: z.string(), name: z.string(), email: z.string() }))
+    .query(({ ctx }) => ctx.user),
+});
+
+const app = await veloxApp({ port: 3000 });
+app.routes(rest([profileProcedures], { prefix: '/api' }));
+await app.start();
+// GET /api/profile -> Returns authenticated user
 ```
 
 ## Learn More

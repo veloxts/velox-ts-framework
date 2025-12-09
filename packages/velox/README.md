@@ -21,17 +21,21 @@ For detailed documentation, usage examples, and API reference, see [GUIDE.md](./
 ## Quick Example
 
 ```typescript
-import { veloxApp, procedure, defineProcedures, z } from '@veloxts/velox';
+import { veloxApp, procedure, defineProcedures, rest, z } from '@veloxts/velox';
 
 const app = await veloxApp({ port: 3000 });
 
-const myProcedures = defineProcedures('greet', {
+const greetProcedures = defineProcedures('greet', {
   sayHello: procedure()
     .input(z.object({ name: z.string() }))
     .query(({ input }) => `Hello, ${input.name}!`),
 });
 
+// Register procedures as REST endpoints
+app.routes(rest([greetProcedures], { prefix: '/api' }));
+
 await app.start();
+// GET /api/greet/hello?name=World -> "Hello, World!"
 ```
 
 ## What's Included

@@ -25,18 +25,21 @@ yarn create velox-app my-app
 ### Quick Start
 
 ```typescript
-import { veloxApp, procedure, defineProcedures, z } from '@veloxts/velox';
+import { veloxApp, procedure, defineProcedures, rest, z } from '@veloxts/velox';
 
-const app = await veloxApp();
-await app.start(); // Listens on port 3210
+const app = await veloxApp(); // Default port: 3210
 
-const myProcedures = defineProcedures('greet', {
+const greetProcedures = defineProcedures('greet', {
   sayHello: procedure()
     .input(z.object({ name: z.string() }))
     .query(({ input }) => `Hello, ${input.name}!`),
 });
 
+// Register procedures as REST endpoints
+app.routes(rest([greetProcedures], { prefix: '/api' }));
+
 await app.start();
+// GET /api/greet/hello?name=World -> "Hello, World!"
 ```
 
 ### Import Patterns
