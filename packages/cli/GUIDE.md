@@ -163,11 +163,27 @@ velox generate factory user
 
 ### Overview
 
-The seeding system allows you to populate your database with initial or test data using seeders and factories.
+Database seeding is a mechanism for populating your database with initial or test data. VeloxTS provides a powerful seeding system with two key abstractions:
+
+- **Seeders**: Classes that contain logic for inserting data into your database
+- **Factories**: Reusable fake data generators with state management
+
+Use seeders for:
+- Setting up initial application data (default roles, admin users)
+- Populating development databases with realistic test data
+- Creating consistent test fixtures for automated testing
+- Generating demo data for presentations or examples
+
+The seeding system features:
+- Dependency resolution (seeders run in the correct order)
+- Environment filtering (development-only or production-safe seeders)
+- Type-safe factory API with fluent state modifiers
+- Automatic seeder discovery from the filesystem
+- Truncation support for fresh seeding
 
 ### Creating Seeders
 
-Generate a new seeder:
+Generate a new seeder using the CLI:
 
 ```bash
 velox generate seeder user
@@ -180,21 +196,28 @@ import type { Seeder, SeederContext } from '@veloxts/cli';
 
 export const UserSeeder: Seeder = {
   name: 'UserSeeder',
-  dependencies: [],  // Seeders that must run first
+
+  // Seeders that must run before this one
+  dependencies: [],
+
+  // Environments to run in (omit to run in all)
+  environments: ['development', 'test'],
 
   async run({ db, factory, log }) {
     log.info('Seeding users...');
 
+    // Insert data using Prisma
     await db.user.createMany({
       data: [
-        { email: 'admin@example.com', name: 'Admin' },
-        { email: 'user@example.com', name: 'User' },
+        { email: 'admin@example.com', name: 'Admin User', role: 'admin' },
+        { email: 'user@example.com', name: 'Regular User', role: 'user' },
       ],
     });
 
     log.success('Created 2 users');
   },
 
+  // Optional: Truncate tables before seeding (for --fresh flag)
   async truncate({ db, log }) {
     log.info('Truncating users table...');
     await db.user.deleteMany();
@@ -202,9 +225,62 @@ export const UserSeeder: Seeder = {
 };
 ```
 
+#### Seeder Interface
+
+All seeders must implement the `Seeder` interface:
+
+```typescript
+interface Seeder {
+  /** Unique seeder name (e.g., 'UserSeeder') */
+  readonly name: string;
+
+  /** Seeders that must run before this one */
+  readonly dependencies?: ReadonlyArray<string>;
+
+  /** Environments this seeder runs in (omit to run in all) */
+  readonly environments?: ReadonlyArray<'development' | 'production' | 'test'>;
+
+  /** Populate data */
+  run(context: SeederContext): Promise<void>;
+
+  /** Optional: Truncate tables before seeding */
+  truncate?(context: SeederContext): Promise<void>;
+}
+```
+
+#### Seeder Context
+
+The `run()` and `truncate()` methods receive a context object with:
+
+```typescript
+interface SeederContext {
+  /** Prisma client for database operations */
+  readonly db: PrismaClientLike;
+
+  /** Factory registry for creating fake data */
+  readonly factory: FactoryRegistry;
+
+  /** Current environment (development, production, test) */
+  readonly environment: Environment;
+
+  /** Logger for seeder output */
+  readonly log: SeederLogger;
+
+  /** Run another seeder (for composition) */
+  runSeeder(seeder: Seeder): Promise<void>;
+}
+```
+
+**Logger methods:**
+- `log.info(message)` - Informational message
+- `log.success(message)` - Success message (with checkmark)
+- `log.warning(message)` - Warning message (with warning icon)
+- `log.error(message)` - Error message (with X icon)
+- `log.debug(message)` - Debug message (only shown with --verbose)
+
 ### Creating Factories
 
-Generate a factory for creating fake data:
+Factories generate fake data using the `@faker-js/faker` library. Generate a factory with:
 
 ```bash
 velox generate factory user
@@ -216,106 +292,594 @@ This creates `src/database/factories/UserFactory.ts`:
 import { BaseFactory, type PrismaClientLike } from '@veloxts/cli';
 import { faker } from '@faker-js/faker';
 
+// Define input type matching your Prisma model
 export interface UserInput {
   email: string;
   name: string;
   role: 'admin' | 'user';
+  emailVerified: Date | null;
 }
 
 export class UserFactory extends BaseFactory<UserInput> {
+  // Model name must match Prisma schema (lowercase)
   readonly modelName = 'user';
 
   constructor(prisma: PrismaClientLike) {
     super(prisma);
 
-    // Register named states
+    // Register named states for variations
     this.registerState('admin', (attrs) => ({
       ...attrs,
       role: 'admin',
     }));
+
+    this.registerState('verified', (attrs) => ({
+      ...attrs,
+      emailVerified: new Date(),
+    }));
+
+    this.registerState('unverified', (attrs) => ({
+      ...attrs,
+      emailVerified: null,
+    }));
   }
 
+  // Define default attributes
   definition(): UserInput {
     return {
       email: faker.internet.email(),
       name: faker.person.fullName(),
       role: 'user',
+      emailVerified: faker.date.recent(),
     };
   }
 }
 ```
 
+#### Factory API
+
+The `BaseFactory` class provides a fluent API for creating data:
+
+**Creating Records:**
+```typescript
+// Create a single record in the database
+const user = await factory.get(UserFactory).create();
+
+// Create with overrides
+const admin = await factory.get(UserFactory).create({
+  email: 'admin@example.com',
+  role: 'admin',
+});
+
+// Create multiple records
+const users = await factory.get(UserFactory).createMany(10);
+
+// Create multiple with overrides
+const admins = await factory.get(UserFactory).createMany(3, {
+  role: 'admin',
+});
+```
+
+**Making Records (without persisting):**
+```typescript
+// Generate attributes without saving to database
+const userData = factory.get(UserFactory).make();
+
+// Make with overrides
+const adminData = factory.get(UserFactory).make({
+  role: 'admin',
+});
+
+// Make multiple
+const usersData = factory.get(UserFactory).makeMany(5);
+```
+
+**Using States:**
+```typescript
+// Apply a named state
+const admin = await factory.get(UserFactory).state('admin').create();
+
+// Chain multiple states
+const verifiedAdmin = await factory.get(UserFactory)
+  .state('admin')
+  .state('verified')
+  .create();
+
+// States with createMany
+const admins = await factory.get(UserFactory)
+  .state('admin')
+  .createMany(5);
+```
+
+#### State Modifiers
+
+States modify attributes to create variations of the base definition:
+
+```typescript
+class PostFactory extends BaseFactory<PostInput> {
+  readonly modelName = 'post';
+
+  constructor(prisma: PrismaClientLike) {
+    super(prisma);
+
+    // Published state
+    this.registerState('published', (attrs) => ({
+      ...attrs,
+      status: 'published',
+      publishedAt: new Date(),
+    }));
+
+    // Draft state
+    this.registerState('draft', (attrs) => ({
+      ...attrs,
+      status: 'draft',
+      publishedAt: null,
+    }));
+
+    // Featured state
+    this.registerState('featured', (attrs) => ({
+      ...attrs,
+      featured: true,
+    }));
+  }
+
+  definition(): PostInput {
+    return {
+      title: faker.lorem.sentence(),
+      content: faker.lorem.paragraphs(3),
+      status: 'draft',
+      publishedAt: null,
+      featured: false,
+      authorId: '', // Set via override or relationship
+    };
+  }
+}
+
+// Usage: Create a published featured post
+const post = await factory.get(PostFactory)
+  .state('published')
+  .state('featured')
+  .create({ authorId: user.id });
+```
+
+States are applied in order, and overrides are applied last:
+
+```
+definition() → state('admin') → state('verified') → create({ email: '...' })
+```
+
 ### Using Factories in Seeders
+
+Factories shine when creating large amounts of realistic data:
 
 ```typescript
 import type { Seeder, SeederContext } from '@veloxts/cli';
 import { UserFactory } from '../factories/UserFactory.js';
+import { PostFactory } from '../factories/PostFactory.js';
 
 export const UserSeeder: Seeder = {
   name: 'UserSeeder',
 
   async run({ factory, log }) {
-    // Create 10 random users
-    await factory.get(UserFactory).createMany(10);
+    // Create 50 regular users
+    const users = await factory.get(UserFactory).createMany(50);
+    log.success('Created 50 regular users');
 
-    // Create an admin user
-    await factory.get(UserFactory).state('admin').create();
+    // Create 5 admin users
+    const admins = await factory.get(UserFactory)
+      .state('admin')
+      .createMany(5);
+    log.success('Created 5 admin users');
 
-    // Create user with specific attributes
-    await factory.get(UserFactory).create({
-      email: 'specific@example.com',
+    // Create specific user with factory defaults
+    const specificUser = await factory.get(UserFactory).create({
+      email: 'john@example.com',
+      name: 'John Doe',
     });
+    log.success('Created specific user');
 
-    log.success('Created users');
+    // Create posts for each user
+    for (const user of users.slice(0, 10)) {
+      await factory.get(PostFactory)
+        .state('published')
+        .createMany(3, { authorId: user.id });
+    }
+    log.success('Created posts for 10 users');
   },
 };
 ```
 
 ### Seeder Dependencies
 
-Seeders can depend on other seeders:
+Seeders often depend on data from other seeders. Use the `dependencies` array to ensure correct execution order:
 
 ```typescript
+// src/database/seeders/UserSeeder.ts
+export const UserSeeder: Seeder = {
+  name: 'UserSeeder',
+  dependencies: [], // No dependencies
+
+  async run({ factory, log }) {
+    await factory.get(UserFactory).createMany(10);
+    log.success('Created users');
+  },
+};
+
+// src/database/seeders/PostSeeder.ts
 export const PostSeeder: Seeder = {
   name: 'PostSeeder',
-  dependencies: ['UserSeeder'],  // UserSeeder runs first
+  dependencies: ['UserSeeder'], // Requires users to exist
 
-  async run({ db, log }) {
-    // Users already exist
+  async run({ db, factory, log }) {
+    // Users are guaranteed to exist
     const users = await db.user.findMany();
-    // Create posts...
+
+    for (const user of users) {
+      await factory.get(PostFactory).createMany(5, {
+        authorId: user.id,
+      });
+    }
+
+    log.success(`Created posts for ${users.length} users`);
+  },
+};
+
+// src/database/seeders/CommentSeeder.ts
+export const CommentSeeder: Seeder = {
+  name: 'CommentSeeder',
+  dependencies: ['UserSeeder', 'PostSeeder'], // Requires both
+
+  async run({ db, factory, log }) {
+    const users = await db.user.findMany();
+    const posts = await db.post.findMany();
+
+    for (const post of posts) {
+      const randomUser = users[Math.floor(Math.random() * users.length)];
+      await factory.get(CommentFactory).createMany(3, {
+        postId: post.id,
+        authorId: randomUser.id,
+      });
+    }
+
+    log.success('Created comments');
   },
 };
 ```
+
+The seeder runner uses **topological sorting** to determine execution order:
+1. UserSeeder runs first (no dependencies)
+2. PostSeeder runs second (depends on UserSeeder)
+3. CommentSeeder runs last (depends on both)
+
+If you run `velox db:seed PostSeeder`, the runner automatically includes UserSeeder.
 
 ### Environment-Specific Seeders
 
+Use the `environments` array to control where seeders run:
+
 ```typescript
+// Production-safe seeder (default roles, settings)
+export const RoleSeeder: Seeder = {
+  name: 'RoleSeeder',
+  // Runs in all environments (no filter)
+
+  async run({ db, log }) {
+    await db.role.createMany({
+      data: [
+        { name: 'admin', permissions: ['*'] },
+        { name: 'user', permissions: ['read'] },
+      ],
+    });
+    log.success('Created default roles');
+  },
+};
+
+// Development/test-only seeder (fake data)
 export const TestDataSeeder: Seeder = {
   name: 'TestDataSeeder',
-  environments: ['development', 'test'],  // Skip in production
+  environments: ['development', 'test'], // Skip in production
+  dependencies: ['RoleSeeder', 'UserSeeder'],
 
   async run({ factory, log }) {
-    await factory.get(UserFactory).createMany(100);
+    // Create 1000 test users (too much for production)
+    await factory.get(UserFactory).createMany(1000);
     log.success('Created test data');
+  },
+};
+
+// Production-only seeder
+export const ProductionSetupSeeder: Seeder = {
+  name: 'ProductionSetupSeeder',
+  environments: ['production'],
+
+  async run({ db, log }) {
+    // Production-specific initialization
+    await db.settings.create({
+      data: { maintenanceMode: false },
+    });
+    log.success('Production setup complete');
   },
 };
 ```
 
+The environment is detected from `NODE_ENV`:
+- `NODE_ENV=production` → `'production'`
+- `NODE_ENV=test` → `'test'`
+- Otherwise → `'development'`
+
+### Using the Factory Registry
+
+The factory registry caches instances to avoid recreating them:
+
+```typescript
+async run({ factory, log }) {
+  // Get or create factory instance (cached)
+  const userFactory = factory.get(UserFactory);
+
+  // Same instance returned on subsequent calls
+  const sameFactory = factory.get(UserFactory);
+
+  // Create records
+  await userFactory.createMany(10);
+
+  // Get different factory
+  const postFactory = factory.get(PostFactory);
+  await postFactory.create();
+}
+```
+
+The registry is scoped to the seeder run, so each `velox db:seed` command gets fresh factory instances.
+
 ### Running Seeders
 
+#### Basic Usage
+
 ```bash
-# Run all seeders
+# Run all seeders in dependency order
 velox db:seed
 
-# Run specific seeder (includes dependencies)
+# Run specific seeder (includes its dependencies)
 velox db:seed UserSeeder
 
-# Fresh seed (truncate first)
+# Run multiple specific seeders
+velox db:seed UserSeeder PostSeeder
+```
+
+#### Fresh Seeding
+
+Truncate tables before seeding (calls `truncate()` method in reverse order):
+
+```bash
+# Fresh seed all
 velox db:seed --fresh
 
-# Dry run - see what would execute
+# Fresh seed specific seeder
+velox db:seed UserSeeder --fresh
+```
+
+**Important:** When using `--fresh`, truncation happens in **reverse dependency order** to handle foreign key constraints:
+1. CommentSeeder.truncate() (depends on posts/users)
+2. PostSeeder.truncate() (depends on users)
+3. UserSeeder.truncate() (no dependencies)
+
+Then seeding runs in normal order.
+
+#### Other Options
+
+```bash
+# Dry run - show what would execute without running
 velox db:seed --dry-run
+
+# Verbose output (show debug logs)
+velox db:seed --verbose
+
+# Force run in production (skips confirmation)
+velox db:seed --force
+
+# JSON output (for scripting)
+velox db:seed --json
+```
+
+### Error Handling
+
+The seeding system uses structured errors with codes and helpful fixes:
+
+#### Common Errors
+
+**E3001: Seeder Not Found**
+```
+SeederError[E3001]: Seeder 'UserSeeder' not found.
+Fix: Check that the seeder exists in src/database/seeders/ and is properly exported.
+```
+
+**E3002: Circular Dependency**
+```
+SeederError[E3002]: Circular dependency detected: UserSeeder -> PostSeeder -> UserSeeder
+Fix: Review seeder dependencies and remove the circular reference.
+```
+
+**E3003: Execution Failed**
+```
+SeederError[E3003]: Seeder 'UserSeeder' failed: Unique constraint violation
+Fix: Check the seeder implementation and database state.
+```
+
+**E3004: Truncation Failed**
+```
+SeederError[E3004]: Truncation failed for seeder 'PostSeeder': Foreign key constraint
+Fix: Check for foreign key constraints that may prevent truncation.
+```
+
+**E3006: Dependency Not Found**
+```
+SeederError[E3006]: Seeder 'PostSeeder' depends on 'UserSeeder' which was not found.
+Fix: Ensure 'UserSeeder' exists in src/database/seeders/ and is registered.
+```
+
+**E3011: State Not Found**
+```
+FactoryError[E3011]: State 'admin' not found on factory 'UserFactory'.
+Fix: Available states: verified, unverified. Register states using registerState().
+```
+
+**E3012: Factory Create Failed**
+```
+FactoryError[E3012]: Failed to create 'user': Required field 'email' is missing
+Fix: Check the factory definition and ensure all required fields are provided.
+```
+
+#### Catching Errors in Seeders
+
+```typescript
+export const RobustSeeder: Seeder = {
+  name: 'RobustSeeder',
+
+  async run({ db, log }) {
+    try {
+      await db.user.create({
+        data: { email: 'test@example.com', name: 'Test' },
+      });
+      log.success('Created user');
+    } catch (error) {
+      if (error instanceof Error) {
+        log.error(`Failed to create user: ${error.message}`);
+      }
+      throw error; // Re-throw to stop seeder execution
+    }
+  },
+};
+```
+
+### Best Practices
+
+#### 1. Organize Seeders by Feature
+
+```
+src/database/seeders/
+├── RoleSeeder.ts          # Base data (no dependencies)
+├── UserSeeder.ts          # Depends on RoleSeeder
+├── PostSeeder.ts          # Depends on UserSeeder
+├── CommentSeeder.ts       # Depends on UserSeeder, PostSeeder
+└── TestDataSeeder.ts      # Development/test only
+```
+
+#### 2. Use Factories for Consistent Data
+
+```typescript
+// Bad: Manual data creation (inconsistent, hard to maintain)
+async run({ db }) {
+  await db.user.create({
+    data: {
+      email: 'user1@test.com',
+      name: 'User 1',
+      role: 'user',
+      createdAt: new Date(),
+    },
+  });
+}
+
+// Good: Factory-generated data (consistent, reusable)
+async run({ factory }) {
+  await factory.get(UserFactory).create();
+}
+```
+
+#### 3. Handle Foreign Keys in Truncation
+
+```typescript
+// Bad: May fail due to foreign key constraints
+async truncate({ db }) {
+  await db.user.deleteMany(); // Fails if posts reference users
+}
+
+// Good: Delete dependents first
+async truncate({ db }) {
+  await db.post.deleteMany();  // Delete posts first
+  await db.user.deleteMany();  // Then delete users
+}
+
+// Better: Use CASCADE in Prisma schema
+model User {
+  id    String @id @default(uuid())
+  posts Post[] // ON DELETE CASCADE
+}
+
+model Post {
+  id       String @id @default(uuid())
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+```
+
+#### 4. Use State Modifiers for Variations
+
+```typescript
+// Bad: Duplicate factories for each variation
+class AdminUserFactory extends BaseFactory<UserInput> { ... }
+class RegularUserFactory extends BaseFactory<UserInput> { ... }
+
+// Good: One factory with states
+class UserFactory extends BaseFactory<UserInput> {
+  constructor(prisma: PrismaClientLike) {
+    super(prisma);
+    this.registerState('admin', (attrs) => ({ ...attrs, role: 'admin' }));
+    this.registerState('regular', (attrs) => ({ ...attrs, role: 'user' }));
+  }
+}
+```
+
+#### 5. Log Progress for Long Seeders
+
+```typescript
+async run({ factory, log }) {
+  const count = 1000;
+  log.info(`Creating ${count} users...`);
+
+  // Create in batches with progress
+  const batchSize = 100;
+  for (let i = 0; i < count; i += batchSize) {
+    await factory.get(UserFactory).createMany(batchSize);
+    log.debug(`Created ${Math.min(i + batchSize, count)}/${count} users`);
+  }
+
+  log.success(`Created ${count} users`);
+}
+```
+
+#### 6. Make Seeders Idempotent
+
+```typescript
+// Bad: Fails on second run (duplicate email)
+async run({ db }) {
+  await db.user.create({
+    data: { email: 'admin@example.com', name: 'Admin' },
+  });
+}
+
+// Good: Idempotent (safe to run multiple times)
+async run({ db }) {
+  await db.user.upsert({
+    where: { email: 'admin@example.com' },
+    update: {},
+    create: { email: 'admin@example.com', name: 'Admin', role: 'admin' },
+  });
+}
+```
+
+#### 7. Use Transactions for Related Data
+
+```typescript
+async run({ db, factory, log }) {
+  await db.$transaction(async (tx) => {
+    const user = await factory.get(UserFactory).create();
+
+    await factory.get(PostFactory).createMany(5, {
+      authorId: user.id,
+    });
+  });
+
+  log.success('Created user with posts atomically');
+}
 ```
 
 ## Development
