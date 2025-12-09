@@ -844,13 +844,15 @@ import {
   VELOX_VERSION,
   databasePlugin,
   authPlugin,
-  discoverProcedures,
   rest,
   getRouteSummary,
 } from '@veloxts/velox';
 
 import { authConfig, config } from './config/index.js';
 import { prisma } from './database/index.js';
+import { authProcedures } from './procedures/auth.js';
+import { healthProcedures } from './procedures/health.js';
+import { userProcedures } from './procedures/users.js';
 
 // ============================================================================
 // Application Bootstrap
@@ -876,8 +878,8 @@ async function createApp() {
     prefix: '/',
   });
 
-  // Auto-discover and register all procedures from src/procedures/
-  const collections = await discoverProcedures('./src/procedures');
+  // Register all procedures
+  const collections = [healthProcedures, authProcedures, userProcedures];
   app.routes(rest(collections, { prefix: config.apiPrefix }));
 
   return { app, collections };
