@@ -120,7 +120,6 @@ export class SeederRunner {
     const results: SeederResult[] = [];
     let successful = 0;
     let failed = 0;
-    let skipped = 0;
 
     for (const seeder of seeders) {
       const result = await this.executeSeeder(seeder, options);
@@ -128,14 +127,15 @@ export class SeederRunner {
 
       if (result.success) {
         successful++;
-      } else if (result.error?.includes('skipped')) {
-        skipped++;
       } else {
         failed++;
-        // Stop on first failure
+        // Stop on first failure to prevent cascading errors
         break;
       }
     }
+
+    // Calculate skipped as seeders that weren't executed due to early failure
+    const skipped = seeders.length - results.length;
 
     return {
       results,

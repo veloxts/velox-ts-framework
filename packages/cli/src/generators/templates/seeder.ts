@@ -65,7 +65,7 @@ export function seederTemplate(context: TemplateContext<SeederOptions>): string 
 
   const truncateMethod = `
 
-  async truncate(ctx) {
+  async truncate(ctx: SeederContext): Promise<void> {
     ctx.log.info('Truncating ${entity.plural} table...');
     await ctx.db.${entity.camel}.deleteMany();
   },`;

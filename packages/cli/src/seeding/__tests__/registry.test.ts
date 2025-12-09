@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { SeederErrorCode, SeederError } from '../errors.js';
+import { SeederError } from '../errors.js';
 import { SeederRegistry } from '../registry.js';
 import type { Seeder, SeederContext } from '../types.js';
 

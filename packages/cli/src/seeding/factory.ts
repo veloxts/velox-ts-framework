@@ -14,6 +14,27 @@ import type {
 } from './types.js';
 
 // ============================================================================
+// Prisma Model Types (for dynamic model access)
+// ============================================================================
+
+/**
+ * Minimal Prisma model delegate interface for create operations.
+ * Used for type-safe dynamic model access without depending on generated types.
+ */
+interface PrismaModelDelegate<TData, TResult> {
+  create(args: { data: TData }): Promise<TResult>;
+}
+
+/**
+ * Type for Prisma client with dynamic model access.
+ * Maps model names to their delegates.
+ */
+type PrismaClientWithModels<TInput, TOutput> = Record<
+  string,
+  PrismaModelDelegate<TInput, TOutput> | undefined
+>;
+
+// ============================================================================
 // Base Factory
 // ============================================================================
 
@@ -187,9 +208,11 @@ export abstract class BaseFactory<TInput extends Record<string, unknown>, TOutpu
     const data = this.buildAttributes(overrides);
 
     try {
-      // Access Prisma model dynamically
-      // biome-ignore lint/suspicious/noExplicitAny: Dynamic Prisma model access requires any
-      const model = (this.prisma as any)[this.modelName];
+      // Access Prisma model dynamically with type-safe casting
+      // We use unknown as intermediate to avoid any, then cast to our defined type
+      const prismaWithModels = this.prisma as unknown as PrismaClientWithModels<TInput, TOutput>;
+      const model = prismaWithModels[this.modelName];
+
       if (!model || typeof model.create !== 'function') {
         throw new Error(`Model '${this.modelName}' not found on Prisma client`);
       }
