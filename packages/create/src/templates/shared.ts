@@ -4,7 +4,13 @@
  * Common files used by all templates (config, gitignore, etc.)
  */
 
+import { createRequire } from 'node:module';
+
 import type { TemplateConfig, TemplateFile } from './types.js';
+
+// Read version from package.json dynamically
+const require = createRequire(import.meta.url);
+const packageJson = require('../../package.json') as { version: string };
 
 // ============================================================================
 // Version Constant
@@ -14,7 +20,7 @@ import type { TemplateConfig, TemplateFile } from './types.js';
  * VeloxTS framework version for generated projects.
  * This is automatically updated during releases via changesets.
  */
-export const VELOXTS_VERSION = '0.3.1';
+export const VELOXTS_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // ============================================================================
 // TypeScript Config
