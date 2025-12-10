@@ -9,7 +9,7 @@
 
 import type { AuthPluginOptions } from '@veloxts/velox';
 
-import { prisma } from '../database/index.js';
+import { prisma } from './database.js';
 
 // ============================================================================
 // Environment Variable Validation

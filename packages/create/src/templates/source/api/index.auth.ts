@@ -5,8 +5,9 @@
 import 'dotenv/config';
 
 import { veloxApp, databasePlugin, authPlugin, rest } from '@veloxts/velox';
-import { authConfig, config } from './config/index.js';
-import { prisma } from './database/index.js';
+import { config } from './config/app.js';
+import { authConfig } from './config/auth.js';
+import { prisma } from './config/database.js';
 import { authProcedures } from './procedures/auth.js';
 import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';

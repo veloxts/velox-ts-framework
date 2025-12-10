@@ -45,32 +45,20 @@ function generateIndexTs(): string {
   return compileTemplate('api/index.default.ts', DEFAULT_CONFIG);
 }
 
-function generateConfigIndex(): string {
-  return compileTemplate('api/config/index.default.ts', DEFAULT_CONFIG);
-}
-
 function generateConfigApp(config: TemplateConfig): string {
   return compileTemplate('api/config/app.ts', config);
 }
 
-function generateDatabaseIndex(): string {
-  return compileTemplate('api/database/index.ts', DEFAULT_CONFIG);
+function generateConfigDatabase(): string {
+  return compileTemplate('api/config/database.ts', DEFAULT_CONFIG);
 }
 
 function generateHealthProcedures(): string {
   return compileTemplate('api/procedures/health.ts', DEFAULT_CONFIG);
 }
 
-function generateProceduresIndex(): string {
-  return compileTemplate('api/procedures/index.default.ts', DEFAULT_CONFIG);
-}
-
 function generateUserProcedures(): string {
   return compileTemplate('api/procedures/users.default.ts', DEFAULT_CONFIG);
-}
-
-function generateSchemasIndex(): string {
-  return compileTemplate('api/schemas/index.ts', DEFAULT_CONFIG);
 }
 
 function generateUserSchema(): string {
@@ -96,13 +84,10 @@ export function generateDefaultTemplate(config: TemplateConfig): TemplateFile[] 
 
     // API Source files
     { path: 'apps/api/src/index.ts', content: generateIndexTs() },
-    { path: 'apps/api/src/config/index.ts', content: generateConfigIndex() },
     { path: 'apps/api/src/config/app.ts', content: generateConfigApp(config) },
-    { path: 'apps/api/src/database/index.ts', content: generateDatabaseIndex() },
-    { path: 'apps/api/src/procedures/index.ts', content: generateProceduresIndex() },
+    { path: 'apps/api/src/config/database.ts', content: generateConfigDatabase() },
     { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'apps/api/src/procedures/users.ts', content: generateUserProcedures() },
-    { path: 'apps/api/src/schemas/index.ts', content: generateSchemasIndex() },
     { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
   ];
 

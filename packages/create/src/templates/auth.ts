@@ -45,10 +45,6 @@ function generateAuthConfig(): string {
   return compileTemplate('api/config/auth.ts', AUTH_CONFIG);
 }
 
-function generateConfigIndexWithAuth(): string {
-  return compileTemplate('api/config/index.auth.ts', AUTH_CONFIG);
-}
-
 function generateConfigApp(config: TemplateConfig): string {
   return compileTemplate('api/config/app.ts', config);
 }
@@ -65,20 +61,12 @@ function generateIndexTs(): string {
   return compileTemplate('api/index.auth.ts', AUTH_CONFIG);
 }
 
-function generateDatabaseIndex(): string {
-  return compileTemplate('api/database/index.ts', AUTH_CONFIG);
+function generateConfigDatabase(): string {
+  return compileTemplate('api/config/database.ts', AUTH_CONFIG);
 }
 
 function generateHealthProcedures(): string {
   return compileTemplate('api/procedures/health.ts', AUTH_CONFIG);
-}
-
-function generateProceduresIndex(): string {
-  return compileTemplate('api/procedures/index.auth.ts', AUTH_CONFIG);
-}
-
-function generateSchemasIndex(): string {
-  return compileTemplate('api/schemas/index.ts', AUTH_CONFIG);
 }
 
 function generateUserSchema(): string {
@@ -104,15 +92,12 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
 
     // API Source files
     { path: 'apps/api/src/index.ts', content: generateIndexTs() },
-    { path: 'apps/api/src/config/index.ts', content: generateConfigIndexWithAuth() },
     { path: 'apps/api/src/config/app.ts', content: generateConfigApp(config) },
     { path: 'apps/api/src/config/auth.ts', content: generateAuthConfig() },
-    { path: 'apps/api/src/database/index.ts', content: generateDatabaseIndex() },
-    { path: 'apps/api/src/procedures/index.ts', content: generateProceduresIndex() },
+    { path: 'apps/api/src/config/database.ts', content: generateConfigDatabase() },
     { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'apps/api/src/procedures/auth.ts', content: generateAuthProcedures() },
     { path: 'apps/api/src/procedures/users.ts', content: generateUserProceduresWithAuth() },
-    { path: 'apps/api/src/schemas/index.ts', content: generateSchemasIndex() },
     { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
   ];
 

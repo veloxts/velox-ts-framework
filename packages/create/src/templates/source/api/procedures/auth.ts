@@ -23,8 +23,8 @@ import {
   z,
 } from '@veloxts/velox';
 
-import { authConfig, parseUserRoles, tokenStore } from '../config/index.js';
-import { prisma } from '../database/index.js';
+import { authConfig, parseUserRoles, tokenStore } from '../config/auth.js';
+import { prisma } from '../config/database.js';
 
 // ============================================================================
 // Rate Limiter
