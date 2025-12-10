@@ -1,4 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="20" fill="#0a0a0a"/>
-  <text x="50" y="65" font-size="50" text-anchor="middle" fill="#00d9ff" font-family="system-ui, sans-serif" font-weight="bold">V</text>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="128" height="128" rx="20" fill="url(#paint0_linear_8_2)"/>
+    <path d="M29 62L64 113L99 62" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M38 39L64 77L90 39" stroke="white" stroke-opacity="0.5" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M45 13L64 41L83 13" stroke="white" stroke-opacity="0.2" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <defs>
+        <linearGradient id="paint0_linear_8_2" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+            <stop offset="0.336538" stop-color="#3178C6"/>
+            <stop offset="1" stop-color="#3297B1"/>
+        </linearGradient>
+    </defs>
 </svg>
