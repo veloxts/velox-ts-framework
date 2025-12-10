@@ -30,6 +30,7 @@ export const VELOX_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // App creation and types
 export { createVeloxApp, VeloxApp, veloxApp } from './app.js';
+export type { StartOptions } from './app.js';
 // Context system
 export type { BaseContext } from './context.js';
 export { createContext, isContext, setupTestContext } from './context.js';

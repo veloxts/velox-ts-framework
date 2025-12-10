@@ -13,9 +13,18 @@ import { isVeloxError, VeloxError } from './errors.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
 import { validatePluginMetadata } from './plugin.js';
 import type { ShutdownHandler } from './types.js';
+import { printBanner } from './utils/banner.js';
 import type { FrozenVeloxAppConfig, VeloxAppConfig } from './utils/config.js';
 import { mergeConfig, validateConfig } from './utils/config.js';
 import { LifecycleManager } from './utils/lifecycle.js';
+
+/**
+ * Options for starting the server
+ */
+export interface StartOptions {
+  /** Suppress startup banner output (default: false) */
+  silent?: boolean;
+}
 
 /**
  * Main VeloxTS application instance
@@ -344,6 +353,7 @@ export class VeloxApp {
   /**
    * Starts the server and begins listening for requests
    *
+   * @param options - Start options (e.g., silent mode)
    * @throws {VeloxError} If server is already running or fails to start
    *
    * @example
@@ -351,11 +361,19 @@ export class VeloxApp {
    * await app.start();
    * console.log(`Server listening on ${app.address}`);
    * ```
+   *
+   * @example
+   * ```typescript
+   * // Start without banner
+   * await app.start({ silent: true });
+   * ```
    */
-  async start(): Promise<void> {
+  async start(options: StartOptions = {}): Promise<void> {
     if (this._isRunning) {
       throw new VeloxError('Server is already running', 500, 'SERVER_ALREADY_RUNNING');
     }
+
+    const startTime = performance.now();
 
     try {
       // Ensure Fastify is ready before listening (must be after plugin registration)
@@ -370,7 +388,14 @@ export class VeloxApp {
       this._isRunning = true;
       this._address = address;
 
-      this._server.log.info(`Server listening on ${address}`);
+      // Print startup banner unless silent
+      if (!options.silent) {
+        printBanner(this._server, {
+          address,
+          env: process.env.NODE_ENV ?? 'development',
+          startTime,
+        });
+      }
     } catch (error) {
       throw new VeloxError(
         `Failed to start server: ${error instanceof Error ? error.message : String(error)}`,
