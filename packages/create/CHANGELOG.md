@@ -1,5 +1,12 @@
 # create-velox-app
 
+## 0.4.4
+
+### Patch Changes
+
+- 05ae1a5: Update to boilerplate, work in progress
+- 9961b52: full-stack React frontend implementation
+
 ## 0.4.3
 
 ### Patch Changes
