@@ -345,22 +345,21 @@ async function createProjectStructure(config: ProjectConfig): Promise<void> {
 
     const files = generateTemplateFiles(templateConfig);
 
-    // Write all files
-    for (const file of files) {
-      // Validate path safety to prevent path traversal attacks
+    // Validate all paths and compute full paths
+    const filesToWrite = files.map((file) => {
       if (!isPathSafe(config.directory, file.path)) {
         throw new Error(`Invalid file path detected: ${file.path}`);
       }
+      const fullPath = path.join(config.directory, file.path);
+      return { ...file, fullPath, dir: path.dirname(fullPath) };
+    });
 
-      const filePath = path.join(config.directory, file.path);
-      const fileDir = path.dirname(filePath);
+    // Collect unique directories and create them in parallel
+    const uniqueDirs = [...new Set(filesToWrite.map((f) => f.dir))];
+    await Promise.all(uniqueDirs.map((dir) => fs.mkdir(dir, { recursive: true })));
 
-      // Ensure directory exists
-      await fs.mkdir(fileDir, { recursive: true });
-
-      // Write file
-      await fs.writeFile(filePath, file.content);
-    }
+    // Write all files in parallel (directories already exist)
+    await Promise.all(filesToWrite.map((file) => fs.writeFile(file.fullPath, file.content)));
 
     spinner.succeed(pc.green(`Project files created ${pc.dim(`(${files.length} files)`)}`));
   } catch (error) {

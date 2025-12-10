@@ -96,7 +96,7 @@ function HomePage() {
     onSuccess: () => {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      queryClient.invalidateQueries({ queryKey: ['me'] });
+      queryClient.setQueryData(['me'], null);
     },
   });
 

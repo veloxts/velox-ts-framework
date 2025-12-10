@@ -109,6 +109,13 @@ export function applyPlaceholdersToJson(
 // ============================================================================
 
 /**
+ * Escape special regex characters in a string.
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Conditional block markers for template-specific content.
  * Use these in source files to mark sections that should only appear in certain templates.
  */
@@ -118,6 +125,18 @@ export const CONDITIONALS = {
   DEFAULT_START: '/* @if default */',
   DEFAULT_END: '/* @endif default */',
 } as const;
+
+/** Pre-compiled regex for auth conditional blocks (performance optimization) */
+const AUTH_BLOCK_PATTERN = new RegExp(
+  `${escapeRegex(CONDITIONALS.AUTH_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.AUTH_END)}`,
+  'g'
+);
+
+/** Pre-compiled regex for default conditional blocks (performance optimization) */
+const DEFAULT_BLOCK_PATTERN = new RegExp(
+  `${escapeRegex(CONDITIONALS.DEFAULT_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.DEFAULT_END)}`,
+  'g'
+);
 
 /**
  * Process conditional blocks in template content.
@@ -133,41 +152,24 @@ export function processConditionals(
   let result = content;
 
   // Process auth conditionals
-  const authPattern = new RegExp(
-    `${escapeRegex(CONDITIONALS.AUTH_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.AUTH_END)}`,
-    'g'
-  );
-
   if (template === 'auth') {
     // Keep auth content but remove markers
     result = result.replaceAll(CONDITIONALS.AUTH_START, '');
     result = result.replaceAll(CONDITIONALS.AUTH_END, '');
   } else {
     // Remove entire auth blocks
-    result = result.replace(authPattern, '');
+    result = result.replace(AUTH_BLOCK_PATTERN, '');
   }
 
   // Process default conditionals
-  const defaultPattern = new RegExp(
-    `${escapeRegex(CONDITIONALS.DEFAULT_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.DEFAULT_END)}`,
-    'g'
-  );
-
   if (template === 'default') {
     // Keep default content but remove markers
     result = result.replaceAll(CONDITIONALS.DEFAULT_START, '');
     result = result.replaceAll(CONDITIONALS.DEFAULT_END, '');
   } else {
     // Remove entire default blocks
-    result = result.replace(defaultPattern, '');
+    result = result.replace(DEFAULT_BLOCK_PATTERN, '');
   }
 
   return result;
-}
-
-/**
- * Escape special regex characters in a string.
- */
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
