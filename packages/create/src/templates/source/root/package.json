@@ -12,6 +12,6 @@
     "db:studio": "__RUN_CMD__ -F api db:studio"
   },
   "devDependencies": {
-    "typescript": "5.8.3"
+    "typescript": "5.9.3"
   }
 }

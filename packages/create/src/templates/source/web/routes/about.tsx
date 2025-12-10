@@ -11,7 +11,7 @@ function AboutPage() {
       <div className={styles.hero}>
         <h1 className={styles.title}>About VeloxTS</h1>
         <p className={styles.subtitle}>
-          A Laravel-inspired TypeScript framework for full-stack development.
+          An elegant TypeScript framework for full-stack development.
         </p>
       </div>
 

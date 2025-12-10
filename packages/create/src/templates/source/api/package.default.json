@@ -30,7 +30,7 @@
     "prisma": "7.1.0",
     "tsup": "8.5.1",
     "tsx": "4.21.0",
-    "typescript": "5.8.3"
+    "typescript": "5.9.3"
   },
   "hotHook": {
     "boundaries": ["./src/procedures/**/*.ts", "./src/schemas/**/*.ts", "./src/handlers/**/*.ts"]

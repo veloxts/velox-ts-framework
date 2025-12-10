@@ -11,7 +11,7 @@ function RootLayout() {
       <nav className={styles.nav}>
         <div className={styles.navBrand}>
           <Link to="/" className={styles.logo}>
-            VeloxTS
+            Velox TS
           </Link>
         </div>
         <div className={styles.navLinks}>
