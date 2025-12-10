@@ -1,5 +1,19 @@
 # @veloxts/velox
 
+## 0.4.4
+
+### Patch Changes
+
+- 05ae1a5: Update to boilerplate, work in progress
+- 9961b52: full-stack React frontend implementation
+- Updated dependencies [05ae1a5]
+- Updated dependencies [9961b52]
+  - @veloxts/auth@0.4.4
+  - @veloxts/core@0.4.4
+  - @veloxts/orm@0.4.4
+  - @veloxts/router@0.4.4
+  - @veloxts/validation@0.4.4
+
 ## 0.4.3
 
 ### Patch Changes
