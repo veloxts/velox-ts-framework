@@ -1,32 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@veloxts/client/react';
+import type { AppRouter } from '../../../api/src/index.js';
 import styles from '@/App.module.css';
-
-// API helper
-const api = {
-  get: async <T,>(path: string): Promise<T> => {
-    const res = await fetch(`/api${path}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  },
-};
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
-interface HealthResponse {
-  status: string;
-  version: string;
-  timestamp: string;
-  uptime: number;
-}
-
 function HomePage() {
-  const { data: health, isLoading, error } = useQuery({
-    queryKey: ['health'],
-    queryFn: () => api.get<HealthResponse>('/health'),
-  });
+  const { data: health, isLoading, error } = useQuery<AppRouter, 'health', 'check'>(
+    'health',
+    'check',
+    {}
+  );
 
   return (
     <div className={styles.container}>

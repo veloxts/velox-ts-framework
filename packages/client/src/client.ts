@@ -207,10 +207,12 @@ function buildRequest(
   const method = inferMethodFromName(call.procedureName);
   const path = buildRestPath(call.namespace, call.procedureName);
 
-  // Prepare headers
+  // Prepare headers - support both static object and dynamic function
+  const customHeaders =
+    typeof config.headers === 'function' ? config.headers() : (config.headers ?? {});
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...config.headers,
+    ...customHeaders,
   };
 
   let finalPath = path;

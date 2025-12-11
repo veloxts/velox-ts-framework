@@ -1,5 +1,13 @@
 # @veloxts/validation
 
+## 0.4.6
+
+### Patch Changes
+
+- Fix broken npm packages - republish with correct dependencies
+- Updated dependencies
+  - @veloxts/core@0.4.6
+
 ## 0.4.5
 
 ### Patch Changes

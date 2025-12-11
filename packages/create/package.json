@@ -1,6 +1,6 @@
 {
   "name": "create-velox-app",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Project scaffolder for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",
@@ -33,7 +33,7 @@
     "picocolors": "1.1.1"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
+    "@types/node": "25.0.0",
     "typescript": "5.9.3"
   },
   "keywords": [

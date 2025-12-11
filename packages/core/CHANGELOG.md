@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.4.6
+
+### Patch Changes
+
+- Fix broken npm packages - republish with correct dependencies
+
 ## 0.4.5
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/testing",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "private": true,
   "description": "Internal testing utilities for VeloxTS framework packages",
   "type": "module",
@@ -24,7 +24,7 @@
     "fastify-plugin": "5.1.0"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
+    "@types/node": "25.0.0",
     "typescript": "5.9.3"
   },
   "engines": {

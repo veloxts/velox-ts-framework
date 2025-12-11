@@ -1,19 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { VeloxProvider } from '@veloxts/client/react';
 import { routeTree } from './routeTree.gen';
 import './styles/global.css';
 
-// Create query client for data fetching
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60, // 1 minute
-      retry: 1,
-    },
-  },
-});
+// Import router type from API for full type safety
+import type { AppRouter } from '../../api/src/index.js';
 
 // Create router with route tree
 const router = createRouter({ routeTree });
@@ -25,14 +18,29 @@ declare module '@tanstack/react-router' {
   }
 }
 
+/* @if auth */
+// Dynamic headers for auth - fetches token on each request
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+/* @endif auth */
+
 // Render application
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element not found');
 
 createRoot(rootElement).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+    {/* @if default */}
+    <VeloxProvider<AppRouter> config={{ baseUrl: '/api' }}>
       <RouterProvider router={router} />
-    </QueryClientProvider>
+    </VeloxProvider>
+    {/* @endif default */}
+    {/* @if auth */}
+    <VeloxProvider<AppRouter> config={{ baseUrl: '/api', headers: getAuthHeaders }}>
+      <RouterProvider router={router} />
+    </VeloxProvider>
+    {/* @endif auth */}
   </StrictMode>
 );

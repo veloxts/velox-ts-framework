@@ -134,8 +134,17 @@ export interface ClientConfig {
   /** Base URL for API requests (e.g., 'https://api.example.com' or '/api') */
   baseUrl: string;
 
-  /** Optional custom headers to include in all requests */
-  headers?: Record<string, string>;
+  /**
+   * Optional custom headers to include in all requests
+   *
+   * Can be:
+   * - Static object: `{ Authorization: 'Bearer token' }`
+   * - Function for dynamic headers: `() => ({ Authorization: `Bearer ${getToken()}` })`
+   *
+   * When using a function, it's called on each request, allowing dynamic values
+   * like auth tokens that may change during the session.
+   */
+  headers?: Record<string, string> | (() => Record<string, string>);
 
   /**
    * Optional request interceptor

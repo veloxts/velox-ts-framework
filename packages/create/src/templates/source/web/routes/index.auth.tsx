@@ -1,48 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@veloxts/client/react';
 import { useState } from 'react';
+import type { AppRouter } from '../../../api/src/index.js';
 import styles from '@/App.module.css';
-
-// API helpers
-const api = {
-  get: async <T,>(path: string): Promise<T> => {
-    const token = localStorage.getItem('accessToken');
-    const res = await fetch(`/api${path}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  },
-  post: async <T,>(path: string, data: unknown): Promise<T> => {
-    const token = localStorage.getItem('accessToken');
-    const res = await fetch(`/api${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || `HTTP ${res.status}`);
-    }
-    return res.json();
-  },
-};
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  roles?: string[];
-}
-
-interface AuthResponse {
-  user: User;
-  accessToken: string;
-  refreshToken: string;
-}
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -57,19 +17,18 @@ function HomePage() {
   const [error, setError] = useState('');
 
   // Check if user is logged in
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => api.get<User>('/auth/me'),
-    retry: false,
-  });
+  const { data: user, isLoading } = useQuery<AppRouter, 'auth', 'me'>(
+    'auth',
+    'me',
+    {},
+    { retry: false }
+  );
 
-  const login = useMutation({
-    mutationFn: (data: { email: string; password: string }) =>
-      api.post<AuthResponse>('/auth/login', data),
+  const login = useMutation<AppRouter, 'auth', 'login'>('auth', 'login', {
     onSuccess: (data) => {
-      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('token', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      queryClient.invalidateQueries({ queryKey: ['me'] });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       setError('');
     },
     onError: (err) => {
@@ -77,13 +36,11 @@ function HomePage() {
     },
   });
 
-  const register = useMutation({
-    mutationFn: (data: { name: string; email: string; password: string }) =>
-      api.post<AuthResponse>('/auth/register', data),
+  const register = useMutation<AppRouter, 'auth', 'register'>('auth', 'register', {
     onSuccess: (data) => {
-      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('token', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      queryClient.invalidateQueries({ queryKey: ['me'] });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       setError('');
     },
     onError: (err) => {
@@ -91,12 +48,11 @@ function HomePage() {
     },
   });
 
-  const logout = useMutation({
-    mutationFn: () => api.post('/auth/logout', {}),
+  const logout = useMutation<AppRouter, 'auth', 'logout'>('auth', 'logout', {
     onSuccess: () => {
-      localStorage.removeItem('accessToken');
+      localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-      queryClient.setQueryData(['me'], null);
+      queryClient.setQueryData(['auth', 'me'], null);
     },
   });
 

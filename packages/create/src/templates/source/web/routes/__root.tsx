@@ -18,6 +18,9 @@ function RootLayout() {
           <Link to="/" className={styles.navLink} activeProps={{ className: styles.navLinkActive }}>
             Home
           </Link>
+          <Link to="/users" className={styles.navLink} activeProps={{ className: styles.navLinkActive }}>
+            Users
+          </Link>
           <Link to="/about" className={styles.navLink} activeProps={{ className: styles.navLinkActive }}>
             About
           </Link>

@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.4.6
+
+### Patch Changes
+
+- Fix broken npm packages - republish with correct dependencies
+- Updated dependencies
+  - @veloxts/auth@0.4.6
+  - @veloxts/core@0.4.6
+  - @veloxts/orm@0.4.6
+  - @veloxts/router@0.4.6
+  - @veloxts/validation@0.4.6
+
 ## 0.4.5
 
 ### Patch Changes

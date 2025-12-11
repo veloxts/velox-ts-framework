@@ -12,6 +12,10 @@ import { authProcedures } from './procedures/auth.js';
 import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
 
+// Router type for frontend type safety
+const router = { auth: authProcedures, health: healthProcedures, users: userProcedures };
+export type AppRouter = typeof router;
+
 const app = await veloxApp({
   port: config.port,
   host: config.host,
