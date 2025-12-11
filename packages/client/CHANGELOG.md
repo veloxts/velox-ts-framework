@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.4.5
+
+### Patch Changes
+
+- b06631b: CI CD npm Trusted Publishing setup
+
 ## 0.4.4
 
 ### Patch Changes
