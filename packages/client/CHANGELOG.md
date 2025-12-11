@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.4.7
+
+### Patch Changes
+
+- Add dynamic headers and routes config to client
+
 ## 0.4.6
 
 ### Patch Changes

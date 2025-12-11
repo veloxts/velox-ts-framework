@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.4.7
+
+### Patch Changes
+
+- Add dynamic headers and routes config to client
+- Updated dependencies
+  - @veloxts/auth@0.4.7
+  - @veloxts/core@0.4.7
+  - @veloxts/orm@0.4.7
+  - @veloxts/router@0.4.7
+  - @veloxts/validation@0.4.7
+
 ## 0.4.6
 
 ### Patch Changes
