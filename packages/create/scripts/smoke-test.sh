@@ -187,13 +187,13 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
     echo ""
     echo "--- Testing auth endpoints ---"
 
-    # Test register (should work - returns 200 with tokens)
+    # Test register (should work - returns 201 with tokens)
     REGISTER_STATUS=$(curl -s -o /tmp/register_body.json -w "%{http_code}" -X POST http://localhost:$test_port/api/auth/register \
       -H "Content-Type: application/json" \
       -d '{"name": "Test User", "email": "test@smoke.com", "password": "SecurePass123!"}')
     REGISTER_BODY=$(cat /tmp/register_body.json)
-    if [ "$REGISTER_STATUS" = "200" ] && echo "$REGISTER_BODY" | grep -q '"accessToken"'; then
-      echo "✓ POST /auth/register returned 200"
+    if [ "$REGISTER_STATUS" = "200" ] || [ "$REGISTER_STATUS" = "201" ] && echo "$REGISTER_BODY" | grep -q '"accessToken"'; then
+      echo "✓ POST /auth/register returned $REGISTER_STATUS"
       ACCESS_TOKEN=$(echo "$REGISTER_BODY" | grep -o '"accessToken":"[^"]*"' | sed 's/"accessToken":"//;s/"//')
     else
       echo "✗ POST /auth/register failed: status=$REGISTER_STATUS, body=$REGISTER_BODY"
@@ -206,8 +206,8 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       -H "Content-Type: application/json" \
       -d '{"email": "test@smoke.com", "password": "SecurePass123!"}')
     LOGIN_BODY=$(cat /tmp/login_body.json)
-    if [ "$LOGIN_STATUS" = "200" ] && echo "$LOGIN_BODY" | grep -q '"accessToken"'; then
-      echo "✓ POST /auth/login returned 200"
+    if [ "$LOGIN_STATUS" = "200" ] || [ "$LOGIN_STATUS" = "201" ] && echo "$LOGIN_BODY" | grep -q '"accessToken"'; then
+      echo "✓ POST /auth/login returned $LOGIN_STATUS"
       ACCESS_TOKEN=$(echo "$LOGIN_BODY" | grep -o '"accessToken":"[^"]*"' | sed 's/"accessToken":"//;s/"//')
     else
       echo "✗ POST /auth/login failed: status=$LOGIN_STATUS, body=$LOGIN_BODY"

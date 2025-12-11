@@ -128,6 +128,25 @@ export type ClientFromRouter<TRouter> = {
 // ============================================================================
 
 /**
+ * Maps procedure names to their REST endpoint paths.
+ *
+ * Use when backend procedures have `.rest()` overrides that differ
+ * from the default naming convention paths.
+ *
+ * @example
+ * ```typescript
+ * const routes: RouteMap = {
+ *   auth: {
+ *     createAccount: '/auth/register',
+ *     createSession: '/auth/login',
+ *     getMe: '/auth/me',
+ *   },
+ * };
+ * ```
+ */
+export type RouteMap = Record<string, Record<string, string>>;
+
+/**
  * Configuration for creating a client instance
  */
 export interface ClientConfig {
@@ -145,6 +164,28 @@ export interface ClientConfig {
    * like auth tokens that may change during the session.
    */
   headers?: Record<string, string> | (() => Record<string, string>);
+
+  /**
+   * Custom route mappings for procedures with `.rest()` overrides.
+   *
+   * Use when backend procedures define custom REST paths that differ
+   * from the default naming convention inference.
+   *
+   * @example
+   * ```typescript
+   * const client = createClient<AppRouter>({
+   *   baseUrl: '/api',
+   *   routes: {
+   *     auth: {
+   *       createAccount: '/auth/register',
+   *       createSession: '/auth/login',
+   *       getMe: '/auth/me',
+   *     },
+   *   },
+   * });
+   * ```
+   */
+  routes?: RouteMap;
 
   /**
    * Optional request interceptor

@@ -8,7 +8,13 @@
  */
 
 import { NetworkError, parseErrorResponse } from './errors.js';
-import type { ClientConfig, ClientFromRouter, HttpMethod, ProcedureCall } from './types.js';
+import type {
+  ClientConfig,
+  ClientFromRouter,
+  HttpMethod,
+  ProcedureCall,
+  RouteMap,
+} from './types.js';
 
 // ============================================================================
 // Naming Convention Mapping
@@ -76,14 +82,29 @@ function inferMethodFromName(procedureName: string): HttpMethod {
 /**
  * Builds REST path from namespace and procedure name
  *
+ * First checks for explicit route mapping, then falls back to
+ * naming convention inference.
+ *
  * @example
  * - namespace='users', name='getUser' -> '/users/:id'
  * - namespace='users', name='listUsers' -> '/users'
  * - namespace='posts', name='createPost' -> '/posts'
+ * - namespace='auth', name='createAccount', routes={auth:{createAccount:'/auth/register'}} -> '/auth/register'
  *
  * @internal
  */
-function buildRestPath(namespace: string, procedureName: string): string {
+function buildRestPath(
+  namespace: string,
+  procedureName: string,
+  routes?: RouteMap
+): string {
+  // Check for explicit route mapping first
+  const override = routes?.[namespace]?.[procedureName];
+  if (override) {
+    return override;
+  }
+
+  // Fall back to naming convention
   const method = inferMethodFromName(procedureName);
 
   // List operations: /namespace
@@ -205,7 +226,7 @@ function buildRequest(
   config: ClientConfig
 ): { url: string; options: RequestInit } {
   const method = inferMethodFromName(call.procedureName);
-  const path = buildRestPath(call.namespace, call.procedureName);
+  const path = buildRestPath(call.namespace, call.procedureName, config.routes);
 
   // Prepare headers - support both static object and dynamic function
   const customHeaders =

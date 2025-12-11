@@ -32,12 +32,12 @@ export function generateFavicon(): string {
   return compileTemplate('web/favicon.svg', DEFAULT_CONFIG);
 }
 
-export function generateMainTsx(): string {
-  return compileTemplate('web/main.tsx', DEFAULT_CONFIG);
+export function generateMainTsx(config: TemplateConfig): string {
+  return compileTemplate('web/main.tsx', config);
 }
 
-export function generateRootRoute(): string {
-  return compileTemplate('web/routes/__root.tsx', DEFAULT_CONFIG);
+export function generateRootRoute(config: TemplateConfig): string {
+  return compileTemplate('web/routes/__root.tsx', config);
 }
 
 export function generateDefaultIndexRoute(): string {
@@ -50,6 +50,10 @@ export function generateAuthIndexRoute(): string {
 
 export function generateAboutRoute(): string {
   return compileTemplate('web/routes/about.tsx', DEFAULT_CONFIG);
+}
+
+export function generateUsersRoute(config: TemplateConfig): string {
+  return compileTemplate('web/routes/users.tsx', config);
 }
 
 // ============================================================================
@@ -69,14 +73,15 @@ export function generateWebBaseFiles(
     { path: 'apps/web/public/favicon.svg', content: generateFavicon() },
 
     // Entry point
-    { path: 'apps/web/src/main.tsx', content: generateMainTsx() },
+    { path: 'apps/web/src/main.tsx', content: generateMainTsx(config) },
 
     // Routes
-    { path: 'apps/web/src/routes/__root.tsx', content: generateRootRoute() },
+    { path: 'apps/web/src/routes/__root.tsx', content: generateRootRoute(config) },
     {
       path: 'apps/web/src/routes/index.tsx',
       content: isAuthTemplate ? generateAuthIndexRoute() : generateDefaultIndexRoute(),
     },
+    { path: 'apps/web/src/routes/users.tsx', content: generateUsersRoute(config) },
     { path: 'apps/web/src/routes/about.tsx', content: generateAboutRoute() },
   ];
 }

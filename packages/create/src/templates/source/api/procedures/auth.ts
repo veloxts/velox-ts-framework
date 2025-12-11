@@ -127,7 +127,7 @@ const DUMMY_HASH = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.uy7dPSSXB5G6Uy
 // ============================================================================
 
 export const authProcedures = defineProcedures('auth', {
-  register: procedure()
+  createAccount: procedure()
     .rest({ method: 'POST', path: '/auth/register' })
     .use(rateLimiter.register())
     .input(RegisterInput)
@@ -165,7 +165,7 @@ export const authProcedures = defineProcedures('auth', {
       });
     }),
 
-  login: procedure()
+  createSession: procedure()
     .rest({ method: 'POST', path: '/auth/login' })
     .use(
       rateLimiter.login((ctx) => {
@@ -198,7 +198,7 @@ export const authProcedures = defineProcedures('auth', {
       });
     }),
 
-  refresh: procedure()
+  createRefresh: procedure()
     .rest({ method: 'POST', path: '/auth/refresh' })
     .use(rateLimiter.refresh())
     .input(RefreshInput)
@@ -247,7 +247,7 @@ export const authProcedures = defineProcedures('auth', {
       }
     }),
 
-  logout: procedure()
+  deleteSession: procedure()
     .rest({ method: 'POST', path: '/auth/logout' })
     .guard(authenticated)
     .output(LogoutResponse)

@@ -124,6 +124,11 @@ export const CONDITIONALS = {
   AUTH_END: '/* @endif auth */',
   DEFAULT_START: '/* @if default */',
   DEFAULT_END: '/* @endif default */',
+  // JSX-style conditionals (wrapped in braces)
+  JSX_AUTH_START: '{/* @if auth */}',
+  JSX_AUTH_END: '{/* @endif auth */}',
+  JSX_DEFAULT_START: '{/* @if default */}',
+  JSX_DEFAULT_END: '{/* @endif default */}',
 } as const;
 
 /** Pre-compiled regex for auth conditional blocks (performance optimization) */
@@ -135,6 +140,18 @@ const AUTH_BLOCK_PATTERN = new RegExp(
 /** Pre-compiled regex for default conditional blocks (performance optimization) */
 const DEFAULT_BLOCK_PATTERN = new RegExp(
   `${escapeRegex(CONDITIONALS.DEFAULT_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.DEFAULT_END)}`,
+  'g'
+);
+
+/** Pre-compiled regex for JSX auth conditional blocks */
+const JSX_AUTH_BLOCK_PATTERN = new RegExp(
+  `${escapeRegex(CONDITIONALS.JSX_AUTH_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.JSX_AUTH_END)}`,
+  'g'
+);
+
+/** Pre-compiled regex for JSX default conditional blocks */
+const JSX_DEFAULT_BLOCK_PATTERN = new RegExp(
+  `${escapeRegex(CONDITIONALS.JSX_DEFAULT_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.JSX_DEFAULT_END)}`,
   'g'
 );
 
@@ -151,24 +168,30 @@ export function processConditionals(
 ): string {
   let result = content;
 
-  // Process auth conditionals
+  // Process auth conditionals (both JS and JSX style)
   if (template === 'auth') {
     // Keep auth content but remove markers
     result = result.replaceAll(CONDITIONALS.AUTH_START, '');
     result = result.replaceAll(CONDITIONALS.AUTH_END, '');
+    result = result.replaceAll(CONDITIONALS.JSX_AUTH_START, '');
+    result = result.replaceAll(CONDITIONALS.JSX_AUTH_END, '');
   } else {
     // Remove entire auth blocks
     result = result.replace(AUTH_BLOCK_PATTERN, '');
+    result = result.replace(JSX_AUTH_BLOCK_PATTERN, '');
   }
 
-  // Process default conditionals
+  // Process default conditionals (both JS and JSX style)
   if (template === 'default') {
     // Keep default content but remove markers
     result = result.replaceAll(CONDITIONALS.DEFAULT_START, '');
     result = result.replaceAll(CONDITIONALS.DEFAULT_END, '');
+    result = result.replaceAll(CONDITIONALS.JSX_DEFAULT_START, '');
+    result = result.replaceAll(CONDITIONALS.JSX_DEFAULT_END, '');
   } else {
     // Remove entire default blocks
     result = result.replace(DEFAULT_BLOCK_PATTERN, '');
+    result = result.replace(JSX_DEFAULT_BLOCK_PATTERN, '');
   }
 
   return result;

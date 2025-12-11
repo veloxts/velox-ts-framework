@@ -24,6 +24,17 @@ const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
+
+// Route mappings for auth procedures with custom .rest() endpoints
+const routes = {
+  auth: {
+    createAccount: '/auth/register',
+    createSession: '/auth/login',
+    createRefresh: '/auth/refresh',
+    deleteSession: '/auth/logout',
+    getMe: '/auth/me',
+  },
+};
 /* @endif auth */
 
 // Render application
@@ -38,7 +49,7 @@ createRoot(rootElement).render(
     </VeloxProvider>
     {/* @endif default */}
     {/* @if auth */}
-    <VeloxProvider<AppRouter> config={{ baseUrl: '/api', headers: getAuthHeaders }}>
+    <VeloxProvider<AppRouter> config={{ baseUrl: '/api', headers: getAuthHeaders, routes }}>
       <RouterProvider router={router} />
     </VeloxProvider>
     {/* @endif auth */}

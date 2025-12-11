@@ -17,18 +17,18 @@ function HomePage() {
   const [error, setError] = useState('');
 
   // Check if user is logged in
-  const { data: user, isLoading } = useQuery<AppRouter, 'auth', 'me'>(
+  const { data: user, isLoading } = useQuery<AppRouter, 'auth', 'getMe'>(
     'auth',
-    'me',
+    'getMe',
     {},
     { retry: false }
   );
 
-  const login = useMutation<AppRouter, 'auth', 'login'>('auth', 'login', {
+  const login = useMutation<AppRouter, 'auth', 'createSession'>('auth', 'createSession', {
     onSuccess: (data) => {
       localStorage.setItem('token', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'getMe'] });
       setError('');
     },
     onError: (err) => {
@@ -36,11 +36,11 @@ function HomePage() {
     },
   });
 
-  const register = useMutation<AppRouter, 'auth', 'register'>('auth', 'register', {
+  const register = useMutation<AppRouter, 'auth', 'createAccount'>('auth', 'createAccount', {
     onSuccess: (data) => {
       localStorage.setItem('token', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'getMe'] });
       setError('');
     },
     onError: (err) => {
@@ -48,11 +48,11 @@ function HomePage() {
     },
   });
 
-  const logout = useMutation<AppRouter, 'auth', 'logout'>('auth', 'logout', {
+  const logout = useMutation<AppRouter, 'auth', 'deleteSession'>('auth', 'deleteSession', {
     onSuccess: () => {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-      queryClient.setQueryData(['auth', 'me'], null);
+      queryClient.setQueryData(['auth', 'getMe'], null);
     },
   });
 

@@ -10,10 +10,11 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "react": "19.2.1",
-    "react-dom": "19.2.1",
+    "@tanstack/react-query": "5.90.12",
     "@tanstack/react-router": "1.140.5",
-    "@tanstack/react-query": "5.90.12"
+    "@veloxts/client": "__VELOXTS_VERSION__",
+    "react": "19.2.1",
+    "react-dom": "19.2.1"
   },
   "devDependencies": {
     "@types/react": "19.2.7",
