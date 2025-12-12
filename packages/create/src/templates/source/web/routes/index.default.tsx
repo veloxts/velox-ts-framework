@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useQuery } from '@veloxts/client/react';
-import type { AppRouter } from '../../../api/src/index.js';
+import { api } from '@/api';
 import styles from '@/App.module.css';
 
 export const Route = createFileRoute('/')({
@@ -8,11 +7,7 @@ export const Route = createFileRoute('/')({
 });
 
 function HomePage() {
-  const { data: health, isLoading, error } = useQuery<AppRouter, 'health', 'check'>(
-    'health',
-    'check',
-    {}
-  );
+  const { data: health, isLoading, error } = api.health.check.useQuery({});
 
   return (
     <div className={styles.container}>

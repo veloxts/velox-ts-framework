@@ -11,7 +11,7 @@
 /**
  * Available template types
  */
-export type TemplateType = 'default' | 'auth';
+export type TemplateType = 'default' | 'auth' | 'trpc';
 
 /**
  * Available database types
@@ -135,6 +135,12 @@ export const TEMPLATE_METADATA: Record<TemplateType, TemplateMetadata> = {
     label: 'Full Auth',
     description: 'Complete JWT authentication with login, register, guards',
     hint: 'Includes rate limiting, token rotation, password hashing',
+  },
+  trpc: {
+    type: 'trpc',
+    label: 'tRPC Hybrid',
+    description: 'tRPC + REST hybrid API with end-to-end type safety',
+    hint: 'Showcases type-safe frontend-backend communication',
   },
 };
 

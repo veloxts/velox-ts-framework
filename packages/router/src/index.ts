@@ -105,6 +105,10 @@ export {
   procedure,
 } from './procedure/builder.js';
 export type {
+  // Builder options
+  DefineProceduresOptions,
+} from './procedure/builder.js';
+export type {
   // Builder types
   BuilderRuntimeState,
   InferProcedures,
@@ -116,19 +120,28 @@ export type {
 } from './procedure/types.js';
 
 // ============================================================================
+// Naming Convention Warnings
+// ============================================================================
+
+export type { NamingWarning, NamingWarningType, WarningConfig, WarningOption } from './warnings.js';
+export { analyzeNamingConvention, isDevelopment, normalizeWarningOption } from './warnings.js';
+
+// ============================================================================
 // REST Adapter
 // ============================================================================
 
 // Public API - what most users need
 // Internal utilities - exported for advanced use cases and testing
 // Consider moving to @veloxts/router/internal subpath in v1.1+
-export type { RestAdapterOptions, RestMapping, RestRoute } from './rest/index.js';
+export type { ExtractRoutesType, RestAdapterOptions, RestMapping, RestRoute, RouteMap } from './rest/index.js';
 export {
   // Internal utilities
   buildNestedRestPath,
   buildRestPath,
   // Legacy API (deprecated)
   createRoutesRegistrar,
+  // Route extraction for frontend clients
+  extractRoutes,
   followsNamingConvention,
   generateRestRoutes,
   getRouteSummary,

@@ -7,6 +7,7 @@
 import { generateAuthTemplate } from './auth.js';
 import { generateDefaultTemplate } from './default.js';
 import { VELOXTS_VERSION } from './shared.js';
+import { generateTrpcTemplate } from './trpc.js';
 import type { TemplateConfig, TemplateFile, TemplateType } from './types.js';
 import {
   DATABASE_METADATA,
@@ -53,6 +54,8 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
   switch (config.template) {
     case 'auth':
       return generateAuthTemplate(config);
+    case 'trpc':
+      return generateTrpcTemplate(config);
     default:
       return generateDefaultTemplate(config);
   }

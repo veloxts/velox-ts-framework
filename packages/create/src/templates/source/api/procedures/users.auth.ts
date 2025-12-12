@@ -10,6 +10,7 @@ import {
   hasRole,
   defineProcedures,
   GuardError,
+  NotFoundError,
   procedure,
   paginationInputSchema,
   z,
@@ -66,11 +67,14 @@ function toUserResponse(dbUser: DbUser): User {
 export const userProcedures = defineProcedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
-    .output(UserSchema.nullable())
+    .output(UserSchema)
     .query(async ({ input, ctx }) => {
       const db = getDb(ctx);
       const user = await db.user.findUnique({ where: { id: input.id } });
-      return user ? toUserResponse(user) : null;
+      if (!user) {
+        throw new NotFoundError(`User with id '${input.id}' not found`);
+      }
+      return toUserResponse(user);
     }),
 
   listUsers: procedure()

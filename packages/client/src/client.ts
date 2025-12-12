@@ -302,7 +302,11 @@ interface ClientState {
  *
  * @internal
  */
-async function executeProcedure(call: ProcedureCall, state: ClientState): Promise<unknown> {
+async function executeProcedure(
+  call: ProcedureCall,
+  state: ClientState,
+  isRetry = false
+): Promise<unknown> {
   const { url, options } = buildRequest(call, state.config.baseUrl, state.config);
 
   // Call onRequest interceptor
@@ -348,6 +352,19 @@ async function executeProcedure(call: ProcedureCall, state: ClientState): Promis
   // Handle error responses
   if (!response.ok) {
     const error = parseErrorResponse(response, body, url, options.method || 'GET');
+
+    // Handle 401 with automatic retry (only once)
+    if (response.status === 401 && !isRetry && state.config.onUnauthorized) {
+      try {
+        const shouldRetry = await state.config.onUnauthorized();
+        if (shouldRetry) {
+          // Retry with fresh headers (headers function will be called again)
+          return executeProcedure(call, state, true);
+        }
+      } catch {
+        // onUnauthorized threw - continue with original error
+      }
+    }
 
     // Call onError interceptor
     if (state.config.onError) {

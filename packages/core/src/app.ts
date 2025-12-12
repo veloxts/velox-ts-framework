@@ -208,6 +208,36 @@ export class VeloxApp {
   private _setupErrorHandling(): void {
     this._server.setErrorHandler(async (error, request, reply) => {
       try {
+        // Handle ZodError (validation errors) - return 400
+        if (error instanceof Error && error.name === 'ZodError' && 'issues' in error) {
+          const zodError = error as Error & { issues: Array<{ path: string[]; message: string }> };
+          return reply.status(400).send({
+            error: 'ValidationError',
+            message: 'Validation failed',
+            statusCode: 400,
+            details: zodError.issues.map((issue) => ({
+              field: issue.path.join('.'),
+              message: issue.message,
+            })),
+          });
+        }
+
+        // Handle Prisma unique constraint errors - return 409 Conflict
+        if (
+          error instanceof Error &&
+          error.name === 'PrismaClientKnownRequestError' &&
+          'code' in error &&
+          error.code === 'P2002'
+        ) {
+          const prismaError = error as Error & { meta?: { target?: string[] } };
+          const fields = prismaError.meta?.target?.join(', ') ?? 'field';
+          return reply.status(409).send({
+            error: 'ConflictError',
+            message: `A record with this ${fields} already exists`,
+            statusCode: 409,
+          });
+        }
+
         // Only log server errors (5xx), not client errors (4xx)
         const statusCode = isVeloxError(error)
           ? error.statusCode

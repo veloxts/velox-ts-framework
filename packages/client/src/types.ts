@@ -206,6 +206,50 @@ export interface ClientConfig {
   onError?: (error: ClientError) => void | Promise<void>;
 
   /**
+   * Unauthorized handler for automatic token refresh
+   *
+   * Called when a request receives a 401 Unauthorized response.
+   * Return `true` to retry the request with fresh headers.
+   * Return `false` to propagate the original error.
+   *
+   * The headers function is called fresh for the retry, so update your
+   * token storage before returning `true`.
+   *
+   * @example
+   * ```typescript
+   * const client = createClient<AppRouter>({
+   *   baseUrl: '/api',
+   *   headers: () => {
+   *     const token = localStorage.getItem('token');
+   *     return token ? { Authorization: `Bearer ${token}` } : {};
+   *   },
+   *   onUnauthorized: async () => {
+   *     const refreshToken = localStorage.getItem('refreshToken');
+   *     if (!refreshToken) return false;
+   *
+   *     const res = await fetch('/api/auth/refresh', {
+   *       method: 'POST',
+   *       headers: { 'Content-Type': 'application/json' },
+   *       body: JSON.stringify({ refreshToken }),
+   *     });
+   *
+   *     if (!res.ok) {
+   *       localStorage.removeItem('token');
+   *       localStorage.removeItem('refreshToken');
+   *       return false;
+   *     }
+   *
+   *     const data = await res.json();
+   *     localStorage.setItem('token', data.accessToken);
+   *     localStorage.setItem('refreshToken', data.refreshToken);
+   *     return true; // Retry the original request
+   *   },
+   * });
+   * ```
+   */
+  onUnauthorized?: () => boolean | Promise<boolean>;
+
+  /**
    * Optional custom fetch implementation
    * Defaults to global fetch
    */

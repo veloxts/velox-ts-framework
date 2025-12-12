@@ -8,9 +8,15 @@
  * @module procedure/builder
  */
 
-import type { BaseContext } from '@veloxts/core';
+import { ConfigurationError, logWarning, type BaseContext } from '@veloxts/core';
 
 import { GuardError } from '../errors.js';
+import {
+  analyzeNamingConvention,
+  isDevelopment,
+  normalizeWarningOption,
+  type WarningOption,
+} from '../warnings.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -351,14 +357,47 @@ function createPrecompiledMiddlewareExecutor<TInput, TOutput, TContext extends B
 // ============================================================================
 
 /**
+ * Options for defining a procedure collection
+ */
+export interface DefineProceduresOptions {
+  /**
+   * Configuration for naming convention warnings
+   *
+   * Accepts three forms:
+   * - `false` - Disable all warnings
+   * - `'strict'` - Treat warnings as errors (fail fast)
+   * - `{ ... }` - Full configuration object
+   *
+   * @example
+   * ```typescript
+   * // Shorthand: disable warnings
+   * defineProcedures('legacy', procs, { warnings: false });
+   *
+   * // Shorthand: strict mode (CI/CD)
+   * defineProcedures('api', procs, { warnings: 'strict' });
+   *
+   * // Full config with exceptions
+   * defineProcedures('custom', procs, {
+   *   warnings: { strict: true, except: ['customAction'] }
+   * });
+   * ```
+   */
+  warnings?: WarningOption;
+}
+
+/**
  * Defines a collection of procedures under a namespace
  *
  * Groups related procedures together for registration with routers.
  * The namespace determines the base path for REST routes.
  *
+ * In development mode, emits warnings for procedure names that don't follow
+ * naming conventions (which means they won't generate REST routes).
+ *
  * @template TProcedures - The record of named procedures
  * @param namespace - Resource namespace (e.g., 'users', 'posts')
  * @param procedures - Object containing named procedures
+ * @param options - Optional configuration for warnings
  * @returns Procedure collection with preserved types
  *
  * @example
@@ -381,11 +420,77 @@ function createPrecompiledMiddlewareExecutor<TInput, TOutput, TContext extends B
  * // userProcedures.procedures.getUser.inputSchema -> { id: string }
  * // userProcedures.procedures.createUser -> mutation type
  * ```
+ *
+ * @example Disabling warnings
+ * ```typescript
+ * // Shorthand
+ * export const legacyProcedures = defineProcedures('legacy', procs, {
+ *   warnings: false
+ * });
+ * ```
+ *
+ * @example Excluding specific procedures
+ * ```typescript
+ * export const customProcedures = defineProcedures('custom', {
+ *   doCustomThing: procedure().mutation(handler),
+ * }, {
+ *   warnings: { except: ['doCustomThing'] }
+ * });
+ * ```
+ *
+ * @example Strict mode for CI/CD
+ * ```typescript
+ * // Shorthand
+ * export const strictProcedures = defineProcedures('api', procs, {
+ *   warnings: 'strict'
+ * });
+ *
+ * // Or with exceptions
+ * export const strictProcedures = defineProcedures('api', procs, {
+ *   warnings: { strict: true, except: ['legacyEndpoint'] }
+ * });
+ * ```
  */
 export function defineProcedures<TProcedures extends ProcedureDefinitions>(
   namespace: string,
-  procedures: TProcedures
+  procedures: TProcedures,
+  options?: DefineProceduresOptions
 ): ProcedureCollection<InferProcedures<TProcedures>> {
+  // Normalize warning options (handles shorthands)
+  const warnings = normalizeWarningOption(options?.warnings);
+
+  // Analyze naming conventions in development mode
+  if (isDevelopment() && !warnings.disabled) {
+    for (const [name, proc] of Object.entries(procedures)) {
+      // Skip if this procedure name is explicitly excluded
+      if (warnings.except?.includes(name)) {
+        continue;
+      }
+
+      // Skip if procedure has explicit .rest() override with both method and path
+      const compiledProc = proc as CompiledProcedure;
+      if (compiledProc.restOverride?.method && compiledProc.restOverride?.path) {
+        continue;
+      }
+
+      // Analyze the naming convention
+      const warning = analyzeNamingConvention(name, compiledProc.type, namespace);
+
+      if (warning) {
+        if (warnings.strict) {
+          throw new ConfigurationError(
+            `[${namespace}/${warning.procedureName}] ${warning.message}. ${warning.suggestion}`
+          );
+        }
+
+        logWarning(
+          `[${namespace}/${warning.procedureName}] ${warning.message}`,
+          warning.suggestion
+        );
+      }
+    }
+  }
+
   return {
     namespace,
     procedures: procedures as InferProcedures<TProcedures>,

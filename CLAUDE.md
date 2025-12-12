@@ -25,14 +25,19 @@ pnpm lint              # Run Biome linting
 
 ### Smoke Test
 ```bash
-cd packages/create && pnpm smoke-test
+cd packages/create && pnpm smoke-test           # Test default template
+cd packages/create && pnpm smoke-test --default # Explicit default template
+cd packages/create && pnpm smoke-test --auth    # Test auth template
 ```
+
+**IMPORTANT:** Always use CLI arguments (`--auth`, `--default`) to select templates. Do NOT use environment variables like `SMOKE_TEMPLATE=auth` - the script does not support this pattern.
 
 The smoke test validates the entire `create-velox-app` scaffolder workflow:
 1. Builds the scaffolder and all monorepo packages
 2. Creates a test project with local `@veloxts/*` packages linked via `file:` references
 3. Generates Prisma client and pushes database schema
 4. Builds and runs the app, testing `/api/health` and `/api/users` endpoints
+5. For `--auth`: Also tests authentication endpoints (`/auth/register`, `/auth/login`, `/auth/me`)
 
 **Run this before publishing** to catch template errors early.
 

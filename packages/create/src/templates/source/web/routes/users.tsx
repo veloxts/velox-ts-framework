@@ -3,8 +3,7 @@
  */
 
 import { createFileRoute } from '@tanstack/react-router';
-import { useQuery } from '@veloxts/client/react';
-import type { AppRouter } from '../../../api/src/index.js';
+import { api } from '@/api';
 import styles from '@/App.module.css';
 
 export const Route = createFileRoute('/users')({
@@ -12,11 +11,7 @@ export const Route = createFileRoute('/users')({
 });
 
 function UsersPage() {
-  const { data, isLoading, error } = useQuery<AppRouter, 'users', 'listUsers'>(
-    'users',
-    'listUsers',
-    {}
-  );
+  const { data, isLoading, error } = api.users.listUsers.useQuery({});
 
   return (
     <div className={styles.container}>

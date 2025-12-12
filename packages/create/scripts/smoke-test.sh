@@ -2,9 +2,10 @@
 # Smoke test for create-velox-app scaffolder
 # Tests the full flow: scaffold -> install -> generate -> build -> run
 #
-# Now supports testing both templates:
+# Supports testing all templates:
 #   ./smoke-test.sh           # Test default template
 #   ./smoke-test.sh --auth    # Test auth template
+#   ./smoke-test.sh --trpc    # Test tRPC hybrid template
 #   ./smoke-test.sh --all     # Test all templates
 #
 # In CI: Uses published npm packages directly
@@ -20,6 +21,10 @@ for arg in "$@"; do
   case $arg in
     --auth)
       TEMPLATE="auth"
+      shift
+      ;;
+    --trpc)
+      TEMPLATE="trpc"
       shift
       ;;
     --all)
@@ -153,6 +158,30 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   echo "✓ API built"
   echo ""
 
+  # Build the Web App
+  # Note: Auth template skipped because @veloxts/auth contains Node.js-only code
+  # that Vite cannot bundle for browser. This is a known issue to fix separately.
+  if [ "$template" = "auth" ]; then
+    echo "=== Building the Web App ==="
+    echo "⚠ Skipped for auth template (known bundling issue with @veloxts/auth)"
+    echo ""
+  else
+    echo "=== Building the Web App ==="
+    cd ../web
+    npm install --legacy-peer-deps
+    # Use npx vite build directly (skips tsc -b which requires generated route tree)
+    # The Vite build handles TypeScript compilation internally
+    npx vite build
+    if [ -d "dist" ]; then
+      echo "✓ Web app built"
+    else
+      echo "✗ Web app build failed - no dist directory"
+      exit 1
+    fi
+    cd ../api
+    echo ""
+  fi
+
   # Start server from apps/api (where .env is located)
   echo "=== Testing endpoints ==="
   lsof -ti :$test_port 2>/dev/null | xargs kill -9 2>/dev/null || true
@@ -252,6 +281,145 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       exit 1
     fi
 
+    echo ""
+    echo "--- Testing auth error handling ---"
+
+    # Test invalid credentials
+    INVALID_LOGIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:$test_port/api/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{"email": "wrong@email.com", "password": "wrongpass"}')
+    if [ "$INVALID_LOGIN_STATUS" = "401" ]; then
+      echo "✓ Invalid credentials returns 401"
+    else
+      echo "✗ Invalid credentials should return 401, got $INVALID_LOGIN_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test expired/invalid token
+    INVALID_TOKEN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$test_port/api/auth/me \
+      -H "Authorization: Bearer invalid.token.here")
+    if [ "$INVALID_TOKEN_STATUS" = "401" ]; then
+      echo "✓ Invalid token returns 401"
+    else
+      echo "✗ Invalid token should return 401, got $INVALID_TOKEN_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test validation error (invalid email format)
+    VALIDATION_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:$test_port/api/users \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $ACCESS_TOKEN" \
+      -d '{"name": "Test", "email": "not-an-email"}')
+    if [ "$VALIDATION_STATUS" = "400" ]; then
+      echo "✓ Invalid email returns 400"
+    else
+      echo "✗ Invalid email should return 400, got $VALIDATION_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test 404 for non-existent resource
+    NOTFOUND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$test_port/api/users/00000000-0000-0000-0000-000000000000 \
+      -H "Authorization: Bearer $ACCESS_TOKEN")
+    if [ "$NOTFOUND_STATUS" = "404" ]; then
+      echo "✓ Non-existent user returns 404"
+    else
+      echo "✗ Non-existent user should return 404, got $NOTFOUND_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+  elif [ "$template" = "trpc" ]; then
+    # tRPC hybrid template - test both tRPC and REST endpoints
+    echo ""
+    echo "--- Testing tRPC endpoints ---"
+
+    # Test tRPC health.getHealth query
+    TRPC_HEALTH=$(curl -s "http://localhost:$test_port/trpc/health.getHealth")
+    if echo "$TRPC_HEALTH" | grep -q '"result"'; then
+      echo "✓ tRPC health.getHealth query working"
+    else
+      echo "✗ tRPC health.getHealth failed: $TRPC_HEALTH"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test tRPC users.listUsers query
+    TRPC_USERS=$(curl -s "http://localhost:$test_port/trpc/users.listUsers")
+    if echo "$TRPC_USERS" | grep -q '"result"'; then
+      echo "✓ tRPC users.listUsers query working"
+    else
+      echo "✗ tRPC users.listUsers failed: $TRPC_USERS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test tRPC mutation (createUser) - note: tRPC mutations use POST with JSON body
+    TRPC_CREATE=$(curl -s -X POST "http://localhost:$test_port/trpc/users.createUser" \
+      -H "Content-Type: application/json" \
+      -d '{"name": "tRPC User", "email": "trpc@smoke.com"}')
+    if echo "$TRPC_CREATE" | grep -q '"result"'; then
+      echo "✓ tRPC users.createUser mutation working"
+    else
+      echo "✗ tRPC users.createUser failed: $TRPC_CREATE"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    echo ""
+    echo "--- Testing REST endpoints (hybrid) ---"
+
+    # Test REST create user (POST) - same procedures, different transport
+    CREATE_STATUS=$(curl -s -o /tmp/create_body.json -w "%{http_code}" -X POST http://localhost:$test_port/api/users \
+      -H "Content-Type: application/json" \
+      -d '{"name": "REST User", "email": "rest@smoke.com"}')
+    CREATE_BODY=$(cat /tmp/create_body.json)
+    if [ "$CREATE_STATUS" = "201" ] && echo "$CREATE_BODY" | grep -q '"id"'; then
+      USER_ID=$(echo "$CREATE_BODY" | grep -o '"id":"[^"]*"' | sed 's/"id":"//;s/"//')
+      echo "✓ REST POST /api/users returned 201"
+    else
+      echo "✗ REST POST /api/users failed: status=$CREATE_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test REST delete (DELETE)
+    DELETE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "http://localhost:$test_port/api/users/$USER_ID")
+    if [ "$DELETE_STATUS" = "200" ]; then
+      echo "✓ REST DELETE /api/users/:id returned 200"
+    else
+      echo "✗ REST DELETE /api/users/:id failed: $DELETE_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    echo ""
+    echo "--- Testing error handling ---"
+
+    # Test validation error (invalid email)
+    VALIDATION_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:$test_port/api/users \
+      -H "Content-Type: application/json" \
+      -d '{"name": "Test", "email": "not-an-email"}')
+    if [ "$VALIDATION_STATUS" = "400" ]; then
+      echo "✓ Invalid email returns 400"
+    else
+      echo "✗ Invalid email should return 400, got $VALIDATION_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test 404 for non-existent resource
+    NOTFOUND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$test_port/api/users/00000000-0000-0000-0000-000000000000)
+    if [ "$NOTFOUND_STATUS" = "404" ]; then
+      echo "✓ Non-existent user returns 404"
+    else
+      echo "✗ Non-existent user should return 404, got $NOTFOUND_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
   else
     # Default template - test REST verbs (no auth)
     echo ""
@@ -304,6 +472,60 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       kill $SERVER_PID 2>/dev/null || true
       exit 1
     fi
+
+    echo ""
+    echo "--- Testing error handling ---"
+
+    # Test validation error (invalid email)
+    VALIDATION_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:$test_port/api/users \
+      -H "Content-Type: application/json" \
+      -d '{"name": "Test", "email": "not-an-email"}')
+    if [ "$VALIDATION_STATUS" = "400" ]; then
+      echo "✓ Invalid email returns 400"
+    else
+      echo "✗ Invalid email should return 400, got $VALIDATION_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test missing required field
+    MISSING_FIELD_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:$test_port/api/users \
+      -H "Content-Type: application/json" \
+      -d '{"name": "Test"}')
+    if [ "$MISSING_FIELD_STATUS" = "400" ]; then
+      echo "✓ Missing email returns 400"
+    else
+      echo "✗ Missing email should return 400, got $MISSING_FIELD_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test 404 for non-existent resource
+    NOTFOUND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$test_port/api/users/00000000-0000-0000-0000-000000000000)
+    if [ "$NOTFOUND_STATUS" = "404" ]; then
+      echo "✓ Non-existent user returns 404"
+    else
+      echo "✗ Non-existent user should return 404, got $NOTFOUND_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
+
+    # Test duplicate email constraint (create another user with same email)
+    # First create a user
+    curl -s -o /dev/null -X POST http://localhost:$test_port/api/users \
+      -H "Content-Type: application/json" \
+      -d '{"name": "First User", "email": "duplicate@smoke.com"}'
+    # Then try to create another with same email
+    DUPLICATE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:$test_port/api/users \
+      -H "Content-Type: application/json" \
+      -d '{"name": "Second User", "email": "duplicate@smoke.com"}')
+    if [ "$DUPLICATE_STATUS" = "400" ] || [ "$DUPLICATE_STATUS" = "409" ]; then
+      echo "✓ Duplicate email rejected ($DUPLICATE_STATUS)"
+    else
+      echo "✗ Duplicate email should return 400 or 409, got $DUPLICATE_STATUS"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
   fi
 
   # Kill the server
@@ -340,6 +562,7 @@ build_all
 if [ "$TEST_ALL" = true ]; then
   test_template "default"
   test_template "auth"
+  test_template "trpc"
 else
   test_template "$TEMPLATE"
 fi

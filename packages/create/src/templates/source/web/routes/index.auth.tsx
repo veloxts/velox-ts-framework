@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useQuery, useMutation, useQueryClient } from '@veloxts/client/react';
+import { useQueryClient } from '@veloxts/client/react';
 import { useState } from 'react';
-import type { AppRouter } from '../../../api/src/index.js';
+import { api } from '@/api';
 import styles from '@/App.module.css';
 
 export const Route = createFileRoute('/')({
@@ -17,18 +17,13 @@ function HomePage() {
   const [error, setError] = useState('');
 
   // Check if user is logged in
-  const { data: user, isLoading } = useQuery<AppRouter, 'auth', 'getMe'>(
-    'auth',
-    'getMe',
-    {},
-    { retry: false }
-  );
+  const { data: user, isLoading } = api.auth.getMe.useQuery({}, { retry: false });
 
-  const login = useMutation<AppRouter, 'auth', 'createSession'>('auth', 'createSession', {
+  const login = api.auth.createSession.useMutation({
     onSuccess: (data) => {
       localStorage.setItem('token', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      queryClient.invalidateQueries({ queryKey: ['auth', 'getMe'] });
+      api.auth.getMe.invalidate(undefined, queryClient);
       setError('');
     },
     onError: (err) => {
@@ -36,11 +31,11 @@ function HomePage() {
     },
   });
 
-  const register = useMutation<AppRouter, 'auth', 'createAccount'>('auth', 'createAccount', {
+  const register = api.auth.createAccount.useMutation({
     onSuccess: (data) => {
       localStorage.setItem('token', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      queryClient.invalidateQueries({ queryKey: ['auth', 'getMe'] });
+      api.auth.getMe.invalidate(undefined, queryClient);
       setError('');
     },
     onError: (err) => {
@@ -48,11 +43,11 @@ function HomePage() {
     },
   });
 
-  const logout = useMutation<AppRouter, 'auth', 'deleteSession'>('auth', 'deleteSession', {
+  const logout = api.auth.deleteSession.useMutation({
     onSuccess: () => {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-      queryClient.setQueryData(['auth', 'getMe'], null);
+      api.auth.getMe.setData({}, null, queryClient);
     },
   });
 
@@ -94,7 +89,7 @@ function HomePage() {
           <div className={styles.card}>
             <h2>Actions</h2>
             <button
-              onClick={() => logout.mutate()}
+              onClick={() => logout.mutate({})}
               className={styles.button}
               disabled={logout.isPending}
             >

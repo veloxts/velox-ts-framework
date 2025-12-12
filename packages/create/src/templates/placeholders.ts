@@ -54,6 +54,17 @@ export const AUTH_CONFIG: TemplateConfig = {
   database: 'sqlite',
 };
 
+/**
+ * tRPC template configuration for tRPC-specific templates.
+ * Same as DEFAULT_CONFIG but with template set to 'trpc'.
+ */
+export const TRPC_CONFIG: TemplateConfig = {
+  projectName: '',
+  packageManager: 'pnpm',
+  template: 'trpc',
+  database: 'sqlite',
+};
+
 // ============================================================================
 // Placeholder Replacement
 // ============================================================================
@@ -176,20 +187,21 @@ export function processConditionals(
     result = result.replaceAll(CONDITIONALS.JSX_AUTH_START, '');
     result = result.replaceAll(CONDITIONALS.JSX_AUTH_END, '');
   } else {
-    // Remove entire auth blocks
+    // Remove entire auth blocks (for default and trpc templates)
     result = result.replace(AUTH_BLOCK_PATTERN, '');
     result = result.replace(JSX_AUTH_BLOCK_PATTERN, '');
   }
 
   // Process default conditionals (both JS and JSX style)
-  if (template === 'default') {
+  // Note: 'trpc' template uses default-style content (no auth)
+  if (template === 'default' || template === 'trpc') {
     // Keep default content but remove markers
     result = result.replaceAll(CONDITIONALS.DEFAULT_START, '');
     result = result.replaceAll(CONDITIONALS.DEFAULT_END, '');
     result = result.replaceAll(CONDITIONALS.JSX_DEFAULT_START, '');
     result = result.replaceAll(CONDITIONALS.JSX_DEFAULT_END, '');
   } else {
-    // Remove entire default blocks
+    // Remove entire default blocks (for auth template)
     result = result.replace(DEFAULT_BLOCK_PATTERN, '');
     result = result.replace(JSX_DEFAULT_BLOCK_PATTERN, '');
   }

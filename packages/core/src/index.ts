@@ -122,6 +122,9 @@ export {
   isValidationError,
   isValidationErrorResponse,
   isVeloxError,
+  // Developer experience utilities
+  logDeprecation,
+  logWarning,
   NotFoundError,
   ValidationError,
   VeloxError,

@@ -5,52 +5,33 @@
  * Provides hooks that automatically infer types from your backend
  * procedure definitions without any code generation.
  *
- * @example Quick Start
+ * @example Recommended: tRPC-style API (full autocomplete)
  * ```tsx
- * // 1. Define your router type (imports backend procedure types)
- * import type { userProcedures, postProcedures } from '../server/procedures';
+ * // 1. Create hooks once at app level
+ * import { createVeloxHooks } from '@veloxts/client/react';
+ * import type { AppRouter } from '../../api/src';
  *
- * type AppRouter = {
- *   users: typeof userProcedures;
- *   posts: typeof postProcedures;
- * };
+ * export const api = createVeloxHooks<AppRouter>();
  *
  * // 2. Wrap your app with VeloxProvider
- * import { VeloxProvider } from '@veloxts/client/react';
+ * <VeloxProvider<AppRouter> config={{ baseUrl: '/api' }}>
+ *   <App />
+ * </VeloxProvider>
  *
- * function App() {
- *   return (
- *     <VeloxProvider<AppRouter> config={{ baseUrl: '/api' }}>
- *       <UserList />
- *     </VeloxProvider>
- *   );
- * }
- *
- * // 3. Use hooks in components
- * import { useQuery, useMutation, useQueryClient } from '@veloxts/client/react';
- *
- * function UserList() {
- *   // Query - data is fully typed!
- *   const { data, isLoading } = useQuery('users', 'listUsers', {});
- *
- *   // Mutation with cache invalidation
- *   const queryClient = useQueryClient();
- *   const { mutate: createUser } = useMutation('users', 'createUser', {
- *     onSuccess: () => {
- *       queryClient.invalidateQueries({ queryKey: ['users'] });
- *     },
+ * // 3. Use with full IDE autocomplete
+ * function UserProfile({ userId }: { userId: string }) {
+ *   const { data: user } = api.users.getUser.useQuery({ id: userId });
+ *   const { mutate: updateUser } = api.users.updateUser.useMutation({
+ *     onSuccess: () => api.users.getUser.invalidate({ id: userId }),
  *   });
- *
- *   if (isLoading) return <div>Loading...</div>;
- *
- *   return (
- *     <ul>
- *       {data?.data.map(user => (
- *         <li key={user.id}>{user.name}</li>
- *       ))}
- *     </ul>
- *   );
  * }
+ * ```
+ *
+ * @example Legacy API (still supported)
+ * ```tsx
+ * import { useQuery, useMutation } from '@veloxts/client/react';
+ *
+ * const { data } = useQuery<AppRouter, 'users', 'listUsers'>('users', 'listUsers', {});
  * ```
  *
  * @module @veloxts/client/react
@@ -64,10 +45,16 @@ export type { VeloxContextValue, VeloxProviderProps } from './provider.js';
 export { useVeloxContext, VeloxProvider } from './provider.js';
 
 // ============================================================================
-// Hooks
+// Hooks (Legacy API)
 // ============================================================================
 
 export { useMutation, useQuery, useQueryClient } from './hooks.js';
+
+// ============================================================================
+// Proxy Hooks (Recommended - tRPC-style API)
+// ============================================================================
+
+export { createVeloxHooks } from './proxy-hooks.js';
 
 // ============================================================================
 // Utilities
@@ -98,3 +85,12 @@ export type {
   VeloxUseMutationOptions,
   VeloxUseQueryOptions,
 } from './types.js';
+
+// Proxy hooks types
+export type {
+  VeloxHooks,
+  VeloxHooksConfig,
+  VeloxMutationProcedure,
+  VeloxNamespace,
+  VeloxQueryProcedure,
+} from './proxy-types.js';

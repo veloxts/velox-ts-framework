@@ -56,6 +56,10 @@ export function generateUsersRoute(config: TemplateConfig): string {
   return compileTemplate('web/routes/users.tsx', config);
 }
 
+export function generateApiHooks(): string {
+  return compileTemplate('web/api.ts', DEFAULT_CONFIG);
+}
+
 // ============================================================================
 // Generate All Web Base Files
 // ============================================================================
@@ -74,6 +78,9 @@ export function generateWebBaseFiles(
 
     // Entry point
     { path: 'apps/web/src/main.tsx', content: generateMainTsx(config) },
+
+    // API hooks
+    { path: 'apps/web/src/api.ts', content: generateApiHooks() },
 
     // Routes
     { path: 'apps/web/src/routes/__root.tsx', content: generateRootRoute(config) },

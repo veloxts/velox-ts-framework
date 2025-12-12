@@ -7,6 +7,10 @@ import './styles/global.css';
 
 // Import router type from API for full type safety
 import type { AppRouter } from '../../api/src/index.js';
+/* @if auth */
+// Import routes directly from backend - no manual duplication needed
+import { routes } from '../../api/src/index.js';
+/* @endif auth */
 
 // Create router with route tree
 const router = createRouter({ routeTree });
@@ -25,15 +29,33 @@ const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-// Route mappings for auth procedures with custom .rest() endpoints
-const routes = {
-  auth: {
-    createAccount: '/auth/register',
-    createSession: '/auth/login',
-    createRefresh: '/auth/refresh',
-    deleteSession: '/auth/logout',
-    getMe: '/auth/me',
-  },
+// Automatic token refresh on 401 responses
+const handleUnauthorized = async (): Promise<boolean> => {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return false;
+
+  try {
+    const res = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!res.ok) {
+      // Refresh failed - clear tokens
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      return false;
+    }
+
+    const data = (await res.json()) as { accessToken: string; refreshToken: string };
+    localStorage.setItem('token', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    return true; // Retry the original request
+  } catch {
+    // Network error during refresh
+    return false;
+  }
 };
 /* @endif auth */
 
@@ -49,7 +71,14 @@ createRoot(rootElement).render(
     </VeloxProvider>
     {/* @endif default */}
     {/* @if auth */}
-    <VeloxProvider<AppRouter> config={{ baseUrl: '/api', headers: getAuthHeaders, routes }}>
+    <VeloxProvider<AppRouter>
+      config={{
+        baseUrl: '/api',
+        headers: getAuthHeaders,
+        routes,
+        onUnauthorized: handleUnauthorized,
+      }}
+    >
       <RouterProvider router={router} />
     </VeloxProvider>
     {/* @endif auth */}
