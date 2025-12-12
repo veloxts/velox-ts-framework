@@ -1,5 +1,13 @@
 # @veloxts/client
 
+## 0.4.8
+
+### Patch Changes
+
+- Fix 'Illegal invocation' error when using fetch in browser
+
+  Bind fetch to globalThis to preserve the correct execution context.
+
 ## 0.4.7
 
 ### Patch Changes

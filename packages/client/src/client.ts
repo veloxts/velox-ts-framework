@@ -458,7 +458,9 @@ function createClientProxy<TRouter>(state: ClientState): ClientFromRouter<TRoute
  */
 export function createClient<TRouter>(config: ClientConfig): ClientFromRouter<TRouter> {
   // Use provided fetch or global fetch
-  const fetchImpl = config.fetch || fetch;
+  // IMPORTANT: Bind fetch to globalThis to avoid "Illegal invocation" errors
+  // when fetch is called without its original context (window/globalThis)
+  const fetchImpl = config.fetch ?? globalThis.fetch.bind(globalThis);
 
   // Create client state
   const state: ClientState = {
