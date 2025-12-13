@@ -263,7 +263,8 @@ describe('useMutation', () => {
     expect(onSuccess).toHaveBeenCalledWith(
       newUser,
       { name: 'New User', email: 'new@example.com' },
-      undefined
+      undefined,
+      expect.objectContaining({ client: expect.any(Object) })
     );
   });
 
