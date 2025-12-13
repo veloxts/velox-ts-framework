@@ -112,10 +112,12 @@ function deriveParentParamName(namespace: string): string {
  * This is the primary entry point for defining procedures. The builder uses
  * TypeScript's generic inference to track types through the fluent chain.
  *
- * @returns New procedure builder with void input, unknown output, and BaseContext
+ * @template TContext - The context type (defaults to BaseContext)
+ * @returns New procedure builder with unknown input, unknown output, and TContext
  *
  * @example
  * ```typescript
+ * // Basic usage with BaseContext
  * const getUser = procedure()
  *   .input(z.object({ id: z.string().uuid() }))
  *   .output(UserSchema)
@@ -125,10 +127,19 @@ function deriveParentParamName(namespace: string): string {
  *     // return type must match UserSchema
  *     return ctx.db.user.findUnique({ where: { id: input.id } });
  *   });
+ *
+ * // With custom context type
+ * const getUserTyped = procedure<AppContext>()
+ *   .query(async ({ ctx }) => {
+ *     // ctx is AppContext with full autocomplete
+ *     return ctx.db.user.findMany();
+ *   });
  * ```
  */
-export function procedure(): ProcedureBuilder<unknown, unknown, BaseContext> {
-  return createBuilder({
+export function procedure<
+  TContext extends BaseContext = BaseContext,
+>(): ProcedureBuilder<unknown, unknown, TContext> {
+  return createBuilder<unknown, unknown, TContext>({
     inputSchema: undefined,
     outputSchema: undefined,
     middlewares: [],

@@ -49,9 +49,8 @@ export function createProcedure<TContext extends BaseContext>(): () => Procedure
   unknown,
   TContext
 > {
-  // Cast through unknown to handle variance issues between BaseContext and TContext
-  // This is safe because TContext extends BaseContext and the runtime behavior is identical
-  return () => procedure() as unknown as ProcedureBuilder<unknown, unknown, TContext>;
+  // Now type-safe: procedure() is generic and accepts TContext directly
+  return () => procedure<TContext>();
 }
 
 /**

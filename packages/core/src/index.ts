@@ -173,3 +173,10 @@ export type {
   MergeContext,
   SessionContextExtension,
 } from './typed-context.js';
+
+// ============================================================================
+// Static File Serving
+// ============================================================================
+
+export type { CacheControl, StaticOptions } from './plugins/static.js';
+export { registerStatic } from './plugins/static.js';

@@ -12,6 +12,8 @@ import { type Container, container } from './di/index.js';
 import { isVeloxError, VeloxError } from './errors.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
 import { validatePluginMetadata } from './plugin.js';
+import type { StaticOptions } from './plugins/static.js';
+import { registerStatic } from './plugins/static.js';
 import type { ShutdownHandler } from './types.js';
 import { printBanner } from './utils/banner.js';
 import type { FrozenVeloxAppConfig, VeloxAppConfig } from './utils/config.js';
@@ -377,6 +379,35 @@ export class VeloxApp {
    */
   routes(registrar: (server: FastifyInstance) => void): this {
     registrar(this._server);
+    return this;
+  }
+
+  /**
+   * Serve static files from a directory
+   *
+   * @param path - Directory containing static files
+   * @param options - Serving configuration
+   * @returns The app instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * // Simple static serving
+   * await app.serveStatic('./public');
+   *
+   * // SPA with client-side routing
+   * await app.serveStatic('./dist', { spa: true });
+   *
+   * // Production configuration
+   * await app.serveStatic('./dist', {
+   *   spa: true,
+   *   prefix: '/assets',
+   *   cache: { maxAge: '1y', immutable: true },
+   *   exclude: ['/api', '/trpc'],
+   * });
+   * ```
+   */
+  async serveStatic(path: string, options: StaticOptions = {}): Promise<this> {
+    await registerStatic(this._server, path, options);
     return this;
   }
 
