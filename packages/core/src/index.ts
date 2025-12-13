@@ -105,8 +105,10 @@ export {
 } from './di/index.js';
 // Error handling
 export type {
+  ErrorCode,
   ErrorResponse,
   GenericErrorResponse,
+  InterpolationVars,
   NotFoundErrorResponse,
   ValidationErrorResponse,
   VeloxCoreErrorCode,
@@ -116,18 +118,22 @@ export type {
 export {
   assertNever,
   ConfigurationError,
+  // Elegant error creation API
+  fail,
   isConfigurationError,
   isNotFoundError,
   isNotFoundErrorResponse,
   isValidationError,
   isValidationErrorResponse,
   isVeloxError,
+  isVeloxFailure,
   // Developer experience utilities
   logDeprecation,
   logWarning,
   NotFoundError,
   ValidationError,
   VeloxError,
+  VeloxFailure,
 } from './errors.js';
 export type { InferPluginOptions, PluginMetadata, PluginOptions, VeloxPlugin } from './plugin.js';
 // Plugin system
@@ -152,3 +158,18 @@ export type {
   VeloxFastifyOptions,
 } from './utils/config.js';
 export { isValidHost, isValidPort } from './utils/config.js';
+
+// ============================================================================
+// Typed Context Utilities
+// ============================================================================
+
+export type {
+  AuthContextExtension,
+  CombineContexts,
+  ContextExtension,
+  CoreContext,
+  DbContextExtension,
+  defineContext,
+  MergeContext,
+  SessionContextExtension,
+} from './typed-context.js';

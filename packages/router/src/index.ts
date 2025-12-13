@@ -119,6 +119,9 @@ export type {
   ValidSchema,
 } from './procedure/types.js';
 
+// Typed procedure factory
+export { createProcedure, typedProcedure } from './procedure/factory.js';
+
 // ============================================================================
 // Naming Convention Warnings
 // ============================================================================
@@ -191,3 +194,14 @@ export {
   noProceduresFound,
   permissionDenied,
 } from './discovery/index.js';
+
+// ============================================================================
+// Unified API Registration
+// ============================================================================
+
+export type { ServeOptions } from './expose.js';
+export { serve } from './expose.js';
+
+// Backward compatibility (deprecated)
+export type { ExposeOptions, ExposeResult } from './expose.js';
+export { expose } from './expose.js';

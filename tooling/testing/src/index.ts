@@ -1,45 +1,63 @@
 /**
- * @veloxts/testing - Internal testing utilities for VeloxTS framework
+ * @veloxts/testing - Testing utilities for VeloxTS framework
  *
  * This package provides common test utilities used across VeloxTS packages:
+ * - Model factories for type-safe test data (Laravel-style)
+ * - Mock database with Prisma-compatible interface
  * - Test server factory with VeloxApp-like context setup
  * - HTTP helpers for authorization headers
  * - Test secrets for JWT/session/CSRF testing
- * - User factories and loaders
  *
  * @example
  * ```typescript
  * import {
+ *   defineFactory,
+ *   createMockDatabase,
  *   createTestServer,
- *   wrapVeloxPlugin,
  *   authHeader,
- *   TEST_SECRETS,
- *   createTestUser,
  * } from '@veloxts/testing';
  *
- * // Create a test server
- * const server = await createTestServer();
+ * // Define a factory
+ * const User = defineFactory<User>(() => ({
+ *   id: ({ sequence }) => `user-${sequence}`,
+ *   name: ({ sequence }) => `User ${sequence}`,
+ *   email: ({ sequence }) => `user${sequence}@test.com`,
+ * }));
  *
- * // Register plugins
- * await server.register(wrapVeloxPlugin(myPlugin(config)), config);
- *
- * // Make authenticated requests
- * const response = await server.inject({
- *   method: 'GET',
- *   url: '/protected',
- *   headers: authHeader(token),
+ * // Create mock database with seed data
+ * const db = createMockDatabase({
+ *   user: User.count(3).make(),
  * });
+ *
+ * // Use in tests
+ * const users = await db.user.findMany();
  * ```
  *
  * @module testing
- * @internal This package is for internal use only and is not published to npm
  */
 
 // Re-export setupTestContext from core for convenience
 export { setupTestContext } from '@veloxts/core';
 
+// ============================================================================
+// Model Factories (Laravel-style)
+// ============================================================================
+
+export type { Factory, FactoryBuilder, FactoryContext, FactoryDefinition } from './factory.js';
+export { defineFactory, email, sequence, timestamp, uuid } from './factory.js';
+
+// ============================================================================
+// Mock Database
+// ============================================================================
+
+export type { MockDatabase, MockModel, SeedData, WhereClause } from './database.js';
+export { createMockDatabase, mockDatabaseConfig } from './database.js';
+
+// ============================================================================
+// Test Helpers
+// ============================================================================
+
 export type { TestUser } from './helpers.js';
-// Helper utilities
 export {
   authHeader,
   createTestUser,
@@ -48,6 +66,10 @@ export {
   TEST_SECRETS,
   wait,
 } from './helpers.js';
+
+// ============================================================================
+// Test Server
+// ============================================================================
+
 export type { TestServerOptions } from './server.js';
-// Server utilities
 export { createTestServer, wrapVeloxPlugin } from './server.js';

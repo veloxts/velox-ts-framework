@@ -33,3 +33,6 @@ export {
   logError,
   logWarning,
 } from './formatter.js';
+
+// Re-export fail() - the elegant error creation API
+export { type ErrorCode, fail, type InterpolationVars, isVeloxFailure, VeloxFailure } from './fail.js';

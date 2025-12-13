@@ -12,17 +12,9 @@
  */
 
 import { compileTemplate } from './compiler.js';
-import { DEFAULT_CONFIG } from './placeholders.js';
+import { DEFAULT_CONFIG, TRPC_CONFIG } from './placeholders.js';
 import { generateRootFiles, generateWebBaseFiles, generateWebStyleFiles } from './shared/index.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
-
-// Use a TRPC_CONFIG for template-specific compilation
-const TRPC_CONFIG: TemplateConfig = {
-  projectName: '',
-  packageManager: 'pnpm',
-  template: 'trpc',
-  database: 'sqlite',
-};
 
 // ============================================================================
 // API Template Compilation

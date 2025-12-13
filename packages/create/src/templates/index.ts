@@ -56,8 +56,13 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
       return generateAuthTemplate(config);
     case 'trpc':
       return generateTrpcTemplate(config);
-    default:
+    case 'default':
       return generateDefaultTemplate(config);
+    default: {
+      // Exhaustive type checking - TypeScript will error if a template is missing
+      const exhaustiveCheck: never = config.template;
+      throw new Error(`Unknown template: ${exhaustiveCheck}`);
+    }
   }
 }
 

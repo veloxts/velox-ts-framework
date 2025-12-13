@@ -1,16 +1,21 @@
 /**
  * User Schemas
+ *
+ * Uses withTimestamps() for automatic Date → string serialization.
+ * No manual transformation needed in procedure handlers.
  */
 
-import { createIdSchema, emailSchema, z } from '@veloxts/velox';
+import { createIdSchema, emailSchema, withTimestamps, z } from '@veloxts/velox';
 
-export const UserSchema = z.object({
+// Business fields only - timestamps added separately
+const UserFields = z.object({
   id: createIdSchema('uuid'),
   name: z.string().min(1).max(100),
   email: emailSchema,
-  createdAt: z.coerce.date().transform((d) => d.toISOString()),
-  updatedAt: z.coerce.date().transform((d) => d.toISOString()),
 });
+
+// Complete schema with automatic Date → string serialization
+export const UserSchema = withTimestamps(UserFields);
 
 export type User = z.infer<typeof UserSchema>;
 

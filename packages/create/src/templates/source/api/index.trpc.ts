@@ -1,58 +1,20 @@
 /**
  * Application Entry Point - tRPC Hybrid Template
  *
- * This template showcases VeloxTS's hybrid API architecture:
- * - tRPC for type-safe frontend-backend communication (primary)
- * - REST endpoints auto-generated from the same procedures (external APIs)
+ * VeloxTS hybrid API architecture:
+ * - tRPC at /trpc for type-safe frontend communication
+ * - REST at /api for external consumers
  *
- * Both APIs are generated from the same procedure definitions,
- * demonstrating the "define once, expose everywhere" pattern.
+ * Both APIs generated from the same procedure definitions.
  */
 
 import 'dotenv/config';
 
-import {
-  veloxApp,
-  databasePlugin,
-  createTRPC,
-  createAppRouter,
-  registerTRPCPlugin,
-  rest,
-} from '@veloxts/velox';
+import { veloxApp, databasePlugin, serve } from '@veloxts/velox';
 import { config } from './config/app.js';
 import { prisma } from './config/database.js';
 import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
-
-// ============================================================================
-// Router Definition
-// ============================================================================
-
-// Procedure collections for routing
-const collections = [healthProcedures, userProcedures];
-
-// Create tRPC instance with VeloxTS context
-const t = createTRPC();
-
-// Create the app router from procedure collections
-const appRouter = createAppRouter(t, collections);
-
-// ============================================================================
-// Type Exports for Frontend
-// ============================================================================
-
-/**
- * AppRouter type for frontend type safety
- *
- * Import this type in your frontend to get full autocomplete:
- * ```typescript
- * import type { AppRouter } from '../../api/src';
- * import { createVeloxHooks } from '@veloxts/client/react';
- *
- * export const api = createVeloxHooks<AppRouter>();
- * ```
- */
-export type AppRouter = typeof appRouter;
 
 // ============================================================================
 // Application Bootstrap
@@ -64,22 +26,38 @@ const app = await veloxApp({
   logger: config.logger,
 });
 
-// Register database plugin
 await app.register(databasePlugin({ client: prisma }));
 
-// Register tRPC routes (primary API - for frontend)
-// Endpoint: /trpc/{procedureName}
-await registerTRPCPlugin(app.server, {
-  prefix: '/trpc',
-  router: appRouter,
+// ============================================================================
+// API Registration
+// ============================================================================
+
+/**
+ * Serve procedures as both REST and tRPC endpoints
+ *
+ * - REST: /api/users, /api/health
+ * - tRPC: /trpc/users.getUser, /trpc/health.check
+ */
+const router = await serve(app, [healthProcedures, userProcedures], {
+  api: config.apiPrefix,
+  rpc: '/trpc',
 });
 
-// Register REST routes (secondary API - for external consumers)
-// Endpoints: /api/users, /api/health, etc.
-app.routes(
-  rest(collections, {
-    prefix: config.apiPrefix,
-  })
-);
+// ============================================================================
+// Type Exports for Frontend
+// ============================================================================
+
+/**
+ * AppRouter type for frontend type safety
+ *
+ * @example
+ * ```typescript
+ * import type { AppRouter } from '../../api/src';
+ * import { createVeloxHooks } from '@veloxts/client/react';
+ *
+ * export const api = createVeloxHooks<AppRouter>();
+ * ```
+ */
+export type AppRouter = typeof router;
 
 await app.start();

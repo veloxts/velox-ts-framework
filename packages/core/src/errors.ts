@@ -8,14 +8,16 @@
 import { ERROR_CATALOG } from './errors/catalog.js';
 import { formatError as _formatError } from './errors/formatter.js';
 
-// Re-export the enhanced error catalog and formatter
+// Re-export the enhanced error catalog, formatter, and fail()
 export {
   ERROR_CATALOG,
   ERROR_DOMAINS,
   type ErrorCatalogEntry,
+  type ErrorCode,
   type ErrorDomain,
   type ErrorLocation,
   extractErrorLocation,
+  fail,
   type FormatErrorOptions,
   formatError,
   formatErrorForApi,
@@ -23,10 +25,13 @@ export {
   getDocsUrl,
   getErrorEntry,
   getErrorsByDomain,
+  type InterpolationVars,
   isKnownErrorCode,
+  isVeloxFailure,
   logDeprecation,
   logError,
   logWarning,
+  VeloxFailure,
 } from './errors/index.js';
 
 // ============================================================================

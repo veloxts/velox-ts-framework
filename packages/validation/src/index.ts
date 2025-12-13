@@ -132,3 +132,22 @@ export {
   PAGINATION_DEFAULTS,
   paginationInputSchema,
 } from './schemas/pagination.js';
+
+// ============================================================================
+// Serialization Utilities
+// ============================================================================
+
+export type {
+  InferWithTimestamps,
+  OmitTimestamps,
+  SerializedDates,
+  WithOptional,
+} from './schemas/serialization.js';
+export {
+  dateToISOString,
+  dateToISOStringNullable,
+  dateToISOStringOptional,
+  timestamps,
+  timestampsWithSoftDelete,
+  withTimestamps,
+} from './schemas/serialization.js';

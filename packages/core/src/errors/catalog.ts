@@ -262,6 +262,43 @@ const updateUser = procedure()
     docsUrl: 'https://veloxts.dev/errors/VELOX-2005',
   },
 
+  'VELOX-2006': {
+    code: 'VELOX-2006',
+    title: 'No Procedures Provided',
+    description: 'serve() was called without any procedure collections.',
+    statusCode: 500,
+    fix: {
+      suggestion: 'Pass at least one procedure collection to serve().',
+      example: `// Define your procedures
+const userProcedures = defineProcedures('users', {
+  getUser: procedure()...,
+});
+
+// Pass them to serve()
+const router = await serve(app, [userProcedures]);`,
+    },
+    docsUrl: 'https://veloxts.dev/errors/VELOX-2006',
+  },
+
+  'VELOX-2007': {
+    code: 'VELOX-2007',
+    title: 'No Endpoints Enabled',
+    description: 'serve() was called with both api and rpc disabled.',
+    statusCode: 500,
+    fix: {
+      suggestion: 'Enable at least one endpoint type (api or rpc).',
+      example: `// Enable REST API
+await serve(app, procedures, { api: '/api', rpc: false });
+
+// Or enable tRPC
+await serve(app, procedures, { api: false, rpc: '/trpc' });
+
+// Or enable both (default)
+await serve(app, procedures);`,
+    },
+    docsUrl: 'https://veloxts.dev/errors/VELOX-2007',
+  },
+
   // ==========================================================================
   // AUTH ERRORS (3XXX)
   // ==========================================================================

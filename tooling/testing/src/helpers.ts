@@ -1,4 +1,4 @@
-/**
+2; /**
  * Test helper utilities
  * @module testing/helpers
  */
