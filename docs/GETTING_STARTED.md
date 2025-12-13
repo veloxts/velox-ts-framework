@@ -309,6 +309,8 @@ curl "http://localhost:3210/users/search?q=alice"
 
 VeloxTS uses Prisma for database management, providing type-safe database access.
 
+> **Note:** VeloxTS uses Prisma 7, which introduces driver adapters for database connections. For detailed setup instructions, troubleshooting, and migration guides, see the [Prisma 7 Setup Guide](./PRISMA-7-SETUP.md).
+
 ### Understanding the Schema
 
 Open `prisma/schema.prisma`:

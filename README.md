@@ -84,6 +84,9 @@ export const userProcedures = defineProcedures('users', {
 ## Documentation
 
 - [Getting Started Guide](./docs/GETTING_STARTED.md) - Complete walkthrough for new users
+- [Prisma 7 Setup Guide](./docs/PRISMA-7-SETUP.md) - Comprehensive guide for configuring Prisma 7 driver adapters
+- [REST Naming Conventions](./docs/REST-NAMING-CONVENTIONS.md) - Complete reference for procedure naming patterns
+- [Test Development Guide](./docs/TEST-DEVELOPMENT-GUIDE.md) - Testing patterns and utilities
 - [Package READMEs](./packages) - Detailed documentation for each package
 
 ## Requirements
