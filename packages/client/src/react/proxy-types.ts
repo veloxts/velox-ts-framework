@@ -256,8 +256,135 @@ export interface VeloxMutationProcedure<TInput, TOutput> {
    * ```
    */
   useMutation<TContext = unknown>(
-    options?: Omit<UseMutationOptions<TOutput, Error, TInput, TContext>, 'mutationFn'>
+    options?: VeloxMutationOptions<TOutput, TInput, TContext>
   ): UseMutationResult<TOutput, Error, TInput, TContext>;
+}
+
+// ============================================================================
+// Auto-Invalidation Types
+// ============================================================================
+
+/**
+ * Configuration for automatic cache invalidation after mutations
+ *
+ * VeloxTS automatically invalidates related queries after mutations succeed,
+ * following naming conventions:
+ *
+ * - `create*`, `add*` → invalidates `list*`, `find*` queries
+ * - `update*`, `edit*`, `patch*` → invalidates `get*` (matching ID), `list*`, `find*`
+ * - `delete*`, `remove*` → invalidates `get*` (matching ID), `list*`, `find*`
+ *
+ * This behavior is opt-out (enabled by default) and can be customized.
+ *
+ * @example
+ * ```tsx
+ * // Auto-invalidation happens by default
+ * const { mutate } = api.users.createUser.useMutation();
+ *
+ * // Disable auto-invalidation
+ * const { mutate } = api.users.createUser.useMutation({
+ *   autoInvalidate: false,
+ * });
+ *
+ * // Customize auto-invalidation
+ * const { mutate } = api.users.updateUser.useMutation({
+ *   autoInvalidate: {
+ *     additional: [['posts', 'listPosts']], // Also invalidate posts
+ *     exclude: ['findUsers'],               // Don't invalidate findUsers
+ *   },
+ * });
+ * ```
+ */
+export interface AutoInvalidationConfig {
+  /**
+   * Enable/disable auto-invalidation
+   * @default true
+   */
+  enabled?: boolean;
+
+  /**
+   * Additional queries to invalidate beyond convention-based rules
+   *
+   * Each tuple is [namespace, procedureName, input?]
+   *
+   * @example
+   * ```tsx
+   * autoInvalidate: {
+   *   additional: [
+   *     ['posts', 'listPosts'],           // Invalidate all listPosts
+   *     ['posts', 'getPost', { id: '1' }] // Invalidate specific post
+   *   ],
+   * }
+   * ```
+   */
+  additional?: Array<readonly [string, string, unknown?]>;
+
+  /**
+   * Procedure names to exclude from auto-invalidation
+   *
+   * @example
+   * ```tsx
+   * autoInvalidate: {
+   *   exclude: ['findUsers', 'getUserStats'],
+   * }
+   * ```
+   */
+  exclude?: string[];
+
+  /**
+   * Custom invalidation logic called after convention-based invalidation
+   *
+   * @example
+   * ```tsx
+   * autoInvalidate: {
+   *   custom: async ({ namespace, input, invalidate }) => {
+   *     await invalidate('getUserStats', input);
+   *   },
+   * }
+   * ```
+   */
+  custom?: (context: InvalidationContext) => void | Promise<void>;
+}
+
+/**
+ * Context passed to custom invalidation handlers
+ */
+export interface InvalidationContext {
+  /** The namespace of the mutation (e.g., 'users') */
+  namespace: string;
+  /** The mutation procedure name (e.g., 'createUser') */
+  procedureName: string;
+  /** The input passed to the mutation */
+  input: unknown;
+  /** The mutation result/output */
+  data: unknown;
+  /** QueryClient for manual operations */
+  queryClient: QueryClient;
+  /** Helper to invalidate a specific query in the same namespace */
+  invalidate: (procedureName: string, input?: unknown) => Promise<void>;
+}
+
+/**
+ * Extended mutation options with auto-invalidation support
+ *
+ * Extends React Query's UseMutationOptions with VeloxTS-specific features.
+ *
+ * @template TOutput - The mutation output type
+ * @template TInput - The mutation input type
+ * @template TContext - The mutation context type (for optimistic updates)
+ */
+export interface VeloxMutationOptions<TOutput, TInput, TContext = unknown>
+  extends Omit<UseMutationOptions<TOutput, Error, TInput, TContext>, 'mutationFn'> {
+  /**
+   * Configure automatic cache invalidation
+   *
+   * - `true` (default): Enable convention-based invalidation
+   * - `false`: Disable auto-invalidation entirely
+   * - `AutoInvalidationConfig`: Customize invalidation behavior
+   *
+   * @default true
+   */
+  autoInvalidate?: boolean | AutoInvalidationConfig;
 }
 
 // ============================================================================

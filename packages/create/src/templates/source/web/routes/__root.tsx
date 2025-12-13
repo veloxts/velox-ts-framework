@@ -1,8 +1,9 @@
-import { createRootRoute, Outlet, Link } from '@tanstack/react-router';
-import styles from '@/App.module.css';
+import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
 /* @if auth */
 import { useQuery } from '@veloxts/client/react';
+
 import type { AppRouter } from '../../../api/src/index.js';
+import styles from '@/App.module.css';
 /* @endif auth */
 
 export const Route = createRootRoute({
@@ -11,7 +12,12 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   /* @if auth */
-  const { data: user } = useQuery<AppRouter, 'auth', 'getMe'>('auth', 'getMe', {}, { retry: false });
+  const { data: user } = useQuery<AppRouter, 'auth', 'getMe'>(
+    'auth',
+    'getMe',
+    {},
+    { retry: false }
+  );
   const isAuthenticated = !!user;
   /* @endif auth */
 
@@ -28,18 +34,30 @@ function RootLayout() {
             Home
           </Link>
           {/* @if default */}
-          <Link to="/users" className={styles.navLink} activeProps={{ className: styles.navLinkActive }}>
+          <Link
+            to="/users"
+            className={styles.navLink}
+            activeProps={{ className: styles.navLinkActive }}
+          >
             Users
           </Link>
           {/* @endif default */}
           {/* @if auth */}
           {isAuthenticated && (
-            <Link to="/users" className={styles.navLink} activeProps={{ className: styles.navLinkActive }}>
+            <Link
+              to="/users"
+              className={styles.navLink}
+              activeProps={{ className: styles.navLinkActive }}
+            >
               Users
             </Link>
           )}
           {/* @endif auth */}
-          <Link to="/about" className={styles.navLink} activeProps={{ className: styles.navLinkActive }}>
+          <Link
+            to="/about"
+            className={styles.navLink}
+            activeProps={{ className: styles.navLinkActive }}
+          >
             About
           </Link>
         </div>

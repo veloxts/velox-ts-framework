@@ -1,7 +1,8 @@
+import { createRouter, RouterProvider } from '@tanstack/react-router';
+import { VeloxProvider } from '@veloxts/client/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { RouterProvider, createRouter } from '@tanstack/react-router';
-import { VeloxProvider } from '@veloxts/client/react';
+
 import { routeTree } from './routeTree.gen';
 import './styles/global.css';
 
@@ -10,6 +11,7 @@ import type { AppRouter } from '../../api/src/index.js';
 /* @if auth */
 // Import routes directly from backend - no manual duplication needed
 import { routes } from '../../api/src/index.js';
+
 /* @endif auth */
 
 // Create router with route tree

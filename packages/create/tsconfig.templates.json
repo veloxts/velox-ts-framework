@@ -19,11 +19,6 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true
   },
-  "include": [
-    "src/templates/source/web/**/*.ts",
-    "src/templates/source/web/**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src/templates/source/web/**/*.ts", "src/templates/source/web/**/*.tsx"],
+  "exclude": ["node_modules"]
 }

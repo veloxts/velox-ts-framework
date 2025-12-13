@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { api } from '@/api';
+
 import styles from '@/App.module.css';
+import { api } from '@/api';
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -13,9 +14,7 @@ function HomePage() {
     <div className={styles.container}>
       <div className={styles.hero}>
         <h1 className={styles.title}>Welcome to VeloxTS</h1>
-        <p className={styles.subtitle}>
-          Full-stack TypeScript, beautifully simple.
-        </p>
+        <p className={styles.subtitle}>Full-stack TypeScript, beautifully simple.</p>
       </div>
 
       <div className={styles.cards}>
@@ -26,19 +25,19 @@ function HomePage() {
           ) : error ? (
             <p className={styles.error}>Disconnected</p>
           ) : (
-            <p className={styles.success}>
-              {health?.status === 'ok' ? 'Connected' : 'Unknown'}
-            </p>
+            <p className={styles.success}>{health?.status === 'ok' ? 'Connected' : 'Unknown'}</p>
           )}
-          {health && (
-            <p className={styles.meta}>v{health.version}</p>
-          )}
+          {health && <p className={styles.meta}>v{health.version}</p>}
         </div>
 
         <div className={styles.card}>
           <h2>Get Started</h2>
-          <p>Edit <code>apps/api/src/procedures</code> to add API endpoints.</p>
-          <p>Edit <code>apps/web/src/routes</code> to add pages.</p>
+          <p>
+            Edit <code>apps/api/src/procedures</code> to add API endpoints.
+          </p>
+          <p>
+            Edit <code>apps/web/src/routes</code> to add pages.
+          </p>
         </div>
 
         <div className={styles.card}>

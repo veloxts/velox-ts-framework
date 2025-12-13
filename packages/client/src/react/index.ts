@@ -73,6 +73,17 @@ export {
 // Types
 // ============================================================================
 
+// Proxy hooks types
+export type {
+  AutoInvalidationConfig,
+  InvalidationContext,
+  VeloxHooks,
+  VeloxHooksConfig,
+  VeloxMutationOptions,
+  VeloxMutationProcedure,
+  VeloxNamespace,
+  VeloxQueryProcedure,
+} from './proxy-types.js';
 export type {
   ClientConfig,
   ClientFromRouter,
@@ -85,12 +96,3 @@ export type {
   VeloxUseMutationOptions,
   VeloxUseQueryOptions,
 } from './types.js';
-
-// Proxy hooks types
-export type {
-  VeloxHooks,
-  VeloxHooksConfig,
-  VeloxMutationProcedure,
-  VeloxNamespace,
-  VeloxQueryProcedure,
-} from './proxy-types.js';

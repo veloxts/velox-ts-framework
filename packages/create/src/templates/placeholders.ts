@@ -173,10 +173,7 @@ const JSX_DEFAULT_BLOCK_PATTERN = new RegExp(
  * @param template - Which template is being generated
  * @returns Content with appropriate blocks included/removed
  */
-export function processConditionals(
-  content: string,
-  template: TemplateConfig['template']
-): string {
+export function processConditionals(content: string, template: TemplateConfig['template']): string {
   let result = content;
 
   // Process auth conditionals (both JS and JSX style)

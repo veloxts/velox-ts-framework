@@ -7,7 +7,7 @@
  * @module schemas/serialization
  */
 
-import { z, type ZodObject, type ZodRawShape } from 'zod';
+import { type ZodObject, type ZodRawShape, z } from 'zod';
 
 // ============================================================================
 // Type Utilities
@@ -75,8 +75,8 @@ export function dateToISOString() {
  * Creates a nullable date field that serializes to ISO string or null
  */
 export function dateToISOStringNullable() {
-  return z
-    .coerce.date()
+  return z.coerce
+    .date()
     .nullable()
     .transform((date) => (date ? date.toISOString() : null));
 }
@@ -85,8 +85,8 @@ export function dateToISOStringNullable() {
  * Creates an optional date field that serializes to ISO string or undefined
  */
 export function dateToISOStringOptional() {
-  return z
-    .coerce.date()
+  return z.coerce
+    .date()
     .optional()
     .transform((date) => (date ? date.toISOString() : undefined));
 }

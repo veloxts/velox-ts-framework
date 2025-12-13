@@ -15,11 +15,11 @@ import {
   AuthError,
   authenticated,
   createAuthRateLimiter,
+  defineProcedures,
   hashPassword,
   jwtManager,
-  verifyPassword,
-  defineProcedures,
   procedure,
+  verifyPassword,
   z,
 } from '@veloxts/velox';
 
@@ -54,8 +54,14 @@ const rateLimiter = createAuthRateLimiter({
 // ============================================================================
 
 const COMMON_PASSWORDS = new Set([
-  'password', 'password123', '12345678', '123456789',
-  'qwerty123', 'letmein', 'welcome', 'admin123',
+  'password',
+  'password123',
+  '12345678',
+  '123456789',
+  'qwerty123',
+  'letmein',
+  'welcome',
+  'admin123',
 ]);
 
 // ============================================================================

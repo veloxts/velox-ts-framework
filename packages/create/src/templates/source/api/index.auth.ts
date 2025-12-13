@@ -4,7 +4,8 @@
 
 import 'dotenv/config';
 
-import { veloxApp, databasePlugin, authPlugin, rest, extractRoutes } from '@veloxts/velox';
+import { authPlugin, databasePlugin, extractRoutes, rest, veloxApp } from '@veloxts/velox';
+
 import { config } from './config/app.js';
 import { authConfig } from './config/auth.js';
 import { prisma } from './config/database.js';

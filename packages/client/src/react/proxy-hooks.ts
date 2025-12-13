@@ -26,18 +26,23 @@
  * @module @veloxts/client/react/proxy-hooks
  */
 
+import type { QueryClient } from '@tanstack/react-query';
 import {
   useMutation as useReactMutation,
   useQuery as useReactQuery,
+  useQueryClient as useReactQueryClient,
   useSuspenseQuery as useReactSuspenseQuery,
 } from '@tanstack/react-query';
 
 import { useVeloxContext } from './provider.js';
 import type {
+  AutoInvalidationConfig,
   ClientGetter,
   GenericClient,
+  InvalidationContext,
   VeloxHooks,
   VeloxHooksConfig,
+  VeloxMutationOptions,
   VeloxMutationProcedure,
   VeloxQueryProcedure,
 } from './proxy-types.js';
@@ -64,6 +69,139 @@ import { buildQueryKey } from './utils.js';
 function isQueryProcedure(procedureName: string): boolean {
   const queryPrefixes = ['get', 'list', 'find'];
   return queryPrefixes.some((prefix) => procedureName.startsWith(prefix));
+}
+
+// ============================================================================
+// Auto-Invalidation Logic
+// ============================================================================
+
+/**
+ * Mutation type for determining invalidation rules
+ * @internal
+ */
+type MutationType = 'create' | 'update' | 'delete' | 'unknown';
+
+/**
+ * Determines the mutation type from procedure name
+ * @internal
+ */
+function getMutationType(procedureName: string): MutationType {
+  if (/^(?:create|add)/.test(procedureName)) return 'create';
+  if (/^(?:update|edit|patch)/.test(procedureName)) return 'update';
+  if (/^(?:delete|remove)/.test(procedureName)) return 'delete';
+  return 'unknown';
+}
+
+/**
+ * Extracts ID from mutation input for targeted invalidation
+ *
+ * Looks for common patterns:
+ * - `{ id }` - Direct id field
+ * - `{ userId }`, `{ postId }` - *Id pattern
+ * - `{ data: { id } }` - Nested in data object
+ *
+ * @internal
+ */
+function extractIdFromInput(input: unknown): string | null {
+  if (!input || typeof input !== 'object') return null;
+
+  const obj = input as Record<string, unknown>;
+
+  // Direct id field
+  if (typeof obj.id === 'string') return obj.id;
+  if (typeof obj.id === 'number') return String(obj.id);
+
+  // *Id pattern (userId, postId, etc.)
+  for (const key of Object.keys(obj)) {
+    if (key.endsWith('Id') && (typeof obj[key] === 'string' || typeof obj[key] === 'number')) {
+      return String(obj[key]);
+    }
+  }
+
+  // Nested in data
+  if (obj.data && typeof obj.data === 'object') {
+    const data = obj.data as Record<string, unknown>;
+    if (typeof data.id === 'string') return data.id;
+    if (typeof data.id === 'number') return String(data.id);
+  }
+
+  return null;
+}
+
+/**
+ * Performs convention-based cache invalidation after mutation success
+ *
+ * Invalidation rules:
+ * - `create*`, `add*` → invalidates `list*`, `find*` queries
+ * - `update*`, `edit*`, `patch*` → invalidates `get*` (matching ID), `list*`, `find*`
+ * - `delete*`, `remove*` → invalidates `get*` (matching ID), `list*`, `find*`
+ *
+ * @internal
+ */
+async function performAutoInvalidation(
+  queryClient: QueryClient,
+  namespace: string,
+  procedureName: string,
+  input: unknown,
+  output: unknown,
+  config?: AutoInvalidationConfig
+): Promise<void> {
+  const mutationType = getMutationType(procedureName);
+  const exclude = config?.exclude ?? [];
+
+  // Get all queries in this namespace from the cache
+  const queries = queryClient.getQueryCache().findAll({ queryKey: [namespace] });
+
+  for (const query of queries) {
+    const queryKey = query.queryKey as [string, string, unknown?];
+    const queryProcName = queryKey[1];
+
+    // Skip if excluded
+    if (exclude.includes(queryProcName)) continue;
+
+    // Create/Update/Delete all invalidate list/find queries
+    if (/^(?:list|find)/.test(queryProcName)) {
+      await queryClient.invalidateQueries({ queryKey: [namespace, queryProcName] });
+      continue;
+    }
+
+    // Update/Delete also invalidate matching get queries
+    if (mutationType !== 'create' && /^get/.test(queryProcName)) {
+      const id = extractIdFromInput(input) ?? extractIdFromInput(output);
+      if (id) {
+        // Invalidate the specific query if it matches the ID
+        const queryInput = queryKey[2] as Record<string, unknown> | undefined;
+        const queryId = queryInput ? extractIdFromInput(queryInput) : null;
+        if (queryId === id) {
+          await queryClient.invalidateQueries({ queryKey: query.queryKey });
+        }
+      }
+    }
+  }
+
+  // Handle additional invalidations from config
+  if (config?.additional) {
+    for (const [ns, proc, inp] of config.additional) {
+      const queryKey = inp !== undefined ? [ns, proc, inp] : [ns, proc];
+      await queryClient.invalidateQueries({ queryKey });
+    }
+  }
+
+  // Run custom invalidation handler if provided
+  if (config?.custom) {
+    const context: InvalidationContext = {
+      namespace,
+      procedureName,
+      input,
+      data: output,
+      queryClient,
+      invalidate: async (proc, inp) => {
+        const queryKey = inp !== undefined ? [namespace, proc, inp] : [namespace, proc];
+        await queryClient.invalidateQueries({ queryKey });
+      },
+    };
+    await config.custom(context);
+  }
 }
 
 // ============================================================================
@@ -151,7 +289,12 @@ function createQueryProcedureProxy<TInput, TOutput>(
 }
 
 /**
- * Creates a mutation procedure proxy with hook methods
+ * Creates a mutation procedure proxy with hook methods and auto-invalidation
+ *
+ * Auto-invalidation is enabled by default and follows naming conventions:
+ * - `create*`, `add*` → invalidates `list*`, `find*` queries
+ * - `update*`, `edit*`, `patch*` → invalidates `get*` (matching ID), `list*`, `find*`
+ * - `delete*`, `remove*` → invalidates `get*` (matching ID), `list*`, `find*`
  *
  * @param namespace - The procedure namespace (e.g., 'users')
  * @param procedureName - The procedure name (e.g., 'createUser')
@@ -165,6 +308,17 @@ function createMutationProcedureProxy<TInput, TOutput>(
   return {
     useMutation(options) {
       const client = getClient() as GenericClient;
+      const queryClient = useReactQueryClient();
+
+      // Extract auto-invalidation configuration
+      const typedOptions = options as VeloxMutationOptions<TOutput, TInput> | undefined;
+      const autoInvalidateOption = typedOptions?.autoInvalidate;
+      const autoInvalidateEnabled = autoInvalidateOption !== false;
+      const autoInvalidateConfig =
+        typeof autoInvalidateOption === 'object' ? autoInvalidateOption : undefined;
+
+      // Store original onSuccess to call after auto-invalidation
+      const originalOnSuccess = options?.onSuccess;
 
       return useReactMutation({
         mutationFn: async (input: TInput) => {
@@ -173,6 +327,24 @@ function createMutationProcedureProxy<TInput, TOutput>(
           return procedure(input) as Promise<TOutput>;
         },
         ...options,
+        onSuccess: async (data, variables, context, meta) => {
+          // Perform auto-invalidation if enabled
+          if (autoInvalidateEnabled) {
+            await performAutoInvalidation(
+              queryClient,
+              namespace,
+              procedureName,
+              variables,
+              data,
+              autoInvalidateConfig
+            );
+          }
+
+          // Call user's onSuccess callback if provided (React Query v5 signature)
+          if (originalOnSuccess) {
+            await originalOnSuccess(data, variables, context, meta);
+          }
+        },
       });
     },
   };

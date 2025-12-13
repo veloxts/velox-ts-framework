@@ -93,11 +93,7 @@ function inferMethodFromName(procedureName: string): HttpMethod {
  *
  * @internal
  */
-function buildRestPath(
-  namespace: string,
-  procedureName: string,
-  routes?: RouteMap
-): string {
+function buildRestPath(namespace: string, procedureName: string, routes?: RouteMap): string {
   // Check for explicit route mapping first
   const override = routes?.[namespace]?.[procedureName];
   if (override) {

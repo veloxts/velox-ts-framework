@@ -11,12 +11,12 @@
 import {
   AuthError,
   authenticated,
-  hasRole,
   defineProcedures,
   GuardError,
+  hasRole,
   NotFoundError,
-  procedure,
   paginationInputSchema,
+  procedure,
   z,
 } from '@veloxts/velox';
 

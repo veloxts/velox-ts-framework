@@ -99,7 +99,9 @@
   border: 1px solid #222;
   border-radius: 12px;
   padding: 1.5rem;
-  transition: border-color 0.2s, transform 0.2s;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
 }
 
 .card:hover {
@@ -217,7 +219,9 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
+  transition:
+    opacity 0.2s,
+    transform 0.1s;
 }
 
 .button:hover {

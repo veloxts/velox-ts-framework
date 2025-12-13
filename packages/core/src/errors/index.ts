@@ -21,6 +21,14 @@ export {
   getErrorsByDomain,
   isKnownErrorCode,
 } from './catalog.js';
+// Re-export fail() - the elegant error creation API
+export {
+  type ErrorCode,
+  fail,
+  type InterpolationVars,
+  isVeloxFailure,
+  VeloxFailure,
+} from './fail.js';
 // Re-export formatter
 export {
   type ErrorLocation,
@@ -33,6 +41,3 @@ export {
   logError,
   logWarning,
 } from './formatter.js';
-
-// Re-export fail() - the elegant error creation API
-export { type ErrorCode, fail, type InterpolationVars, isVeloxFailure, VeloxFailure } from './fail.js';

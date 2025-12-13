@@ -8,15 +8,9 @@
  * @module procedure/builder
  */
 
-import { ConfigurationError, logWarning, type BaseContext } from '@veloxts/core';
+import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core';
 
 import { GuardError } from '../errors.js';
-import {
-  analyzeNamingConvention,
-  isDevelopment,
-  normalizeWarningOption,
-  type WarningOption,
-} from '../warnings.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -26,6 +20,12 @@ import type {
   ProcedureHandler,
   RestRouteOverride,
 } from '../types.js';
+import {
+  analyzeNamingConvention,
+  isDevelopment,
+  normalizeWarningOption,
+  type WarningOption,
+} from '../warnings.js';
 import type {
   BuilderRuntimeState,
   InferProcedures,
@@ -136,9 +136,11 @@ function deriveParentParamName(namespace: string): string {
  *   });
  * ```
  */
-export function procedure<
-  TContext extends BaseContext = BaseContext,
->(): ProcedureBuilder<unknown, unknown, TContext> {
+export function procedure<TContext extends BaseContext = BaseContext>(): ProcedureBuilder<
+  unknown,
+  unknown,
+  TContext
+> {
   return createBuilder<unknown, unknown, TContext>({
     inputSchema: undefined,
     outputSchema: undefined,

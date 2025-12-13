@@ -21,6 +21,7 @@
  */
 
 import { createVeloxHooks } from '@veloxts/client/react';
+
 import type { AppRouter } from '../../api/src/index.js';
 
 /**

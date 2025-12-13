@@ -125,6 +125,13 @@ class InMemoryTokenStore {
       }
     }
   }
+
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
 }
 
 export const tokenStore = new InMemoryTokenStore();

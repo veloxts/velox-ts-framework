@@ -96,6 +96,10 @@ export { GuardError, isGuardError } from './errors.js';
 // Procedure Builder
 // ============================================================================
 
+export type {
+  // Builder options
+  DefineProceduresOptions,
+} from './procedure/builder.js';
 export {
   // Builder functions
   defineProcedures,
@@ -104,10 +108,8 @@ export {
   isProcedureCollection,
   procedure,
 } from './procedure/builder.js';
-export type {
-  // Builder options
-  DefineProceduresOptions,
-} from './procedure/builder.js';
+// Typed procedure factory
+export { createProcedure, typedProcedure } from './procedure/factory.js';
 export type {
   // Builder types
   BuilderRuntimeState,
@@ -118,9 +120,6 @@ export type {
   ProcedureDefinitions,
   ValidSchema,
 } from './procedure/types.js';
-
-// Typed procedure factory
-export { createProcedure, typedProcedure } from './procedure/factory.js';
 
 // ============================================================================
 // Naming Convention Warnings
@@ -136,7 +135,13 @@ export { analyzeNamingConvention, isDevelopment, normalizeWarningOption } from '
 // Public API - what most users need
 // Internal utilities - exported for advanced use cases and testing
 // Consider moving to @veloxts/router/internal subpath in v1.1+
-export type { ExtractRoutesType, RestAdapterOptions, RestMapping, RestRoute, RouteMap } from './rest/index.js';
+export type {
+  ExtractRoutesType,
+  RestAdapterOptions,
+  RestMapping,
+  RestRoute,
+  RouteMap,
+} from './rest/index.js';
 export {
   // Internal utilities
   buildNestedRestPath,
@@ -199,9 +204,6 @@ export {
 // Unified API Registration
 // ============================================================================
 
-export type { ServeOptions } from './expose.js';
-export { serve } from './expose.js';
-
 // Backward compatibility (deprecated)
-export type { ExposeOptions, ExposeResult } from './expose.js';
-export { expose } from './expose.js';
+export type { ExposeOptions, ExposeResult, ServeOptions } from './expose.js';
+export { expose, serve } from './expose.js';

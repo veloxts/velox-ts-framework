@@ -56,8 +56,8 @@ function getSourceDir(): string {
 
   throw new Error(
     `Template source directory not found. Checked:\n` +
-    `  - ${distRelativePath}\n` +
-    `  - ${srcRelativePath}`
+      `  - ${distRelativePath}\n` +
+      `  - ${srcRelativePath}`
   );
 }
 
@@ -139,13 +139,8 @@ export interface TemplatePath {
  * @param config - Template configuration
  * @returns Array of compiled TemplateFiles
  */
-export function compileTemplates(
-  paths: TemplatePath[],
-  config: TemplateConfig
-): TemplateFile[] {
-  return paths.map(({ source, output }) =>
-    compileTemplateFile(source, output, config)
-  );
+export function compileTemplates(paths: TemplatePath[], config: TemplateConfig): TemplateFile[] {
+  return paths.map(({ source, output }) => compileTemplateFile(source, output, config));
 }
 
 // ============================================================================

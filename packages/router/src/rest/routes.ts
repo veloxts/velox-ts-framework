@@ -107,7 +107,9 @@ export type ExtractRoutesType<TRouter> = {
  * @internal
  */
 type ExtractNamespaceRoutes<P extends ProcedureRecord> = {
-  [PK in keyof P as P[PK] extends { restOverride: { path: string } }
-    ? PK
-    : never]: P[PK] extends { restOverride: { path: infer Path } } ? Path : never;
+  [PK in keyof P as P[PK] extends { restOverride: { path: string } } ? PK : never]: P[PK] extends {
+    restOverride: { path: infer Path };
+  }
+    ? Path
+    : never;
 };

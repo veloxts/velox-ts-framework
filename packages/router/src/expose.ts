@@ -10,7 +10,7 @@
 import { fail, type VeloxApp } from '@veloxts/core';
 
 import { rest } from './rest/index.js';
-import { createAppRouter, createTRPC, registerTRPCPlugin, type AnyRouter } from './trpc/index.js';
+import { type AnyRouter, createAppRouter, createTRPC, registerTRPCPlugin } from './trpc/index.js';
 import type { ProcedureCollection } from './types.js';
 
 // ============================================================================

@@ -2,7 +2,7 @@
  * Health Check Procedures
  */
 
-import { VELOX_VERSION, defineProcedures, procedure, z } from '@veloxts/velox';
+import { defineProcedures, procedure, VELOX_VERSION, z } from '@veloxts/velox';
 
 export const healthProcedures = defineProcedures('health', {
   getHealth: procedure()

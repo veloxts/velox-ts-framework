@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQueryClient } from '@veloxts/client/react';
 import { useState } from 'react';
-import { api } from '@/api';
+
 import styles from '@/App.module.css';
+import { api } from '@/api';
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -82,8 +83,12 @@ function HomePage() {
         <div className={styles.cards}>
           <div className={styles.card}>
             <h2>Your Profile</h2>
-            <p><strong>ID:</strong> {user.id}</p>
-            <p><strong>Roles:</strong> {user.roles?.join(', ') || 'user'}</p>
+            <p>
+              <strong>ID:</strong> {user.id}
+            </p>
+            <p>
+              <strong>Roles:</strong> {user.roles?.join(', ') || 'user'}
+            </p>
           </div>
 
           <div className={styles.card}>
@@ -106,9 +111,7 @@ function HomePage() {
     <div className={styles.container}>
       <div className={styles.hero}>
         <h1 className={styles.title}>Welcome to VeloxTS</h1>
-        <p className={styles.subtitle}>
-          Full-stack TypeScript with authentication.
-        </p>
+        <p className={styles.subtitle}>Full-stack TypeScript with authentication.</p>
       </div>
 
       <div className={styles.authCard}>
@@ -166,14 +169,14 @@ function HomePage() {
           >
             {login.isPending || register.isPending
               ? 'Please wait...'
-              : isLogin ? 'Sign In' : 'Create Account'}
+              : isLogin
+                ? 'Sign In'
+                : 'Create Account'}
           </button>
         </form>
 
         {!isLogin && (
-          <p className={styles.formHint}>
-            Password: 12+ chars, uppercase, lowercase, number
-          </p>
+          <p className={styles.formHint}>Password: 12+ chars, uppercase, lowercase, number</p>
         )}
       </div>
     </div>

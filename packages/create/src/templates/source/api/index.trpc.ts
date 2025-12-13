@@ -10,7 +10,8 @@
 
 import 'dotenv/config';
 
-import { veloxApp, databasePlugin, serve } from '@veloxts/velox';
+import { databasePlugin, serve, veloxApp } from '@veloxts/velox';
+
 import { config } from './config/app.js';
 import { prisma } from './config/database.js';
 import { healthProcedures } from './procedures/health.js';

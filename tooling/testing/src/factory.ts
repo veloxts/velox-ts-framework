@@ -111,9 +111,7 @@ export interface Factory<T> {
  * const custom = User.make({ email: 'specific@test.com' }); // Custom email
  * ```
  */
-export function defineFactory<T>(
-  definitionFn: () => FactoryDefinition<T>
-): Factory<T> {
+export function defineFactory<T>(definitionFn: () => FactoryDefinition<T>): Factory<T> {
   const states = new Map<string, Partial<T>>();
   let globalSequence = 0;
 
@@ -143,10 +141,7 @@ export function defineFactory<T>(
   /**
    * Create a builder for chaining count() and state()
    */
-  const createBuilder = (
-    activeStates: string[] = [],
-    recordCount = 1
-  ): FactoryBuilder<T> => ({
+  const createBuilder = (activeStates: string[] = [], recordCount = 1): FactoryBuilder<T> => ({
     make(overrides = {}) {
       // Merge all active states
       const stateOverrides = activeStates.reduce<Partial<T>>(
@@ -237,7 +232,7 @@ export function uuid(): (ctx: FactoryContext) => string {
  * ```
  */
 export function sequence(prefix = ''): (ctx: FactoryContext) => string {
-  return ({ sequence: seq }) => prefix ? `${prefix}-${seq}` : String(seq);
+  return ({ sequence: seq }) => (prefix ? `${prefix}-${seq}` : String(seq));
 }
 
 /**
