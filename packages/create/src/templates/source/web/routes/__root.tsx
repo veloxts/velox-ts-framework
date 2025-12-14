@@ -1,9 +1,9 @@
 import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
+import styles from '@/App.module.css';
 /* @if auth */
 import { useQuery } from '@veloxts/client/react';
 
 import type { AppRouter } from '../../../api/src/index.js';
-import styles from '@/App.module.css';
 /* @endif auth */
 
 export const Route = createRootRoute({
