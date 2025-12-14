@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.4.12
+
+### Patch Changes
+
+- preserve type info in trpc template AppRouter export
+
 ## 0.4.11
 
 ### Patch Changes

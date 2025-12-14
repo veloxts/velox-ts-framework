@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.4.12
+
+### Patch Changes
+
+- preserve type info in trpc template AppRouter export
+- Updated dependencies
+  - @veloxts/core@0.4.12
+  - @veloxts/validation@0.4.12
+
 ## 0.4.11
 
 ### Patch Changes
