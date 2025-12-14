@@ -8,7 +8,7 @@ export const Route = createFileRoute('/')({
 });
 
 function HomePage() {
-  const { data: health, isLoading, error } = api.health.check.useQuery({});
+  const { data: health, isLoading, error } = api.health.getHealth.useQuery({});
 
   return (
     <div className={styles.container}>
