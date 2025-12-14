@@ -18,6 +18,29 @@ import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
 
 // ============================================================================
+// Type Exports for Frontend
+// ============================================================================
+
+/**
+ * AppRouter type for frontend type safety
+ *
+ * Constructed from procedure collections to preserve full type information.
+ * This enables type-safe API calls with full autocomplete.
+ *
+ * @example
+ * ```typescript
+ * import type { AppRouter } from '../../api/src';
+ * import { createVeloxHooks } from '@veloxts/client/react';
+ *
+ * export const api = createVeloxHooks<AppRouter>();
+ * ```
+ */
+export type AppRouter = {
+  health: typeof healthProcedures;
+  users: typeof userProcedures;
+};
+
+// ============================================================================
 // Application Bootstrap
 // ============================================================================
 
@@ -37,28 +60,11 @@ await app.register(databasePlugin({ client: prisma }));
  * Serve procedures as both REST and tRPC endpoints
  *
  * - REST: /api/users, /api/health
- * - tRPC: /trpc/users.getUser, /trpc/health.check
+ * - tRPC: /trpc/users.getUser, /trpc/health.getHealth
  */
-const router = await serve(app, [healthProcedures, userProcedures], {
+await serve(app, [healthProcedures, userProcedures], {
   api: config.apiPrefix,
   rpc: '/trpc',
 });
-
-// ============================================================================
-// Type Exports for Frontend
-// ============================================================================
-
-/**
- * AppRouter type for frontend type safety
- *
- * @example
- * ```typescript
- * import type { AppRouter } from '../../api/src';
- * import { createVeloxHooks } from '@veloxts/client/react';
- *
- * export const api = createVeloxHooks<AppRouter>();
- * ```
- */
-export type AppRouter = typeof router;
 
 await app.start();
