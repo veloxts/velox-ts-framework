@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.4.10
+
+### Patch Changes
+
+- fixed ReferenceError: styles is not defined in rpc template
+- Updated dependencies
+  - @veloxts/auth@0.4.10
+  - @veloxts/core@0.4.10
+  - @veloxts/orm@0.4.10
+  - @veloxts/router@0.4.10
+  - @veloxts/validation@0.4.10
+
 ## 0.4.7
 
 ### Patch Changes

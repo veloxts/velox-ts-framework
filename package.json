@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/framework",
-  "version": "0.3.3",
+  "version": "0.4.9",
   "description": "A full-stack TypeScript framework with type-safe APIs, hybrid tRPC/REST architecture, with great DX",
   "main": "dist/index.js",
   "packageManager": "pnpm@10.24.0",

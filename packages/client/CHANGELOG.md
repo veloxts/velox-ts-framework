@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.4.10
+
+### Patch Changes
+
+- fixed ReferenceError: styles is not defined in rpc template
+
 ## 0.4.8
 
 ### Patch Changes

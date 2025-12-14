@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/docs",
-  "version": "0.1.0",
+  "version": "0.4.9",
   "description": "Documentation site for VeloxTS framework",
   "scripts": {
     "dev": "echo \"Documentation site not yet implemented\"",
