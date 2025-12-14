@@ -73,6 +73,10 @@ function generateUserSchema(): string {
   return compileTemplate('api/schemas/user.ts', AUTH_CONFIG);
 }
 
+function generateApiTypesDts(): string {
+  return compileTemplate('api/types.d.ts', AUTH_CONFIG);
+}
+
 // ============================================================================
 // Auth Template Generator
 // ============================================================================
@@ -99,6 +103,7 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/src/procedures/auth.ts', content: generateAuthProcedures() },
     { path: 'apps/api/src/procedures/users.ts', content: generateUserProceduresWithAuth() },
     { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
+    { path: 'apps/api/src/types.d.ts', content: generateApiTypesDts() },
   ];
 
   // Add root workspace files

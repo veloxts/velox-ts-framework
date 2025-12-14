@@ -73,6 +73,10 @@ function generateUserSchema(): string {
   return compileTemplate('api/schemas/user.ts', DEFAULT_CONFIG);
 }
 
+function generateApiTypesDts(): string {
+  return compileTemplate('api/types.d.ts', DEFAULT_CONFIG);
+}
+
 // ============================================================================
 // tRPC Template Generator
 // ============================================================================
@@ -97,6 +101,7 @@ export function generateTrpcTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'apps/api/src/procedures/users.ts', content: generateUserProcedures() },
     { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
+    { path: 'apps/api/src/types.d.ts', content: generateApiTypesDts() },
   ];
 
   // Add root workspace files (use false for isAuthTemplate)
