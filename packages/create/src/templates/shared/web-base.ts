@@ -60,6 +60,10 @@ export function generateApiHooks(): string {
   return compileTemplate('web/api.ts', DEFAULT_CONFIG);
 }
 
+export function generateViteEnvDts(): string {
+  return compileTemplate('web/vite-env.d.ts', DEFAULT_CONFIG);
+}
+
 // ============================================================================
 // Generate All Web Base Files
 // ============================================================================
@@ -78,6 +82,9 @@ export function generateWebBaseFiles(
 
     // Entry point
     { path: 'apps/web/src/main.tsx', content: generateMainTsx(config) },
+
+    // Type declarations
+    { path: 'apps/web/src/vite-env.d.ts', content: generateViteEnvDts() },
 
     // API hooks
     { path: 'apps/web/src/api.ts', content: generateApiHooks() },

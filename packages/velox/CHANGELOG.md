@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.4.11
+
+### Patch Changes
+
+- fixed api.health.check.useQuery is not a function issue
+- Updated dependencies
+  - @veloxts/auth@0.4.11
+  - @veloxts/core@0.4.11
+  - @veloxts/orm@0.4.11
+  - @veloxts/router@0.4.11
+  - @veloxts/validation@0.4.11
+
 ## 0.4.10
 
 ### Patch Changes
