@@ -12,6 +12,7 @@ import { type Container, container } from './di/index.js';
 import { isVeloxError, VeloxError } from './errors.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
 import { validatePluginMetadata } from './plugin.js';
+import { requestLogger } from './plugins/request-logger.js';
 import type { StaticOptions } from './plugins/static.js';
 import { registerStatic } from './plugins/static.js';
 import type { ShutdownHandler } from './types.js';
@@ -94,6 +95,11 @@ export class VeloxApp {
 
     // Set up graceful shutdown
     this._setupGracefulShutdown();
+
+    // Register request logger if enabled via environment
+    if (process.env.VELOX_REQUEST_LOGGING === 'true') {
+      this._server.register(requestLogger);
+    }
   }
 
   /**

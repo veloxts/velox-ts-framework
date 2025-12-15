@@ -304,6 +304,17 @@ export class ReloadReporter {
   }
 
   /**
+   * Print debug mode status banner.
+   *
+   * Shows when debug logging and request tracing are enabled via --debug flag.
+   */
+  printDebugStatus(): void {
+    console.log(`  ${pc.magenta('🔍')} ${pc.magenta('Debug mode enabled')}`);
+    console.log(pc.dim('  Request/response logging active'));
+    console.log('');
+  }
+
+  /**
    * Print legacy mode warning.
    *
    * Shows when user explicitly disabled HMR with --no-hmr flag.

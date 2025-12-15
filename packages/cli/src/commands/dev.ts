@@ -31,6 +31,7 @@ interface DevOptions {
   clear?: boolean;
   hmr?: boolean;
   verbose?: boolean;
+  debug?: boolean;
 }
 
 /**
@@ -47,6 +48,7 @@ export function createDevCommand(version: string): Command {
     .option('--hmr', 'Enable hot module replacement (default: true)', true)
     .option('--no-hmr', 'Disable HMR and use legacy tsx watch mode')
     .option('-v, --verbose', 'Show detailed timing and reload information', false)
+    .option('-d, --debug', 'Enable debug logging and request tracing', false)
     .action(async (options: DevOptions) => {
       await runDevServer(options, version);
     });
@@ -126,11 +128,16 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
     printBanner(version);
 
     // Set environment variables for the app
+    const debug = options.debug ?? false;
     const env = {
       ...process.env,
       PORT: port,
       HOST: host,
       NODE_ENV: 'development',
+      ...(debug && {
+        LOG_LEVEL: 'debug',
+        VELOX_REQUEST_LOGGING: 'true',
+      }),
     };
 
     const clearScreen = options.clear !== false;
@@ -146,6 +153,7 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
         host,
         env,
         verbose,
+        debug,
         clearOnRestart: clearScreen,
       });
       return; // HMR runner handles its own lifecycle

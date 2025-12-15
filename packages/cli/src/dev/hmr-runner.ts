@@ -63,6 +63,8 @@ export interface HMRRunnerOptions {
   readonly env?: Record<string, string>;
   /** Show detailed timing and reload information */
   readonly verbose?: boolean;
+  /** Enable debug logging and request tracing */
+  readonly debug?: boolean;
   /** Clear console on full restart */
   readonly clearOnRestart?: boolean;
 }
@@ -150,6 +152,9 @@ export class HMRRunner {
    */
   async start(): Promise<void> {
     this.reporter.printHMRStatus();
+    if (this.options.debug) {
+      this.reporter.printDebugStatus();
+    }
     this.timing.start('startup');
     this.isStartingUp = true;
 

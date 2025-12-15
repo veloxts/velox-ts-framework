@@ -180,3 +180,9 @@ export type {
 
 export type { CacheControl, StaticOptions } from './plugins/static.js';
 export { registerStatic } from './plugins/static.js';
+
+// ============================================================================
+// Request Logging (Development)
+// ============================================================================
+
+export { requestLogger } from './plugins/request-logger.js';
