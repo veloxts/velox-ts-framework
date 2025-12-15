@@ -189,7 +189,30 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
 
   PORT=$test_port node dist/index.js &
   SERVER_PID=$!
-  sleep 3
+
+  # Wait for server to be ready (poll health endpoint)
+  echo "Waiting for server to start..."
+  MAX_WAIT=30
+  ELAPSED=0
+  SERVER_READY=false
+
+  while [ $ELAPSED -lt $MAX_WAIT ]; do
+    if curl -s -f http://localhost:$test_port/api/health > /dev/null 2>&1; then
+      SERVER_READY=true
+      echo "✓ Server ready after ${ELAPSED}s"
+      break
+    fi
+    sleep 1
+    ELAPSED=$((ELAPSED + 1))
+    printf "."
+  done
+  echo ""
+
+  if [ "$SERVER_READY" = false ]; then
+    echo "✗ Server failed to start within ${MAX_WAIT} seconds"
+    kill $SERVER_PID 2>/dev/null || true
+    exit 1
+  fi
 
   # Test health endpoint
   HEALTH_RESPONSE=$(curl -s http://localhost:$test_port/api/health)
