@@ -12,7 +12,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import pc from 'picocolors';
 
 import { error } from '../utils/output.js';
-import { parseDevError, type ParsedDevError } from './error-parser.js';
+import { type ParsedDevError, parseDevError } from './error-parser.js';
 import { createReloadReporter, type ReloadReporter } from './reload-reporter.js';
 import { createTimingTracker, type TimingTracker } from './timing-tracker.js';
 
@@ -450,11 +450,7 @@ export class HMRRunner {
    * Report a fatal error that cannot be recovered
    */
   private reportFatalError(parsed: ParsedDevError): void {
-    this.reporter.reportCompilationError(
-      parsed.originalError,
-      parsed.filePath,
-      parsed.suggestion
-    );
+    this.reporter.reportCompilationError(parsed.originalError, parsed.filePath, parsed.suggestion);
   }
 
   // --------------------------------------------------------------------------

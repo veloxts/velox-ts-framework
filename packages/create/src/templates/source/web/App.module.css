@@ -296,7 +296,7 @@
 .emptyState {
   text-align: center;
   color: #666;
-  padding: 2rem !important;
+  padding: 2rem;
 }
 
 /* Responsive */

@@ -156,13 +156,23 @@ const ERROR_TYPE_PATTERNS: ReadonlyArray<{
  */
 const LOCATION_PATTERNS: readonly LocationPattern[] = [
   // TypeScript/esbuild: path/file.ts:10:5
-  { regex: /([^\s(]+\.(?:ts|tsx|js|jsx|mjs|cjs)):(\d+):(\d+)/, fileGroup: 1, lineGroup: 2, columnGroup: 3 },
+  {
+    regex: /([^\s(]+\.(?:ts|tsx|js|jsx|mjs|cjs)):(\d+):(\d+)/,
+    fileGroup: 1,
+    lineGroup: 2,
+    columnGroup: 3,
+  },
   // Node.js: at Function (path/file.ts:10:5)
   { regex: /at\s+.*\(([^)]+):(\d+):(\d+)\)/, fileGroup: 1, lineGroup: 2, columnGroup: 3 },
   // Node.js: at path/file.ts:10:5
   { regex: /at\s+([^\s]+):(\d+):(\d+)/, fileGroup: 1, lineGroup: 2, columnGroup: 3 },
   // ESLint/Prettier style: path/file.ts(10,5)
-  { regex: /([^\s(]+\.(?:ts|tsx|js|jsx))\((\d+),(\d+)\)/, fileGroup: 1, lineGroup: 2, columnGroup: 3 },
+  {
+    regex: /([^\s(]+\.(?:ts|tsx|js|jsx))\((\d+),(\d+)\)/,
+    fileGroup: 1,
+    lineGroup: 2,
+    columnGroup: 3,
+  },
   // Simple: path/file.ts:10
   { regex: /([^\s:]+\.(?:ts|tsx|js|jsx|mjs|cjs)):(\d+)(?:\s|$|:)/, fileGroup: 1, lineGroup: 2 },
 ];
@@ -177,7 +187,8 @@ const ERROR_SUGGESTIONS: Readonly<Record<DevErrorType, string>> = {
     'Verify the import path is correct. Check if the module is installed (run pnpm install) and the file extension matches your imports.',
   'type-error':
     'Check that all variables are properly typed and initialized. Verify the types match between function arguments and parameters.',
-  'runtime-error': 'Add console.log statements or use a debugger to trace the code path. Check for null/undefined values.',
+  'runtime-error':
+    'Add console.log statements or use a debugger to trace the code path. Check for null/undefined values.',
   'hmr-failure':
     'This file may be outside HMR boundaries. Try editing a file in src/procedures/, src/schemas/, or src/handlers/ instead.',
   'database-error':
@@ -294,13 +305,14 @@ function extractLocation(
 function hasUserCodeLocation(errorText: string): boolean {
   for (const pattern of LOCATION_PATTERNS) {
     const regex = new RegExp(pattern.regex.source, 'g');
-    let match: RegExpExecArray | null;
+    let match = regex.exec(errorText);
 
-    while ((match = regex.exec(errorText)) !== null) {
+    while (match !== null) {
       const filePath = match[pattern.fileGroup];
       if (!filePath.includes('node_modules/')) {
         return true;
       }
+      match = regex.exec(errorText);
     }
   }
   return false;
@@ -309,9 +321,12 @@ function hasUserCodeLocation(errorText: string): boolean {
 /**
  * Clean up error message for display
  */
+// ANSI escape code pattern - built from string to avoid control character lint warning
+const ANSI_PATTERN = new RegExp(`${String.fromCharCode(0x1b)}\\[[0-9;]*m`, 'g');
+
 function cleanErrorMessage(message: string): string {
   // Remove ANSI color codes
-  let cleaned = message.replace(/\x1b\[[0-9;]*m/g, '');
+  let cleaned = message.replace(ANSI_PATTERN, '');
 
   // Remove excessive whitespace
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
@@ -351,11 +366,14 @@ function generateSuggestion(type: DevErrorType, errorText: string): string {
   if (type === 'database-error') {
     // Check for specific Prisma errors
     if (/P1001/i.test(errorText)) {
-      suggestion = 'Cannot reach database server. Ensure your database is running and DATABASE_URL is correct.';
+      suggestion =
+        'Cannot reach database server. Ensure your database is running and DATABASE_URL is correct.';
     } else if (/P1002/i.test(errorText)) {
-      suggestion = 'Database server timed out. Check if the database is overloaded or the connection is slow.';
+      suggestion =
+        'Database server timed out. Check if the database is overloaded or the connection is slow.';
     } else if (/P1003/i.test(errorText)) {
-      suggestion = 'Database does not exist. Run `velox migrate:run` to create and migrate the database.';
+      suggestion =
+        'Database does not exist. Run `velox migrate:run` to create and migrate the database.';
     } else if (/P2002/i.test(errorText)) {
       suggestion = 'Unique constraint violation. A record with this value already exists.';
     } else if (/P2025/i.test(errorText)) {

@@ -84,8 +84,14 @@ export interface VeloxQueryProcedure<TInput, TOutput> {
    */
   useSuspenseQuery(
     ...args: undefined extends TInput
-      ? [input?: TInput, options?: Omit<UseSuspenseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>]
-      : [input: TInput, options?: Omit<UseSuspenseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>]
+      ? [
+          input?: TInput,
+          options?: Omit<UseSuspenseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>,
+        ]
+      : [
+          input: TInput,
+          options?: Omit<UseSuspenseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>,
+        ]
   ): UseSuspenseQueryResult<TOutput, Error>;
 
   /**

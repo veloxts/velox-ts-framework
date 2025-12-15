@@ -5,11 +5,10 @@
  * reload feedback, and error parsing for the development server.
  */
 
+export * from './error-parser.js';
 // Core HMR functionality
 export * from './hmr-runner.js';
-export * from './watch-config.js';
-
+export * from './reload-reporter.js';
 // Phase 1: Foundation modules for improved HMR feedback
 export * from './timing-tracker.js';
-export * from './reload-reporter.js';
-export * from './error-parser.js';
+export * from './watch-config.js';

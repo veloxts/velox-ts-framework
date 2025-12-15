@@ -189,7 +189,9 @@ export class ReloadReporter {
     const urlFormatted = pc.cyan(url);
     const time = pc.dim(`(${formatDuration(duration)})`);
 
-    console.log(`${timestamp}  ${pc.green('✓')} ${pc.green('Server ready')}  ${urlFormatted}  ${time}`);
+    console.log(
+      `${timestamp}  ${pc.green('✓')} ${pc.green('Server ready')}  ${urlFormatted}  ${time}`
+    );
 
     if (this.options.verbose) {
       this.printVerboseStartup(duration);

@@ -6,13 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  createReloadReporter,
-  ReloadReporter,
-  type HMRBoundary,
-  type ReloadEvent,
-  type ReloadReporterOptions,
-} from '../reload-reporter.js';
+import { createReloadReporter, type HMRBoundary, ReloadReporter } from '../reload-reporter.js';
 
 describe('ReloadReporter', () => {
   let reporter: ReloadReporter;
@@ -85,7 +79,8 @@ describe('ReloadReporter', () => {
     });
 
     it('should truncate long file paths', () => {
-      const longPath = 'src/very/deeply/nested/folder/structure/that/is/way/too/long/to/display/properly.ts';
+      const longPath =
+        'src/very/deeply/nested/folder/structure/that/is/way/too/long/to/display/properly.ts';
       reporter.reportHotUpdate(longPath, 10);
 
       const output = consoleSpy.mock.calls.flat().join(' ');

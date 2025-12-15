@@ -7,11 +7,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  type DevErrorType,
   formatParsedError,
   getErrorTypeLabel,
   isDevelopmentError,
   parseDevError,
-  type DevErrorType,
 } from '../error-parser.js';
 
 describe('parseDevError', () => {

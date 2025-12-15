@@ -94,6 +94,7 @@ function HomePage() {
           <div className={styles.card}>
             <h2>Actions</h2>
             <button
+              type="button"
               onClick={() => logout.mutate({})}
               className={styles.button}
               disabled={logout.isPending}
@@ -117,12 +118,14 @@ function HomePage() {
       <div className={styles.authCard}>
         <div className={styles.authTabs}>
           <button
+            type="button"
             className={`${styles.authTab} ${isLogin ? styles.authTabActive : ''}`}
             onClick={() => setIsLogin(true)}
           >
             Login
           </button>
           <button
+            type="button"
             className={`${styles.authTab} ${!isLogin ? styles.authTabActive : ''}`}
             onClick={() => setIsLogin(false)}
           >

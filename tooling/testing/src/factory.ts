@@ -143,20 +143,18 @@ export function defineFactory<T>(definitionFn: () => FactoryDefinition<T>): Fact
    */
   const createBuilder = (activeStates: string[] = [], recordCount = 1): FactoryBuilder<T> => ({
     make(overrides = {}) {
-      // Merge all active states
-      const stateOverrides = activeStates.reduce<Partial<T>>(
-        (acc, name) => {
-          const stateData = states.get(name);
-          if (!stateData) {
-            throw new Error(
-              `Unknown factory state: "${name}". ` +
-                `Available states: ${[...states.keys()].join(', ') || 'none'}`
-            );
-          }
-          return { ...acc, ...stateData };
-        },
-        {} as Partial<T>
-      );
+      // Merge all active states without accumulating spread
+      const stateOverrides: Partial<T> = {};
+      for (const name of activeStates) {
+        const stateData = states.get(name);
+        if (!stateData) {
+          throw new Error(
+            `Unknown factory state: "${name}". ` +
+              `Available states: ${[...states.keys()].join(', ') || 'none'}`
+          );
+        }
+        Object.assign(stateOverrides, stateData);
+      }
 
       // Create records
       return Array.from({ length: recordCount }, () =>
