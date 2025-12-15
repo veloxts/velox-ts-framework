@@ -42,7 +42,71 @@ The smoke test validates the entire `create-velox-app` scaffolder workflow:
 **Run this before publishing** to catch template errors early.
 
 ### Development
-This is a framework project, not an application. There is no dev server command yet. The CLI (`velox dev`) will be built in Week 5 of the roadmap.
+
+The VeloxTS CLI provides a powerful development server with Hot Module Replacement (HMR):
+
+```bash
+velox dev              # Start dev server with HMR (default)
+velox dev --no-hmr     # Disable HMR, use legacy tsx watch mode
+velox dev --verbose    # Enable detailed HMR diagnostics
+velox dev --port 4000  # Custom port (default: 3210)
+```
+
+#### HMR Features (Default)
+- Fast, efficient reloads with sub-second restart times
+- Precise timing metrics (startup, reload, total uptime)
+- Smart error classification with actionable suggestions
+- Formatted console output with visual indicators
+- Automatic `velox:ready` IPC integration for accurate timing
+
+#### HMR Configuration
+Add to your project's `package.json`:
+```json
+{
+  "hotHook": {
+    "boundaries": [
+      "src/procedures/**/*.ts",
+      "src/schemas/**/*.ts",
+      "src/handlers/**/*.ts"
+    ]
+  }
+}
+```
+
+Boundaries define which files trigger HMR reloads. Common patterns:
+- `src/procedures/**/*.ts` - API procedure definitions
+- `src/schemas/**/*.ts` - Zod validation schemas
+- `src/config/**/*.ts` - Configuration files
+
+#### Server Ready Signal
+For accurate HMR timing, add this to your server entry point after `app.start()`:
+
+```typescript
+await app.start();
+
+// Send ready signal to CLI for accurate HMR timing
+if (process.send) {
+  process.send({ type: 'velox:ready' });
+}
+```
+
+The CLI listens for this message to measure actual server boot time vs process startup time.
+
+#### Graceful Shutdown
+To prevent connection pool leaks during HMR restarts, add shutdown handlers:
+
+```typescript
+// Graceful shutdown - disconnect Prisma to prevent connection pool leaks
+const shutdown = async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+```
+
+All scaffolded templates include these patterns by default.
 
 ### Publishing to npm (or Verdaccio for local testing)
 

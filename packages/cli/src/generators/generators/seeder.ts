@@ -5,7 +5,7 @@
  *
  * Usage:
  *   velox make seeder <name> [options]
- *   velox m s <name> [options]
+ *   velox m sd <name> [options]
  *
  * Examples:
  *   velox make seeder user           # Creates UserSeeder
@@ -49,7 +49,7 @@ Examples:
   velox make seeder user              # Creates UserSeeder.ts
   velox make seeder post --factory    # Creates PostSeeder.ts and PostFactory.ts
 `,
-    aliases: ['s', 'seed'],
+    aliases: ['sd', 'seed'],
     category: 'database',
   };
 

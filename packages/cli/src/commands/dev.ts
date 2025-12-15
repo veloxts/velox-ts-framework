@@ -1,7 +1,10 @@
 /**
  * Dev command - Start development server with hot reload
  *
- * Inspired by Laravel's `php artisan serve` and Vite's dev server
+ * Inspired by Laravel's `php artisan serve` and Vite's dev server.
+ *
+ * By default, uses Hot Module Replacement (HMR) for fast reloads.
+ * Use --no-hmr for legacy tsx watch mode with full process restarts.
  */
 
 import { spawn } from 'node:child_process';
@@ -18,7 +21,6 @@ import {
   info,
   instruction,
   printBanner,
-  warning,
 } from '../utils/output.js';
 import { findEntryPoint, isVeloxProject, validateEntryPath } from '../utils/paths.js';
 
@@ -28,6 +30,7 @@ interface DevOptions {
   entry?: string;
   clear?: boolean;
   hmr?: boolean;
+  verbose?: boolean;
 }
 
 /**
@@ -35,13 +38,15 @@ interface DevOptions {
  */
 export function createDevCommand(version: string): Command {
   return new Command('dev')
-    .description('Start the development server with hot reload')
+    .description('Start the development server with hot module replacement')
     .option('-p, --port <port>', 'Port to listen on', '3210')
     .option('-H, --host <host>', 'Host to bind to', 'localhost')
     .option('-e, --entry <file>', 'Entry point file (auto-detected if not specified)')
     .option('--clear', 'Clear console on restart (default: true)', true)
     .option('--no-clear', 'Disable console clearing on restart')
-    .option('--hmr', 'Enable experimental hot module replacement', false)
+    .option('--hmr', 'Enable hot module replacement (default: true)', true)
+    .option('--no-hmr', 'Disable HMR and use legacy tsx watch mode')
+    .option('-v, --verbose', 'Show detailed timing and reload information', false)
     .action(async (options: DevOptions) => {
       await runDevServer(options, version);
     });
@@ -120,15 +125,6 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
     // Print startup banner
     printBanner(version);
 
-    // Show HMR warning if enabled
-    if (options.hmr) {
-      warning('HMR mode is experimental. Some changes may require a full restart.');
-      console.log('');
-    }
-
-    info('Starting development server...');
-    console.log('');
-
     // Set environment variables for the app
     const env = {
       ...process.env,
@@ -137,20 +133,31 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
       NODE_ENV: 'development',
     };
 
-    // Check if HMR mode is requested
-    if (options.hmr) {
-      // Run with experimental HMR
+    const clearScreen = options.clear !== false;
+    const verbose = options.verbose ?? false;
+
+    // HMR is the default mode
+    // Use --no-hmr for legacy tsx watch mode
+    if (options.hmr !== false) {
+      // Run with HMR (default)
       await runHMRServer({
         entry: entryPoint,
         port,
         host,
         env,
+        verbose,
+        clearOnRestart: clearScreen,
       });
       return; // HMR runner handles its own lifecycle
     }
 
+    // Legacy mode: tsx watch with full process restarts
+    info('Starting development server in legacy mode...');
+    console.log(`  ${pc.dim('Using tsx watch - every change triggers full restart.')}`);
+    console.log(`  ${pc.dim('Remove --no-hmr for faster reloads with HMR.')}`);
+    console.log('');
+
     // Build watch arguments with smart ignore patterns
-    const clearScreen = options.clear !== false;
     const watchArgs = buildWatchArgs({
       entry: entryPoint,
       clearScreen,

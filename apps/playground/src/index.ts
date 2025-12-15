@@ -374,7 +374,21 @@ async function main() {
 
     await app.start();
 
+    // Send ready signal to CLI for accurate HMR timing
+    if (process.send) {
+      process.send({ type: 'velox:ready' });
+    }
+
     printBanner(collections);
+
+    // Graceful shutdown - disconnect Prisma to prevent connection pool leaks
+    const shutdown = async () => {
+      await prisma.$disconnect();
+      process.exit(0);
+    };
+
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
   } catch (error) {
     console.error('Failed to start playground:', error);
     process.exit(1);
