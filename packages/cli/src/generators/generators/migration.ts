@@ -1,17 +1,17 @@
 /**
  * Migration Generator
  *
- * Generates Prisma migration files with SQL scaffolding.
+ * Scaffolds Prisma migration files with SQL scaffolding.
  *
  * Usage:
- *   velox generate migration <name> [options]
- *   velox g mig <name> [options]
+ *   velox make migration <name> [options]
+ *   velox m mig <name> [options]
  *
  * Examples:
- *   velox generate migration create_posts
- *   velox generate migration add_email_to_users
- *   velox generate migration remove_name_from_users
- *   velox g mig rename_posts_to_articles
+ *   velox make migration create_posts
+ *   velox make migration add_email_to_users
+ *   velox make migration remove_name_from_users
+ *   velox m mig rename_posts_to_articles
  */
 
 import { BaseGenerator, detectProjectContext } from '../base.js';
@@ -39,7 +39,7 @@ export class MigrationGenerator extends BaseGenerator<MigrationOptions> {
     name: 'migration',
     description: 'Generate a database migration file',
     longDescription: `
-Generate a Prisma-compatible migration file with SQL scaffolding.
+Scaffold a Prisma-compatible migration file with SQL scaffolding.
 
 The migration name determines the SQL template:
   create_<table>           → CREATE TABLE scaffold
@@ -50,10 +50,10 @@ The migration name determines the SQL template:
   <anything_else>          → Custom migration template
 
 Examples:
-  velox generate migration create_posts
-  velox generate migration add_slug_to_posts
-  velox generate migration remove_legacy_field_from_users
-  velox g mig rename_posts_to_articles
+  velox make migration create_posts
+  velox make migration add_slug_to_posts
+  velox make migration remove_legacy_field_from_users
+  velox m mig rename_posts_to_articles
 `,
     aliases: ['mig'],
     category: 'database',

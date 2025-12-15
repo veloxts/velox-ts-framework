@@ -74,7 +74,7 @@ async function runSeedCommand(
         console.log(JSON.stringify({ error: 'No seeders found' }));
       } else {
         info('No seeders found.');
-        console.log(`  ${pc.dim('Create one with: velox generate seeder <name>')}`);
+        console.log(`  ${pc.dim('Create one with: velox make seeder <name>')}`);
       }
       return;
     }
@@ -114,7 +114,7 @@ async function runSeedCommand(
       if (!options.json) {
         s.stop('No seeders found');
         info('No seeders found.');
-        console.log(`  ${pc.dim('Create one with: velox generate seeder <name>')}`);
+        console.log(`  ${pc.dim('Create one with: velox make seeder <name>')}`);
       } else {
         console.log(JSON.stringify({ error: 'No seeders found' }));
       }

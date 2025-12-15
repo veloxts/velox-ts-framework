@@ -157,11 +157,11 @@ This document defines what features were **included** in the MVP release and wha
   - Scoped/singleton/transient services
 
 ### CLI Advanced Features - v0.5
-- ⏳ **Code generators**
-  - `velox generate procedure <name>`
-  - `velox generate schema <name>`
-  - `velox generate migration <name>`
-  - `velox generate model <name>`
+- ⏳ **Code scaffolders**
+  - `velox make procedure <name>`
+  - `velox make schema <name>`
+  - `velox make migration <name>`
+  - `velox make model <name>`
 - ⏳ **Database seeding**
   - `velox db:seed` command
   - Seeder class system

@@ -1,17 +1,17 @@
 /**
  * Model Generator
  *
- * Generates Prisma model, Zod schema, and optionally procedures.
+ * Scaffolds Prisma model, Zod schema, and optionally procedures.
  *
  * Usage:
- *   velox generate model <name> [options]
- *   velox g m <name> [options]
+ *   velox make model <name> [options]
+ *   velox m model <name> [options]
  *
  * Examples:
- *   velox generate model Post              # Model + schema only
- *   velox generate model Comment --crud    # Model + schema + procedures
- *   velox g m Order --crud --paginated     # With pagination
- *   velox g m Article --soft-delete        # With soft delete support
+ *   velox make model Post              # Model + schema only
+ *   velox make model Comment --crud    # Model + schema + procedures
+ *   velox m model Order --crud --paginated     # With pagination
+ *   velox m model Article --soft-delete        # With soft delete support
  */
 
 import { BaseGenerator } from '../base.js';
@@ -35,16 +35,16 @@ export class ModelGenerator extends BaseGenerator<ModelOptions> {
     name: 'model',
     description: 'Generate a Prisma model with Zod schema and optional procedures',
     longDescription: `
-Generate a complete model including:
+Scaffold a complete model including:
 - Prisma model definition (saved to prisma/models/ for easy copying)
 - Zod validation schemas (input/output)
 - CRUD procedures (with --crud flag)
 
 Examples:
-  velox generate model Post              # Model + schema only
-  velox generate model Comment --crud    # With CRUD procedures
-  velox g m Order --crud --paginated     # With pagination
-  velox g m Article --soft-delete        # With soft delete
+  velox make model Post              # Model + schema only
+  velox make model Comment --crud    # With CRUD procedures
+  velox m model Order --crud --paginated     # With pagination
+  velox m model Article --soft-delete        # With soft delete
 `,
     aliases: ['m'],
     category: 'resource',

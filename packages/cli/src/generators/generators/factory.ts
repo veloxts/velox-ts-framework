@@ -1,15 +1,15 @@
 /**
  * Factory Generator
  *
- * Generates factory files for VeloxTS applications.
+ * Scaffolds factory files for VeloxTS applications.
  *
  * Usage:
- *   velox generate factory <name> [options]
- *   velox g f <name> [options]
+ *   velox make factory <name> [options]
+ *   velox m f <name> [options]
  *
  * Examples:
- *   velox generate factory user     # Creates UserFactory
- *   velox g f post                  # Creates PostFactory
+ *   velox make factory user     # Creates UserFactory
+ *   velox m f post              # Creates PostFactory
  */
 
 import { BaseGenerator } from '../base.js';
@@ -39,15 +39,15 @@ export class FactoryGenerator extends BaseGenerator<FactoryOptions> {
     name: 'factory',
     description: 'Generate a model factory for fake data generation',
     longDescription: `
-Generate a VeloxTS factory file for creating model instances with fake data.
+Scaffold a VeloxTS factory file for creating model instances with fake data.
 
 Factories are stored in src/database/factories/ and extend BaseFactory.
 They use @faker-js/faker to generate realistic test data and support
 named states for common variations (e.g., admin, verified).
 
 Examples:
-  velox generate factory user     # Creates UserFactory.ts
-  velox g f post                  # Creates PostFactory.ts
+  velox make factory user     # Creates UserFactory.ts
+  velox m f post              # Creates PostFactory.ts
 `,
     aliases: ['f', 'fac'],
     category: 'database',

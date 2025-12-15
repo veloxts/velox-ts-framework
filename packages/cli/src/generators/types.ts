@@ -128,7 +128,7 @@ export type GeneratorCategory = 'resource' | 'database' | 'test' | 'composite';
  * Generator metadata for CLI registration
  */
 export interface GeneratorMetadata {
-  /** Generator name (used in CLI: velox generate <name>) */
+  /** Generator name (used in CLI: velox make <name>) */
   readonly name: string;
 
   /** Short description for help text */

@@ -201,7 +201,7 @@ export function noSeedersFound(path: string): SeederError {
   return new SeederError(
     SeederErrorCode.NO_SEEDERS_FOUND,
     `No seeders found in ${path}`,
-    `Create a seeder with: velox generate seeder <name>`
+    `Create a seeder with: velox make seeder <name>`
   );
 }
 

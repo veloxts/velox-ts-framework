@@ -126,7 +126,7 @@ export function prismaNotFound(): MigrationError {
 export function migrationsDirNotFound(path: string): MigrationError {
   return new MigrationError('MIGRATIONS_DIR_NOT_FOUND', `Migrations directory not found: ${path}`, {
     details: { path },
-    fix: 'Create a migration with: velox generate migration create_users',
+    fix: 'Create a migration with: velox make migration create_users',
   });
 }
 

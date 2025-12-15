@@ -121,42 +121,42 @@ velox db:seed --fresh
 velox db:seed --dry-run
 ```
 
-### `velox generate`
+### `velox make`
 
-Generate code files from templates.
+Scaffold code files from templates.
 
 ```bash
-velox generate <type> <name> [options]
-velox g <type> <name> [options]
+velox make <type> <name> [options]
+velox m <type> <name> [options]
 ```
 
 **Available generators:**
 
-- `procedure` (alias: `p`) - Generate a procedure file
-- `model` (alias: `m`) - Generate a Prisma model
-- `migration` - Generate a migration file
-- `schema` (alias: `s`) - Generate a Zod schema
-- `test` (alias: `t`) - Generate a test file
-- `resource` (alias: `r`) - Generate full resource (model + procedure + schema + test)
-- `seeder` (alias: `seed`) - Generate a database seeder
-- `factory` (alias: `f`) - Generate a model factory
+- `procedure` (alias: `p`) - Scaffold a procedure file
+- `model` - Scaffold a Prisma model
+- `migration` - Scaffold a migration file
+- `schema` (alias: `s`) - Scaffold a Zod schema
+- `test` (alias: `t`) - Scaffold a test file
+- `resource` (alias: `r`) - Scaffold full resource (model + procedure + schema + test)
+- `seeder` (alias: `seed`) - Scaffold a database seeder
+- `factory` (alias: `f`) - Scaffold a model factory
 
 **Examples:**
 
 ```bash
-# Generate a procedure
-velox generate procedure users
-velox g p users --crud
+# Scaffold a procedure
+velox make procedure users
+velox m p users --crud
 
-# Generate a resource (all files)
-velox generate resource post
+# Scaffold a resource (all files)
+velox make resource post
 
-# Generate a seeder
-velox generate seeder user
-velox g seed user --factory
+# Scaffold a seeder
+velox make seeder user
+velox m seed user --factory
 
-# Generate a factory
-velox generate factory user
+# Scaffold a factory
+velox make factory user
 ```
 
 ## Database Seeding
@@ -183,10 +183,10 @@ The seeding system features:
 
 ### Creating Seeders
 
-Generate a new seeder using the CLI:
+Scaffold a new seeder using the CLI:
 
 ```bash
-velox generate seeder user
+velox make seeder user
 ```
 
 This creates `src/database/seeders/UserSeeder.ts`:
@@ -280,10 +280,10 @@ interface SeederContext {
 
 ### Creating Factories
 
-Factories generate fake data using the `@faker-js/faker` library. Generate a factory with:
+Factories generate fake data using the `@faker-js/faker` library. Scaffold a factory with:
 
 ```bash
-velox generate factory user
+velox make factory user
 ```
 
 This creates `src/database/factories/UserFactory.ts`:

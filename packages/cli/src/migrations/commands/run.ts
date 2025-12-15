@@ -65,7 +65,7 @@ async function runMigrateRun(options: MigrateRunOptions): Promise<void> {
         console.log(JSON.stringify({ error: 'No migrations found' }));
       } else {
         info('No migrations found.');
-        console.log(`  ${pc.dim('Create one with: velox generate migration create_users')}`);
+        console.log(`  ${pc.dim('Create one with: velox make migration create_users')}`);
         console.log(`  ${pc.dim('Or use --dev to create from schema changes')}`);
       }
       return;

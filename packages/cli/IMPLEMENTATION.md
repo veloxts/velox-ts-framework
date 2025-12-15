@@ -215,10 +215,10 @@ velox migrate --force
 
 Based on ROADMAP.md and CLAUDE.md:
 
-1. **Code Generators**
-   - `velox generate model User`
-   - `velox generate controller UserController`
-   - `velox generate migration CreateUsersTable`
+1. **Code Scaffolders**
+   - `velox make model User`
+   - `velox make controller UserController`
+   - `velox make migration CreateUsersTable`
 
 2. **Database Commands**
    - `velox db:seed` - Seed database

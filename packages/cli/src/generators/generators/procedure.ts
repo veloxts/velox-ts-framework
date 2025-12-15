@@ -1,16 +1,16 @@
 /**
  * Procedure Generator
  *
- * Generates procedure files for VeloxTS applications.
+ * Scaffolds procedure files for VeloxTS applications.
  *
  * Usage:
- *   velox generate procedure <name> [options]
- *   velox g p <name> [options]
+ *   velox make procedure <name> [options]
+ *   velox m p <name> [options]
  *
  * Examples:
- *   velox generate procedure users           # Simple get procedure
- *   velox generate procedure posts --crud    # Full CRUD procedures
- *   velox g p comments --crud --paginated    # CRUD with pagination
+ *   velox make procedure users           # Simple get procedure
+ *   velox make procedure posts --crud    # Full CRUD procedures
+ *   velox m p comments --crud --paginated    # CRUD with pagination
  */
 
 import { BaseGenerator } from '../base.js';
@@ -40,15 +40,15 @@ export class ProcedureGenerator extends BaseGenerator<ProcedureOptions> {
     name: 'procedure',
     description: 'Generate a procedure file for API endpoints',
     longDescription: `
-Generate a VeloxTS procedure file that defines API endpoints.
+Scaffold a VeloxTS procedure file that defines API endpoints.
 
-By default, generates a simple procedure with just a get operation.
-Use --crud to generate full CRUD operations (get, list, create, update, patch, delete).
+By default, scaffolds a simple procedure with just a get operation.
+Use --crud to scaffold full CRUD operations (get, list, create, update, patch, delete).
 
 Examples:
-  velox generate procedure users           # Simple get procedure
-  velox generate procedure posts --crud    # Full CRUD procedures
-  velox g p comments --crud --paginated    # CRUD with pagination
+  velox make procedure users           # Simple get procedure
+  velox make procedure posts --crud    # Full CRUD procedures
+  velox m p comments --crud --paginated    # CRUD with pagination
 `,
     aliases: ['p', 'proc'],
     category: 'resource',

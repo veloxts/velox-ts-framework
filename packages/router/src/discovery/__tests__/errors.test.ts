@@ -203,7 +203,7 @@ describe('Error Factory Functions', () => {
       const errorZero = noProceduresFound('/path', 0);
       const errorSome = noProceduresFound('/path', 5);
 
-      expect(errorZero.fix).toContain('velox generate');
+      expect(errorZero.fix).toContain('velox make');
       expect(errorSome.fix).toContain('defineProcedures');
     });
   });

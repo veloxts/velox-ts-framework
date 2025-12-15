@@ -1,13 +1,13 @@
 /**
- * Generate command - Code generation for VeloxTS projects
+ * Make command - Code scaffolding for VeloxTS projects
  *
  * Usage:
- *   velox generate <type> <name> [options]
- *   velox g <type> <name> [options]
+ *   velox make <type> <name> [options]
+ *   velox m <type> <name> [options]
  *
  * Examples:
- *   velox generate procedure users --crud
- *   velox g p User
+ *   velox make procedure users --crud
+ *   velox m p User
  */
 
 import * as p from '@clack/prompts';
@@ -36,7 +36,7 @@ import { error, formatCommand, info, success } from '../utils/output.js';
 // Types
 // ============================================================================
 
-interface GenerateOptions {
+interface MakeOptions {
   dryRun: boolean;
   force: boolean;
   json: boolean;
@@ -49,15 +49,15 @@ interface GenerateOptions {
 // ============================================================================
 
 /**
- * Create the generate command
+ * Create the make command
  */
-export function createGenerateCommand(): Command {
+export function createMakeCommand(): Command {
   // Register built-in generators
   registerBuiltinGenerators();
 
-  const cmd = new Command('generate')
-    .alias('g')
-    .description('Generate code for your VeloxTS project')
+  const cmd = new Command('make')
+    .alias('m')
+    .description('Scaffold code for your VeloxTS project')
     .argument('[type]', 'Generator type (procedure, schema, model, etc.)')
     .argument('[name]', 'Name for the generated entity')
     .option('-d, --dry-run', 'Preview changes without writing files', false)
@@ -81,11 +81,9 @@ export function createGenerateCommand(): Command {
     .option('--skip-model', 'Skip Prisma model generation', false)
     .option('--skip-schema', 'Skip Zod schema generation', false)
     .option('--skip-procedure', 'Skip procedure generation', false)
-    .action(
-      async (type: string | undefined, name: string | undefined, options: GenerateOptions) => {
-        await runGenerate(type, name, options);
-      }
-    );
+    .action(async (type: string | undefined, name: string | undefined, options: MakeOptions) => {
+      await runMake(type, name, options);
+    });
 
   // Add help showing available generators
   cmd.addHelpText(
@@ -94,12 +92,12 @@ export function createGenerateCommand(): Command {
 Available generators:${formatGeneratorList()}
 
 Examples:
-  ${formatCommand('velox generate resource Post')}       Generate complete Post resource
-  ${formatCommand('velox g r User --soft-delete')}       Resource with soft delete support
-  ${formatCommand('velox g p User --crud')}              Generate CRUD procedures only
-  ${formatCommand('velox g s User --crud')}              Generate Zod schemas only
-  ${formatCommand('velox g t User -G procedure')}        Generate procedure unit tests
-  ${formatCommand('velox generate --dry-run r Post')}    Preview resource generation
+  ${formatCommand('velox make resource Post')}         Scaffold complete Post resource
+  ${formatCommand('velox m r User --soft-delete')}     Resource with soft delete support
+  ${formatCommand('velox m p User --crud')}            Scaffold CRUD procedures only
+  ${formatCommand('velox m s User --crud')}            Scaffold Zod schemas only
+  ${formatCommand('velox m t User -G procedure')}      Scaffold procedure unit tests
+  ${formatCommand('velox make --dry-run r Post')}      Preview resource scaffolding
 `
   );
 
@@ -111,12 +109,12 @@ Examples:
 // ============================================================================
 
 /**
- * Run the generate command
+ * Run the make command
  */
-async function runGenerate(
+async function runMake(
   type: string | undefined,
   name: string | undefined,
-  options: GenerateOptions
+  options: MakeOptions
 ): Promise<void> {
   const { json, dryRun, force } = options;
 
@@ -137,10 +135,10 @@ async function runGenerate(
         return;
       }
 
-      p.intro(pc.bgCyan(pc.black(' VeloxTS Generate ')));
+      p.intro(pc.bgCyan(pc.black(' VeloxTS Make ')));
       console.log(formatGeneratorList());
       console.log('');
-      info(`Run ${formatCommand('velox generate <type> <name>')} to generate code.`);
+      info(`Run ${formatCommand('velox make <type> <name>')} to scaffold code.`);
       return;
     }
 
@@ -152,7 +150,7 @@ async function runGenerate(
       const suggestion =
         similar.length > 0
           ? `Did you mean: ${similar.map((s) => pc.cyan(s)).join(', ')}?`
-          : `Run ${formatCommand('velox generate')} to see available generators.`;
+          : `Run ${formatCommand('velox make')} to see available generators.`;
 
       throw new GeneratorError(
         GeneratorErrorCode.INVALID_OPTION,
@@ -166,7 +164,7 @@ async function runGenerate(
       throw new GeneratorError(
         GeneratorErrorCode.INVALID_ENTITY_NAME,
         'Entity name is required',
-        `Usage: ${formatCommand(`velox generate ${type} <name>`)}`
+        `Usage: ${formatCommand(`velox make ${type} <name>`)}`
       );
     }
 
@@ -211,13 +209,13 @@ async function runGenerate(
     let output: GeneratorOutput;
     if (isInteractive) {
       const s = p.spinner();
-      s.start(`Generating ${generator.metadata.name}...`);
+      s.start(`Scaffolding ${generator.metadata.name}...`);
 
       try {
         output = await generator.generate(config);
-        s.stop(`Generated ${output.files.length} file(s)`);
+        s.stop(`Scaffolded ${output.files.length} file(s)`);
       } catch (err) {
-        s.stop('Generation failed');
+        s.stop('Scaffolding failed');
         throw err;
       }
     } else {
@@ -248,7 +246,7 @@ async function runGenerate(
       }
 
       console.log('');
-      success(dryRun ? 'Dry run complete.' : 'Generation complete!');
+      success(dryRun ? 'Dry run complete.' : 'Scaffolding complete!');
     }
   } catch (err) {
     handleError(err, json);

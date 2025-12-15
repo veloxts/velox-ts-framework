@@ -119,7 +119,7 @@ export function noProceduresFound(path: string, scannedCount: number): Discovery
       details: { scannedFiles: scannedCount },
       fix:
         scannedCount === 0
-          ? 'Create procedure files using: velox generate procedure <name>'
+          ? 'Create procedure files using: velox make procedure <name>'
           : 'Ensure files export ProcedureCollection objects using defineProcedures()',
     }
   );

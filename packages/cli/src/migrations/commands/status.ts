@@ -55,7 +55,7 @@ async function runMigrateStatus(options: MigrateStatusOptions): Promise<void> {
         console.log(JSON.stringify({ migrations: [], pending: 0, applied: 0 }));
       } else {
         info('No migrations found.');
-        console.log(`  ${pc.dim('Create one with: velox generate migration create_users')}`);
+        console.log(`  ${pc.dim('Create one with: velox make migration create_users')}`);
       }
       return;
     }

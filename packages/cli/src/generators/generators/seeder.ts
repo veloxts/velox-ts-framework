@@ -1,15 +1,15 @@
 /**
  * Seeder Generator
  *
- * Generates seeder files for VeloxTS applications.
+ * Scaffolds seeder files for VeloxTS applications.
  *
  * Usage:
- *   velox generate seeder <name> [options]
- *   velox g s <name> [options]
+ *   velox make seeder <name> [options]
+ *   velox m s <name> [options]
  *
  * Examples:
- *   velox generate seeder user           # Creates UserSeeder
- *   velox generate seeder post --factory # Also creates PostFactory
+ *   velox make seeder user           # Creates UserSeeder
+ *   velox make seeder post --factory # Also creates PostFactory
  */
 
 import { BaseGenerator } from '../base.js';
@@ -40,14 +40,14 @@ export class SeederGenerator extends BaseGenerator<SeederOptions> {
     name: 'seeder',
     description: 'Generate a database seeder file',
     longDescription: `
-Generate a VeloxTS seeder file for populating the database with initial or test data.
+Scaffold a VeloxTS seeder file for populating the database with initial or test data.
 
 Seeders are stored in src/database/seeders/ and implement the Seeder interface.
 They can have dependencies on other seeders and are executed in the correct order.
 
 Examples:
-  velox generate seeder user              # Creates UserSeeder.ts
-  velox generate seeder post --factory    # Creates PostSeeder.ts and PostFactory.ts
+  velox make seeder user              # Creates UserSeeder.ts
+  velox make seeder post --factory    # Creates PostSeeder.ts and PostFactory.ts
 `,
     aliases: ['s', 'seed'],
     category: 'database',
