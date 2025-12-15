@@ -22,27 +22,8 @@ import type {
   ClientProcedure,
   ProcedureCollection,
   ProcedureRecord,
-  ProcedureType,
 } from '../types.js';
 import type { VeloxQueryKey } from './types.js';
-
-// ============================================================================
-// Procedure Type Detection
-// ============================================================================
-
-/**
- * Extracts the procedure type ('query' or 'mutation') from a ClientProcedure
- *
- * @internal
- */
-type ExtractProcedureType<T> =
-  T extends ClientProcedure<unknown, unknown>
-    ? T extends { readonly type: infer TType }
-      ? TType extends ProcedureType
-        ? TType
-        : 'query'
-      : 'query'
-    : never;
 
 // ============================================================================
 // Query Procedure Interface
@@ -395,15 +376,17 @@ export interface VeloxMutationOptions<TOutput, TInput, TContext = unknown>
  * Resolves a procedure to its appropriate hook interface
  * based on whether it's a query or mutation
  *
+ * Note: The type check uses 'mutation' first because CompiledProcedure's `type`
+ * property may be widened to 'query' | 'mutation' union. We check mutation
+ * explicitly and default to query for everything else.
+ *
  * @internal
  */
 type VeloxProcedureHooks<TProcedure> =
   TProcedure extends ClientProcedure<infer TInput, infer TOutput>
-    ? ExtractProcedureType<TProcedure> extends 'query'
-      ? VeloxQueryProcedure<TInput, TOutput>
-      : ExtractProcedureType<TProcedure> extends 'mutation'
-        ? VeloxMutationProcedure<TInput, TOutput>
-        : never
+    ? TProcedure extends { readonly type: 'mutation' }
+      ? VeloxMutationProcedure<TInput, TOutput>
+      : VeloxQueryProcedure<TInput, TOutput>
     : never;
 
 // ============================================================================

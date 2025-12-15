@@ -31,16 +31,21 @@ export type ProcedureType = 'query' | 'mutation';
 export interface ClientProcedure<TInput = unknown, TOutput = unknown> {
   /** Whether this is a query or mutation */
   readonly type: ProcedureType;
-  /** The procedure handler function */
-  readonly handler: (args: { input: TInput; ctx: unknown }) => TOutput | Promise<TOutput>;
+  /** The procedure handler function - uses `any` for ctx to enable contravariant matching with CompiledProcedure */
+  // biome-ignore lint/suspicious/noExplicitAny: Required for contravariant type compatibility with router's TContext
+  readonly handler: (args: { input: TInput; ctx: any }) => TOutput | Promise<TOutput>;
   /** Input validation schema (if specified) */
   readonly inputSchema?: { parse: (input: unknown) => TInput };
   /** Output validation schema (if specified) */
   readonly outputSchema?: { parse: (output: unknown) => TOutput };
-  /** Middleware chain (not used by client, but part of CompiledProcedure) */
-  readonly middlewares?: ReadonlyArray<unknown>;
+  /** Middleware chain - required for structural compatibility with CompiledProcedure */
+  readonly middlewares: ReadonlyArray<unknown>;
+  /** Guards - required for structural compatibility with CompiledProcedure */
+  readonly guards: ReadonlyArray<unknown>;
   /** REST route override (not used by client, but part of CompiledProcedure) */
   readonly restOverride?: { method?: string; path?: string };
+  /** Parent resource configuration for nested routes */
+  readonly parentResource?: { namespace: string; paramName: string };
 }
 
 /**

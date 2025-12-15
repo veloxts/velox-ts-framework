@@ -51,19 +51,34 @@ vi.mock('../../client.js', () => ({
 }));
 
 // Type for our mock router
+// Must include middlewares and guards for structural compatibility with ProcedureCollection
 type MockRouter = {
   users: {
     namespace: 'users';
     procedures: {
-      getUser: { type: 'query'; handler: (args: { input: MockUserInput }) => Promise<MockUser> };
-      listUsers: { type: 'query'; handler: () => Promise<MockUser[]> };
+      getUser: {
+        type: 'query';
+        handler: (args: { input: MockUserInput }) => Promise<MockUser>;
+        middlewares: readonly [];
+        guards: readonly [];
+      };
+      listUsers: {
+        type: 'query';
+        handler: () => Promise<MockUser[]>;
+        middlewares: readonly [];
+        guards: readonly [];
+      };
       createUser: {
         type: 'mutation';
         handler: (args: { input: MockCreateUserInput }) => Promise<MockUser>;
+        middlewares: readonly [];
+        guards: readonly [];
       };
       updateUser: {
         type: 'mutation';
         handler: (args: { input: MockUserInput & Partial<MockUser> }) => Promise<MockUser>;
+        middlewares: readonly [];
+        guards: readonly [];
       };
     };
   };
