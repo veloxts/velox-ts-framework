@@ -1,5 +1,13 @@
 # @veloxts/testing
 
+## 0.4.14
+
+### Patch Changes
+
+- fixed proxy-type inferance and update proxy hooks for optional input handling
+- Updated dependencies
+  - @veloxts/core@0.4.14
+
 ## 0.4.13
 
 ### Patch Changes
