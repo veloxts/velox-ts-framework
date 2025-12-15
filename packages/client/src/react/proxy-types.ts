@@ -48,21 +48,23 @@ export interface VeloxQueryProcedure<TInput, TOutput> {
   /**
    * React Query hook for fetching data
    *
-   * @param input - Procedure input (fully typed)
+   * @param input - Procedure input (fully typed, optional if input schema is optional)
    * @param options - React Query options (queryKey and queryFn auto-provided)
    * @returns UseQueryResult with typed data
    *
    * @example
    * ```tsx
-   * const { data, isLoading, error } = api.users.getUser.useQuery(
-   *   { id: userId },
-   *   { staleTime: 60_000 }
-   * );
+   * // Required input
+   * const { data, isLoading } = api.users.getUser.useQuery({ id: userId });
+   *
+   * // Optional input - can omit the argument entirely
+   * const { data } = api.users.listUsers.useQuery();
    * ```
    */
   useQuery(
-    input: TInput,
-    options?: Omit<UseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>
+    ...args: undefined extends TInput
+      ? [input?: TInput, options?: Omit<UseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>]
+      : [input: TInput, options?: Omit<UseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>]
   ): UseQueryResult<TOutput, Error>;
 
   /**
@@ -73,21 +75,17 @@ export interface VeloxQueryProcedure<TInput, TOutput> {
    *
    * @example
    * ```tsx
-   * function UserProfile({ userId }: { userId: string }) {
-   *   // Component only renders when data is available
-   *   const { data: user } = api.users.getUser.useSuspenseQuery({ id: userId });
-   *   return <h1>{user.name}</h1>;
-   * }
+   * // Required input
+   * const { data: user } = api.users.getUser.useSuspenseQuery({ id: userId });
    *
-   * // Usage with Suspense boundary
-   * <Suspense fallback={<Spinner />}>
-   *   <UserProfile userId="123" />
-   * </Suspense>
+   * // Optional input - can omit the argument entirely
+   * const { data } = api.users.listUsers.useSuspenseQuery();
    * ```
    */
   useSuspenseQuery(
-    input: TInput,
-    options?: Omit<UseSuspenseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>
+    ...args: undefined extends TInput
+      ? [input?: TInput, options?: Omit<UseSuspenseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>]
+      : [input: TInput, options?: Omit<UseSuspenseQueryOptions<TOutput, Error>, 'queryKey' | 'queryFn'>]
   ): UseSuspenseQueryResult<TOutput, Error>;
 
   /**
@@ -139,7 +137,7 @@ export interface VeloxQueryProcedure<TInput, TOutput> {
    * Fetches data and stores it in the cache without rendering.
    * Useful for hover-to-prefetch patterns.
    *
-   * @param input - Procedure input (unique data first)
+   * @param input - Procedure input (optional if input schema is optional)
    * @param queryClient - QueryClient instance from useQueryClient()
    *
    * @example
@@ -155,7 +153,11 @@ export interface VeloxQueryProcedure<TInput, TOutput> {
    * }
    * ```
    */
-  prefetch(input: TInput, queryClient: QueryClient): Promise<void>;
+  prefetch(
+    ...args: undefined extends TInput
+      ? [input: TInput | undefined, queryClient: QueryClient]
+      : [input: TInput, queryClient: QueryClient]
+  ): Promise<void>;
 
   /**
    * Manually set cached data

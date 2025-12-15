@@ -221,7 +221,8 @@ function createQueryProcedureProxy<TInput, TOutput>(
   getClient: ClientGetter<unknown>
 ): VeloxQueryProcedure<TInput, TOutput> {
   return {
-    useQuery(input, options) {
+    useQuery(...args) {
+      const [input, options] = args;
       const client = getClient() as GenericClient;
       const queryKey = buildQueryKey(namespace, procedureName, input);
 
@@ -236,7 +237,8 @@ function createQueryProcedureProxy<TInput, TOutput>(
       });
     },
 
-    useSuspenseQuery(input, options) {
+    useSuspenseQuery(...args) {
+      const [input, options] = args;
       const client = getClient() as GenericClient;
       const queryKey = buildQueryKey(namespace, procedureName, input);
 
@@ -262,7 +264,8 @@ function createQueryProcedureProxy<TInput, TOutput>(
       return queryClient.invalidateQueries({ queryKey });
     },
 
-    prefetch(input, queryClient) {
+    prefetch(...args) {
+      const [input, queryClient] = args;
       const client = getClient() as GenericClient;
       const queryKey = buildQueryKey(namespace, procedureName, input);
 

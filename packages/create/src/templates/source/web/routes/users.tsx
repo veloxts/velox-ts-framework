@@ -40,7 +40,7 @@ function UsersPage() {
  * No need for isLoading/error checks - handled by boundaries.
  */
 function UsersTable() {
-  const { data } = api.users.listUsers.useSuspenseQuery({});
+  const { data } = api.users.listUsers.useSuspenseQuery();
 
   return (
     <div className={styles.tableContainer}>
