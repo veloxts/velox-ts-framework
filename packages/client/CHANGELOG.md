@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.4.13
+
+### Patch Changes
+
+- add debug mode to dev server
+
 ## 0.4.12
 
 ### Patch Changes

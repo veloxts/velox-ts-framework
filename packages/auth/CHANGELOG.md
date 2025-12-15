@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.4.13
+
+### Patch Changes
+
+- add debug mode to dev server
+- Updated dependencies
+  - @veloxts/core@0.4.13
+  - @veloxts/router@0.4.13
+
 ## 0.4.12
 
 ### Patch Changes
