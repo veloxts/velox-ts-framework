@@ -3,8 +3,8 @@ import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
 import { useQuery } from '@veloxts/client/react';
 
 import type { AppRouter } from '../../../api/src/index.js';
-import styles from '@/App.module.css';
 /* @endif auth */
+import styles from '@/App.module.css';
 
 export const Route = createRootRoute({
   component: RootLayout,
