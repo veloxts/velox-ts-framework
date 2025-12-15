@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.4.15
+
+### Patch Changes
+
+- chore lint fixes
+- Updated dependencies
+  - @veloxts/core@0.4.15
+  - @veloxts/router@0.4.15
+
 ## 0.4.14
 
 ### Patch Changes

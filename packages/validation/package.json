@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/validation",
-  "version": "0.4.14",
+  "version": "0.4.15",
   "description": "Zod integration and validation middleware for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",

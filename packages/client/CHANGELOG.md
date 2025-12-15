@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.4.15
+
+### Patch Changes
+
+- chore lint fixes
+
 ## 0.4.14
 
 ### Patch Changes
