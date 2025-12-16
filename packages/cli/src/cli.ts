@@ -1,9 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
 /**
  * VeloxTS CLI - Main entry point
  *
  * A beautiful, Laravel-inspired command-line interface for the VeloxTS Framework
+ *
+ * Uses tsx as the shebang to enable:
+ * - TypeScript execution without compilation
+ * - ESM .js → .ts import resolution (required for `velox procedures list`)
  */
 
 import { Command } from 'commander';

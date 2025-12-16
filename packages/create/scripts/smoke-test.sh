@@ -152,6 +152,22 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   echo "✓ Database schema pushed"
   echo ""
 
+  # Test CLI commands
+  echo "=== Testing CLI commands ==="
+
+  # Test velox procedures list (requires tsx shebang to resolve .js -> .ts imports)
+  PROCEDURES_OUTPUT=$(npx velox procedures list 2>&1)
+  if echo "$PROCEDURES_OUTPUT" | grep -q "Discovered Procedures"; then
+    echo "✓ velox procedures list working"
+    # Show brief output
+    echo "$PROCEDURES_OUTPUT" | grep -E "^  (GET|POST|PUT|PATCH|DELETE)" | head -5
+  else
+    echo "✗ velox procedures list failed:"
+    echo "$PROCEDURES_OUTPUT"
+    exit 1
+  fi
+  echo ""
+
   # Build the API
   echo "=== Building the API ==="
   npm run build

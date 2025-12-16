@@ -182,6 +182,9 @@ function createListCommand(): Command {
         } else {
           printPrettyOutput(result);
         }
+
+        // Exit explicitly - dynamic imports may keep event loop running
+        process.exit(0);
       } catch (error) {
         if (isDiscoveryError(error)) {
           if (options.json) {
