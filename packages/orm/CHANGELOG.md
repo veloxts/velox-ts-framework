@@ -1,5 +1,13 @@
 # @veloxts/orm
 
+## 0.4.17
+
+### Patch Changes
+
+- add interactive field prompts for resource generation
+- Updated dependencies
+  - @veloxts/core@0.4.17
+
 ## 0.4.16
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.4.17
+
+### Patch Changes
+
+- add interactive field prompts for resource generation
+
 ## 0.4.16
 
 ### Patch Changes
