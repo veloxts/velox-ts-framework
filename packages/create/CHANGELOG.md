@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.4.16
+
+### Patch Changes
+
+- fixed velox procedures list
+
 ## 0.4.15
 
 ### Patch Changes

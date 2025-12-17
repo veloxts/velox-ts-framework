@@ -5,6 +5,8 @@
  * This is the "full stack" generator for quickly scaffolding new entities.
  */
 
+import type { FieldDefinition, FieldTypeInfo } from '../fields/types.js';
+import { FIELD_TYPES } from '../fields/types.js';
 import type { GeneratedFile, TemplateContext } from '../types.js';
 
 // ============================================================================
@@ -28,6 +30,119 @@ export interface ResourceOptions {
   skipSchema: boolean;
   /** Skip procedure generation */
   skipProcedure: boolean;
+  /** Custom field definitions */
+  fields?: FieldDefinition[];
+}
+
+// ============================================================================
+// Field Conversion Helpers
+// ============================================================================
+
+/**
+ * Get field type info by type
+ */
+export function getFieldTypeInfo(type: FieldDefinition['type']): FieldTypeInfo | undefined {
+  return FIELD_TYPES.find((t) => t.type === type);
+}
+
+/**
+ * Convert a field definition to Prisma field line
+ */
+export function fieldToPrisma(field: FieldDefinition): string {
+  const typeInfo = getFieldTypeInfo(field.type);
+  let prismaType: string;
+
+  // Handle enum type specially
+  if (field.type === 'enum' && field.enumDef) {
+    prismaType = field.enumDef.name;
+  } else {
+    prismaType = typeInfo?.prismaType ?? 'String';
+  }
+
+  // Build modifiers
+  const modifiers: string[] = [];
+
+  // Add @db.Text for long text fields
+  if (field.type === 'text') {
+    modifiers.push('@db.Text');
+  }
+
+  // Optional (nullable)
+  if (field.attributes.optional) {
+    prismaType += '?';
+  }
+
+  // Unique constraint
+  if (field.attributes.unique) {
+    modifiers.push('@unique');
+  }
+
+  // Default value
+  if (field.attributes.hasDefault && field.attributes.defaultValue !== undefined) {
+    const defaultVal = formatPrismaDefault(field.type, field.attributes.defaultValue);
+    modifiers.push(`@default(${defaultVal})`);
+  }
+
+  const modifierStr = modifiers.length > 0 ? ` ${modifiers.join(' ')}` : '';
+  return `  ${field.name} ${prismaType}${modifierStr}`;
+}
+
+/**
+ * Format default value for Prisma
+ */
+export function formatPrismaDefault(type: FieldDefinition['type'], value: string): string {
+  switch (type) {
+    case 'string':
+    case 'text':
+      return `"${value}"`;
+    case 'boolean':
+      return value; // true or false
+    case 'int':
+    case 'float':
+      return value;
+    default:
+      return `"${value}"`;
+  }
+}
+
+/**
+ * Convert a field definition to Zod schema field
+ */
+export function fieldToZod(field: FieldDefinition): string {
+  const typeInfo = getFieldTypeInfo(field.type);
+  let zodType: string;
+
+  // Handle enum type specially
+  if (field.type === 'enum' && field.enumDef) {
+    const values = field.enumDef.values.map((v) => `'${v}'`).join(', ');
+    zodType = `z.enum([${values}])`;
+  } else {
+    zodType = typeInfo?.zodSchema ?? 'z.string()';
+  }
+
+  // Optional (nullable)
+  if (field.attributes.optional) {
+    zodType += '.nullable()';
+  }
+
+  return `  ${field.name}: ${zodType},`;
+}
+
+/**
+ * Generate Prisma enum definitions
+ */
+export function generatePrismaEnums(fields: FieldDefinition[]): string {
+  const enumFields = fields.filter((f) => f.type === 'enum' && f.enumDef);
+  if (enumFields.length === 0) return '';
+
+  const enums = enumFields.map((f) => {
+    const enumDef = f.enumDef;
+    if (!enumDef) return '';
+    const values = enumDef.values.map((v) => `  ${v}`).join('\n');
+    return `enum ${enumDef.name} {\n${values}\n}`;
+  });
+
+  return `\n${enums.join('\n\n')}\n`;
 }
 
 // ============================================================================
@@ -39,7 +154,7 @@ function generatePrismaModel(
   options: ResourceOptions
 ): string {
   const { pascal, camel } = entity;
-  const { softDelete, timestamps } = options;
+  const { softDelete, timestamps, fields = [] } = options;
 
   const timestampFields = timestamps
     ? `
@@ -52,15 +167,38 @@ function generatePrismaModel(
   deletedAt DateTime?`
     : '';
 
+  // Generate custom fields or placeholder
+  let customFields: string;
+  if (fields.length > 0) {
+    customFields = `\n${fields.map(fieldToPrisma).join('\n')}`;
+  } else {
+    customFields = `
+  // TODO: Add your fields here
+  // name   String
+  // email  String  @unique
+  // status Status  @default(ACTIVE)`;
+  }
+
+  // Generate enum definitions if any
+  const enumDefs = fields.length > 0 ? generatePrismaEnums(fields) : '';
+
+  const enumComment =
+    fields.length === 0
+      ? `
+// Optional: Add enum if needed
+// enum Status {
+//   ACTIVE
+//   INACTIVE
+//   PENDING
+// }
+`
+      : '';
+
   return `// Add this model to your prisma/schema.prisma file
 
 model ${pascal} {
   id String @id @default(uuid())
-
-  // TODO: Add your fields here
-  // name   String
-  // email  String  @unique
-  // status Status  @default(ACTIVE)
+${customFields}
 ${timestampFields}${softDeleteField}
 
   // Relations
@@ -68,14 +206,7 @@ ${timestampFields}${softDeleteField}
 
   @@map("${camel}s")
 }
-
-// Optional: Add enum if needed
-// enum Status {
-//   ACTIVE
-//   INACTIVE
-//   PENDING
-// }
-`;
+${enumDefs}${enumComment}`;
 }
 
 // ============================================================================
@@ -87,7 +218,7 @@ function generateZodSchema(
   options: ResourceOptions
 ): string {
   const { pascal, camel } = entity;
-  const { softDelete, timestamps, crud } = options;
+  const { softDelete, timestamps, crud, fields = [] } = options;
 
   const timestampFields = timestamps
     ? `
@@ -99,6 +230,18 @@ function generateZodSchema(
     ? `
   deletedAt: z.date().nullable(),`
     : '';
+
+  // Generate custom fields or placeholder
+  let customFields: string;
+  if (fields.length > 0) {
+    customFields = `\n${fields.map(fieldToZod).join('\n')}`;
+  } else {
+    customFields = `
+  // TODO: Add your fields here
+  // name: z.string().min(1).max(255),
+  // email: z.string().email(),
+  // status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING']),`;
+  }
 
   // Fields to omit for create/update
   const omitFields = ['id'];
@@ -199,11 +342,7 @@ import { z } from 'zod';
  * ${pascal} - Full entity schema
  */
 export const ${camel}Schema = z.object({
-  id: z.string().uuid(),
-  // TODO: Add your fields here
-  // name: z.string().min(1).max(255),
-  // email: z.string().email(),
-  // status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING']),${timestampFields}${softDeleteField}
+  id: z.string().uuid(),${customFields}${timestampFields}${softDeleteField}
 });
 
 export type ${pascal} = z.infer<typeof ${camel}Schema>;

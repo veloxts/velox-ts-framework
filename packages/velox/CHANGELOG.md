@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.4.16
+
+### Patch Changes
+
+- fixed velox procedures list
+- Updated dependencies
+  - @veloxts/auth@0.4.16
+  - @veloxts/core@0.4.16
+  - @veloxts/orm@0.4.16
+  - @veloxts/router@0.4.16
+  - @veloxts/validation@0.4.16
+
 ## 0.4.15
 
 ### Patch Changes

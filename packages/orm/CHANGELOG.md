@@ -1,5 +1,13 @@
 # @veloxts/orm
 
+## 0.4.16
+
+### Patch Changes
+
+- fixed velox procedures list
+- Updated dependencies
+  - @veloxts/core@0.4.16
+
 ## 0.4.15
 
 ### Patch Changes
