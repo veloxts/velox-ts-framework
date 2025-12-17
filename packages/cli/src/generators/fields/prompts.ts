@@ -2,11 +2,27 @@
  * Field Prompts Module
  *
  * Interactive prompts for collecting field definitions using @clack/prompts.
+ * Features an interactive menu-driven workflow with add/edit/remove capabilities.
  */
 
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 
+import {
+  confirmCancel,
+  confirmFieldsComplete,
+  confirmRemoveField,
+  handleTemplateConflicts,
+  type MainMenuAction,
+  promptMainMenu,
+  selectAndApplyTemplate,
+  selectField,
+  showFieldAdded,
+  showFieldRemoved,
+  showFieldUpdated,
+  showTemplateApplied,
+} from './actions.js';
+import { clearAndDisplay, displayEnumPreview } from './display.js';
 import {
   FIELD_TYPES,
   type FieldAttributes,
@@ -44,58 +60,114 @@ export interface CollectFieldsResult {
 
 /**
  * Collect field definitions interactively from the user
+ * Uses a menu-driven workflow with add/edit/remove capabilities
  */
 export async function collectFields(options: CollectFieldsOptions): Promise<CollectFieldsResult> {
-  const { resourceName, minFields = 0 } = options;
+  const { resourceName } = options;
   const fields: FieldDefinition[] = [];
   const existingNames = new Set<string>();
 
-  p.note(
-    `Define the fields for your ${pc.cyan(resourceName)} model.\n` +
-      `${pc.dim('Fields id, createdAt, updatedAt are added automatically.')}\n` +
-      `${pc.dim('Press Ctrl+C to cancel at any time.')}`,
-    'Field Definition'
-  );
+  // Main interactive loop
+  while (true) {
+    // Display current state
+    clearAndDisplay(fields, resourceName);
 
-  let addMore = true;
+    // Prompt for action
+    const action = await promptMainMenu(fields.length);
 
-  while (addMore) {
-    const fieldResult = await collectSingleField(existingNames, fields.length + 1);
-
-    if (fieldResult.cancelled) {
-      return { fields, cancelled: true };
+    if (p.isCancel(action)) {
+      const shouldCancel = await confirmCancel();
+      if (shouldCancel) {
+        p.cancel('Field definition cancelled.');
+        return { fields: [], cancelled: true };
+      }
+      continue;
     }
 
-    if (fieldResult.field) {
-      const field = fieldResult.field;
-      fields.push(field);
-      existingNames.add(field.name);
-
-      // Show what was added
-      const typeInfo = FIELD_TYPES.find((t) => t.type === field.type);
-      const attrs = formatAttributes(field.attributes);
-      console.log(
-        pc.green('  ✓') +
-          ` Added: ${pc.bold(field.name)} (${typeInfo?.label ?? field.type})${attrs}`
-      );
-    }
-
-    // Ask if they want to add more fields
-    if (fields.length >= minFields) {
-      const continueResult = await p.confirm({
-        message: 'Add another field?',
-        initialValue: true,
-      });
-
-      if (p.isCancel(continueResult)) {
-        return { fields, cancelled: true };
+    // Handle action
+    switch (action as MainMenuAction) {
+      case 'add': {
+        const result = await collectSingleField(existingNames, fields.length + 1);
+        if (result.cancelled) continue;
+        if (result.field) {
+          fields.push(result.field);
+          existingNames.add(result.field.name);
+          showFieldAdded(result.field);
+          await pause(600);
+        }
+        break;
       }
 
-      addMore = continueResult;
+      case 'edit': {
+        const fieldIndex = await selectField(fields, 'edit');
+        if (fieldIndex === null) continue;
+
+        const field = fields[fieldIndex];
+        const edited = await editField(field, existingNames);
+        if (edited) {
+          existingNames.delete(field.name);
+          fields[fieldIndex] = edited;
+          existingNames.add(edited.name);
+          showFieldUpdated(edited);
+          await pause(600);
+        }
+        break;
+      }
+
+      case 'remove': {
+        const fieldIndex = await selectField(fields, 'remove');
+        if (fieldIndex === null) continue;
+
+        const field = fields[fieldIndex];
+        const confirmed = await confirmRemoveField(field);
+        if (confirmed) {
+          fields.splice(fieldIndex, 1);
+          existingNames.delete(field.name);
+          showFieldRemoved(field.name);
+          await pause(600);
+        }
+        break;
+      }
+
+      case 'template': {
+        const templateFields = await selectAndApplyTemplate();
+        if (!templateFields) continue;
+
+        // Handle conflicts
+        const fieldsToAdd = await handleTemplateConflicts(templateFields, existingNames);
+        if (!fieldsToAdd || fieldsToAdd.length === 0) continue;
+
+        // Add non-conflicting fields
+        for (const field of fieldsToAdd) {
+          fields.push(field);
+          existingNames.add(field.name);
+        }
+        showTemplateApplied(fieldsToAdd.length, 'Template');
+        await pause(800);
+        break;
+      }
+
+      case 'skip': {
+        const confirmed = await p.confirm({
+          message: 'Generate skeleton without custom fields?',
+          initialValue: true,
+        });
+        if (p.isCancel(confirmed) || !confirmed) continue;
+        p.outro(pc.dim('Generating skeleton...'));
+        return { fields: [], cancelled: false };
+      }
+
+      case 'done': {
+        clearAndDisplay(fields, resourceName);
+        const confirmed = await confirmFieldsComplete(fields);
+        if (confirmed) {
+          p.outro(pc.green('Fields confirmed!'));
+          return { fields, cancelled: false };
+        }
+        break;
+      }
     }
   }
-
-  return { fields, cancelled: false };
 }
 
 // ============================================================================
@@ -112,20 +184,24 @@ interface SingleFieldResult {
  */
 async function collectSingleField(
   existingNames: Set<string>,
-  fieldNumber: number
+  fieldNumber: number,
+  prefill?: FieldDefinition
 ): Promise<SingleFieldResult> {
   console.log();
-  console.log(pc.bold(pc.cyan(`Field #${fieldNumber}`)));
+  console.log(pc.bold(pc.cyan(prefill ? `Edit Field: ${prefill.name}` : `Field #${fieldNumber}`)));
 
   // 1. Get field name
   const nameResult = await p.text({
     message: 'Field name (camelCase)',
     placeholder: 'e.g., title, authorId, isPublished',
+    initialValue: prefill?.name ?? '',
     validate: (value) => {
-      const error = validateFieldName(value);
+      const trimmed = value.trim();
+      const error = validateFieldName(trimmed);
       if (error) return error;
-      if (existingNames.has(value.trim())) {
-        return `Field "${value.trim()}" already exists`;
+      // Allow same name if editing, otherwise check for duplicates
+      if (prefill?.name !== trimmed && existingNames.has(trimmed)) {
+        return `Field "${trimmed}" already exists`;
       }
       return undefined;
     },
@@ -147,6 +223,7 @@ async function collectSingleField(
   const typeResult = await p.select({
     message: 'Field type',
     options: typeOptions,
+    initialValue: prefill?.type,
   });
 
   if (p.isCancel(typeResult)) {
@@ -156,7 +233,7 @@ async function collectSingleField(
   const fieldType = typeResult as FieldType;
 
   // 3. Get field attributes
-  const attributesResult = await collectFieldAttributes(fieldType);
+  const attributesResult = await collectFieldAttributes(fieldType, prefill?.attributes);
 
   if (attributesResult.cancelled) {
     return { field: null, cancelled: true };
@@ -165,7 +242,7 @@ async function collectSingleField(
   // 4. Get enum definition if needed
   let enumDef: FieldDefinition['enumDef'];
   if (fieldType === 'enum') {
-    const enumResult = await collectEnumDefinition(fieldName);
+    const enumResult = await collectEnumDefinition(fieldName, prefill?.enumDef);
     if (enumResult.cancelled) {
       return { field: null, cancelled: true };
     }
@@ -183,6 +260,20 @@ async function collectSingleField(
   };
 }
 
+/**
+ * Edit an existing field
+ */
+async function editField(
+  field: FieldDefinition,
+  existingNames: Set<string>
+): Promise<FieldDefinition | null> {
+  const result = await collectSingleField(existingNames, 0, field);
+  if (result.cancelled || !result.field) {
+    return null;
+  }
+  return result.field;
+}
+
 // ============================================================================
 // Field Attributes Collection
 // ============================================================================
@@ -195,7 +286,10 @@ interface AttributesResult {
 /**
  * Collect field attributes (optional, unique, default)
  */
-async function collectFieldAttributes(fieldType: FieldType): Promise<AttributesResult> {
+async function collectFieldAttributes(
+  fieldType: FieldType,
+  prefill?: FieldAttributes
+): Promise<AttributesResult> {
   // Build options based on field type
   const options: Array<{ value: string; label: string; hint?: string }> = [
     { value: 'optional', label: 'Optional', hint: 'Field can be null' },
@@ -207,10 +301,17 @@ async function collectFieldAttributes(fieldType: FieldType): Promise<AttributesR
     options.push({ value: 'hasDefault', label: 'Has default value' });
   }
 
+  // Determine initial values from prefill
+  const initialValues: string[] = [];
+  if (prefill?.optional) initialValues.push('optional');
+  if (prefill?.unique) initialValues.push('unique');
+  if (prefill?.hasDefault) initialValues.push('hasDefault');
+
   const selectedResult = await p.multiselect({
     message: 'Field attributes (space to toggle, enter to confirm)',
     options,
     required: false,
+    initialValues: initialValues.length > 0 ? initialValues : undefined,
   });
 
   if (p.isCancel(selectedResult)) {
@@ -229,7 +330,7 @@ async function collectFieldAttributes(fieldType: FieldType): Promise<AttributesR
 
   // If has default, ask for the value
   if (attributes.hasDefault) {
-    const defaultResult = await collectDefaultValue(fieldType);
+    const defaultResult = await collectDefaultValue(fieldType, prefill?.defaultValue);
     if (defaultResult.cancelled) {
       return { attributes, cancelled: true };
     }
@@ -251,7 +352,10 @@ interface DefaultValueResult {
 /**
  * Collect default value based on field type
  */
-async function collectDefaultValue(fieldType: FieldType): Promise<DefaultValueResult> {
+async function collectDefaultValue(
+  fieldType: FieldType,
+  prefill?: string
+): Promise<DefaultValueResult> {
   if (fieldType === 'boolean') {
     const result = await p.select({
       message: 'Default value',
@@ -259,6 +363,7 @@ async function collectDefaultValue(fieldType: FieldType): Promise<DefaultValueRe
         { value: 'true', label: 'true' },
         { value: 'false', label: 'false' },
       ],
+      initialValue: prefill ?? 'false',
     });
 
     if (p.isCancel(result)) {
@@ -272,6 +377,7 @@ async function collectDefaultValue(fieldType: FieldType): Promise<DefaultValueRe
   const result = await p.text({
     message: 'Default value',
     placeholder,
+    initialValue: prefill ?? '',
     validate: (value) => {
       if (!value.trim()) return 'Default value is required';
       return validateDefaultValue(fieldType, value.trim());
@@ -331,16 +437,19 @@ interface EnumDefinitionResult {
 }
 
 /**
- * Collect enum type name and values
+ * Collect enum type name and values with preview
  */
-async function collectEnumDefinition(fieldName: string): Promise<EnumDefinitionResult> {
+async function collectEnumDefinition(
+  fieldName: string,
+  prefill?: { name: string; values: string[] }
+): Promise<EnumDefinitionResult> {
   // Suggest enum name based on field name
   const suggestedName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
 
   const nameResult = await p.text({
     message: 'Enum type name (PascalCase)',
     placeholder: suggestedName,
-    initialValue: suggestedName,
+    initialValue: prefill?.name ?? suggestedName,
     validate: validateEnumName,
   });
 
@@ -353,6 +462,7 @@ async function collectEnumDefinition(fieldName: string): Promise<EnumDefinitionR
   const valuesResult = await p.text({
     message: 'Enum values (comma-separated, will be converted to UPPER_CASE)',
     placeholder: 'e.g., draft, published, archived',
+    initialValue: prefill?.values?.join(', ') ?? '',
     validate: (value) => {
       const parsed = parseEnumValues(value);
       return validateEnumValues(parsed);
@@ -364,6 +474,20 @@ async function collectEnumDefinition(fieldName: string): Promise<EnumDefinitionR
   }
 
   const enumValues = parseEnumValues(valuesResult);
+
+  // Show preview
+  displayEnumPreview(enumName, enumValues);
+
+  // Confirm enum
+  const confirmResult = await p.confirm({
+    message: 'Looks good?',
+    initialValue: true,
+  });
+
+  if (p.isCancel(confirmResult) || !confirmResult) {
+    // Allow re-entry
+    return collectEnumDefinition(fieldName, { name: enumName, values: enumValues });
+  }
 
   return {
     enumDef: {
@@ -379,41 +503,8 @@ async function collectEnumDefinition(fieldName: string): Promise<EnumDefinitionR
 // ============================================================================
 
 /**
- * Format attributes for display
+ * Brief pause for user feedback
  */
-function formatAttributes(attrs: FieldAttributes): string {
-  const parts: string[] = [];
-  if (attrs.optional) parts.push('optional');
-  if (attrs.unique) parts.push('unique');
-  if (attrs.hasDefault) parts.push(`default: ${attrs.defaultValue}`);
-
-  return parts.length > 0 ? pc.dim(` [${parts.join(', ')}]`) : '';
-}
-
-/**
- * Display a summary of collected fields
- */
-export function displayFieldsSummary(fields: FieldDefinition[]): void {
-  if (fields.length === 0) {
-    console.log(pc.dim('  No custom fields defined.'));
-    return;
-  }
-
-  console.log();
-  console.log(pc.bold('Fields to generate:'));
-  console.log(pc.dim('─'.repeat(40)));
-
-  for (const field of fields) {
-    const typeInfo = FIELD_TYPES.find((t) => t.type === field.type);
-    const attrs = formatAttributes(field.attributes);
-    const enumInfo = field.enumDef
-      ? pc.dim(` → ${field.enumDef.name}(${field.enumDef.values.join(', ')})`)
-      : '';
-
-    console.log(`  ${pc.cyan(field.name)}: ${typeInfo?.label ?? field.type}${attrs}${enumInfo}`);
-  }
-
-  console.log(pc.dim('─'.repeat(40)));
-  console.log(pc.dim(`  + id, createdAt, updatedAt (auto-generated)`));
-  console.log();
+async function pause(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
