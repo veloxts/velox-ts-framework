@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.4.18
+
+### Patch Changes
+
+- introduce interactive field menu and templates for resource generation
+- Updated dependencies
+  - @veloxts/core@0.4.18
+  - @veloxts/validation@0.4.18
+
 ## 0.4.17
 
 ### Patch Changes

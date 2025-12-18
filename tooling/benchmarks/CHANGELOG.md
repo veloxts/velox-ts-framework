@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.4.18
+
+### Patch Changes
+
+- introduce interactive field menu and templates for resource generation
+
 ## 0.4.17
 
 ### Patch Changes

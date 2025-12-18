@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.4.18
+
+### Patch Changes
+
+- introduce interactive field menu and templates for resource generation
+- Updated dependencies
+  - @veloxts/auth@0.4.18
+  - @veloxts/core@0.4.18
+  - @veloxts/orm@0.4.18
+  - @veloxts/router@0.4.18
+  - @veloxts/validation@0.4.18
+
 ## 0.4.17
 
 ### Patch Changes
