@@ -8,8 +8,13 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
 
 import pc from 'picocolors';
+
+// Resolve hot-hook from CLI's node_modules, not from user's project
+const require = createRequire(import.meta.url);
+const hotHookRegisterPath = require.resolve('hot-hook/register');
 
 import { error } from '../utils/output.js';
 import { type ParsedDevError, parseDevError } from './error-parser.js';
@@ -242,7 +247,8 @@ export class HMRRunner {
 
     // Spawn with hot-hook register via Node.js loader
     // tsx provides TypeScript support, hot-hook provides HMR
-    this.child = spawn('node', ['--import=tsx', '--import=hot-hook/register', this.options.entry], {
+    // Use absolute path to hot-hook so it resolves from CLI's node_modules
+    this.child = spawn('node', ['--import=tsx', `--import=${hotHookRegisterPath}`, this.options.entry], {
       stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
       env,
       cwd: process.cwd(),
