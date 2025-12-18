@@ -208,8 +208,9 @@ async function runMake(
     );
 
     // Show spinner for generation (unless generator handles its own spinner)
-    // Resource generator handles its own spinner after interactive prompts
-    const generatorHandlesSpinner = generator.metadata.name === 'resource';
+    // Resource and model generators handle their own spinner after interactive prompts
+    const generatorHandlesSpinner =
+      generator.metadata.name === 'resource' || generator.metadata.name === 'model';
     let output: GeneratorOutput;
 
     if (isInteractive && !generatorHandlesSpinner) {
