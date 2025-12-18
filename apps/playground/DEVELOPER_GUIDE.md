@@ -257,19 +257,31 @@ apps/playground/
 **Solution:**
 1. Ensure CLI build completed without errors
 2. Check that `packages/cli/dist/` exists
-3. The playground uses `node ../../packages/cli/dist/cli.js` directly
+3. The playground uses `tsx ../../packages/cli/dist/cli.js` (tsx enables TypeScript imports)
 
 ### Procedure discovery warnings
 
-**Symptom:** `velox procedures list` shows warnings about missing modules.
+**Symptom:** `velox procedures list` shows warnings about missing modules or DATABASE_URL.
 
-**Solution:**
-This often means the playground hasn't been built:
-```bash
-cd apps/playground
-pnpm build
-pnpm velox procedures list
-```
+**Solutions:**
+
+1. **Missing modules:** The playground scripts use `tsx` to load TypeScript files directly. If you see "Cannot find module" errors, ensure you're running from the playground directory:
+   ```bash
+   cd apps/playground
+   pnpm velox:procedures
+   ```
+
+2. **DATABASE_URL errors:** Some procedures (like auth) initialize database connections on import. Set the environment:
+   ```bash
+   source .env  # Load environment variables
+   pnpm velox:procedures
+   ```
+
+3. **Alternative - build first:** If issues persist, build the playground:
+   ```bash
+   pnpm build
+   pnpm velox:procedures
+   ```
 
 ### TypeScript errors in watch mode
 

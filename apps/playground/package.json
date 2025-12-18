@@ -15,7 +15,7 @@
     "db:push": "prisma db push --config prisma/prisma.config.ts",
     "db:studio": "prisma studio --config prisma/prisma.config.ts",
     "db:seed": "node dist/database/seed.js",
-    "velox": "node ../../packages/cli/dist/cli.js",
+    "velox": "tsx ../../packages/cli/dist/cli.js",
     "velox:make": "pnpm velox make",
     "velox:procedures": "pnpm velox procedures list"
   },
