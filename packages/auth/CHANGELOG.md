@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.4.21
+
+### Patch Changes
+
+- format Prisma default values correctly by type
+- Updated dependencies
+  - @veloxts/core@0.4.21
+  - @veloxts/router@0.4.21
+
 ## 0.4.20
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.4.21
+
+### Patch Changes
+
+- format Prisma default values correctly by type
+
 ## 0.4.20
 
 ### Patch Changes
