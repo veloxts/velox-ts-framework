@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.4.19
+
+### Patch Changes
+
+- update default dev server port to 3030
+
 ## 0.4.18
 
 ### Patch Changes

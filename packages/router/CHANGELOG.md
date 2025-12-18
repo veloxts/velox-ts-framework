@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.4.19
+
+### Patch Changes
+
+- update default dev server port to 3030
+- Updated dependencies
+  - @veloxts/core@0.4.19
+  - @veloxts/validation@0.4.19
+
 ## 0.4.18
 
 ### Patch Changes
