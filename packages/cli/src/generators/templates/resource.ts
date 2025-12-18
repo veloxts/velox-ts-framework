@@ -95,6 +95,14 @@ export function fieldToPrisma(field: FieldDefinition, database: DatabaseType = '
 
 /**
  * Format default value for Prisma
+ *
+ * Different types require different formatting:
+ * - Strings: quoted ("value")
+ * - Numbers: unquoted (123, 3.14)
+ * - Booleans: unquoted (true, false)
+ * - Enums: unquoted (DRAFT, ACTIVE)
+ * - DateTime: function call (now())
+ * - JSON: not supported for defaults
  */
 export function formatPrismaDefault(type: FieldDefinition['type'], value: string): string {
   switch (type) {
@@ -102,9 +110,19 @@ export function formatPrismaDefault(type: FieldDefinition['type'], value: string
     case 'text':
       return `"${value}"`;
     case 'boolean':
-      return value; // true or false
     case 'int':
     case 'float':
+      return value; // Unquoted: true, false, 123, 3.14
+    case 'enum':
+      return value; // Unquoted: DRAFT, ACTIVE, PENDING
+    case 'datetime':
+      // Support special Prisma functions or quoted string values
+      if (value === 'now()' || value === 'now') {
+        return 'now()';
+      }
+      return `"${value}"`;
+    case 'json':
+      // JSON defaults are complex - return as-is (user must format correctly)
       return value;
     default:
       return `"${value}"`;

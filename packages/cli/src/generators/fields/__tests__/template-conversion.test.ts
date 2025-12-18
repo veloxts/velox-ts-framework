@@ -322,10 +322,37 @@ describe('formatPrismaDefault', () => {
     });
   });
 
-  describe('other types', () => {
+  describe('enum type', () => {
+    it('returns raw enum values (unquoted)', () => {
+      expect(formatPrismaDefault('enum', 'DRAFT')).toBe('DRAFT');
+      expect(formatPrismaDefault('enum', 'ACTIVE')).toBe('ACTIVE');
+      expect(formatPrismaDefault('enum', 'PENDING')).toBe('PENDING');
+    });
+  });
+
+  describe('datetime type', () => {
+    it('returns now() function for now values', () => {
+      expect(formatPrismaDefault('datetime', 'now()')).toBe('now()');
+      expect(formatPrismaDefault('datetime', 'now')).toBe('now()');
+    });
+
+    it('wraps other datetime values in quotes', () => {
+      expect(formatPrismaDefault('datetime', '2024-01-01')).toBe('"2024-01-01"');
+    });
+  });
+
+  describe('json type', () => {
+    it('returns raw JSON value (user must format correctly)', () => {
+      expect(formatPrismaDefault('json', '{}')).toBe('{}');
+      expect(formatPrismaDefault('json', '[]')).toBe('[]');
+    });
+  });
+
+  describe('unknown types', () => {
+    // @ts-expect-error - testing unknown type behavior
     it('defaults to quoted string for unknown types', () => {
-      expect(formatPrismaDefault('datetime', 'now')).toBe('"now"');
-      expect(formatPrismaDefault('json', '{}')).toBe('"{}"');
+      // @ts-expect-error - testing unknown type
+      expect(formatPrismaDefault('unknown', 'value')).toBe('"value"');
     });
   });
 });
