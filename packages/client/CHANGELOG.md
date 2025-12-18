@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.4.20
+
+### Patch Changes
+
+- import consolidation: update import paths for `@veloxts/velox`
+
 ## 0.4.19
 
 ### Patch Changes

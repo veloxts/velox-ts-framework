@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.4.20
+
+### Patch Changes
+
+- import consolidation: update import paths for `@veloxts/velox`
+- Updated dependencies
+  - @veloxts/core@0.4.20
+  - @veloxts/router@0.4.20
+
 ## 0.4.19
 
 ### Patch Changes
