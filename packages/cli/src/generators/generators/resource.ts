@@ -99,7 +99,7 @@ const options: GeneratorOption[] = [
     name: 'interactive',
     type: 'boolean',
     description: 'Interactively define fields',
-    default: true,
+    default: false,
     flag: '-i, --interactive',
   },
   {
@@ -143,7 +143,7 @@ export class ResourceGenerator extends BaseGenerator<ResourceCliOptions> {
       skipModel: Boolean(rawOptions.skipModel ?? false),
       skipSchema: Boolean(rawOptions.skipSchema ?? false),
       skipProcedure: Boolean(rawOptions.skipProcedure ?? false),
-      interactive: Boolean(rawOptions.interactive ?? true),
+      interactive: Boolean(rawOptions.interactive ?? false),
       skipFields: Boolean(rawOptions.skipFields ?? false),
     };
   }

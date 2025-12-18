@@ -96,7 +96,7 @@ Examples:
       short: 'i',
       description: 'Interactively define fields',
       type: 'boolean',
-      default: true,
+      default: false,
     },
     {
       name: 'skip-fields',
@@ -115,7 +115,7 @@ Examples:
       paginated: Boolean(raw.paginated ?? false),
       softDelete: Boolean(raw['soft-delete'] ?? raw.softDelete ?? false),
       timestamps: Boolean(raw.timestamps ?? true),
-      interactive: Boolean(raw.interactive ?? true),
+      interactive: Boolean(raw.interactive ?? false),
       skipFields: Boolean(raw['skip-fields'] ?? raw.skipFields ?? false),
     };
   }

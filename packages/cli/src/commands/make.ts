@@ -81,7 +81,7 @@ export function createMakeCommand(): Command {
     .option('--skip-model', 'Skip Prisma model generation', false)
     .option('--skip-schema', 'Skip Zod schema generation', false)
     .option('--skip-procedure', 'Skip procedure generation', false)
-    .option('-i, --interactive', 'Interactively define fields (resource generator)', true)
+    .option('-i, --interactive', 'Interactively define fields (resource/model)', false)
     .option('--skip-fields', 'Skip field prompts, generate skeleton only', false)
     .action(async (type: string | undefined, name: string | undefined, options: MakeOptions) => {
       await runMake(type, name, options);
