@@ -8,7 +8,7 @@
 import * as p from '@clack/prompts';
 
 import { BaseGenerator } from '../base.js';
-import { collectFields, displayFieldsSummary, type FieldDefinition } from '../fields/index.js';
+import { collectFields, type FieldDefinition } from '../fields/index.js';
 import {
   generateResourceFiles,
   getResourceInstructions,
@@ -169,24 +169,7 @@ export class ResourceGenerator extends BaseGenerator<ResourceCliOptions> {
       }
 
       fields = fieldResult.fields;
-
-      // Show summary of collected fields
-      if (fields.length > 0) {
-        displayFieldsSummary(fields);
-
-        // Confirm before proceeding
-        const confirmed = await p.confirm({
-          message: 'Generate resource with these fields?',
-          initialValue: true,
-        });
-
-        if (p.isCancel(confirmed) || !confirmed) {
-          return {
-            files: [],
-            postInstructions: 'Operation cancelled by user.',
-          };
-        }
-      }
+      // Field collection already shows summary and confirms with user
     }
 
     // Build template options (without CLI-only flags)
