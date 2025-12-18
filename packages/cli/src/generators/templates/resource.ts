@@ -376,7 +376,7 @@ function generateProcedure(
  * API procedures for ${pascal} operations.
  */
 
-import { procedure, defineProcedures } from '@veloxts/router';
+import { defineProcedures, procedure } from '@veloxts/velox';
 import { ${camel}Schema, ${camel}IdParamSchema } from '../schemas/${kebab}.schema.js';
 
 export const ${camel}Procedures = defineProcedures('${kebab}s', {
@@ -433,8 +433,7 @@ export const ${camel}Procedures = defineProcedures('${kebab}s', {
  * CRUD procedures for ${pascal} entity.
  */
 
-import { z } from 'zod';
-import { procedure, defineProcedures } from '@veloxts/router';
+import { defineProcedures, procedure, z } from '@veloxts/velox';
 import {
   ${camel}Schema,
   ${camel}IdParamSchema,
