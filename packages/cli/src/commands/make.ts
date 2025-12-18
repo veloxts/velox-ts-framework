@@ -207,9 +207,12 @@ async function runMake(
       { dryRun, force, json }
     );
 
-    // Show spinner for generation
+    // Show spinner for generation (unless generator handles its own spinner)
+    // Resource generator handles its own spinner after interactive prompts
+    const generatorHandlesSpinner = generator.metadata.name === 'resource';
     let output: GeneratorOutput;
-    if (isInteractive) {
+
+    if (isInteractive && !generatorHandlesSpinner) {
       const s = p.spinner();
       s.start(`Scaffolding ${generator.metadata.name}...`);
 

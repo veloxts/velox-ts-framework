@@ -248,11 +248,15 @@ export class HMRRunner {
     // Spawn with hot-hook register via Node.js loader
     // tsx provides TypeScript support, hot-hook provides HMR
     // Use absolute path to hot-hook so it resolves from CLI's node_modules
-    this.child = spawn('node', ['--import=tsx', `--import=${hotHookRegisterPath}`, this.options.entry], {
-      stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
-      env,
-      cwd: process.cwd(),
-    });
+    this.child = spawn(
+      'node',
+      ['--import=tsx', `--import=${hotHookRegisterPath}`, this.options.entry],
+      {
+        stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+        env,
+        cwd: process.cwd(),
+      }
+    );
 
     // Set up IPC message handler
     this.child.on('message', (message) => this.handleIPCMessage(message));

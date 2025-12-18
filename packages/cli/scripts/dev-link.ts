@@ -8,9 +8,10 @@
  * Usage: pnpm dev:link
  */
 
-import { spawn, type ChildProcess } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 
@@ -49,11 +50,7 @@ function main(): void {
   setupShutdownHandlers(tsc);
 }
 
-function setupOutputHandlers(
-  tsc: ChildProcess,
-  state: BuildState,
-  playgroundRoot: string
-): void {
+function setupOutputHandlers(tsc: ChildProcess, state: BuildState, playgroundRoot: string): void {
   tsc.stdout?.on('data', (data: Buffer) => {
     const output = data.toString();
     const lines = output.split('\n');
@@ -75,11 +72,7 @@ function setupOutputHandlers(
   });
 }
 
-function handleOutputLine(
-  line: string,
-  state: BuildState,
-  playgroundRoot: string
-): void {
+function handleOutputLine(line: string, state: BuildState, playgroundRoot: string): void {
   const trimmed = line.trim();
   if (!trimmed) return;
 

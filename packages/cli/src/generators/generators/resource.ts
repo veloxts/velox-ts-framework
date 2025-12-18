@@ -15,6 +15,7 @@ import {
   type ResourceOptions,
 } from '../templates/resource.js';
 import type {
+  GeneratedFile,
   GeneratorConfig,
   GeneratorMetadata,
   GeneratorOption,
@@ -208,7 +209,25 @@ export class ResourceGenerator extends BaseGenerator<ResourceCliOptions> {
       options: templateOptions,
     };
 
-    const generatedFiles = generateResourceFiles(ctx);
+    // Show spinner during actual file generation
+    // Only show if we're in interactive mode (we collected fields or user opted to skip)
+    const showSpinner = interactive && !skipFields && !config.dryRun;
+    let generatedFiles: readonly GeneratedFile[];
+
+    if (showSpinner) {
+      const s = p.spinner();
+      s.start('Scaffolding resource...');
+
+      try {
+        generatedFiles = generateResourceFiles(ctx);
+        s.stop(`Scaffolded ${generatedFiles.length} file(s)`);
+      } catch (err) {
+        s.stop('Scaffolding failed');
+        throw err;
+      }
+    } else {
+      generatedFiles = generateResourceFiles(ctx);
+    }
 
     return {
       files: generatedFiles,
