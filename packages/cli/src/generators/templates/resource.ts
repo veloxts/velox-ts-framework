@@ -45,10 +45,16 @@ export function getFieldTypeInfo(type: FieldDefinition['type']): FieldTypeInfo |
   return FIELD_TYPES.find((t) => t.type === type);
 }
 
+/** Database type for Prisma native type support */
+export type DatabaseType = 'sqlite' | 'postgresql' | 'mysql';
+
 /**
  * Convert a field definition to Prisma field line
+ *
+ * @param field - Field definition to convert
+ * @param database - Optional database type for native type modifiers (default: 'sqlite')
  */
-export function fieldToPrisma(field: FieldDefinition): string {
+export function fieldToPrisma(field: FieldDefinition, database: DatabaseType = 'sqlite'): string {
   const typeInfo = getFieldTypeInfo(field.type);
   let prismaType: string;
 
@@ -62,8 +68,8 @@ export function fieldToPrisma(field: FieldDefinition): string {
   // Build modifiers
   const modifiers: string[] = [];
 
-  // Add @db.Text for long text fields
-  if (field.type === 'text') {
+  // Add @db.Text for long text fields (only for PostgreSQL and MySQL, not SQLite)
+  if (field.type === 'text' && database !== 'sqlite') {
     modifiers.push('@db.Text');
   }
 
@@ -151,7 +157,8 @@ export function generatePrismaEnums(fields: FieldDefinition[]): string {
 
 function generatePrismaModel(
   entity: { pascal: string; camel: string },
-  options: ResourceOptions
+  options: ResourceOptions,
+  database: DatabaseType = 'sqlite'
 ): string {
   const { pascal, camel } = entity;
   const { softDelete, timestamps, fields = [] } = options;
@@ -170,7 +177,7 @@ function generatePrismaModel(
   // Generate custom fields or placeholder
   let customFields: string;
   if (fields.length > 0) {
-    customFields = `\n${fields.map(fieldToPrisma).join('\n')}`;
+    customFields = `\n${fields.map((f) => fieldToPrisma(f, database)).join('\n')}`;
   } else {
     customFields = `
   // TODO: Add your fields here
@@ -663,13 +670,13 @@ describe('${pascal} Procedures', () => {
  */
 export function generateResourceFiles(ctx: TemplateContext<ResourceOptions>): GeneratedFile[] {
   const files: GeneratedFile[] = [];
-  const { entity, options } = ctx;
+  const { entity, options, project } = ctx;
 
   // Prisma model (added to models folder for reference)
   if (!options.skipModel) {
     files.push({
       path: `src/models/${entity.kebab}.prisma`,
-      content: generatePrismaModel(entity, options),
+      content: generatePrismaModel(entity, options, project.database),
     });
   }
 

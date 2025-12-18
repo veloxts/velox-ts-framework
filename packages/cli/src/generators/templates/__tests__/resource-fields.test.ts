@@ -116,7 +116,7 @@ describe('generateResourceFiles - Prisma model', () => {
 
       const prismaFile = files.find((f) => f.path.endsWith('.prisma'));
       expect(prismaFile?.content).toContain('title String');
-      expect(prismaFile?.content).toContain('content String @db.Text');
+      expect(prismaFile?.content).toContain('content String');
       expect(prismaFile?.content).toContain('views Int');
     });
 
@@ -341,7 +341,7 @@ describe('generateResourceFiles - edge cases', () => {
 
     // All fields should be present
     expect(prismaFile?.content).toContain('title String');
-    expect(prismaFile?.content).toContain('content String @db.Text');
+    expect(prismaFile?.content).toContain('content String');
     expect(prismaFile?.content).toContain('count Int');
     expect(prismaFile?.content).toContain('price Float');
     expect(prismaFile?.content).toContain('active Boolean');

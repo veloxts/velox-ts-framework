@@ -38,9 +38,21 @@ describe('fieldToPrisma', () => {
       expect(result).toBe('  title String');
     });
 
-    it('converts text field with @db.Text', () => {
+    it('converts text field to String without @db.Text for SQLite (default)', () => {
       const field = createTestField({ name: 'content', type: 'text' });
       const result = fieldToPrisma(field);
+      expect(result).toBe('  content String');
+    });
+
+    it('converts text field with @db.Text for PostgreSQL', () => {
+      const field = createTestField({ name: 'content', type: 'text' });
+      const result = fieldToPrisma(field, 'postgresql');
+      expect(result).toBe('  content String @db.Text');
+    });
+
+    it('converts text field with @db.Text for MySQL', () => {
+      const field = createTestField({ name: 'content', type: 'text' });
+      const result = fieldToPrisma(field, 'mysql');
       expect(result).toBe('  content String @db.Text');
     });
 
@@ -168,9 +180,15 @@ describe('fieldToPrisma', () => {
       expect(result).toContain('@default("untitled")');
     });
 
-    it('text field with optional and @db.Text', () => {
+    it('text field with optional (no @db.Text for SQLite)', () => {
       const field = createFieldWithAttributes('bio', 'text', { optional: true });
       const result = fieldToPrisma(field);
+      expect(result).toBe('  bio String?');
+    });
+
+    it('text field with optional and @db.Text for PostgreSQL', () => {
+      const field = createFieldWithAttributes('bio', 'text', { optional: true });
+      const result = fieldToPrisma(field, 'postgresql');
       expect(result).toBe('  bio String? @db.Text');
     });
   });

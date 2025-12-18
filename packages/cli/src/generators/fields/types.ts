@@ -78,8 +78,8 @@ export interface FieldTypeInfo {
   prismaType: string;
   /** Zod schema factory (without field name) */
   zodSchema: string;
-  /** Whether this type supports @db.Text */
-  supportsLongText?: boolean;
+  /** Whether this is a long text type (for UI hints, not Prisma modifiers) */
+  isLongText?: boolean;
 }
 
 /**
@@ -99,7 +99,7 @@ export const FIELD_TYPES: readonly FieldTypeInfo[] = [
     description: 'Long text content',
     prismaType: 'String',
     zodSchema: 'z.string()',
-    supportsLongText: true,
+    isLongText: true,
   },
   {
     type: 'int',

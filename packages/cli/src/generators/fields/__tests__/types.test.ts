@@ -320,7 +320,7 @@ describe('getFieldTypeInfo', () => {
     const info = getFieldTypeInfo('text');
     expect(info).toBeDefined();
     expect(info?.prismaType).toBe('String');
-    expect(info?.supportsLongText).toBe(true);
+    expect(info?.isLongText).toBe(true);
   });
 
   it('returns info for int type', () => {
