@@ -25,7 +25,7 @@ export const PLACEHOLDERS = {
   VELOXTS_VERSION: '__VELOXTS_VERSION__',
   /** Package manager run command (npm run, pnpm, yarn) */
   RUN_CMD: '__RUN_CMD__',
-  /** API server port (default: 3210) */
+  /** API server port (default: 3030) */
   API_PORT: '__API_PORT__',
   /** Web dev server port (default: 8080) */
   WEB_PORT: '__WEB_PORT__',
@@ -92,7 +92,7 @@ export function applyPlaceholders(content: string, config: TemplateConfig): stri
     [PLACEHOLDERS.PACKAGE_MANAGER]: config.packageManager,
     [PLACEHOLDERS.VELOXTS_VERSION]: VELOXTS_VERSION,
     [PLACEHOLDERS.RUN_CMD]: getRunCommand(config.packageManager),
-    [PLACEHOLDERS.API_PORT]: '3210',
+    [PLACEHOLDERS.API_PORT]: '3030',
     [PLACEHOLDERS.WEB_PORT]: '8080',
   };
 

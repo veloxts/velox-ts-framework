@@ -9,7 +9,7 @@
  * ```typescript
  * import { veloxApp, definePlugin, Container, Injectable } from '@veloxts/core';
  *
- * const app = await veloxApp({ port: 3210 });
+ * const app = await veloxApp({ port: 3030 });
  * await app.start();
  * ```
  *

@@ -107,7 +107,7 @@ The scaffolded project includes these npm scripts:
 
 ```bash
 # Development
-npm run dev              # Start development server with hot reload (default: port 3210)
+npm run dev              # Start development server with hot reload (default: port 3030)
 
 # Build
 npm run build            # Build for production
@@ -136,27 +136,27 @@ npm run db:migrate
 npm run dev
 ```
 
-Your VeloxTS app will be running at `http://localhost:3210`
+Your VeloxTS app will be running at `http://localhost:3030`
 
 Test the endpoints:
 
 ```bash
 # Health check
-curl http://localhost:3210/health
+curl http://localhost:3030/health
 
 # Create a user
-curl -X POST http://localhost:3210/users \
+curl -X POST http://localhost:3030/users \
   -H "Content-Type: application/json" \
   -d '{"name": "Alice", "email": "alice@example.com"}'
 
 # List users
-curl http://localhost:3210/users
+curl http://localhost:3030/users
 
 # Get user by ID
-curl http://localhost:3210/users/{id}
+curl http://localhost:3030/users/{id}
 
 # Search users
-curl http://localhost:3210/users/search?q=alice
+curl http://localhost:3030/users/search?q=alice
 ```
 
 ## Configuration
@@ -168,7 +168,7 @@ Copy `.env.example` to `.env` and customize:
 ```env
 # Application
 NODE_ENV=development
-PORT=3210
+PORT=3030
 HOST=localhost
 
 # Database

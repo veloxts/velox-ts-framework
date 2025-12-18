@@ -12,7 +12,7 @@ import pc from 'picocolors';
 import { VELOX_VERSION } from '../index.js';
 
 export interface BannerOptions {
-  /** Server address (e.g., "http://127.0.0.1:3210") */
+  /** Server address (e.g., "http://127.0.0.1:3030") */
   address: string;
   /** Environment name (e.g., "development", "production") */
   env: string;

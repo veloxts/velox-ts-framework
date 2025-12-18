@@ -33,14 +33,14 @@ velox dev
 
 **Options:**
 
-- `-p, --port <port>` - Port to listen on (default: 3210)
+- `-p, --port <port>` - Port to listen on (default: 3030)
 - `-H, --host <host>` - Host to bind to (default: localhost)
 - `-e, --entry <file>` - Entry point file (auto-detected if not specified)
 
 **Examples:**
 
 ```bash
-# Start on default port 3210
+# Start on default port 3030
 velox dev
 
 # Start on custom port
@@ -939,7 +939,7 @@ Or ensure your project has one of these files:
 ### Port Already in Use
 
 ```
-Error: Port 3210 is already in use
+Error: Port 3030 is already in use
 ```
 
 **Solution:** Use a different port:

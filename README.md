@@ -35,7 +35,7 @@ npm run db:push
 npm run dev
 ```
 
-Your API is now running at `http://localhost:3210`.
+Your API is now running at `http://localhost:3030`.
 
 ## Example: Defining Procedures
 

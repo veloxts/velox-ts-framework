@@ -36,7 +36,7 @@ import { createDatabasePlugin } from '@veloxts/orm';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const app = await veloxApp({ port: 3210 });
+const app = await veloxApp({ port: 3030 });
 
 await app.register(createDatabasePlugin({ client: prisma }));
 await app.start();

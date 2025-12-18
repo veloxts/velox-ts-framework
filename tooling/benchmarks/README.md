@@ -23,7 +23,7 @@ From the ROADMAP, our performance targets are:
 pnpm build
 ```
 
-2. Ensure no other server is running on port 3210
+2. Ensure no other server is running on port 3030
 
 ### Run All Benchmarks
 
@@ -92,7 +92,7 @@ Environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BENCH_PORT` | 3210 | Server port |
+| `BENCH_PORT` | 3030 | Server port |
 | `BENCH_DURATION` | 10 | Throughput test duration (seconds) |
 | `BENCH_CONNECTIONS` | 100 | Concurrent connections |
 
@@ -223,7 +223,7 @@ Initial benchmark results from December 2024:
 ## Troubleshooting
 
 ### Server won't start
-- Check if port 3210 is already in use: `lsof -i :3210`
+- Check if port 3030 is already in use: `lsof -i :3030`
 - Verify playground is built: `ls apps/playground/dist/`
 
 ### Low throughput numbers

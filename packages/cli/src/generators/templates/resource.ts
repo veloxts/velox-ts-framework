@@ -706,55 +706,75 @@ export function generateResourceFiles(ctx: TemplateContext<ResourceOptions>): Ge
 export function getResourceInstructions(entityName: string, options: ResourceOptions): string {
   const steps: string[] = [];
   let stepNum = 1;
+  const lowerName = entityName.toLowerCase();
+  const camelName = entityName.charAt(0).toLowerCase() + entityName.slice(1);
+  const hasFields = options.fields && options.fields.length > 0;
+  const fieldCount = options.fields?.length ?? 0;
 
+  // Step 1: Prisma model (always needed unless skipped)
   if (!options.skipModel) {
-    steps.push(`${stepNum}. Add the Prisma model to your schema:
+    const fieldInfo = hasFields
+      ? ` (${fieldCount} field${fieldCount === 1 ? '' : 's'} defined)`
+      : '';
+    steps.push(`${stepNum}. Add the Prisma model to your schema${fieldInfo}:
 
-     Copy the contents of src/models/${entityName.toLowerCase()}.prisma
+     Copy the contents of src/models/${lowerName}.prisma
      into your prisma/schema.prisma file.
 
      Then run:
        npx prisma db push
        # or
-       npx prisma migrate dev --name add_${entityName.toLowerCase()}`);
+       npx prisma migrate dev --name add_${lowerName}`);
     stepNum++;
   }
 
+  // Step 2: Zod schema - different message based on whether fields were defined
   if (!options.skipSchema) {
-    steps.push(`${stepNum}. Customize the Zod schema:
+    if (hasFields) {
+      steps.push(`${stepNum}. Review the Zod validation (optional):
 
-     Edit src/schemas/${entityName.toLowerCase()}.schema.ts
-     to match your Prisma model fields.`);
+     The schema at src/schemas/${lowerName}.schema.ts
+     already includes your ${fieldCount} field${fieldCount === 1 ? '' : 's'}.
+     Customize validation rules if needed (min/max, patterns, etc.)`);
+    } else {
+      steps.push(`${stepNum}. Add fields to the Zod schema:
+
+     Edit src/schemas/${lowerName}.schema.ts
+     to define your validation schema.`);
+    }
     stepNum++;
   }
 
+  // Step 3: Register procedures
   if (!options.skipProcedure) {
     steps.push(`${stepNum}. Register the procedures in your router:
 
-     import { ${entityName.charAt(0).toLowerCase() + entityName.slice(1)}Procedures } from './procedures/${entityName.toLowerCase()}.js';
+     import { ${camelName}Procedures } from './procedures/${lowerName}.js';
 
      // Add to your router
      const router = createRouter({
-       ${entityName.charAt(0).toLowerCase() + entityName.slice(1)}: ${entityName.charAt(0).toLowerCase() + entityName.slice(1)}Procedures,
+       ${camelName}: ${camelName}Procedures,
      });`);
     stepNum++;
   }
 
+  // Step 4: Run tests (only if tests were generated)
   if (options.withTests) {
     steps.push(`${stepNum}. Run the tests:
 
-     pnpm test src/procedures/__tests__/${entityName.toLowerCase()}.test.ts`);
+     pnpm test src/procedures/__tests__/${lowerName}.test.ts`);
     stepNum++;
   }
 
+  // Final step: API endpoints summary
   steps.push(`${stepNum}. Your ${entityName} API is ready:
 
-     GET    /api/${entityName.toLowerCase()}s      - List all
-     GET    /api/${entityName.toLowerCase()}s/:id  - Get by ID
-     POST   /api/${entityName.toLowerCase()}s      - Create new
-     PUT    /api/${entityName.toLowerCase()}s/:id  - Full update
-     PATCH  /api/${entityName.toLowerCase()}s/:id  - Partial update
-     DELETE /api/${entityName.toLowerCase()}s/:id  - Delete`);
+     GET    /api/${lowerName}s      - List all
+     GET    /api/${lowerName}s/:id  - Get by ID
+     POST   /api/${lowerName}s      - Create new
+     PUT    /api/${lowerName}s/:id  - Full update
+     PATCH  /api/${lowerName}s/:id  - Partial update
+     DELETE /api/${lowerName}s/:id  - Delete`);
 
   return `\n  ${steps.join('\n\n  ')}`;
 }

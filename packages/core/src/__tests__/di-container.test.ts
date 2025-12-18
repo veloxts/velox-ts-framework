@@ -23,7 +23,7 @@ import { VeloxError } from '../errors.js';
 // Simple test services (no dependencies)
 @Injectable()
 class ConfigService {
-  readonly port = 3210;
+  readonly port = 3030;
   readonly host = 'localhost';
 }
 
@@ -150,7 +150,7 @@ describe('DI Container', () => {
 
       const config = testContainer.resolve(ConfigService);
       expect(config).toBeInstanceOf(ConfigService);
-      expect(config.port).toBe(3210);
+      expect(config.port).toBe(3030);
     });
 
     it('should return same instance for singleton scope', () => {
@@ -207,7 +207,7 @@ describe('DI Container', () => {
       });
 
       const db = testContainer.resolve(DATABASE);
-      expect(db.query('')).toEqual(['port: 3210']);
+      expect(db.query('')).toEqual(['port: 3030']);
     });
 
     it('should resolve factory with multiple dependencies', () => {
@@ -514,7 +514,7 @@ describe('DI Container', () => {
       });
 
       const db = await testContainer.resolveAsync(DATABASE);
-      expect(db.query('')).toEqual(['port: 3210']);
+      expect(db.query('')).toEqual(['port: 3030']);
     });
   });
 

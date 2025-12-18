@@ -101,7 +101,7 @@ describe('Common String Schemas', () => {
     it('should accept valid URLs', () => {
       const validURLs = [
         'https://example.com',
-        'http://localhost:3210',
+        'http://localhost:3030',
         'https://sub.domain.com/path?query=value',
       ];
 

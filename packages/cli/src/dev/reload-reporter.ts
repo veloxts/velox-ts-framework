@@ -17,7 +17,7 @@
  * reporter.printHMRStatus();
  * reporter.reportHotUpdate('src/procedures/users.ts', 23);
  * reporter.reportFullRestart('src/config/app.ts changed');
- * reporter.reportStartupComplete('http://localhost:3210', 847);
+ * reporter.reportStartupComplete('http://localhost:3030', 847);
  * ```
  */
 
@@ -173,7 +173,7 @@ export class ReloadReporter {
    *
    * Called when the server is ready to accept connections after a restart.
    *
-   * @param url - Server URL (e.g., "http://localhost:3210")
+   * @param url - Server URL (e.g., "http://localhost:3030")
    * @param duration - Time taken for startup in milliseconds
    */
   reportStartupComplete(url: string, duration: number): void {

@@ -255,7 +255,7 @@ import { veloxApp } from '@veloxts/core';
 import { registerRestRoutes } from '@veloxts/router';
 import { userProcedures } from './procedures/users';
 
-const app = await veloxApp({ port: 3210 });
+const app = await veloxApp({ port: 3030 });
 
 // Register REST routes
 await registerRestRoutes(app.server, {

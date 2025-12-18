@@ -21,7 +21,7 @@ describe('VeloxApp - Configuration', () => {
   it('should use default configuration', async () => {
     app = await createVeloxApp();
 
-    expect(app.config.port).toBe(3210);
+    expect(app.config.port).toBe(3030);
     expect(app.config.host).toBe('0.0.0.0');
     expect(app.config.logger).toBeDefined();
   });

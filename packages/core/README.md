@@ -31,7 +31,7 @@ For detailed documentation, usage examples, and API reference, see [GUIDE.md](./
 ```typescript
 import { veloxApp } from '@veloxts/core';
 
-const app = await veloxApp({ port: 3210 });
+const app = await veloxApp({ port: 3030 });
 await app.start();
 console.log(`Server running on ${app.address}`);
 ```

@@ -27,7 +27,7 @@ yarn create velox-app my-app
 ```typescript
 import { veloxApp, procedure, defineProcedures, rest, z } from '@veloxts/velox';
 
-const app = await veloxApp(); // Default port: 3210
+const app = await veloxApp(); // Default port: 3030
 
 const greetProcedures = defineProcedures('greet', {
   sayHello: procedure()

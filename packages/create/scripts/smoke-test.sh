@@ -52,7 +52,7 @@ cleanup() {
   echo ""
   echo "=== Cleaning up ==="
   # Kill any server running on test port
-  lsof -ti :3210 2>/dev/null | xargs kill -9 2>/dev/null || true
+  lsof -ti :3030 2>/dev/null | xargs kill -9 2>/dev/null || true
   # Remove test directory
   rm -rf "$TEST_DIR"
   echo "Done."
@@ -80,7 +80,7 @@ build_all() {
 test_template() {
   local template=$1
   local project_name="smoke-test-$template"
-  local test_port=3210
+  local test_port=3030
 
   echo ""
   echo "=========================================="

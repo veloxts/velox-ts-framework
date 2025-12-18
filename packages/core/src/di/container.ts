@@ -170,7 +170,7 @@ export class Container {
    * // Value provider
    * container.register({
    *   provide: CONFIG,
-   *   useValue: { port: 3210, debug: true }
+   *   useValue: { port: 3030, debug: true }
    * });
    *
    * // Existing/alias provider

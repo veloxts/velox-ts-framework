@@ -82,12 +82,12 @@ Start the development server:
 npm run dev
 ```
 
-Your VeloxTS application is now running at `http://localhost:3210`
+Your VeloxTS application is now running at `http://localhost:3030`
 
 Visit the URL in your browser to see the welcome page, or test the API:
 
 ```bash
-curl http://localhost:3210/health
+curl http://localhost:3030/health
 ```
 
 You should see:
@@ -264,13 +264,13 @@ With the dev server running (`npm run dev`), test the endpoints:
 **Health Check:**
 
 ```bash
-curl http://localhost:3210/health
+curl http://localhost:3030/health
 ```
 
 **Create a User:**
 
 ```bash
-curl -X POST http://localhost:3210/users \
+curl -X POST http://localhost:3030/users \
   -H "Content-Type: application/json" \
   -d '{"name": "Alice Johnson", "email": "alice@example.com"}'
 ```
@@ -290,19 +290,19 @@ Response:
 **List Users:**
 
 ```bash
-curl http://localhost:3210/users
+curl http://localhost:3030/users
 ```
 
 **Get User by ID:**
 
 ```bash
-curl http://localhost:3210/users/550e8400-e29b-41d4-a716-446655440001
+curl http://localhost:3030/users/550e8400-e29b-41d4-a716-446655440001
 ```
 
 **Search Users:**
 
 ```bash
-curl "http://localhost:3210/users/search?q=alice"
+curl "http://localhost:3030/users/search?q=alice"
 ```
 
 ## Database Setup
@@ -386,7 +386,7 @@ export const CreateUserInput = z.object({
 4. **Test the change:**
 
 ```bash
-curl -X POST http://localhost:3210/users \
+curl -X POST http://localhost:3030/users \
   -H "Content-Type: application/json" \
   -d '{"name": "Bob Smith", "email": "bob@example.com", "bio": "TypeScript enthusiast"}'
 ```
@@ -463,7 +463,7 @@ import { createClient } from '@veloxts/client';
 import type { AppRouter } from '../server/src';
 
 const api = createClient<AppRouter>({
-  baseUrl: 'http://localhost:3210',
+  baseUrl: 'http://localhost:3030',
 });
 
 // Fully typed API calls
@@ -506,7 +506,7 @@ Your project includes these npm scripts:
 
 ```bash
 # Development
-npm run dev              # Start dev server with hot reload (port 3210)
+npm run dev              # Start dev server with hot reload (port 3030)
 
 # Build
 npm run build            # Compile TypeScript to production code
@@ -538,7 +538,7 @@ Configure your application via `.env`:
 ```env
 # Application
 NODE_ENV=development
-PORT=3210
+PORT=3030
 HOST=localhost
 
 # Database
@@ -552,7 +552,7 @@ Access in code:
 
 ```typescript
 const config = {
-  port: Number(process.env.PORT) || 3210,
+  port: Number(process.env.PORT) || 3030,
   host: process.env.HOST || 'localhost',
 };
 ```
@@ -589,15 +589,15 @@ Quick command-line testing:
 
 ```bash
 # GET request
-curl http://localhost:3210/users
+curl http://localhost:3030/users
 
 # POST request with JSON
-curl -X POST http://localhost:3210/users \
+curl -X POST http://localhost:3030/users \
   -H "Content-Type: application/json" \
   -d '{"name":"Test User","email":"test@example.com"}'
 
 # GET with query parameters
-curl "http://localhost:3210/users/search?q=alice"
+curl "http://localhost:3030/users/search?q=alice"
 ```
 
 ### Using HTTPie
@@ -606,10 +606,10 @@ More user-friendly than curl ([install HTTPie](https://httpie.io/)):
 
 ```bash
 # GET request
-http :3210/users
+http :3030/users
 
 # POST request
-http POST :3210/users name="Test User" email="test@example.com"
+http POST :3030/users name="Test User" email="test@example.com"
 ```
 
 ### Using Postman or Insomnia
@@ -629,7 +629,7 @@ import { createClient } from '@veloxts/client';
 import type { AppRouter } from '../src';
 
 const api = createClient<AppRouter>({
-  baseUrl: 'http://localhost:3210',
+  baseUrl: 'http://localhost:3030',
 });
 
 async function testApi() {
@@ -790,7 +790,7 @@ const collections = [
 
 ```bash
 # Create a post
-curl -X POST http://localhost:3210/posts \
+curl -X POST http://localhost:3030/posts \
   -H "Content-Type: application/json" \
   -d '{
     "title": "My First Post",
@@ -800,10 +800,10 @@ curl -X POST http://localhost:3210/posts \
   }'
 
 # List posts
-curl http://localhost:3210/posts
+curl http://localhost:3030/posts
 
 # List only published posts
-curl "http://localhost:3210/posts?published=true"
+curl "http://localhost:3030/posts?published=true"
 ```
 
 ## Next Steps
@@ -937,7 +937,7 @@ The current release includes:
 ### Port Already in Use
 
 ```
-Error: Port 3210 is already in use
+Error: Port 3030 is already in use
 ```
 
 **Solution:** Change the port in `.env`:

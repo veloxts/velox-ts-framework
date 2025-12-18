@@ -59,7 +59,7 @@ describe('parseDevError', () => {
     });
 
     it('should detect port in use errors', () => {
-      const error = new Error('EADDRINUSE: address already in use :::3210');
+      const error = new Error('EADDRINUSE: address already in use :::3030');
       const parsed = parseDevError(error);
 
       expect(parsed.type).toBe('port-in-use');

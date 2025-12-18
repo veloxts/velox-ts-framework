@@ -408,7 +408,7 @@ export interface TRPCPluginOptions {
  *
  * @example
  * ```typescript
- * const app = await createVeloxApp({ port: 3210 });
+ * const app = await createVeloxApp({ port: 3030 });
  * const appRouter = createAppRouter(t, [userProcedures]);
  *
  * await registerTRPCPlugin(app.server, {

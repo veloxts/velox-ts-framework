@@ -19,7 +19,7 @@ import { veloxApp } from '@veloxts/core';
 
 // Create application
 const app = await veloxApp({
-  port: 3210,
+  port: 3030,
   host: '0.0.0.0',
   logger: true,
 });
@@ -383,7 +383,7 @@ app.server.get('/users/:id', async (request, reply) => {
 
 ```typescript
 {
-  port: 3210,
+  port: 3030,
   host: '0.0.0.0',
   logger: process.env.NODE_ENV !== 'production',
 }
@@ -393,7 +393,7 @@ app.server.get('/users/:id', async (request, reply) => {
 
 ```typescript
 const app = await veloxApp({
-  port: Number(process.env.PORT) || 3210,
+  port: Number(process.env.PORT) || 3030,
   host: process.env.HOST || '0.0.0.0',
   logger: process.env.NODE_ENV !== 'production',
   fastify: {
@@ -406,7 +406,7 @@ const app = await veloxApp({
 
 ```typescript
 const app = await veloxApp({
-  port: 3210,
+  port: 3030,
   host: '0.0.0.0',
   logger: {
     level: 'warn',
@@ -529,7 +529,7 @@ import { userProcedures } from './procedures/users';
 // Initialize
 const prisma = new PrismaClient();
 const app = await veloxApp({
-  port: Number(process.env.PORT) || 3210,
+  port: Number(process.env.PORT) || 3030,
   logger: true,
 });
 
@@ -672,7 +672,7 @@ app.container.register(scoped(UserContext));
 app.container.register(transient(RequestIdGenerator));
 
 // Value provider (provide existing value)
-app.container.register(value(CONFIG, { port: 3210 }));
+app.container.register(value(CONFIG, { port: 3030 }));
 
 // Factory provider (use factory function)
 app.container.register(
@@ -741,7 +741,7 @@ const CONFIG = token<AppConfig>('CONFIG');
 // Using succinct helper (recommended)
 app.container.register(
   value(CONFIG, {
-    port: 3210,
+    port: 3030,
     host: 'localhost',
     debug: true
   })
@@ -751,7 +751,7 @@ app.container.register(
 app.container.register({
   provide: CONFIG,
   useValue: {
-    port: 3210,
+    port: 3030,
     host: 'localhost',
     debug: true
   }

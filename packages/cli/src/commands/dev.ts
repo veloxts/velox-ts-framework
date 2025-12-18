@@ -40,7 +40,7 @@ interface DevOptions {
 export function createDevCommand(version: string): Command {
   return new Command('dev')
     .description('Start the development server with hot module replacement')
-    .option('-p, --port <port>', 'Port to listen on', '3210')
+    .option('-p, --port <port>', 'Port to listen on', '3030')
     .option('-H, --host <host>', 'Host to bind to', 'localhost')
     .option('-e, --entry <file>', 'Entry point file (auto-detected if not specified)')
     .option('--clear', 'Clear console on restart (default: true)', true)
@@ -105,7 +105,7 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
     }
 
     // Validate port and host
-    const port = options.port || '3210';
+    const port = options.port || '3030';
     const host = options.host || 'localhost';
 
     // Validate port is a valid number
@@ -230,7 +230,7 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
       // Provide helpful suggestions based on error
       if (err.message.includes('EADDRINUSE')) {
         instruction(`Port ${options.port} is already in use. Try a different port:`);
-        console.log(`  ${formatCommand(`velox dev --port ${Number(options.port || 3210) + 1}`)}`);
+        console.log(`  ${formatCommand(`velox dev --port ${Number(options.port || 3030) + 1}`)}`);
       } else if (err.message.includes('EACCES')) {
         instruction('Permission denied. Try using a port above 1024.');
       }

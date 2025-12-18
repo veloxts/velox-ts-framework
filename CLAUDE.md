@@ -49,7 +49,7 @@ The VeloxTS CLI provides a powerful development server with Hot Module Replaceme
 velox dev              # Start dev server with HMR (default)
 velox dev --no-hmr     # Disable HMR, use legacy tsx watch mode
 velox dev --verbose    # Enable detailed HMR diagnostics
-velox dev --port 4000  # Custom port (default: 3210)
+velox dev --port 4000  # Custom port (default: 3030)
 ```
 
 #### HMR Features (Default)

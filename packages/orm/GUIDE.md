@@ -71,7 +71,7 @@ const prisma = new PrismaClient();
 
 // Create VeloxTS app
 const app = await veloxApp({
-  port: 3210,
+  port: 3030,
   logger: true,
 });
 

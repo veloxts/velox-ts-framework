@@ -35,7 +35,7 @@ class MockUserService extends UserService {
 }
 
 class ConfigService {
-  readonly port = 3210;
+  readonly port = 3030;
 }
 
 describe('DI Providers', () => {
@@ -53,7 +53,7 @@ describe('DI Providers', () => {
       });
 
       it('should return false for value provider', () => {
-        const provider = { provide: 'CONFIG', useValue: { port: 3210 } };
+        const provider = { provide: 'CONFIG', useValue: { port: 3030 } };
         expect(isClassProvider(provider)).toBe(false);
       });
     });
@@ -81,7 +81,7 @@ describe('DI Providers', () => {
 
     describe('isValueProvider', () => {
       it('should return true for value provider', () => {
-        const provider = { provide: 'CONFIG', useValue: { port: 3210 } };
+        const provider = { provide: 'CONFIG', useValue: { port: 3030 } };
         expect(isValueProvider(provider)).toBe(true);
       });
 
@@ -137,7 +137,7 @@ describe('DI Providers', () => {
 
     it('should validate value provider', () => {
       const CONFIG = createStringToken<{ port: number }>('CONFIG');
-      const provider = { provide: CONFIG, useValue: { port: 3210 } };
+      const provider = { provide: CONFIG, useValue: { port: 3030 } };
       expect(() => validateProvider(provider)).not.toThrow();
     });
 
@@ -279,7 +279,7 @@ describe('DI Providers', () => {
 
     it('should normalize value provider to singleton scope', () => {
       const CONFIG = createStringToken<{ port: number }>('CONFIG');
-      const value = { port: 3210 };
+      const value = { port: 3030 };
       const provider = { provide: CONFIG, useValue: value, scope: Scope.TRANSIENT };
       const normalized = normalizeProvider(provider);
 
@@ -346,7 +346,7 @@ describe('DI Providers', () => {
     describe('asValue', () => {
       it('should create value provider', () => {
         const CONFIG = createStringToken<{ port: number }>('CONFIG');
-        const value = { port: 3210 };
+        const value = { port: 3030 };
         const provider = asValue(CONFIG, value);
 
         expect(provider.provide).toBe(CONFIG);
@@ -396,7 +396,7 @@ describe('DI Providers', () => {
 
     it('should describe value provider', () => {
       const CONFIG = createStringToken<{ port: number }>('CONFIG');
-      const provider = { provide: CONFIG, useValue: { port: 3210 } };
+      const provider = { provide: CONFIG, useValue: { port: 3030 } };
       const description = describeProvider(provider);
 
       expect(description).toContain('ValueProvider');

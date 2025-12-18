@@ -532,7 +532,7 @@ function printSuccessMessage(config: ProjectConfig): void {
   console.log('');
   console.log(`  Your app will be available at:`);
   console.log(`    ${pc.cyan('http://localhost:8080')}${pc.dim('  # Web (React)')}`);
-  console.log(`    ${pc.cyan('http://localhost:3210')}${pc.dim('  # API')}`);
+  console.log(`    ${pc.cyan('http://localhost:3030')}${pc.dim('  # API')}`);
 
   // Auth template specific message
   if (config.template === 'auth') {

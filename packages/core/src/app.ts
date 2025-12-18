@@ -41,7 +41,7 @@ export interface StartOptions {
  * @example
  * ```typescript
  * const app = await veloxApp({
- *   port: 3210,
+ *   port: 3030,
  *   logger: true
  * });
  *
@@ -560,7 +560,7 @@ export class VeloxApp {
  * @example
  * ```typescript
  * const app = await veloxApp({
- *   port: 3210,
+ *   port: 3030,
  *   host: '0.0.0.0',
  *   logger: true
  * });
@@ -570,7 +570,7 @@ export class VeloxApp {
  * ```typescript
  * // With default configuration
  * const app = await veloxApp();
- * await app.start(); // Listens on port 3210
+ * await app.start(); // Listens on port 3030
  * ```
  *
  * @example

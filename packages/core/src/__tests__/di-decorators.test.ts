@@ -41,7 +41,7 @@ interface Logger {
 
 // Helper classes for tests
 class ConfigService {
-  readonly port = 3210;
+  readonly port = 3030;
 }
 
 describe('DI Decorators', () => {

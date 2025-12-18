@@ -28,7 +28,7 @@ import type { UserProcedures } from './users.js';
  * import type { AppRouter } from '../server/procedures';
  *
  * const api = createClient<AppRouter>({
- *   baseUrl: 'http://localhost:3210/api',
+ *   baseUrl: 'http://localhost:3030/api',
  * });
  *
  * // Fully typed!

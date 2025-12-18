@@ -138,15 +138,15 @@ describe('ReloadReporter', () => {
 
   describe('reportStartupComplete', () => {
     it('should log startup message with URL', () => {
-      reporter.reportStartupComplete('http://localhost:3210', 847);
+      reporter.reportStartupComplete('http://localhost:3030', 847);
 
       const output = consoleSpy.mock.calls.flat().join(' ');
       expect(output).toContain('Server ready');
-      expect(output).toContain('http://localhost:3210');
+      expect(output).toContain('http://localhost:3030');
     });
 
     it('should record startup event', () => {
-      reporter.reportStartupComplete('http://localhost:3210', 847);
+      reporter.reportStartupComplete('http://localhost:3030', 847);
 
       const history = reporter.getReloadHistory();
       expect(history.some((e) => e.type === 'startup')).toBe(true);
@@ -154,7 +154,7 @@ describe('ReloadReporter', () => {
 
     it('should show verbose output when enabled', () => {
       const verboseReporter = createReloadReporter({ verbose: true, clearOnRestart: false });
-      verboseReporter.reportStartupComplete('http://localhost:3210', 847);
+      verboseReporter.reportStartupComplete('http://localhost:3030', 847);
 
       const output = consoleSpy.mock.calls.flat().join(' ');
       expect(output).toContain('Startup');

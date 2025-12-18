@@ -121,8 +121,8 @@ export interface BenchmarkConfig {
  * Default benchmark configuration
  */
 export const DEFAULT_CONFIG: BenchmarkConfig = {
-  targetUrl: 'http://127.0.0.1:3210',
-  port: 3210,
+  targetUrl: 'http://127.0.0.1:3030',
+  port: 3030,
   duration: 10,
   connections: 100,
   pipelining: 10,

@@ -120,7 +120,7 @@ export interface FactoryProvider<T = unknown> extends BaseProvider<T> {
  * container.register({
  *   provide: CONFIG,
  *   useValue: {
- *     port: 3210,
+ *     port: 3030,
  *     host: 'localhost',
  *     debug: true
  *   }
@@ -499,7 +499,7 @@ export function asFactory<T>(
  *
  * @example
  * ```typescript
- * container.register(asValue(CONFIG, { port: 3210 }));
+ * container.register(asValue(CONFIG, { port: 3030 }));
  * ```
  */
 export function asValue<T>(token: InjectionToken<T>, value: T): ValueProvider<T> {
@@ -613,7 +613,7 @@ export function transient<T>(cls: ClassConstructor<T>): ClassProvider<T> {
  *
  * @example
  * ```typescript
- * container.register(value(CONFIG, { port: 3210 }));
+ * container.register(value(CONFIG, { port: 3030 }));
  * ```
  */
 export function value<T>(token: InjectionToken<T>, val: T): ValueProvider<T> {
