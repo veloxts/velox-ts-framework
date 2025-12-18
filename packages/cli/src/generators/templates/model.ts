@@ -4,6 +4,8 @@
  * Generates Prisma model, Zod schema, and optionally procedures.
  */
 
+import type { FieldDefinition } from '../fields/types.js';
+import { FIELD_TYPES } from '../fields/types.js';
 import type { GeneratedFile, TemplateContext, TemplateFunction } from '../types.js';
 
 // ============================================================================
@@ -19,6 +21,8 @@ export interface ModelOptions {
   softDelete: boolean;
   /** Include timestamps (createdAt, updatedAt) */
   timestamps: boolean;
+  /** Custom field definitions */
+  fields?: FieldDefinition[];
 }
 
 // ============================================================================
@@ -26,32 +30,89 @@ export interface ModelOptions {
 // ============================================================================
 
 /**
+ * Helper: Convert field to Prisma syntax
+ */
+function fieldToPrisma(field: FieldDefinition): string {
+  const typeInfo = FIELD_TYPES.find((t) => t.type === field.type);
+  let prismaType = typeInfo?.prismaType ?? 'String';
+
+  // Handle enum type specially
+  if (field.type === 'enum' && field.enumDef) {
+    prismaType = field.enumDef.name;
+  }
+
+  // Build attributes
+  const attributes: string[] = [];
+  if (field.attributes.unique) attributes.push('@unique');
+  if (field.attributes.hasDefault && field.attributes.defaultValue) {
+    attributes.push(`@default(${field.attributes.defaultValue})`);
+  }
+
+  // Optional fields get ? suffix
+  const optional = field.attributes.optional ? '?' : '';
+  const attrStr = attributes.length > 0 ? ` ${attributes.join(' ')}` : '';
+
+  return `  ${field.name.padEnd(10)} ${prismaType}${optional}${attrStr}`;
+}
+
+/**
+ * Helper: Generate Prisma enums
+ */
+function generatePrismaEnums(fields: FieldDefinition[]): string {
+  const enumFields = fields.filter((f) => f.type === 'enum' && f.enumDef);
+  if (enumFields.length === 0) return '';
+
+  const enums = enumFields.map((f) => {
+    const enumDef = f.enumDef;
+    if (!enumDef) return '';
+    const values = enumDef.values.map((v) => `  ${v}`).join('\n');
+    return `enum ${enumDef.name} {\n${values}\n}`;
+  });
+
+  return `\n${enums.join('\n\n')}\n`;
+}
+
+/**
  * Generate Prisma model definition
  */
 function generatePrismaModel(ctx: TemplateContext<ModelOptions>): string {
   const { entity, options } = ctx;
+  const { softDelete, timestamps, fields = [] } = options;
 
-  const fields: string[] = ['  id        String   @id @default(uuid())'];
+  const baseFields: string[] = ['  id        String   @id @default(uuid())'];
 
-  // Add timestamps if enabled
-  if (options.timestamps) {
-    fields.push('  createdAt DateTime @default(now())');
-    fields.push('  updatedAt DateTime @updatedAt');
-  }
-
-  // Add soft delete if enabled
-  if (options.softDelete) {
-    fields.push('  deletedAt DateTime?');
-  }
-
-  return `/// ${entity.humanReadable} model
-/// Add your fields below the id field
-model ${entity.pascal} {
-${fields.join('\n')}
+  // Add custom fields or placeholder
+  let customFields: string;
+  if (fields.length > 0) {
+    customFields = `\n${fields.map((f) => fieldToPrisma(f)).join('\n')}`;
+  } else {
+    customFields = `
 
   // TODO: Add your ${entity.humanReadable} fields here
   // name      String
-  // email     String   @unique
+  // email     String   @unique`;
+  }
+
+  // Add timestamps if enabled
+  const timestampFields = timestamps
+    ? `
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt`
+    : '';
+
+  // Add soft delete if enabled
+  const softDeleteField = softDelete
+    ? `
+  deletedAt DateTime?`
+    : '';
+
+  // Generate enum definitions if any
+  const enumDefs = fields.length > 0 ? generatePrismaEnums(fields) : '';
+
+  return `/// ${entity.humanReadable} model
+/// Add your fields below the id field
+${enumDefs}model ${entity.pascal} {
+${baseFields.join('\n')}${customFields}${timestampFields}${softDeleteField}
 
   @@map("${entity.snake}")
 }
@@ -63,23 +124,107 @@ ${fields.join('\n')}
 // ============================================================================
 
 /**
+ * Helper: Convert field to Zod schema
+ */
+function fieldToZod(field: FieldDefinition): string {
+  const typeInfo = FIELD_TYPES.find((t) => t.type === field.type);
+  let zodType: string;
+
+  // Handle enum type specially
+  if (field.type === 'enum' && field.enumDef) {
+    const values = field.enumDef.values.map((v) => `'${v}'`).join(', ');
+    zodType = `z.enum([${values}])`;
+  } else {
+    zodType = typeInfo?.zodSchema ?? 'z.string()';
+  }
+
+  // Optional (nullable)
+  if (field.attributes.optional) {
+    zodType += '.nullable()';
+  }
+
+  return `  ${field.name}: ${zodType},`;
+}
+
+/**
+ * Helper: Convert field to Zod input schema (for create/update)
+ */
+function fieldToZodInput(field: FieldDefinition, isUpdate: boolean): string {
+  const typeInfo = FIELD_TYPES.find((t) => t.type === field.type);
+  let zodType: string;
+
+  // Handle enum type specially
+  if (field.type === 'enum' && field.enumDef) {
+    const values = field.enumDef.values.map((v) => `'${v}'`).join(', ');
+    zodType = `z.enum([${values}])`;
+  } else {
+    zodType = typeInfo?.zodSchema ?? 'z.string()';
+  }
+
+  // For update inputs, make all fields optional
+  // For create inputs, respect the field's optional attribute
+  if (isUpdate || field.attributes.optional) {
+    zodType += '.optional()';
+  }
+
+  return `  ${field.name}: ${zodType},`;
+}
+
+/**
  * Generate Zod schema file
  */
 function generateZodSchema(ctx: TemplateContext<ModelOptions>): string {
   const { entity, options } = ctx;
+  const { timestamps, softDelete, fields = [] } = options;
 
   const schemaFields: string[] = ['  id: z.string().uuid(),'];
 
+  // Add custom fields or placeholder comments
+  if (fields.length > 0) {
+    schemaFields.push(...fields.map((f) => fieldToZod(f)));
+  }
+
   // Add timestamps if enabled
-  if (options.timestamps) {
+  if (timestamps) {
     schemaFields.push('  createdAt: z.string().datetime(),');
     schemaFields.push('  updatedAt: z.string().datetime(),');
   }
 
   // Add soft delete if enabled
-  if (options.softDelete) {
+  if (softDelete) {
     schemaFields.push('  deletedAt: z.string().datetime().nullable(),');
   }
+
+  // Generate input fields
+  const createInputFields: string[] = [];
+  const updateInputFields: string[] = [];
+
+  if (fields.length > 0) {
+    createInputFields.push(...fields.map((f) => fieldToZodInput(f, false)));
+    updateInputFields.push(...fields.map((f) => fieldToZodInput(f, true)));
+  }
+
+  const createInputPlaceholder =
+    fields.length === 0
+      ? `  // TODO: Add required fields for creating a ${entity.humanReadable}
+  // name: z.string().min(1).max(100),
+  // email: z.string().email(),`
+      : '';
+
+  const updateInputPlaceholder =
+    fields.length === 0
+      ? `  // TODO: Add optional fields for updating a ${entity.humanReadable}
+  // name: z.string().min(1).max(100).optional(),
+  // email: z.string().email().optional(),`
+      : '';
+
+  const responsePlaceholder =
+    fields.length === 0
+      ? `  // TODO: Add your ${entity.humanReadable} fields here
+  // name: z.string().min(1).max(100),
+  // email: z.string().email(),
+`
+      : '';
 
   return `/**
  * ${entity.pascal} Schemas
@@ -98,10 +243,7 @@ import { z } from '@veloxts/velox';
  */
 export const ${entity.pascal}Schema = z.object({
 ${schemaFields.join('\n')}
-  // TODO: Add your ${entity.humanReadable} fields here
-  // name: z.string().min(1).max(100),
-  // email: z.string().email(),
-});
+${responsePlaceholder}});
 
 export type ${entity.pascal} = z.infer<typeof ${entity.pascal}Schema>;
 
@@ -113,9 +255,7 @@ export type ${entity.pascal} = z.infer<typeof ${entity.pascal}Schema>;
  * Create ${entity.pascal} input schema
  */
 export const Create${entity.pascal}Input = z.object({
-  // TODO: Add required fields for creating a ${entity.humanReadable}
-  // name: z.string().min(1).max(100),
-  // email: z.string().email(),
+${createInputFields.join('\n')}${createInputPlaceholder}
 });
 
 export type Create${entity.pascal}Data = z.infer<typeof Create${entity.pascal}Input>;
@@ -124,9 +264,7 @@ export type Create${entity.pascal}Data = z.infer<typeof Create${entity.pascal}In
  * Update ${entity.pascal} input schema
  */
 export const Update${entity.pascal}Input = z.object({
-  // TODO: Add optional fields for updating a ${entity.humanReadable}
-  // name: z.string().min(1).max(100).optional(),
-  // email: z.string().email().optional(),
+${updateInputFields.join('\n')}${updateInputPlaceholder}
 });
 
 export type Update${entity.pascal}Data = z.infer<typeof Update${entity.pascal}Input>;
@@ -190,7 +328,20 @@ function generateProcedures(ctx: TemplateContext<ModelOptions>): string {
     ? `{ id: input.id, deletedAt: null }`
     : `{ id: input.id }`;
 
+  const { fields = [] } = options;
+
+  // Build response fields
   const responseFields = ['id: item.id,'];
+
+  // Add custom fields
+  for (const field of fields) {
+    if (field.type === 'datetime') {
+      responseFields.push(`${field.name}: item.${field.name}.toISOString(),`);
+    } else {
+      responseFields.push(`${field.name}: item.${field.name},`);
+    }
+  }
+
   if (options.timestamps) {
     responseFields.push('createdAt: item.createdAt.toISOString(),');
     responseFields.push('updatedAt: item.updatedAt.toISOString(),');
@@ -199,7 +350,38 @@ function generateProcedures(ctx: TemplateContext<ModelOptions>): string {
     responseFields.push('deletedAt: item.deletedAt?.toISOString() ?? null,');
   }
 
+  // Build database interface fields
   const dbInterfaceFields = ['id: string;'];
+
+  // Add custom fields to interface
+  for (const field of fields) {
+    let tsType = 'string';
+
+    switch (field.type) {
+      case 'int':
+      case 'float':
+        tsType = 'number';
+        break;
+      case 'boolean':
+        tsType = 'boolean';
+        break;
+      case 'datetime':
+        tsType = 'Date';
+        break;
+      case 'json':
+        tsType = 'unknown';
+        break;
+      case 'enum':
+        tsType = field.enumDef?.name ?? 'string';
+        break;
+      default:
+        tsType = 'string';
+    }
+
+    const nullable = field.attributes.optional ? ' | null' : '';
+    dbInterfaceFields.push(`${field.name}: ${tsType}${nullable};`);
+  }
+
   if (options.timestamps) {
     dbInterfaceFields.push('createdAt: Date;');
     dbInterfaceFields.push('updatedAt: Date;');
@@ -207,6 +389,10 @@ function generateProcedures(ctx: TemplateContext<ModelOptions>): string {
   if (options.softDelete) {
     dbInterfaceFields.push('deletedAt: Date | null;');
   }
+
+  // Build placeholder comments
+  const dbInterfacePlaceholder = fields.length === 0 ? '// TODO: Add your fields here' : '';
+  const responsePlaceholder = fields.length === 0 ? '// TODO: Map your fields here' : '';
 
   return `/**
  * ${entity.pascal} Procedures
@@ -229,14 +415,14 @@ import {
 // Database model type - should match your Prisma schema
 interface Db${entity.pascal} {
   ${dbInterfaceFields.join('\n  ')}
-  // TODO: Add your ${entity.humanReadable} fields here
+  ${dbInterfacePlaceholder}
 }
 
 // Helper to convert database model to response
 function toResponse(item: Db${entity.pascal}) {
   return {
     ${responseFields.join('\n    ')}
-    // TODO: Map your ${entity.humanReadable} fields here
+    ${responsePlaceholder}
   };
 }
 
