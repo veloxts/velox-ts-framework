@@ -438,9 +438,9 @@ async function generatePrismaClient(config: ProjectConfig): Promise<void> {
   }).start();
 
   try {
-    // Fullstack template has Prisma in root, others in apps/api
+    // RSC template has Prisma in root, others in apps/api
     const prismaDir =
-      config.template === 'fullstack' ? config.directory : path.join(config.directory, 'apps', 'api');
+      config.template === 'rsc' ? config.directory : path.join(config.directory, 'apps', 'api');
 
     await execAsync('npx prisma generate', {
       cwd: prismaDir,
@@ -517,7 +517,7 @@ function printSuccessMessage(config: ProjectConfig): void {
   console.log('');
 
   // Different structure messages based on template
-  if (config.template === 'fullstack') {
+  if (config.template === 'rsc') {
     console.log(pc.dim('  Full-stack RSC application with:'));
     console.log(pc.dim('    app/pages   - React Server Components (file-based routing)'));
     console.log(pc.dim('    app/actions - Server actions'));
@@ -544,7 +544,7 @@ function printSuccessMessage(config: ProjectConfig): void {
   console.log('');
 
   // Different URL messages based on template
-  if (config.template === 'fullstack') {
+  if (config.template === 'rsc') {
     console.log('  Your app will be available at:');
     console.log(`    ${pc.cyan('http://localhost:3030')}${pc.dim('  # Full-stack app')}`);
     console.log(`    ${pc.cyan('http://localhost:3030/api/*')}${pc.dim('  # API routes')}`);

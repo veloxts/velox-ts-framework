@@ -599,3 +599,15 @@ export async function veloxApp(config: VeloxAppConfig = {}): Promise<VeloxApp> {
  * @returns Promise resolving to VeloxApp instance
  */
 export const createVeloxApp = veloxApp;
+
+/**
+ * Short alias for veloxApp() - Laravel-style simplicity.
+ *
+ * @example
+ * ```typescript
+ * import { velox } from '@veloxts/velox';
+ *
+ * const app = await velox({ port: 3030 });
+ * ```
+ */
+export const velox = veloxApp;

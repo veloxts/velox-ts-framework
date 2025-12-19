@@ -97,28 +97,77 @@ export interface BuildConfig {
 }
 
 /**
- * Options for defineVeloxApp (nested config format)
+ * Options for defineVeloxApp (nested config format - legacy)
+ */
+export interface DefineVeloxAppNestedOptions {
+  server?: ServerConfig;
+  routing?: RoutingConfig;
+  api?: ApiConfig;
+  build?: BuildConfig;
+  serverEntry?: string;
+  clientEntry?: string;
+  dev?: boolean;
+}
+
+/**
+ * Flat options for defineVeloxApp (preferred, Laravel-style)
+ *
+ * All options have sensible defaults. You only need to specify what you want to change.
  */
 export interface DefineVeloxAppOptions {
   /**
-   * Server configuration
+   * Port to run the server on
+   * @default 3030
    */
-  server?: ServerConfig;
+  port?: number;
 
   /**
-   * File-based routing configuration
+   * Host to bind the server to
+   * @default 'localhost'
    */
-  routing?: RoutingConfig;
+  host?: string;
 
   /**
-   * API (Fastify) configuration
+   * Directory containing page components
+   * @default 'app/pages'
    */
-  api?: ApiConfig;
+  pagesDir?: string;
 
   /**
-   * Build configuration
+   * Directory containing layout components
+   * @default 'app/layouts'
    */
-  build?: BuildConfig;
+  layoutsDir?: string;
+
+  /**
+   * Directory containing server actions
+   * @default 'app/actions'
+   */
+  actionsDir?: string;
+
+  /**
+   * Base path prefix for API routes
+   * @default '/api'
+   */
+  apiPrefix?: string;
+
+  /**
+   * Path to the API handler module
+   * @default './src/api/handler'
+   */
+  apiHandler?: string;
+
+  /**
+   * Output directory for builds
+   * @default 'dist'
+   */
+  outDir?: string;
+
+  /**
+   * Base path for static assets
+   * @default '/_build'
+   */
+  buildBase?: string;
 
   /**
    * Path to the server entry point
@@ -137,6 +186,12 @@ export interface DefineVeloxAppOptions {
    * @default process.env.NODE_ENV !== 'production'
    */
   dev?: boolean;
+
+  // Nested options for backward compatibility
+  server?: ServerConfig;
+  routing?: RoutingConfig;
+  api?: ApiConfig;
+  build?: BuildConfig;
 }
 
 /**
@@ -145,15 +200,30 @@ export interface DefineVeloxAppOptions {
  * This is the main entry point for configuring a full-stack VeloxTS app
  * with React Server Components.
  *
- * @example
+ * @example Minimal (all defaults)
  * ```typescript
- * // app.config.ts
+ * import { defineVeloxApp } from '@veloxts/web';
+ * export default defineVeloxApp();
+ * ```
+ *
+ * @example Flat config (preferred, Laravel-style)
+ * ```typescript
+ * import { defineVeloxApp } from '@veloxts/web';
+ *
+ * export default defineVeloxApp({
+ *   port: 3030,
+ *   apiPrefix: '/api',
+ *   pagesDir: 'app/pages',
+ * });
+ * ```
+ *
+ * @example Nested config (backward compatible)
+ * ```typescript
  * import { defineVeloxApp } from '@veloxts/web';
  *
  * export default defineVeloxApp({
  *   server: { port: 3030 },
- *   routing: { pagesDir: 'app/pages', layoutsDir: 'app/layouts' },
- *   api: { prefix: '/api', handlerPath: './src/api/handler' },
+ *   api: { prefix: '/api' },
  * });
  * ```
  */
@@ -161,15 +231,16 @@ export function defineVeloxApp(options: DefineVeloxAppOptions = {}): VinxiAppCon
   // Merge environment config with provided options
   const envConfig = getEnvConfig();
 
-  // Convert nested config to flat config for resolveConfig
+  // Support both flat and nested config (flat takes precedence)
   const flatConfig: VeloxWebConfig = {
-    port: options.server?.port ?? envConfig.port,
-    host: options.server?.host ?? envConfig.host,
-    apiBase: options.api?.prefix ?? envConfig.apiBase,
-    buildBase: options.build?.buildBase ?? envConfig.buildBase,
-    pagesDir: options.routing?.pagesDir,
-    layoutsDir: options.routing?.layoutsDir,
-    actionsDir: options.routing?.actionsDir,
+    // Flat options take precedence, then nested, then env defaults
+    port: options.port ?? options.server?.port ?? envConfig.port,
+    host: options.host ?? options.server?.host ?? envConfig.host,
+    apiBase: options.apiPrefix ?? options.api?.prefix ?? envConfig.apiBase,
+    buildBase: options.buildBase ?? options.build?.buildBase ?? envConfig.buildBase,
+    pagesDir: options.pagesDir ?? options.routing?.pagesDir,
+    layoutsDir: options.layoutsDir ?? options.routing?.layoutsDir,
+    actionsDir: options.actionsDir ?? options.routing?.actionsDir,
     dev: options.dev ?? envConfig.dev,
   };
 
@@ -177,8 +248,8 @@ export function defineVeloxApp(options: DefineVeloxAppOptions = {}): VinxiAppCon
   const config = resolveConfig(flatConfig);
   validateConfig(config);
 
-  // Extract handler paths with defaults
-  const apiHandler = options.api?.handlerPath ?? './src/api/handler';
+  // Extract handler paths with defaults (flat takes precedence)
+  const apiHandler = options.apiHandler ?? options.api?.handlerPath ?? './src/api/handler';
   const serverEntry = options.serverEntry ?? './src/entry.server';
   const clientEntry = options.clientEntry ?? './src/entry.client';
 

@@ -10,7 +10,7 @@ import { databasePlugin } from '@veloxts/orm';
 import { rest } from '@veloxts/router';
 import { createApiHandler } from '@veloxts/web';
 
-import { prisma } from './database.js';
+import { db } from './database.js';
 import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
 
@@ -28,7 +28,7 @@ const app = createVeloxApp({
 });
 
 // Register database plugin
-app.register(databasePlugin({ client: prisma }));
+app.register(databasePlugin({ client: db }));
 
 // Register REST routes from procedures
 rest([healthProcedures, userProcedures], {

@@ -39,7 +39,7 @@ export const PLACEHOLDERS = {
 export const DEFAULT_CONFIG: TemplateConfig = {
   projectName: '',
   packageManager: 'pnpm',
-  template: 'default',
+  template: 'spa',
   database: 'sqlite',
 };
 
@@ -66,13 +66,13 @@ export const TRPC_CONFIG: TemplateConfig = {
 };
 
 /**
- * Full-stack template configuration for RSC + Vinxi projects.
+ * RSC template configuration for RSC + Vinxi projects.
  * Uses React Server Components with file-based routing.
  */
-export const FULLSTACK_CONFIG: TemplateConfig = {
+export const RSC_CONFIG: TemplateConfig = {
   projectName: '',
   packageManager: 'pnpm',
-  template: 'fullstack',
+  template: 'rsc',
   database: 'sqlite',
 };
 
@@ -201,8 +201,8 @@ export function processConditionals(content: string, template: TemplateConfig['t
   }
 
   // Process default conditionals (both JS and JSX style)
-  // Note: 'trpc' and 'fullstack' templates use default-style content (no auth)
-  if (template === 'default' || template === 'trpc' || template === 'fullstack') {
+  // Note: 'trpc' and 'rsc' templates use default-style content (no auth)
+  if (template === 'spa' || template === 'trpc' || template === 'rsc') {
     // Keep default content but remove markers
     result = result.replaceAll(CONDITIONALS.DEFAULT_START, '');
     result = result.replaceAll(CONDITIONALS.DEFAULT_END, '');

@@ -24,7 +24,7 @@ import {
 } from '@veloxts/velox';
 
 import { authConfig, parseUserRoles, tokenStore } from '../config/auth.js';
-import { prisma } from '../config/database.js';
+import { db } from '../config/database.js';
 
 // ============================================================================
 // Rate Limiter
@@ -141,7 +141,7 @@ export const authProcedures = defineProcedures('auth', {
     .mutation(async ({ input }) => {
       const normalizedEmail = input.email.toLowerCase().trim();
 
-      const existing = await prisma.user.findUnique({
+      const existing = await db.user.findUnique({
         where: { email: normalizedEmail },
       });
 
@@ -155,7 +155,7 @@ export const authProcedures = defineProcedures('auth', {
 
       const hashedPassword = await hashPassword(input.password);
 
-      const user = await prisma.user.create({
+      const user = await db.user.create({
         data: {
           name: input.name.trim(),
           email: normalizedEmail,
@@ -184,7 +184,7 @@ export const authProcedures = defineProcedures('auth', {
     .mutation(async ({ input }) => {
       const normalizedEmail = input.email.toLowerCase().trim();
 
-      const user = await prisma.user.findUnique({
+      const user = await db.user.findUnique({
         where: { email: normalizedEmail },
       });
 
@@ -234,7 +234,7 @@ export const authProcedures = defineProcedures('auth', {
           tokenStore.markRefreshTokenUsed(payload.jti, payload.sub);
         }
 
-        const user = await prisma.user.findUnique({
+        const user = await db.user.findUnique({
           where: { id: payload.sub },
         });
 

@@ -4,6 +4,8 @@
  * Prisma 7 requires:
  * - Generated client from custom output path
  * - Driver adapter for database connections
+ *
+ * Uses Laravel-style `db` export for consistency.
  */
 
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
@@ -19,4 +21,4 @@ if (!process.env.DATABASE_URL) {
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
 
 // Export configured Prisma client
-export const prisma = new PrismaClient({ adapter });
+export const db = new PrismaClient({ adapter });

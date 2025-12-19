@@ -5,9 +5,9 @@
  */
 
 import { generateAuthTemplate } from './auth.js';
-import { generateDefaultTemplate } from './default.js';
-import { generateFullstackTemplate } from './fullstack.js';
+import { generateRscTemplate } from './rsc.js';
 import { VELOXTS_VERSION } from './shared.js';
+import { generateSpaTemplate } from './spa.js';
 import { generateTrpcTemplate } from './trpc.js';
 import type { TemplateConfig, TemplateFile, TemplateType } from './types.js';
 import {
@@ -57,10 +57,10 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
       return generateAuthTemplate(config);
     case 'trpc':
       return generateTrpcTemplate(config);
-    case 'fullstack':
-      return generateFullstackTemplate(config);
-    case 'default':
-      return generateDefaultTemplate(config);
+    case 'rsc':
+      return generateRscTemplate(config);
+    case 'spa':
+      return generateSpaTemplate(config);
     default: {
       // Exhaustive type checking - TypeScript will error if a template is missing
       const exhaustiveCheck: never = config.template;
@@ -73,8 +73,8 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
  * Get directories that need to be created for the template
  */
 export function getTemplateDirectories(template: TemplateType): string[] {
-  // Full-stack RSC template has a different structure
-  if (template === 'fullstack') {
+  // RSC template has a different structure (single-package, not monorepo)
+  if (template === 'rsc') {
     return [
       // App layer (RSC)
       'app',

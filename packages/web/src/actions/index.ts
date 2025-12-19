@@ -6,6 +6,17 @@
  * @module @veloxts/web/actions
  */
 
+// New action() helper - recommended API
+export { action } from './action.js';
+export type {
+  Action,
+  ActionBuilder as FluentActionBuilder,
+  ActionConfig,
+  ActionHandlerFn,
+  ErrorHandler,
+  ValidatedAction,
+} from './action.js';
+
 export type { TrpcActionOptions, TrpcBridge, TrpcCaller } from './bridge.js';
 // Bridge functions
 export {

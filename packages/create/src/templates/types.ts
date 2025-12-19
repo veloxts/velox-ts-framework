@@ -10,8 +10,34 @@
 
 /**
  * Available template types
+ *
+ * - `spa` (alias: `default`) - Monorepo with separate SPA frontend and API backend
+ * - `auth` - SPA + API with JWT authentication
+ * - `trpc` - SPA + API with tRPC integration
+ * - `rsc` (alias: `fullstack`) - React Server Components with Vinxi
  */
-export type TemplateType = 'default' | 'auth' | 'trpc' | 'fullstack';
+export type TemplateType = 'spa' | 'auth' | 'trpc' | 'rsc';
+
+/**
+ * Template aliases for backward compatibility
+ */
+export const TEMPLATE_ALIASES: Record<string, TemplateType> = {
+  default: 'spa',
+  fullstack: 'rsc',
+};
+
+/**
+ * Resolve a template name (including aliases) to a canonical template type
+ */
+export function resolveTemplateAlias(template: string): TemplateType | undefined {
+  if (template in TEMPLATE_ALIASES) {
+    return TEMPLATE_ALIASES[template];
+  }
+  if (isValidTemplate(template)) {
+    return template as TemplateType;
+  }
+  return undefined;
+}
 
 /**
  * Available database types
@@ -124,29 +150,29 @@ export interface TemplateFile {
  * Available templates with their metadata
  */
 export const TEMPLATE_METADATA: Record<TemplateType, TemplateMetadata> = {
-  default: {
-    type: 'default',
-    label: 'API (Default)',
-    description: 'REST API with user CRUD operations',
-    hint: 'Basic API setup without authentication',
+  spa: {
+    type: 'spa',
+    label: 'SPA + API',
+    description: 'Monorepo with SPA frontend and REST API backend',
+    hint: 'Separate builds for frontend (Vite) and backend (Fastify)',
   },
   auth: {
     type: 'auth',
-    label: 'Full Auth',
-    description: 'Complete JWT authentication with login, register, guards',
+    label: 'SPA + Auth',
+    description: 'SPA + API with JWT authentication, guards, and sessions',
     hint: 'Includes rate limiting, token rotation, password hashing',
   },
   trpc: {
     type: 'trpc',
-    label: 'tRPC Hybrid',
-    description: 'tRPC + REST hybrid API with end-to-end type safety',
-    hint: 'Showcases type-safe frontend-backend communication',
+    label: 'SPA + tRPC',
+    description: 'SPA + API with tRPC for end-to-end type safety',
+    hint: 'Type-safe frontend-backend calls without REST boilerplate',
   },
-  fullstack: {
-    type: 'fullstack',
-    label: 'Full-Stack RSC',
-    description: 'React Server Components with Vinxi + file-based routing',
-    hint: 'Modern RSC architecture with server actions and streaming',
+  rsc: {
+    type: 'rsc',
+    label: 'RSC Full-Stack',
+    description: 'React Server Components with Vinxi + embedded Fastify',
+    hint: 'Unified server/client with file-based routing and streaming',
   },
 };
 

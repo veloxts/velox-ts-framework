@@ -236,8 +236,8 @@ export const UserSeeder: Seeder = {
   name: 'UserSeeder',
   dependencies: [],
 
-  async run(prisma) {
-    await prisma.user.createMany({
+  async run(db) {
+    await db.user.createMany({
       data: [
         { email: 'admin@example.com', name: 'Admin' },
         { email: 'user@example.com', name: 'User' },

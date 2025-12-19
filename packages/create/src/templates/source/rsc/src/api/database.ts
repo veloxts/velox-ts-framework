@@ -2,6 +2,7 @@
  * Database Configuration
  *
  * Prisma client instance for database access.
+ * Uses Laravel-style `db` export for consistency.
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -9,14 +10,11 @@ import { PrismaClient } from '@prisma/client';
 declare global {
   // Allow global `var` declarations for hot reload in development
   // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
+  var __db: PrismaClient | undefined;
 }
 
-export const prisma = globalThis.prisma ?? new PrismaClient();
+export const db = globalThis.__db ?? new PrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
+  globalThis.__db = db;
 }
-
-// Re-export as db for convenience
-export const db = prisma;

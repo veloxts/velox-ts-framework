@@ -7,7 +7,7 @@ import 'dotenv/config';
 import { databasePlugin, rest, veloxApp } from '@veloxts/velox';
 
 import { config } from './config/app.js';
-import { prisma } from './config/database.js';
+import { db } from './config/database.js';
 import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
 
@@ -21,7 +21,7 @@ const app = await veloxApp({
   logger: config.logger,
 });
 
-await app.register(databasePlugin({ client: prisma }));
+await app.register(databasePlugin({ client: db }));
 
 app.routes(
   rest([healthProcedures, userProcedures], {
@@ -45,7 +45,7 @@ const shutdown = async () => {
   isShuttingDown = true;
 
   try {
-    await prisma.$disconnect();
+    await db.$disconnect();
   } catch {
     // Ignore disconnect errors during shutdown
   }

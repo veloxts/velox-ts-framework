@@ -3,23 +3,32 @@
 # Tests the full flow: scaffold -> install -> generate -> build -> run
 #
 # Supports testing all templates:
-#   ./smoke-test.sh             # Test default template
+#   ./smoke-test.sh             # Test spa template (default)
+#   ./smoke-test.sh --spa       # Test SPA + API template
 #   ./smoke-test.sh --auth      # Test auth template
 #   ./smoke-test.sh --trpc      # Test tRPC hybrid template
-#   ./smoke-test.sh --fullstack # Test fullstack RSC template
+#   ./smoke-test.sh --rsc       # Test RSC full-stack template
 #   ./smoke-test.sh --all       # Test all templates
+#
+# Aliases (backward compatible):
+#   ./smoke-test.sh --default   # Alias for --spa
+#   ./smoke-test.sh --fullstack # Alias for --rsc
 #
 # In CI: Uses published npm packages directly
 # Locally: Links to monorepo packages via file: references
 
 set -e
 
-TEMPLATE="default"
+TEMPLATE="spa"
 TEST_ALL=false
 
 # Parse arguments
 for arg in "$@"; do
   case $arg in
+    --spa|--default)
+      TEMPLATE="spa"
+      shift
+      ;;
     --auth)
       TEMPLATE="auth"
       shift
@@ -28,8 +37,8 @@ for arg in "$@"; do
       TEMPLATE="trpc"
       shift
       ;;
-    --fullstack)
-      TEMPLATE="fullstack"
+    --rsc|--fullstack)
+      TEMPLATE="rsc"
       shift
       ;;
     --all)
@@ -586,14 +595,14 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   rm -rf "$TEST_DIR/$project_name"
 }
 
-# Test fullstack template (Vinxi/RSC - different structure)
-test_fullstack_template() {
-  local project_name="smoke-test-fullstack"
+# Test RSC template (Vinxi/RSC - different structure)
+test_rsc_template() {
+  local project_name="smoke-test-rsc"
   local test_port=3030
 
   echo ""
   echo "=========================================="
-  echo "  Testing template: fullstack (RSC)"
+  echo "  Testing template: rsc (React Server Components)"
   echo "=========================================="
   echo ""
 
@@ -602,8 +611,8 @@ test_fullstack_template() {
   mkdir -p "$TEST_DIR"
   cd "$TEST_DIR"
 
-  # Run scaffolder with fullstack template
-  SKIP_INSTALL=true node "$SCRIPT_DIR/dist/cli.js" "$project_name" --template="fullstack"
+  # Run scaffolder with rsc template
+  SKIP_INSTALL=true node "$SCRIPT_DIR/dist/cli.js" "$project_name" --template="rsc"
 
   # Verify project was created
   if [ ! -f "$TEST_DIR/$project_name/package.json" ]; then
@@ -611,7 +620,7 @@ test_fullstack_template() {
     exit 1
   fi
 
-  # Verify fullstack-specific files
+  # Verify RSC-specific files
   if [ ! -f "$TEST_DIR/$project_name/app.config.ts" ]; then
     echo "✗ Missing app.config.ts (Vinxi config)"
     exit 1
@@ -712,7 +721,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   echo ""
 
   echo ""
-  echo "✓ Template 'fullstack' passed structure validation!"
+  echo "✓ Template 'rsc' passed structure validation!"
   echo ""
   echo "Note: Full Vinxi integration testing requires complete @veloxts/web package."
   echo "      Use 'pnpm dev' in a real project to test Vinxi server."
@@ -740,12 +749,12 @@ build_all
 
 # Test templates
 if [ "$TEST_ALL" = true ]; then
-  test_template "default"
+  test_template "spa"
   test_template "auth"
   test_template "trpc"
-  test_fullstack_template
-elif [ "$TEMPLATE" = "fullstack" ]; then
-  test_fullstack_template
+  test_rsc_template
+elif [ "$TEMPLATE" = "rsc" ]; then
+  test_rsc_template
 else
   test_template "$TEMPLATE"
 fi

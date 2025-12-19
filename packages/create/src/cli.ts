@@ -9,7 +9,8 @@
 
 import { CREATE_VERSION, createVeloxApp } from './index.js';
 import type { TemplateType } from './templates/index.js';
-import { getAvailableTemplates, isValidTemplate, TEMPLATE_METADATA } from './templates/index.js';
+import { getAvailableTemplates, TEMPLATE_METADATA } from './templates/index.js';
+import { resolveTemplateAlias, TEMPLATE_ALIASES } from './templates/types.js';
 
 // ============================================================================
 // Constants
@@ -17,9 +18,9 @@ import { getAvailableTemplates, isValidTemplate, TEMPLATE_METADATA } from './tem
 
 /** Get list of available template names for error messages */
 function getTemplateNames(): string {
-  return getAvailableTemplates()
-    .map((t) => t.type)
-    .join(', ');
+  const templates = getAvailableTemplates().map((t) => t.type);
+  const aliases = Object.keys(TEMPLATE_ALIASES);
+  return [...templates, ...aliases].join(', ');
 }
 
 // ============================================================================
@@ -34,21 +35,26 @@ Usage:
   pnpm create velox-app [project-name] [options]
 
 Options:
-  -t, --template <name>  Template to use (default: "default")
+  -t, --template <name>  Template to use (default: "spa")
                          Available: ${getTemplateNames()}
   -h, --help             Show this help message
   -v, --version          Show version number
 
 Templates:
-  default    ${TEMPLATE_METADATA.default.description}
+  spa        ${TEMPLATE_METADATA.spa.description}
   auth       ${TEMPLATE_METADATA.auth.description}
   trpc       ${TEMPLATE_METADATA.trpc.description}
-  fullstack  ${TEMPLATE_METADATA.fullstack.description}
+  rsc        ${TEMPLATE_METADATA.rsc.description}
+
+Aliases:
+  default    → spa (backward compatible)
+  fullstack  → rsc (backward compatible)
 
 Examples:
-  npx create-velox-app my-app                    # Interactive mode
-  npx create-velox-app my-app --template=auth    # Auth template
-  npx create-velox-app                           # Prompt for name
+  npx create-velox-app my-app                  # Interactive mode
+  npx create-velox-app my-app --template=spa   # SPA + API template
+  npx create-velox-app my-app --template=rsc   # RSC full-stack template
+  npx create-velox-app                         # Prompt for name
 `;
 
 // ============================================================================
@@ -100,8 +106,9 @@ function parseArgs(args: string[]): ParsedArgs {
         console.error(`Error: --template requires a value. Available: ${getTemplateNames()}`);
         process.exit(1);
       }
-      if (isValidTemplate(value)) {
-        result.template = value;
+      const resolved = resolveTemplateAlias(value);
+      if (resolved) {
+        result.template = resolved;
       } else {
         console.error(`Invalid template: ${value}. Available: ${getTemplateNames()}`);
         process.exit(1);
@@ -123,8 +130,9 @@ function parseArgs(args: string[]): ParsedArgs {
         console.error(`Error: --template requires a value. Available: ${getTemplateNames()}`);
         process.exit(1);
       }
-      if (isValidTemplate(value)) {
-        result.template = value;
+      const resolved = resolveTemplateAlias(value);
+      if (resolved) {
+        result.template = resolved;
         i++; // Skip next arg
       } else {
         console.error(`Invalid template: ${value}. Available: ${getTemplateNames()}`);

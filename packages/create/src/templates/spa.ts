@@ -1,9 +1,9 @@
 /**
- * Default Template (Full-Stack)
+ * SPA Template
  *
- * Full-stack workspace template with:
- * - apps/api: REST API with user CRUD operations
- * - apps/web: React frontend with TanStack Router
+ * Monorepo workspace with separate SPA frontend and API backend:
+ * - apps/api: REST API with Fastify and user CRUD operations
+ * - apps/web: React SPA with Vite and TanStack Router
  *
  * No authentication - suitable for internal APIs or as a starting point.
  */
@@ -70,10 +70,10 @@ function generateApiTypesDts(): string {
 }
 
 // ============================================================================
-// Default Template Generator
+// SPA Template Generator
 // ============================================================================
 
-export function generateDefaultTemplate(config: TemplateConfig): TemplateFile[] {
+export function generateSpaTemplate(config: TemplateConfig): TemplateFile[] {
   const files: TemplateFile[] = [
     // API package files
     { path: 'apps/api/package.json', content: generateApiPackageJson(config) },

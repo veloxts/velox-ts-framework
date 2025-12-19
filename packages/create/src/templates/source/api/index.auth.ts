@@ -8,7 +8,7 @@ import { authPlugin, databasePlugin, extractRoutes, rest, veloxApp } from '@velo
 
 import { config } from './config/app.js';
 import { authConfig } from './config/auth.js';
-import { prisma } from './config/database.js';
+import { db } from './config/database.js';
 import { authProcedures } from './procedures/auth.js';
 import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
@@ -29,7 +29,7 @@ const app = await veloxApp({
   logger: config.logger,
 });
 
-await app.register(databasePlugin({ client: prisma }));
+await app.register(databasePlugin({ client: db }));
 await app.register(authPlugin(authConfig));
 
 app.routes(
@@ -54,7 +54,7 @@ const shutdown = async () => {
   isShuttingDown = true;
 
   try {
-    await prisma.$disconnect();
+    await db.$disconnect();
   } catch {
     // Ignore disconnect errors during shutdown
   }

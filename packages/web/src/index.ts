@@ -8,6 +8,17 @@
  * @packageDocumentation
  */
 
+// New action() helper - recommended API
+export { action } from './actions/index.js';
+export type {
+  Action,
+  ActionConfig,
+  ActionHandlerFn,
+  ErrorHandler,
+  FluentActionBuilder,
+  ValidatedAction,
+} from './actions/index.js';
+
 // Action types
 export type {
   ActionBuilder,
@@ -30,7 +41,7 @@ export type {
   TrpcBridgeOptions,
   TrpcCaller,
 } from './actions/index.js';
-// Server Actions
+// Server Actions (legacy API - still supported)
 export {
   // Action creation
   createAction,

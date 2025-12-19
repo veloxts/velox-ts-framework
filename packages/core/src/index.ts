@@ -7,9 +7,9 @@
  *
  * @example
  * ```typescript
- * import { veloxApp, definePlugin, Container, Injectable } from '@veloxts/core';
+ * import { velox, definePlugin, Container, Injectable } from '@veloxts/core';
  *
- * const app = await veloxApp({ port: 3030 });
+ * const app = await velox({ port: 3030 });
  * await app.start();
  * ```
  *
@@ -30,7 +30,7 @@ export const VELOX_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 export type { StartOptions } from './app.js';
 // App creation and types
-export { createVeloxApp, VeloxApp, veloxApp } from './app.js';
+export { createVeloxApp, velox, VeloxApp, veloxApp } from './app.js';
 // Context system
 export type { BaseContext } from './context.js';
 export { createContext, isContext, setupTestContext } from './context.js';

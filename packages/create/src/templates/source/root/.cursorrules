@@ -149,8 +149,8 @@ import { defineProcedures, procedure, z } from '@veloxts/velox';
 import { authenticated, hasRole } from '@veloxts/auth';
 /* @endif auth */
 
-// Prisma client from config
-import { prisma } from '../config/database';
+// Database client from config
+import { db } from '../config/database';
 
 // Local schemas
 import { UserSchema, CreateUserSchema } from '../schemas/user';

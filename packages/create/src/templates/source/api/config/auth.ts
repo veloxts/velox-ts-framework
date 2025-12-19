@@ -9,7 +9,7 @@
 
 import type { AuthPluginOptions } from '@veloxts/velox';
 
-import { prisma } from './database.js';
+import { db } from './database.js';
 
 // ============================================================================
 // Environment Variable Validation
@@ -167,7 +167,7 @@ export function parseUserRoles(rolesJson: string | null): string[] {
 // ============================================================================
 
 async function userLoader(userId: string) {
-  const user = await prisma.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id: userId },
   });
 

@@ -1,18 +1,18 @@
 /**
- * Full-Stack Template (RSC + Vinxi)
+ * RSC Template (React Server Components + Vinxi)
  *
- * Full-stack application template with:
+ * Unified full-stack application with:
  * - React Server Components (RSC) with streaming
  * - Vinxi as the HTTP infrastructure layer
  * - File-based routing under app/pages/
- * - Server actions with type safety
+ * - Server actions with Zod validation
  * - Embedded Fastify API at /api/*
  *
  * This is a single-package structure (not a monorepo workspace).
  */
 
 import { compileTemplate } from './compiler.js';
-import { FULLSTACK_CONFIG } from './placeholders.js';
+import { RSC_CONFIG } from './placeholders.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 
 // ============================================================================
@@ -20,89 +20,89 @@ import type { TemplateConfig, TemplateFile } from './types.js';
 // ============================================================================
 
 function generatePackageJson(config: TemplateConfig): string {
-  return compileTemplate('fullstack/package.json', config);
+  return compileTemplate('rsc/package.json', config);
 }
 
 function generateAppConfig(): string {
-  return compileTemplate('fullstack/app.config.ts', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/app.config.ts', RSC_CONFIG);
 }
 
 function generateTsConfig(): string {
-  return compileTemplate('fullstack/tsconfig.json', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/tsconfig.json', RSC_CONFIG);
 }
 
 function generateEnvExample(config: TemplateConfig): string {
-  return compileTemplate('fullstack/env.example', config);
+  return compileTemplate('rsc/env.example', config);
 }
 
 function generateGitignore(): string {
-  return compileTemplate('fullstack/gitignore', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/gitignore', RSC_CONFIG);
 }
 
 function generateClaudeMd(config: TemplateConfig): string {
-  return compileTemplate('fullstack/CLAUDE.md', config);
+  return compileTemplate('rsc/CLAUDE.md', config);
 }
 
 // Prisma
 function generatePrismaSchema(): string {
-  return compileTemplate('fullstack/prisma/schema.prisma', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/prisma/schema.prisma', RSC_CONFIG);
 }
 
 // App layer (RSC)
 function generateHomePage(): string {
-  return compileTemplate('fullstack/app/pages/index.tsx', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/app/pages/index.tsx', RSC_CONFIG);
 }
 
 function generateUsersPage(): string {
-  return compileTemplate('fullstack/app/pages/users.tsx', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/app/pages/users.tsx', RSC_CONFIG);
 }
 
 function generateRootLayout(): string {
-  return compileTemplate('fullstack/app/layouts/root.tsx', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/app/layouts/root.tsx', RSC_CONFIG);
 }
 
 function generateUserActions(): string {
-  return compileTemplate('fullstack/app/actions/users.ts', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/app/actions/users.ts', RSC_CONFIG);
 }
 
 // Source layer
 function generateEntryClient(): string {
-  return compileTemplate('fullstack/src/entry.client.tsx', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/src/entry.client.tsx', RSC_CONFIG);
 }
 
 function generateEntryServer(): string {
-  return compileTemplate('fullstack/src/entry.server.tsx', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/src/entry.server.tsx', RSC_CONFIG);
 }
 
 function generateApiHandler(): string {
-  return compileTemplate('fullstack/src/api/handler.ts', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/src/api/handler.ts', RSC_CONFIG);
 }
 
 function generateDatabase(): string {
-  return compileTemplate('fullstack/src/api/database.ts', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/src/api/database.ts', RSC_CONFIG);
 }
 
 function generateHealthProcedures(): string {
-  return compileTemplate('fullstack/src/api/procedures/health.ts', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/src/api/procedures/health.ts', RSC_CONFIG);
 }
 
 function generateUserProcedures(): string {
-  return compileTemplate('fullstack/src/api/procedures/users.ts', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/src/api/procedures/users.ts', RSC_CONFIG);
 }
 
 function generateUserSchemas(): string {
-  return compileTemplate('fullstack/src/api/schemas/user.ts', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/src/api/schemas/user.ts', RSC_CONFIG);
 }
 
 function generateFavicon(): string {
-  return compileTemplate('fullstack/public/favicon.svg', FULLSTACK_CONFIG);
+  return compileTemplate('rsc/public/favicon.svg', RSC_CONFIG);
 }
 
 // ============================================================================
-// Full-Stack Template Generator
+// RSC Template Generator
 // ============================================================================
 
-export function generateFullstackTemplate(config: TemplateConfig): TemplateFile[] {
+export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
   return [
     // Root configuration files
     { path: 'package.json', content: generatePackageJson(config) },
