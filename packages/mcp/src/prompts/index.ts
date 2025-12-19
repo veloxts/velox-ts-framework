@@ -12,5 +12,6 @@ export {
   getPromptTemplate,
   listPromptTemplates,
   PROMPT_TEMPLATES,
+  renderPromptTemplate,
   SETUP_AUTH,
 } from './templates.js';

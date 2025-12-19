@@ -422,6 +422,63 @@ export function getPromptTemplate(name: string): PromptTemplate | undefined {
 }
 
 /**
+ * Render a prompt template with argument substitution
+ *
+ * Supports the following placeholder transformations:
+ * - {arg} - lowercase (e.g., "user")
+ * - {Arg} - PascalCase (e.g., "User")
+ * - {args} - lowercase plural (e.g., "users")
+ * - {Args} - PascalCase plural (e.g., "Users")
+ *
+ * @param name - Template name
+ * @param args - Argument values as key-value pairs
+ * @returns Rendered content or undefined if template not found
+ */
+export function renderPromptTemplate(
+  name: string,
+  args: Record<string, string>
+): string | undefined {
+  const template = getPromptTemplate(name);
+  if (!template) return undefined;
+
+  let content = template.content;
+
+  for (const [key, value] of Object.entries(args)) {
+    // Skip empty values
+    if (!value) continue;
+
+    const lower = value.toLowerCase();
+    const pascal = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    // Simple pluralization (add 's' or 'es')
+    const pluralize = (s: string) => {
+      if (
+        s.endsWith('s') ||
+        s.endsWith('x') ||
+        s.endsWith('z') ||
+        s.endsWith('ch') ||
+        s.endsWith('sh')
+      ) {
+        return `${s}es`;
+      }
+      return `${s}s`;
+    };
+
+    // Replace all variations of the placeholder
+    // {key} - lowercase
+    content = content.replace(new RegExp(`\\{${key}\\}`, 'g'), lower);
+    // {Key} - PascalCase
+    const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
+    content = content.replace(new RegExp(`\\{${pascalKey}\\}`, 'g'), pascal);
+    // {keys} - lowercase plural (when key ends without 's')
+    content = content.replace(new RegExp(`\\{${key}s\\}`, 'g'), pluralize(lower));
+    // {Keys} - PascalCase plural
+    content = content.replace(new RegExp(`\\{${pascalKey}s\\}`, 'g'), pluralize(pascal));
+  }
+
+  return content;
+}
+
+/**
  * List all available prompts
  */
 export function listPromptTemplates(): { name: string; description: string }[] {
