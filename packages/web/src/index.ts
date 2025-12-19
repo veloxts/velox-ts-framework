@@ -70,7 +70,18 @@ export {
   type FileRouter,
   type FileRouterOptions,
   parseFilePath,
+  type SpecialPages,
 } from './routing/file-router.js';
+
+// Layout resolution
+export {
+  createLayoutResolver,
+  type LayoutChain,
+  type LayoutComponent,
+  type LayoutResolver,
+  type LayoutResolverOptions,
+  wrapWithLayouts,
+} from './routing/layouts.js';
 // Core types
 export type {
   CreateApiHandlerOptions,
@@ -78,11 +89,14 @@ export type {
   ErrorProps,
   FormAction,
   LayoutProps,
+  LoadingProps,
+  NotFoundProps,
   PageProps,
   ParsedRoute,
   ResolvedVeloxWebConfig,
   RouteMatch,
   ServerAction,
+  SpecialPageType,
   VeloxWebConfig,
   VinxiHandler,
   VinxiRouteConfig,

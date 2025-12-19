@@ -2,7 +2,9 @@
  * Tests for the file-based router
  */
 
-import { describe, expect, it } from 'vitest';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createFileRouter, parseFilePath } from './file-router.js';
 
@@ -425,6 +427,295 @@ describe('createFileRouter', () => {
       const router = await createFileRouter();
 
       expect(router.routes).toHaveLength(0);
+    });
+  });
+});
+
+// File system integration tests
+const TEST_DIR = join(process.cwd(), '.test-file-router');
+const PAGES_DIR = join(TEST_DIR, 'app/pages');
+const LAYOUTS_DIR = join(TEST_DIR, 'app/layouts');
+
+describe('createFileRouter with file system', () => {
+  beforeAll(() => {
+    // Create test directory structure
+    mkdirSync(PAGES_DIR, { recursive: true });
+    mkdirSync(LAYOUTS_DIR, { recursive: true });
+  });
+
+  afterAll(() => {
+    // Cleanup test directory
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true, force: true });
+    }
+  });
+
+  describe('file scanning', () => {
+    beforeAll(() => {
+      // Create test pages
+      writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
+      writeFileSync(join(PAGES_DIR, 'about.tsx'), 'export default function About() {}');
+      mkdirSync(join(PAGES_DIR, 'users'), { recursive: true });
+      writeFileSync(
+        join(PAGES_DIR, 'users/index.tsx'),
+        'export default function UsersList() {}'
+      );
+      writeFileSync(
+        join(PAGES_DIR, 'users/[id].tsx'),
+        'export default function UserDetail() {}'
+      );
+    });
+
+    afterAll(() => {
+      rmSync(join(PAGES_DIR, 'index.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, 'about.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, 'users'), { recursive: true, force: true });
+    });
+
+    it('should scan and parse page files', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      expect(router.routes.length).toBeGreaterThan(0);
+    });
+
+    it('should create routes for all page files', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const patterns = router.routes.map((r) => r.pattern);
+      expect(patterns).toContain('/');
+      expect(patterns).toContain('/about');
+      expect(patterns).toContain('/users');
+      expect(patterns).toContain('/users/:id');
+    });
+  });
+
+  describe('route matching', () => {
+    beforeAll(() => {
+      // Create test pages
+      writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
+      writeFileSync(join(PAGES_DIR, 'about.tsx'), 'export default function About() {}');
+      mkdirSync(join(PAGES_DIR, 'posts'), { recursive: true });
+      writeFileSync(
+        join(PAGES_DIR, 'posts/[slug].tsx'),
+        'export default function Post() {}'
+      );
+      writeFileSync(
+        join(PAGES_DIR, 'posts/[...path].tsx'),
+        'export default function CatchAll() {}'
+      );
+    });
+
+    afterAll(() => {
+      rmSync(join(PAGES_DIR, 'index.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, 'about.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, 'posts'), { recursive: true, force: true });
+    });
+
+    it('should match root route', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const match = router.match('/');
+      expect(match).not.toBeNull();
+      expect(match?.route.pattern).toBe('/');
+    });
+
+    it('should match static routes', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const match = router.match('/about');
+      expect(match).not.toBeNull();
+      expect(match?.route.pattern).toBe('/about');
+    });
+
+    it('should match dynamic routes and extract params', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const match = router.match('/posts/hello-world');
+      expect(match).not.toBeNull();
+      expect(match?.params.slug).toBe('hello-world');
+    });
+
+    it('should return null for non-existent routes', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const match = router.match('/non-existent');
+      expect(match).toBeNull();
+    });
+  });
+
+  describe('special pages', () => {
+    beforeAll(() => {
+      // Create test pages including special pages
+      writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
+      writeFileSync(join(PAGES_DIR, '_not-found.tsx'), 'export default function NotFound() {}');
+      writeFileSync(join(PAGES_DIR, '_error.tsx'), 'export default function Error() {}');
+      writeFileSync(join(PAGES_DIR, '_loading.tsx'), 'export default function Loading() {}');
+    });
+
+    afterAll(() => {
+      rmSync(join(PAGES_DIR, 'index.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, '_not-found.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, '_error.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, '_loading.tsx'), { force: true });
+    });
+
+    it('should detect not-found page', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      expect(router.hasSpecialPage('not-found')).toBe(true);
+      expect(router.getSpecialPage('not-found')).toBe('_not-found.tsx');
+    });
+
+    it('should detect error page', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      expect(router.hasSpecialPage('error')).toBe(true);
+      expect(router.getSpecialPage('error')).toBe('_error.tsx');
+    });
+
+    it('should detect loading page', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      expect(router.hasSpecialPage('loading')).toBe(true);
+      expect(router.getSpecialPage('loading')).toBe('_loading.tsx');
+    });
+
+    it('should expose specialPages object', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      expect(router.specialPages.notFound).toBe('_not-found.tsx');
+      expect(router.specialPages.error).toBe('_error.tsx');
+      expect(router.specialPages.loading).toBe('_loading.tsx');
+    });
+
+    it('should not include special pages in routes', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const patterns = router.routes.map((r) => r.pattern);
+      expect(patterns).not.toContain('/_not-found');
+      expect(patterns).not.toContain('/_error');
+      expect(patterns).not.toContain('/_loading');
+    });
+  });
+
+  describe('alternative special page names', () => {
+    beforeAll(() => {
+      // Create pages with alternative naming
+      writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
+      writeFileSync(join(PAGES_DIR, '404.tsx'), 'export default function NotFound() {}');
+    });
+
+    afterAll(() => {
+      rmSync(join(PAGES_DIR, 'index.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, '404.tsx'), { force: true });
+    });
+
+    it('should detect 404.tsx as not-found page', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      expect(router.hasSpecialPage('not-found')).toBe(true);
+      expect(router.getSpecialPage('not-found')).toBe('404.tsx');
+    });
+  });
+
+  describe('route reloading', () => {
+    it('should reload routes when files change', async () => {
+      // Start with index only
+      writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
+
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      expect(router.routes.length).toBe(1);
+
+      // Add a new page
+      writeFileSync(join(PAGES_DIR, 'contact.tsx'), 'export default function Contact() {}');
+
+      // Reload
+      await router.reload();
+
+      expect(router.routes.length).toBe(2);
+
+      // Cleanup
+      rmSync(join(PAGES_DIR, 'index.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, 'contact.tsx'), { force: true });
+    });
+  });
+
+  describe('ignored files', () => {
+    beforeAll(() => {
+      // Create test pages
+      writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
+      writeFileSync(join(PAGES_DIR, '_helper.tsx'), 'export const helper = () => {}');
+      mkdirSync(join(PAGES_DIR, '_components'), { recursive: true });
+      writeFileSync(
+        join(PAGES_DIR, '_components/Button.tsx'),
+        'export default function Button() {}'
+      );
+    });
+
+    afterAll(() => {
+      rmSync(join(PAGES_DIR, 'index.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, '_helper.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, '_components'), { recursive: true, force: true });
+    });
+
+    it('should ignore files starting with underscore', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const patterns = router.routes.map((r) => r.pattern);
+      expect(patterns).not.toContain('/_helper');
+    });
+
+    it('should ignore directories in ignore list', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const patterns = router.routes.map((r) => r.pattern);
+      expect(patterns).not.toContain('/_components/Button');
     });
   });
 });

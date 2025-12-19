@@ -8,6 +8,7 @@
  * @module @veloxts/web/rendering/server-renderer
  */
 
+import { resolve } from 'node:path';
 import { PassThrough, type Readable } from 'node:stream';
 
 import { renderToPipeableStream } from 'react-dom/server';
@@ -108,9 +109,13 @@ export async function renderToStream(
   } = options;
 
   try {
-    // Extract search params from request URL
+    // Extract search params from request URL, preserving duplicate keys as arrays
     const url = new URL(request.url);
-    const searchParams = Object.fromEntries(url.searchParams.entries());
+    const searchParams: Record<string, string | string[]> = {};
+    for (const key of url.searchParams.keys()) {
+      const values = url.searchParams.getAll(key);
+      searchParams[key] = values.length === 1 ? values[0] : values;
+    }
 
     // Dynamically import the page component
     const PageComponent = resolveComponent
@@ -254,13 +259,27 @@ function nodeStreamToWebStream(nodeStream: Readable): ReadableStream<Uint8Array>
 /**
  * Dynamically imports a page component by file path.
  *
+ * Includes path traversal protection to prevent loading files outside
+ * the pages directory.
+ *
  * @param filePath - Path to the page component
  * @returns Page component
+ * @throws Error if path contains traversal sequences or file is not found
  */
 async function importPageComponent(filePath: string): Promise<PageComponent> {
+  // Validate against path traversal attacks
+  const pagesRoot = resolve(process.cwd(), 'app/pages');
+  const normalizedPath = filePath.replace(/\.(tsx?|jsx?)$/, '');
+  const targetPath = resolve(pagesRoot, normalizedPath);
+
+  // Ensure the resolved path is within the pages directory
+  if (!targetPath.startsWith(pagesRoot)) {
+    throw new Error(`Invalid page path: path traversal detected in "${filePath}"`);
+  }
+
   // Convert file path to import path
   // Example: "users/[id].tsx" -> "./app/pages/users/[id]"
-  const importPath = `./app/pages/${filePath.replace(/\.(tsx?|jsx?)$/, '')}`;
+  const importPath = `./app/pages/${normalizedPath}`;
 
   try {
     const module = await import(importPath);

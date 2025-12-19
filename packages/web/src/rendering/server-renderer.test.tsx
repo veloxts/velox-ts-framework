@@ -150,6 +150,38 @@ describe('renderToStream', () => {
       // React adds HTML comment markers between text nodes
       expect(html).toMatch(/Search:.*{}/);
     });
+
+    it('should preserve duplicate search params as arrays', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/test?tag=a&tag=b&tag=c');
+
+      // Custom component to display array values
+      function ArrayParamsPage({
+        searchParams,
+      }: {
+        params: Record<string, string>;
+        searchParams: Record<string, string | string[]>;
+      }) {
+        const tags = searchParams.tag;
+        const isArray = Array.isArray(tags);
+        return (
+          <div data-testid="array-params">
+            <p>Is Array: {String(isArray)}</p>
+            <p>Count: {isArray ? tags.length : 1}</p>
+          </div>
+        );
+      }
+
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => ArrayParamsPage,
+        bootstrapScripts: [],
+      });
+
+      const html = await response.text();
+      // React adds HTML comment markers between text nodes
+      expect(html).toMatch(/Is Array:.*true/);
+      expect(html).toMatch(/Count:.*3/);
+    });
   });
 
   describe('async components', () => {
@@ -284,6 +316,31 @@ describe('renderToStream', () => {
       });
 
       expect(response.status).toBe(500);
+    });
+
+    it('should reject path traversal attempts', async () => {
+      // Create a route match with a malicious file path
+      const match = createRouteMatch({
+        route: {
+          filePath: '../../../etc/passwd',
+          pattern: '/malicious',
+          params: [],
+          catchAll: false,
+        },
+      });
+      const request = new Request('http://localhost:3030/malicious');
+      const onError = vi.fn();
+
+      // Don't provide resolveComponent to test importPageComponent's path validation
+      const response = await renderToStream(match, request, {
+        bootstrapScripts: [],
+        onError,
+      });
+
+      expect(response.status).toBe(500);
+      expect(onError).toHaveBeenCalled();
+      const errorArg = onError.mock.calls[0][0] as Error;
+      expect(errorArg.message).toContain('path traversal detected');
     });
   });
 
