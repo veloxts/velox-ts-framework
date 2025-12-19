@@ -47,6 +47,8 @@ export interface SchemasResourceResponse {
   schemas: SchemaInfo[];
   totalCount: number;
   files: string[];
+  /** Warnings encountered during schema scanning */
+  warnings?: string[];
 }
 
 // ============================================================================
@@ -104,10 +106,19 @@ function extractSchemaNames(content: string, filePath: string): SchemaInfo[] {
 }
 
 /**
+ * Result of schema file scanning
+ */
+interface SchemaScanResult {
+  files: { file: string; content: string }[];
+  warnings: string[];
+}
+
+/**
  * Scan a directory for schema files
  */
-async function scanSchemaFiles(schemasPath: string): Promise<{ file: string; content: string }[]> {
+async function scanSchemaFiles(schemasPath: string): Promise<SchemaScanResult> {
   const files: { file: string; content: string }[] = [];
+  const warnings: string[] = [];
 
   try {
     const entries = await readdir(schemasPath, { withFileTypes: true });
@@ -122,15 +133,19 @@ async function scanSchemaFiles(schemasPath: string): Promise<{ file: string; con
       try {
         const content = await readFile(filePath, 'utf-8');
         files.push({ file: entry.name, content });
-      } catch {
-        // Skip files we can't read
+      } catch (error) {
+        // Track file read errors as warnings
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        warnings.push(`Failed to read ${entry.name}: ${message}`);
       }
     }
-  } catch {
-    // Directory doesn't exist or can't be read
+  } catch (error) {
+    // Track directory read errors as warnings
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    warnings.push(`Failed to scan schemas directory: ${message}`);
   }
 
-  return files;
+  return { files, warnings };
 }
 
 // ============================================================================
@@ -151,7 +166,7 @@ export async function getSchemas(projectRoot: string): Promise<SchemasResourceRe
     };
   }
 
-  const schemaFiles = await scanSchemaFiles(schemasPath);
+  const { files: schemaFiles, warnings } = await scanSchemaFiles(schemasPath);
   const allSchemas: SchemaInfo[] = [];
   const files: string[] = [];
 
@@ -167,6 +182,7 @@ export async function getSchemas(projectRoot: string): Promise<SchemasResourceRe
     schemas: allSchemas,
     totalCount: allSchemas.length,
     files,
+    warnings: warnings.length > 0 ? warnings : undefined,
   };
 }
 

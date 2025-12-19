@@ -6,7 +6,31 @@
 
 import { spawn } from 'node:child_process';
 
+import { z } from 'zod';
+
 import { findProjectRoot } from '../utils/project.js';
+
+// ============================================================================
+// Output Validation Schemas
+// ============================================================================
+
+/**
+ * Schema for migration info in JSON output
+ */
+const MigrationInfoSchema = z.object({
+  name: z.string(),
+  status: z.enum(['applied', 'pending']),
+  appliedAt: z.string().optional(),
+});
+
+/**
+ * Schema for velox migrate JSON output
+ */
+const MigrateOutputSchema = z.object({
+  migrations: z.array(MigrationInfoSchema).optional(),
+  success: z.boolean().optional(),
+  message: z.string().optional(),
+});
 
 // ============================================================================
 // Types
@@ -104,19 +128,23 @@ export async function migrate(options: MigrateOptions): Promise<MigrateResult> {
 
     child.on('close', (code) => {
       if (code === 0) {
-        // Try to parse JSON output if requested
+        // Try to parse and validate JSON output if requested
         if (options.json) {
           try {
-            const parsed = JSON.parse(stdout) as { migrations?: MigrationInfo[] };
-            resolve({
-              success: true,
-              action: options.action,
-              migrations: parsed.migrations,
-              output: stdout,
-            });
-            return;
+            const jsonData = JSON.parse(stdout);
+            const parsed = MigrateOutputSchema.safeParse(jsonData);
+            if (parsed.success) {
+              resolve({
+                success: true,
+                action: options.action,
+                migrations: parsed.data.migrations,
+                output: stdout,
+              });
+              return;
+            }
+            // Invalid JSON structure - fall through to plain output
           } catch {
-            // Fall through to plain output
+            // JSON parse failed - fall through to plain output
           }
         }
 

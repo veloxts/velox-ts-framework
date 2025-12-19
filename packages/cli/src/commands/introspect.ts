@@ -158,13 +158,22 @@ const SCHEMA_PATTERN = /export\s+const\s+(\w+Schema)\s*=/g;
 const TYPE_PATTERN = /export\s+type\s+(\w+)\s*=\s*z\.infer<typeof\s+(\w+Schema)>/g;
 
 /**
+ * Result of schema scanning
+ */
+interface SchemaScanResult {
+  schemas: SchemaIntrospection[];
+  warnings: string[];
+}
+
+/**
  * Scan for Zod schemas in project
  */
-async function scanSchemas(schemasPath: string): Promise<SchemaIntrospection[]> {
+async function scanSchemas(schemasPath: string): Promise<SchemaScanResult> {
   const schemas: SchemaIntrospection[] = [];
+  const warnings: string[] = [];
 
   if (!existsSync(schemasPath)) {
-    return schemas;
+    return { schemas, warnings };
   }
 
   try {
@@ -200,18 +209,22 @@ async function scanSchemas(schemasPath: string): Promise<SchemaIntrospection[]> 
             typeName: typeMap.get(schemaName),
           });
         }
-      } catch {
-        // Skip files we can't read
+      } catch (error) {
+        // Track file read errors as warnings
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        warnings.push(`Failed to read ${entry.name}: ${message}`);
       }
     }
-  } catch {
-    // Directory doesn't exist or can't be read
+  } catch (error) {
+    // Track directory read errors as warnings
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    warnings.push(`Failed to scan schemas directory: ${message}`);
   }
 
   // Sort by name
   schemas.sort((a, b) => a.name.localeCompare(b.name));
 
-  return schemas;
+  return { schemas, warnings };
 }
 
 /**
@@ -485,12 +498,13 @@ function createSchemasSubcommand(): Command {
     .option('--json', 'Output as JSON', false)
     .action(async (options: IntrospectOptions) => {
       const schemasPath = options.path ?? './src/schemas';
-      const schemas = await scanSchemas(schemasPath);
+      const { schemas, warnings } = await scanSchemas(schemasPath);
 
       const result: IntrospectResult = {
         schemas,
         summary: {
           schemaCount: schemas.length,
+          warnings: warnings.length > 0 ? warnings : undefined,
         },
       };
 
@@ -500,6 +514,9 @@ function createSchemasSubcommand(): Command {
         printSchemas(schemas);
         printSummary(result);
       }
+
+      // Explicit exit to ensure process terminates after async operations
+      process.exit(0);
     });
 }
 
@@ -624,10 +641,16 @@ function createAllSubcommand(): Command {
         }));
 
         // Scan schemas
-        const schemas = await scanSchemas(schemasPath);
+        const { schemas, warnings: schemaWarnings } = await scanSchemas(schemasPath);
 
         // Get errors
         const errors = getErrorIntrospection();
+
+        // Combine warnings from procedure discovery and schema scanning
+        const allWarnings = [
+          ...discovery.warnings.map((w) => `${w.filePath}: ${w.message}`),
+          ...schemaWarnings,
+        ];
 
         const result: IntrospectResult = {
           procedures,
@@ -640,7 +663,7 @@ function createAllSubcommand(): Command {
             routeCount: routes.length,
             errorCount: errors.length,
             scannedFiles: discovery.scannedFiles.length,
-            warnings: discovery.warnings.map((w) => `${w.filePath}: ${w.message}`),
+            warnings: allWarnings.length > 0 ? allWarnings : undefined,
           },
         };
 

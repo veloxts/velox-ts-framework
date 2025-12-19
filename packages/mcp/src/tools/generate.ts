@@ -6,7 +6,22 @@
 
 import { spawn } from 'node:child_process';
 
+import { z } from 'zod';
+
 import { findProjectRoot } from '../utils/project.js';
+
+// ============================================================================
+// Output Validation Schemas
+// ============================================================================
+
+/**
+ * Schema for velox make JSON output
+ */
+const GenerateOutputSchema = z.object({
+  files: z.array(z.string()).optional(),
+  success: z.boolean().optional(),
+  message: z.string().optional(),
+});
 
 // ============================================================================
 // Types
@@ -119,20 +134,24 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
 
     child.on('close', (code) => {
       if (code === 0) {
-        // Try to parse JSON output if requested
+        // Try to parse and validate JSON output if requested
         if (options.json) {
           try {
-            const parsed = JSON.parse(stdout) as { files?: string[] };
-            resolve({
-              success: true,
-              type: options.type,
-              name: options.name,
-              files: parsed.files,
-              output: stdout,
-            });
-            return;
+            const jsonData = JSON.parse(stdout);
+            const parsed = GenerateOutputSchema.safeParse(jsonData);
+            if (parsed.success) {
+              resolve({
+                success: true,
+                type: options.type,
+                name: options.name,
+                files: parsed.data.files,
+                output: stdout,
+              });
+              return;
+            }
+            // Invalid JSON structure - fall through to plain output
           } catch {
-            // Fall through to plain output
+            // JSON parse failed - fall through to plain output
           }
         }
 
