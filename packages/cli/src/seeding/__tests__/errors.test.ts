@@ -42,51 +42,42 @@ describe('SeederError', () => {
   });
 
   it('should format error with code and message', () => {
-    const error = new SeederError(SeederErrorCode.SEEDER_NOT_FOUND, 'Test message');
-
-    const formatted = error.format();
-
-    expect(formatted).toBe('SeederError[E3001]: Test message');
-  });
-
-  it('should include fix in formatted output when provided', () => {
     const error = new SeederError(SeederErrorCode.SEEDER_NOT_FOUND, 'Test message', 'Test fix');
 
     const formatted = error.format();
 
-    expect(formatted).toBe('SeederError[E3001]: Test message\n\n  Fix: Test fix');
+    // SeederError extends VeloxError, so format uses VeloxError prefix
+    expect(formatted).toContain('VeloxError[E3001]: Test message');
+    expect(formatted).toContain('Fix: Test fix');
   });
 
-  it('should omit fix from formatted output when undefined', () => {
-    const error = new SeederError(SeederErrorCode.SEEDER_NOT_FOUND, 'Test message');
+  it('should include docsUrl in formatted output when available', () => {
+    const error = new SeederError(SeederErrorCode.SEEDER_NOT_FOUND, 'Test message', 'Test fix');
 
     const formatted = error.format();
 
-    expect(formatted).toBe('SeederError[E3001]: Test message');
+    // VeloxError includes docs URL from catalog
+    expect(formatted).toContain('Docs:');
   });
 
-  it('should return correct JSON shape with all fields', () => {
+  it('should return correct JSON shape with all VeloxError fields', () => {
     const error = new SeederError(SeederErrorCode.SEEDER_NOT_FOUND, 'Test message', 'Test fix');
 
     const json = error.toJSON();
 
-    expect(json).toEqual({
-      code: 'E3001',
-      message: 'Test message',
-      fix: 'Test fix',
-    });
+    // VeloxError.toJSON() returns extended shape
+    expect(json.code).toBe('E3001');
+    expect(json.message).toBe('Test message');
+    expect(json.fix).toBe('Test fix');
+    expect(json).toHaveProperty('name');
+    expect(json).toHaveProperty('docsUrl');
   });
 
-  it('should return undefined for fix in JSON when not provided', () => {
+  it('should use catalog fix when custom fix not provided', () => {
     const error = new SeederError(SeederErrorCode.SEEDER_NOT_FOUND, 'Test message');
 
-    const json = error.toJSON();
-
-    expect(json).toEqual({
-      code: 'E3001',
-      message: 'Test message',
-      fix: undefined,
-    });
+    // VeloxError uses fix from catalog when not provided in options
+    expect(error.fix).toBeDefined();
   });
 });
 
@@ -106,39 +97,42 @@ describe('FactoryError', () => {
   });
 
   it('should format error with code and message', () => {
-    const error = new FactoryError(SeederErrorCode.FACTORY_NOT_FOUND, 'Test message');
-
-    const formatted = error.format();
-
-    expect(formatted).toBe('FactoryError[E3010]: Test message');
-  });
-
-  it('should include fix in formatted output when provided', () => {
     const error = new FactoryError(SeederErrorCode.FACTORY_NOT_FOUND, 'Test message', 'Test fix');
 
     const formatted = error.format();
 
-    expect(formatted).toBe('FactoryError[E3010]: Test message\n\n  Fix: Test fix');
+    // FactoryError extends VeloxError, so format uses VeloxError prefix
+    expect(formatted).toContain('VeloxError[E3010]: Test message');
+    expect(formatted).toContain('Fix: Test fix');
   });
 
-  it('should omit fix from formatted output when undefined', () => {
-    const error = new FactoryError(SeederErrorCode.FACTORY_NOT_FOUND, 'Test message');
+  it('should include docsUrl in formatted output when available', () => {
+    const error = new FactoryError(SeederErrorCode.FACTORY_NOT_FOUND, 'Test message', 'Test fix');
 
     const formatted = error.format();
 
-    expect(formatted).toBe('FactoryError[E3010]: Test message');
+    // VeloxError includes docs URL from catalog
+    expect(formatted).toContain('Docs:');
   });
 
-  it('should return correct JSON shape with all fields', () => {
+  it('should return correct JSON shape with all VeloxError fields', () => {
     const error = new FactoryError(SeederErrorCode.FACTORY_NOT_FOUND, 'Test message', 'Test fix');
 
     const json = error.toJSON();
 
-    expect(json).toEqual({
-      code: 'E3010',
-      message: 'Test message',
-      fix: 'Test fix',
-    });
+    // VeloxError.toJSON() returns extended shape
+    expect(json.code).toBe('E3010');
+    expect(json.message).toBe('Test message');
+    expect(json.fix).toBe('Test fix');
+    expect(json).toHaveProperty('name');
+    expect(json).toHaveProperty('docsUrl');
+  });
+
+  it('should use catalog fix when custom fix not provided', () => {
+    const error = new FactoryError(SeederErrorCode.FACTORY_NOT_FOUND, 'Test message');
+
+    // VeloxError uses fix from catalog when not provided in options
+    expect(error.fix).toBeDefined();
   });
 });
 
