@@ -9,6 +9,7 @@
 
 import type { ZodSchema } from 'zod';
 
+import { toActionError } from './error-classifier.js';
 import type {
   ActionContext,
   ActionError,
@@ -62,6 +63,26 @@ export function isError<T>(result: ActionResult<T>): result is ActionError {
 }
 
 /**
+ * Safely decodes a URI component, returning the original value if decoding fails.
+ *
+ * `decodeURIComponent` throws `URIError` on malformed percent-encoded sequences
+ * like `%ZZ`, `%`, or `%2`. This wrapper catches those errors and returns the
+ * original value as a fallback, which is the standard behavior for cookie parsers.
+ *
+ * @param value - The URI-encoded string to decode
+ * @returns Decoded string, or original value if decoding fails
+ */
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    // URIError: malformed percent-encoding (e.g., %ZZ, %, %2)
+    // Return original value as fallback - this is standard cookie parser behavior
+    return value;
+  }
+}
+
+/**
  * Parses cookies from a request headers
  */
 export function parseCookies(request: Request): Map<string, string> {
@@ -77,7 +98,7 @@ export function parseCookies(request: Request): Map<string, string> {
     const [name, ...valueParts] = pair.trim().split('=');
     if (name) {
       const value = valueParts.join('=');
-      cookies.set(name.trim(), decodeURIComponent(value.trim()));
+      cookies.set(name.trim(), safeDecodeURIComponent(value.trim()));
     }
   }
 
@@ -131,31 +152,15 @@ async function validateOutput<T>(schema: ZodSchema<T>, output: unknown): Promise
 }
 
 /**
- * Default error handler
+ * Default error handler using the shared error classifier.
+ *
+ * Uses the centralized error classification patterns from error-classifier.ts
+ * for consistent error handling across all action types.
+ *
+ * @see toActionError - The underlying classification function
  */
 function defaultErrorHandler(err: unknown): ActionError {
-  // Handle known error types
-  if (err instanceof Error) {
-    // Check for common error patterns
-    if (err.message.includes('unauthorized') || err.message.includes('Unauthorized')) {
-      return error('UNAUTHORIZED', err.message);
-    }
-    if (err.message.includes('forbidden') || err.message.includes('Forbidden')) {
-      return error('FORBIDDEN', err.message);
-    }
-    if (err.message.includes('not found') || err.message.includes('Not found')) {
-      return error('NOT_FOUND', err.message);
-    }
-
-    // Log unexpected errors in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('[VeloxTS] Action error:', err);
-    }
-
-    return error('INTERNAL_ERROR', err.message);
-  }
-
-  return error('INTERNAL_ERROR', 'An unexpected error occurred');
+  return toActionError(err);
 }
 
 /**

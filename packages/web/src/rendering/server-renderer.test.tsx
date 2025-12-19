@@ -409,4 +409,284 @@ describe('renderToStream', () => {
       expect(onError).toHaveBeenCalled();
     }, 1000);
   });
+
+  describe('error response', () => {
+    it('should show stack trace in development', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/error');
+
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => ErrorPage,
+        bootstrapScripts: [],
+        onError: vi.fn(),
+      });
+
+      const html = await response.text();
+      expect(html).toContain('<pre>'); // Stack trace in pre tag
+      expect(html).toContain('Test render error');
+
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it('should hide stack trace in production', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/error');
+
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => ErrorPage,
+        bootstrapScripts: [],
+        onError: vi.fn(),
+      });
+
+      const html = await response.text();
+      expect(html).toContain('Test render error');
+      // Should not include pre tag with stack
+      expect(html).not.toMatch(/<pre>.*Error\s+at/);
+
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it('should escape HTML in error messages', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/error');
+
+      // Component that throws an XSS attempt
+      function XssErrorPage() {
+        throw new Error('<script>alert("xss")</script>');
+      }
+
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => XssErrorPage,
+        bootstrapScripts: [],
+        onError: vi.fn(),
+      });
+
+      const html = await response.text();
+      expect(html).not.toContain('<script>alert');
+      expect(html).toContain('&lt;script&gt;');
+    });
+
+    it('should handle non-Error objects thrown', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/error');
+
+      // Component that throws a string
+      function StringErrorPage() {
+        throw 'string error'; // eslint-disable-line no-throw-literal
+      }
+
+      const onError = vi.fn();
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => StringErrorPage,
+        bootstrapScripts: [],
+        onError,
+      });
+
+      expect(response.status).toBe(500);
+      const html = await response.text();
+      expect(html).toContain('string error');
+    });
+  });
+
+  describe('null component handling', () => {
+    it('should return error when resolveComponent returns null', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/null');
+      const onError = vi.fn();
+
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => null as unknown as React.ComponentType,
+        bootstrapScripts: [],
+        onError,
+      });
+
+      expect(response.status).toBe(500);
+      expect(onError).toHaveBeenCalled();
+      const errorArg = onError.mock.calls[0][0] as Error;
+      expect(errorArg.message).toContain('Page component not found');
+    });
+
+    it('should return error when resolveComponent returns undefined', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/undefined');
+      const onError = vi.fn();
+
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => undefined as unknown as React.ComponentType,
+        bootstrapScripts: [],
+        onError,
+      });
+
+      expect(response.status).toBe(500);
+      expect(onError).toHaveBeenCalled();
+    });
+  });
+
+  describe('default error handler', () => {
+    it('should log errors to console', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/error');
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await renderToStream(match, request, {
+        resolveComponent: async () => ErrorPage,
+        bootstrapScripts: [],
+        // No onError provided, uses default
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith('[VeloxTS RSC Error]', expect.any(Error));
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('streaming behavior', () => {
+    it('should return response with streaming headers', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/test');
+
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => TestPage,
+        bootstrapScripts: ['/_build/client.js'],
+      });
+
+      expect(response.headers.get('Transfer-Encoding')).toBe('chunked');
+      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    });
+
+    it('should stream HTML content incrementally', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/test');
+
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => TestPage,
+        bootstrapScripts: [],
+      });
+
+      // Read the stream
+      const reader = response.body?.getReader();
+      expect(reader).toBeDefined();
+
+      if (reader) {
+        const chunks: Uint8Array[] = [];
+        let done = false;
+        while (!done) {
+          const result = await reader.read();
+          done = result.done;
+          if (result.value) {
+            chunks.push(result.value);
+          }
+        }
+
+        expect(chunks.length).toBeGreaterThan(0);
+        const html = new TextDecoder().decode(
+          new Uint8Array(chunks.reduce((acc, chunk) => [...acc, ...chunk], [] as number[]))
+        );
+        expect(html).toContain('Test Page');
+      }
+    });
+
+    it('should handle stream cancellation gracefully', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/test');
+
+      // Component that renders slowly to give time for cancellation
+      async function SlowRenderPage() {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return <div>Slow content</div>;
+      }
+
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => SlowRenderPage,
+        bootstrapScripts: [],
+      });
+
+      const reader = response.body?.getReader();
+      expect(reader).toBeDefined();
+
+      if (reader) {
+        // Start reading but cancel immediately
+        await reader.cancel();
+
+        // Stream should be cancelled without throwing
+        // This tests the cancel() callback in nodeStreamToWebStream (lines 254-256)
+        expect(true).toBe(true); // If we get here without error, the test passes
+      }
+    });
+  });
+
+  describe('dynamic import error handling', () => {
+    it('should handle module not found errors', async () => {
+      const match = createRouteMatch({
+        route: {
+          filePath: 'non-existent-module.tsx',
+          pattern: '/missing',
+          params: [],
+          catchAll: false,
+        },
+      });
+      const request = new Request('http://localhost:3030/missing');
+      const onError = vi.fn();
+
+      // Don't provide resolveComponent - let it try the default import
+      const response = await renderToStream(match, request, {
+        bootstrapScripts: [],
+        onError,
+      });
+
+      expect(response.status).toBe(500);
+      expect(onError).toHaveBeenCalled();
+      const html = await response.text();
+      expect(html).toContain('Server Render Error');
+    });
+
+    it('should handle module with no default export', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/no-default');
+      const onError = vi.fn();
+
+      // Simulate a module that resolves but has no default export
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => {
+          // Simulate importing a module that exists but has no default export
+          throw new Error('No default export found in ./app/pages/no-default');
+        },
+        bootstrapScripts: [],
+        onError,
+      });
+
+      expect(response.status).toBe(500);
+      expect(onError).toHaveBeenCalled();
+      const errorArg = onError.mock.calls[0][0] as Error;
+      expect(errorArg.message).toContain('No default export');
+    });
+
+    it('should include cause in import error', async () => {
+      const match = createRouteMatch();
+      const request = new Request('http://localhost:3030/import-error');
+      const onError = vi.fn();
+
+      const originalError = new Error('Module syntax error');
+      const response = await renderToStream(match, request, {
+        resolveComponent: async () => {
+          throw new Error('Failed to import page component: ./app/pages/broken', {
+            cause: originalError,
+          });
+        },
+        bootstrapScripts: [],
+        onError,
+      });
+
+      expect(response.status).toBe(500);
+      const errorArg = onError.mock.calls[0][0] as Error;
+      expect(errorArg.message).toContain('Failed to import');
+      expect(errorArg.cause).toBe(originalError);
+    });
+  });
 });

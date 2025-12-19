@@ -9,6 +9,7 @@
  */
 
 import type { RouteMatch, VinxiHandler } from '../types.js';
+import { escapeHtml } from '../utils/html.js';
 
 /**
  * Options for creating the SSR router handler
@@ -186,16 +187,4 @@ async function defaultErrorHandler(error: Error, _request: Request): Promise<Res
       },
     }
   );
-}
-
-/**
- * Escapes HTML entities to prevent XSS
- */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

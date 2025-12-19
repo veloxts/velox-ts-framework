@@ -8,24 +8,16 @@
  * @packageDocumentation
  */
 
-// New action() helper - recommended API
-export { action } from './actions/index.js';
-export type {
-  Action,
-  ActionConfig,
-  ActionHandlerFn,
-  ErrorHandler,
-  FluentActionBuilder,
-  ValidatedAction,
-} from './actions/index.js';
-
 // Action types
 export type {
+  Action,
   ActionBuilder,
+  ActionConfig,
   ActionContext,
   ActionError,
   ActionErrorCode,
   ActionHandler,
+  ActionHandlerFn,
   ActionMetadata,
   ActionRegistry,
   ActionResult,
@@ -34,15 +26,20 @@ export type {
   CallableAction,
   CallableFormAction,
   CreateActionOptions,
+  ErrorHandler,
+  FluentActionBuilder,
   FormActionHandler,
   RegisteredAction,
   TrpcActionOptions,
   TrpcBridge,
   TrpcBridgeOptions,
   TrpcCaller,
+  ValidatedAction,
 } from './actions/index.js';
+// New action() helper - recommended API
 // Server Actions (legacy API - still supported)
 export {
+  action,
   // Action creation
   createAction,
   // Context utilities
@@ -89,6 +86,7 @@ export {
   H3AuthError,
   isAuthenticatedH3Context,
   isH3Context,
+  resetH3Utilities,
 } from './adapters/h3-adapter.js';
 export {
   getEnvConfig,
@@ -104,8 +102,6 @@ export {
   type RoutingConfig,
   type ServerConfig,
 } from './app/create-app.js';
-// SSR Handler
-export { createSsrHandler, type SsrHandlerOptions } from './rendering/ssr-handler.js';
 export {
   extractInitialData,
   getInitialData,
@@ -131,6 +127,8 @@ export {
   type RenderToStreamOptions,
   renderToStream,
 } from './rendering/server-renderer.js';
+// SSR Handler
+export { createSsrHandler, type SsrHandlerOptions } from './rendering/ssr-handler.js';
 // Routers
 export {
   type ApiRouterOptions,
@@ -184,3 +182,5 @@ export type {
   VinxiRouteConfig,
   VinxiRouter,
 } from './types.js';
+// Utilities
+export { escapeHtml } from './utils/html.js';

@@ -36,6 +36,7 @@
 
 import type { infer as ZodInfer, ZodSchema, ZodType, ZodTypeDef } from 'zod';
 
+import { toActionError } from './error-classifier.js';
 import type {
   ActionContext,
   ActionError,
@@ -266,37 +267,15 @@ function hasAuthenticatedUser(ctx: ActionContext): ctx is AuthenticatedActionCon
 // ============================================================================
 
 /**
- * Default error handler that categorizes common error patterns.
+ * Default error handler that uses the shared error classifier.
+ *
+ * Uses the centralized error classification patterns from error-classifier.ts
+ * for consistent error handling across all action types.
+ *
+ * @see toActionError - The underlying classification function
  */
 function handleError(err: unknown): ActionError {
-  if (err instanceof Error) {
-    const msg = err.message.toLowerCase();
-
-    if (msg.includes('unauthorized') || msg.includes('unauthenticated')) {
-      return fail('UNAUTHORIZED', err.message);
-    }
-    if (msg.includes('forbidden') || msg.includes('permission')) {
-      return fail('FORBIDDEN', err.message);
-    }
-    if (msg.includes('not found')) {
-      return fail('NOT_FOUND', err.message);
-    }
-    if (msg.includes('conflict') || msg.includes('duplicate')) {
-      return fail('CONFLICT', err.message);
-    }
-    if (msg.includes('rate limit') || msg.includes('too many')) {
-      return fail('RATE_LIMITED', err.message);
-    }
-
-    // Log unexpected errors in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('[VeloxTS] Action error:', err);
-    }
-
-    return fail('INTERNAL_ERROR', err.message);
-  }
-
-  return fail('INTERNAL_ERROR', 'An unexpected error occurred');
+  return toActionError(err);
 }
 
 // ============================================================================

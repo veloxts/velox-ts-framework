@@ -422,7 +422,8 @@ describe('action()', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.code).toBe('INTERNAL_ERROR');
-        expect(result.error.message).toBe('An unexpected error occurred');
+        // The error classifier preserves string error messages when thrown directly
+        expect(result.error.message).toBe('string error');
       }
     });
   });

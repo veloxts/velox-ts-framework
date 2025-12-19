@@ -6,8 +6,6 @@
  * @module @veloxts/web/actions
  */
 
-// New action() helper - recommended API
-export { action } from './action.js';
 export type {
   Action,
   ActionBuilder as FluentActionBuilder,
@@ -16,8 +14,16 @@ export type {
   ErrorHandler,
   ValidatedAction,
 } from './action.js';
-
-export type { TrpcActionOptions, TrpcBridge, TrpcCaller } from './bridge.js';
+// New action() helper - recommended API
+export { action } from './action.js';
+export type {
+  ExtractProcedureInput,
+  ExtractProcedureOutput,
+  ExtractProcedurePaths,
+  TrpcActionOptions,
+  TrpcBridge,
+  TrpcCaller,
+} from './bridge.js';
 // Bridge functions
 export {
   createActions,
@@ -25,6 +31,16 @@ export {
   TrpcBridgeError,
   wrapProcedure,
 } from './bridge.js';
+// Error classification
+export type { ClassificationResult, ClassifyErrorOptions, ErrorPattern } from './error-classifier.js';
+export {
+  classifyError,
+  classifyPrismaError,
+  createErrorClassifier,
+  DEFAULT_ERROR_PATTERNS,
+  PRISMA_ERROR_PATTERNS,
+  toActionError,
+} from './error-classifier.js';
 // Handler functions
 export {
   createAction,

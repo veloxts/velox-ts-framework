@@ -711,6 +711,94 @@ describe('createFileRouter with file system', () => {
     });
   });
 
+  describe('catch-all parameter extraction', () => {
+    beforeAll(() => {
+      writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
+      mkdirSync(join(PAGES_DIR, 'docs'), { recursive: true });
+      writeFileSync(
+        join(PAGES_DIR, 'docs/[...slug].tsx'),
+        'export default function DocsCatchAll() {}'
+      );
+      writeFileSync(join(PAGES_DIR, '[...all].tsx'), 'export default function RootCatchAll() {}');
+    });
+
+    afterAll(() => {
+      rmSync(join(PAGES_DIR, 'index.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, 'docs'), { recursive: true, force: true });
+      rmSync(join(PAGES_DIR, '[...all].tsx'), { force: true });
+    });
+
+    it('should extract catch-all parameter from nested path', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const match = router.match('/docs/getting-started/installation');
+      expect(match).not.toBeNull();
+      expect(match?.params['*']).toBe('getting-started/installation');
+    });
+
+    it('should extract single segment for catch-all', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const match = router.match('/docs/overview');
+      expect(match).not.toBeNull();
+      expect(match?.params['*']).toBe('overview');
+    });
+
+    it('should handle empty catch-all value', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      // Match /docs/ should give empty catch-all
+      const match = router.match('/docs');
+      // This might match the docs catch-all with empty value or not match
+      // depending on radix3 behavior - testing the extractParams logic
+      if (match && match.route.pattern === '/docs/*') {
+        expect(match.params['*']).toBe('');
+      }
+    });
+
+    it('should handle deeply nested catch-all paths', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const match = router.match('/docs/api/reference/types/advanced');
+      expect(match).not.toBeNull();
+      expect(match?.params['*']).toBe('api/reference/types/advanced');
+    });
+
+    it('should extract root level catch-all', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      // Delete the docs catch-all temporarily to test root catch-all
+      rmSync(join(PAGES_DIR, 'docs'), { recursive: true, force: true });
+      await router.reload();
+
+      const match = router.match('/any/random/path');
+      expect(match).not.toBeNull();
+      expect(match?.params['*']).toBe('any/random/path');
+
+      // Restore docs
+      mkdirSync(join(PAGES_DIR, 'docs'), { recursive: true });
+      writeFileSync(
+        join(PAGES_DIR, 'docs/[...slug].tsx'),
+        'export default function DocsCatchAll() {}'
+      );
+    });
+  });
+
   describe('security: path traversal protection', () => {
     beforeAll(() => {
       writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');

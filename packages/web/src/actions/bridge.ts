@@ -20,6 +20,76 @@ import type {
   TrpcBridgeOptions,
 } from './types.js';
 
+// ============================================================================
+// Type-Safe Procedure Path Utilities
+// ============================================================================
+
+/**
+ * Extracts all valid procedure paths from a tRPC router type.
+ *
+ * Given a router like:
+ * ```typescript
+ * const router = {
+ *   users: { get: procedure(), list: procedure() },
+ *   posts: { create: procedure() }
+ * };
+ * ```
+ *
+ * This type produces: 'users.get' | 'users.list' | 'posts.create'
+ *
+ * @template TRouter - The tRPC router type
+ * @template TPrefix - Internal prefix for recursive path building
+ */
+export type ExtractProcedurePaths<TRouter, TPrefix extends string = ''> = TRouter extends object
+  ? {
+      [K in keyof TRouter & string]: TRouter[K] extends (...args: never[]) => unknown
+        ? TPrefix extends ''
+          ? K
+          : `${TPrefix}.${K}`
+        : TRouter[K] extends object
+          ? ExtractProcedurePaths<TRouter[K], TPrefix extends '' ? K : `${TPrefix}.${K}`>
+          : never;
+    }[keyof TRouter & string]
+  : never;
+
+/**
+ * Extracts the input type for a procedure at a given path.
+ *
+ * @template TRouter - The tRPC router type
+ * @template TPath - The dot-separated procedure path
+ */
+export type ExtractProcedureInput<TRouter, TPath extends string> = TPath extends `${infer Head}.${infer Tail}`
+  ? Head extends keyof TRouter
+    ? ExtractProcedureInput<TRouter[Head], Tail>
+    : unknown
+  : TPath extends keyof TRouter
+    ? TRouter[TPath] extends { _input: infer TInput }
+      ? TInput
+      : TRouter[TPath] extends (...args: [infer TInput, ...unknown[]]) => unknown
+        ? TInput
+        : unknown
+    : unknown;
+
+/**
+ * Extracts the output type for a procedure at a given path.
+ *
+ * @template TRouter - The tRPC router type
+ * @template TPath - The dot-separated procedure path
+ */
+export type ExtractProcedureOutput<TRouter, TPath extends string> = TPath extends `${infer Head}.${infer Tail}`
+  ? Head extends keyof TRouter
+    ? ExtractProcedureOutput<TRouter[Head], Tail>
+    : unknown
+  : TPath extends keyof TRouter
+    ? TRouter[TPath] extends { _output: infer TOutput }
+      ? TOutput
+      : TRouter[TPath] extends (...args: never[]) => Promise<infer TOutput>
+        ? TOutput
+        : TRouter[TPath] extends (...args: never[]) => infer TOutput
+          ? TOutput
+          : unknown
+    : unknown;
+
 /**
  * Configuration for the tRPC bridge
  */
@@ -82,27 +152,66 @@ export function createTrpcBridge<TRouter>(
 }
 
 /**
- * tRPC Bridge interface
+ * tRPC Bridge interface with type-safe procedure path validation.
+ *
+ * When the router type is provided, `createAction` and `createProtectedAction`
+ * will validate that procedure paths are valid paths within the router.
+ *
+ * @template TRouter - The tRPC router type for path validation
+ *
+ * @example
+ * ```typescript
+ * import type { AppRouter } from './trpc/router';
+ *
+ * const bridge = createTrpcBridge<AppRouter>();
+ *
+ * // Type-safe: 'users.get' is validated against AppRouter
+ * const getUser = bridge.createAction('users.get');
+ *
+ * // Type error: 'users.invalid' is not a valid procedure path
+ * const invalid = bridge.createAction('users.invalid');
+ * ```
  */
-export interface TrpcBridge<_TRouter> {
+export interface TrpcBridge<TRouter> {
   /**
-   * Create a server action that calls a tRPC procedure
+   * Create a server action that calls a tRPC procedure.
+   *
+   * When TRouter is provided, the procedure path is type-checked against
+   * the router's structure. Input and output types can be inferred from
+   * the router or explicitly provided.
+   *
+   * @template TPath - Procedure path (validated against TRouter when provided)
+   * @template TInput - Input type (defaults to inferred from router)
+   * @template TOutput - Output type (defaults to inferred from router)
    */
-  createAction<TPath extends string, TInput = unknown, TOutput = unknown>(
+  createAction<
+    TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+    TInput = ExtractProcedureInput<TRouter, TPath>,
+    TOutput = ExtractProcedureOutput<TRouter, TPath>,
+  >(
     procedurePath: TPath,
     options?: TrpcActionOptions<TInput, TOutput>
   ): CallableAction<TInput, TOutput>;
 
   /**
-   * Create a protected server action (requires authentication)
+   * Create a protected server action (requires authentication).
+   *
+   * Same as createAction but with requireAuth: true.
    */
-  createProtectedAction<TPath extends string, TInput = unknown, TOutput = unknown>(
+  createProtectedAction<
+    TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+    TInput = ExtractProcedureInput<TRouter, TPath>,
+    TOutput = ExtractProcedureOutput<TRouter, TPath>,
+  >(
     procedurePath: TPath,
     options?: Omit<TrpcActionOptions<TInput, TOutput>, 'requireAuth'>
   ): CallableAction<TInput, TOutput>;
 
   /**
-   * Call a tRPC procedure directly from an action handler
+   * Call a tRPC procedure directly from an action handler.
+   *
+   * This method accepts any string path for flexibility in dynamic scenarios.
+   * For type-safe path validation, use createAction instead.
    */
   call<TOutput = unknown>(
     procedurePath: string,
@@ -111,10 +220,13 @@ export interface TrpcBridge<_TRouter> {
   ): Promise<ActionResult<TOutput>>;
 
   /**
-   * Create a custom action handler with access to the bridge
+   * Create a custom action handler with access to the bridge.
+   *
+   * Allows composing multiple procedure calls or adding custom logic
+   * while still benefiting from action validation and error handling.
    */
   handler<TInput, TOutput>(
-    handlerFn: (input: TInput, ctx: ActionContext, call: TrpcCaller) => Promise<TOutput>,
+    handlerFn: (input: TInput, ctx: ActionContext, call: TrpcCaller<TRouter>) => Promise<TOutput>,
     options?: TrpcActionOptions<TInput, TOutput>
   ): CallableAction<TInput, TOutput>;
 }
@@ -151,20 +263,38 @@ export interface TrpcActionOptions<TInput, TOutput> {
 }
 
 /**
- * tRPC caller function type
+ * tRPC caller function type with optional path validation.
+ *
+ * When TRouter is provided, procedure paths are type-checked.
+ * Falls back to accepting any string when TRouter is unknown.
+ *
+ * @template TRouter - The tRPC router type for path validation
  */
-export type TrpcCaller = <TOutput = unknown>(
-  procedurePath: string,
-  input: unknown
+export type TrpcCaller<TRouter = unknown> = <
+  TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+  TOutput = ExtractProcedureOutput<TRouter, TPath>,
+>(
+  procedurePath: TPath,
+  input: ExtractProcedureInput<TRouter, TPath>
 ) => Promise<ActionResult<TOutput>>;
 
 /**
- * Internal tRPC bridge implementation
+ * Internal tRPC bridge implementation.
+ *
+ * The TRouter generic is preserved at the type level for interface
+ * compatibility but is not used at runtime since path validation
+ * happens at compile time.
+ *
+ * @template TRouter - Router type for compile-time path validation
  */
-class TrpcBridgeImpl<_TRouter> implements TrpcBridge<_TRouter> {
+class TrpcBridgeImpl<TRouter> implements TrpcBridge<TRouter> {
   constructor(private config: BridgeConfig) {}
 
-  createAction<TPath extends string, TInput = unknown, TOutput = unknown>(
+  createAction<
+    TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+    TInput = ExtractProcedureInput<TRouter, TPath>,
+    TOutput = ExtractProcedureOutput<TRouter, TPath>,
+  >(
     procedurePath: TPath,
     options?: TrpcActionOptions<TInput, TOutput>
   ): CallableAction<TInput, TOutput> {
@@ -188,7 +318,11 @@ class TrpcBridgeImpl<_TRouter> implements TrpcBridge<_TRouter> {
     return createAction({ input, output, requireAuth }, handler);
   }
 
-  createProtectedAction<TPath extends string, TInput = unknown, TOutput = unknown>(
+  createProtectedAction<
+    TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+    TInput = ExtractProcedureInput<TRouter, TPath>,
+    TOutput = ExtractProcedureOutput<TRouter, TPath>,
+  >(
     procedurePath: TPath,
     options?: Omit<TrpcActionOptions<TInput, TOutput>, 'requireAuth'>
   ): CallableAction<TInput, TOutput> {
@@ -244,18 +378,20 @@ class TrpcBridgeImpl<_TRouter> implements TrpcBridge<_TRouter> {
   }
 
   handler<TInput, TOutput>(
-    handlerFn: (input: TInput, ctx: ActionContext, call: TrpcCaller) => Promise<TOutput>,
+    handlerFn: (input: TInput, ctx: ActionContext, call: TrpcCaller<TRouter>) => Promise<TOutput>,
     options?: TrpcActionOptions<TInput, TOutput>
   ): CallableAction<TInput, TOutput> {
     const { input, output, requireAuth } = options ?? {};
 
     const handler: ActionHandler<TInput, TOutput> = async (input, ctx) => {
-      const boundCaller: TrpcCaller = <TOutput = unknown>(
+      // Create a bound caller that forwards context
+      // Uses TrpcCaller<TRouter> for type-safe path validation in the handler
+      const boundCaller = <TCallOutput = unknown>(
         procedurePath: string,
         callInput: unknown
-      ) => this.call<TOutput>(procedurePath, callInput, ctx);
+      ) => this.call<TCallOutput>(procedurePath, callInput, ctx);
 
-      return handlerFn(input, ctx, boundCaller);
+      return handlerFn(input, ctx, boundCaller as TrpcCaller<TRouter>);
     };
 
     return createAction({ input, output, requireAuth }, handler);

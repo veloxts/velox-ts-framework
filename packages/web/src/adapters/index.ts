@@ -23,4 +23,5 @@ export {
   type H3CookieOptions,
   isAuthenticatedH3Context,
   isH3Context,
+  resetH3Utilities,
 } from './h3-adapter.js';

@@ -11,6 +11,8 @@
 import type { ReactNode } from 'react';
 import { hydrateRoot, type Root } from 'react-dom/client';
 
+import { escapeHtml } from '../utils/html.js';
+
 /**
  * Options for client hydration
  */
@@ -317,18 +319,6 @@ export function showErrorOverlay(error: Error): void {
   `;
 
   document.body.appendChild(overlay);
-}
-
-/**
- * Escapes HTML entities.
- */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }
 
 /**

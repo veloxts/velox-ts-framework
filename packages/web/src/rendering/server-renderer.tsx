@@ -14,6 +14,7 @@ import { PassThrough, type Readable } from 'node:stream';
 import { renderToPipeableStream } from 'react-dom/server';
 
 import type { PageProps, RouteMatch } from '../types.js';
+import { escapeHtml } from '../utils/html.js';
 import { Document } from './document.js';
 
 /**
@@ -346,19 +347,4 @@ function createErrorResponse(error: unknown): Response {
       'Content-Type': 'text/html; charset=utf-8',
     },
   });
-}
-
-/**
- * Escapes HTML entities to prevent XSS.
- *
- * @param str - String to escape
- * @returns Escaped string
- */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

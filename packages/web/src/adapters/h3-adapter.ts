@@ -116,6 +116,26 @@ interface H3Utilities {
 let h3Utils: H3Utilities | null = null;
 
 /**
+ * Resets the cached H3 utilities.
+ *
+ * This function is primarily intended for testing purposes to ensure
+ * test isolation. It clears the cached H3 utilities, forcing them to
+ * be reloaded on the next call to any H3 adapter function.
+ *
+ * @example
+ * ```typescript
+ * import { resetH3Utilities } from '@veloxts/web/adapters/h3-adapter';
+ *
+ * afterEach(() => {
+ *   resetH3Utilities();
+ * });
+ * ```
+ */
+export function resetH3Utilities(): void {
+  h3Utils = null;
+}
+
+/**
  * Loads H3 utilities from vinxi/http
  * Throws helpful error if vinxi is not installed
  */

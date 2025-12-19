@@ -6,6 +6,7 @@
  */
 
 import type { RouteMatch, VinxiHandler } from '../types.js';
+import { escapeHtml } from '../utils/html.js';
 import type { RenderToStreamOptions } from './server-renderer.js';
 import { renderToStream } from './server-renderer.js';
 
@@ -52,14 +53,31 @@ export interface SsrHandlerOptions {
  * 3. Renders the matched page component as HTML
  * 4. Returns a streaming response
  *
+ * **Note:** This handler uses a simplified route matching that does NOT extract
+ * dynamic route parameters from URL paths. For production use with dynamic routes
+ * like `/users/[id]`, use `createSsrRouter` with `createFileRouter` instead:
+ *
  * @example
  * ```typescript
- * // src/entry.server.tsx
+ * // Simple usage (static routes only)
  * import { createSsrHandler } from '@veloxts/web';
  *
  * export default createSsrHandler({
  *   streaming: true,
  *   shellTimeout: 5000,
+ * });
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Recommended: Full dynamic route support
+ * import { createSsrRouter, createFileRouter, renderToStream } from '@veloxts/web';
+ *
+ * const fileRouter = createFileRouter({ pagesDir: 'app/pages' });
+ *
+ * export default createSsrRouter({
+ *   resolveRoute: (path) => fileRouter.match(path),
+ *   render: (match, request) => renderToStream(match, request),
  * });
  * ```
  */
@@ -113,8 +131,36 @@ export function createSsrHandler(options: SsrHandlerOptions = {}): VinxiHandler 
 }
 
 /**
- * Creates a route match from a pathname
- * This is a simplified implementation - the full version uses the file router
+ * Creates a route match from a pathname.
+ *
+ * **Important Limitation:** This is a simplified fallback implementation that
+ * does NOT extract dynamic route parameters from URL path segments.
+ *
+ * For example, given a request to `/users/123` and a page at `users/[id].tsx`:
+ * - This function will NOT extract `{ id: '123' }` from the path
+ * - It only includes query parameters from the URL search params
+ *
+ * **Recommended Usage:**
+ * For proper dynamic route param extraction, use `createSsrRouter` with
+ * `createFileRouter` instead of `createSsrHandler`:
+ *
+ * ```typescript
+ * import { createSsrRouter, createFileRouter } from '@veloxts/web';
+ *
+ * const fileRouter = createFileRouter({ pagesDir: 'app/pages' });
+ *
+ * export default createSsrRouter({
+ *   resolveRoute: (path) => fileRouter.match(path),
+ *   render: (match, request) => renderToStream(match, request),
+ * });
+ * ```
+ *
+ * The `FileRouter` provides full dynamic segment matching including:
+ * - Dynamic segments: `[id]`, `[slug]`
+ * - Catch-all segments: `[...path]`
+ * - Optional catch-all: `[[...path]]`
+ *
+ * @internal This is a simplified fallback - use FileRouter for production
  */
 function createRouteMatch(
   pathname: string,
@@ -125,11 +171,14 @@ function createRouteMatch(
   const normalizedPath = pathname === '/' ? '/index' : pathname;
 
   // Convert pathname to file path
-  // e.g., /users/123 -> users/[id]
+  // Note: This assumes direct mapping without dynamic segment matching
+  // e.g., /users/123 -> users/123.tsx (NOT users/[id].tsx)
   const segments = normalizedPath.split('/').filter(Boolean);
   const filePath = segments.length === 0 ? 'index.tsx' : `${segments.join('/')}.tsx`;
 
-  // Extract params from search params
+  // Extract params from query string only
+  // Dynamic path params (e.g., [id]) are NOT extracted by this simplified function
+  // Use FileRouter.match() for full dynamic route parameter extraction
   const params: Record<string, string> = {};
   searchParams.forEach((value, key) => {
     params[key] = value;
@@ -202,18 +251,4 @@ function createErrorHtml(error: Error): string {
   </div>
 </body>
 </html>`;
-}
-
-/**
- * Escapes HTML special characters to prevent XSS
- */
-function escapeHtml(str: string): string {
-  const escapeMap: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#x27;',
-  };
-  return str.replace(/[&<>"']/g, (char) => escapeMap[char] ?? char);
 }
