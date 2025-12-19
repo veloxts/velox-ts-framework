@@ -82,6 +82,57 @@ export {
   type LayoutResolverOptions,
   wrapWithLayouts,
 } from './routing/layouts.js';
+
+// Server Actions
+export {
+  // Action creation
+  createAction,
+  createFormAction,
+  // Result helpers
+  error,
+  isError,
+  isSuccess,
+  success,
+  // Context utilities
+  createActionContext,
+  createAuthenticatedContext,
+  isAuthenticatedContext,
+  parseCookies,
+  // Registry
+  createActionRegistry,
+  getActionRegistry,
+  registerAction,
+  resetActionRegistry,
+  // tRPC Bridge
+  createActions,
+  createTrpcBridge,
+  TrpcBridgeError,
+  wrapProcedure,
+} from './actions/index.js';
+
+// Action types
+export type {
+  ActionBuilder,
+  ActionContext,
+  ActionError,
+  ActionErrorCode,
+  ActionHandler,
+  ActionMetadata,
+  ActionRegistry,
+  ActionResult,
+  ActionSuccess,
+  AuthenticatedActionContext,
+  CallableAction,
+  CallableFormAction,
+  CreateActionOptions,
+  FormActionHandler,
+  RegisteredAction,
+  TrpcActionOptions,
+  TrpcBridge,
+  TrpcBridgeOptions,
+  TrpcCaller,
+} from './actions/index.js';
+
 // Core types
 export type {
   CreateApiHandlerOptions,
