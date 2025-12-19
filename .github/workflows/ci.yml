@@ -83,11 +83,16 @@ jobs:
           retention-days: 1
 
   # Job 3: Smoke test scaffolder (only after build succeeds)
+  # Runs all 3 templates in parallel using matrix strategy
   smoke-test:
-    name: Smoke Test
+    name: Smoke Test (${{ matrix.template }})
     runs-on: ubuntu-latest
     needs: [build]
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        template: [default, auth, trpc]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -119,10 +124,10 @@ jobs:
           name: build-artifacts
           path: .
 
-      - name: Run smoke test
+      - name: Run smoke test (${{ matrix.template }} template)
         run: |
           cd packages/create
-          pnpm smoke-test
+          pnpm smoke-test --${{ matrix.template }}
 
   # Job 4: Release to npm (only on main, only after all tests pass, only if changesets exist)
   release:
