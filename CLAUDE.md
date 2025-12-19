@@ -13,6 +13,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Built on Fastify, tRPC, Prisma, and Zod
 - Targets Node.js v20+ with TypeScript v5+
 
+**Key Defaults (IMPORTANT - memorize these):**
+- **Default API port:** `3030` (not 3210)
+- **create-velox-app templates:** 3 templates available
+  - `--default` (or no flag) - Basic REST API with user CRUD procedures
+  - `--auth` - Full authentication (JWT, sessions, guards)
+  - `--trpc` - tRPC-only setup for type-safe internal APIs
+
 ## Commands
 
 ### Build
@@ -28,9 +35,10 @@ pnpm lint              # Run Biome linting
 cd packages/create && pnpm smoke-test           # Test default template
 cd packages/create && pnpm smoke-test --default # Explicit default template
 cd packages/create && pnpm smoke-test --auth    # Test auth template
+cd packages/create && pnpm smoke-test --trpc    # Test tRPC template
 ```
 
-**IMPORTANT:** Always use CLI arguments (`--auth`, `--default`) to select templates. Do NOT use environment variables like `SMOKE_TEMPLATE=auth` - the script does not support this pattern.
+**IMPORTANT:** Always use CLI arguments (`--auth`, `--default`, `--trpc`) to select templates. Do NOT use environment variables like `SMOKE_TEMPLATE=auth` - the script does not support this pattern.
 
 The smoke test validates the entire `create-velox-app` scaffolder workflow:
 1. Builds the scaffolder and all monorepo packages
@@ -38,6 +46,7 @@ The smoke test validates the entire `create-velox-app` scaffolder workflow:
 3. Generates Prisma client and pushes database schema
 4. Builds and runs the app, testing `/api/health` and `/api/users` endpoints
 5. For `--auth`: Also tests authentication endpoints (`/auth/register`, `/auth/login`, `/auth/me`)
+6. For `--trpc`: Tests tRPC-only endpoints without REST adapter
 
 **Run this before publishing** to catch template errors early.
 
@@ -364,7 +373,7 @@ Currently building toward MVP with these constraints:
 - `@veloxts/auth` - JWT authentication, session management, guards, rate limiting
 - `@veloxts/client` - Type-safe API client for frontend
 - `@veloxts/cli` - Basic commands (`velox dev`, `velox migrate`)
-- `create-velox-app` - Project scaffolding with default and auth templates
+- `create-velox-app` - Project scaffolding with 3 templates: default, auth, and trpc
 
 ### Deferred to v1.1+
 - Nested resource routing
