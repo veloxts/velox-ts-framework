@@ -48,6 +48,10 @@ function generatePrismaSchema(): string {
   return compileTemplate('rsc/prisma/schema.prisma', RSC_CONFIG);
 }
 
+function generatePrismaConfig(): string {
+  return compileTemplate('rsc/prisma.config.ts', RSC_CONFIG);
+}
+
 // App layer (RSC)
 function generateHomePage(): string {
   return compileTemplate('rsc/app/pages/index.tsx', RSC_CONFIG);
@@ -115,6 +119,7 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
 
     // Prisma
     { path: 'prisma/schema.prisma', content: generatePrismaSchema() },
+    { path: 'prisma.config.ts', content: generatePrismaConfig() },
 
     // App layer (RSC)
     { path: 'app/pages/index.tsx', content: generateHomePage() },

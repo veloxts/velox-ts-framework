@@ -664,6 +664,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   echo "✓ Dependencies installed"
   echo ""
 
+  # Create .env file from example (required for Prisma 7)
+  echo "=== Creating .env file ==="
+  cp .env.example .env
+  echo "✓ .env file created"
+  echo ""
+
   # Run Prisma generate
   echo "=== Generating Prisma client ==="
   npx prisma generate

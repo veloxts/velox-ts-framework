@@ -53,10 +53,10 @@
     "tsx": "4.21.0"
   },
   "peerDependencies": {
-    "@prisma/client": ">=5.0.0"
+    "@prisma/client": ">=7.0.0"
   },
   "devDependencies": {
-    "@prisma/client": "6.9.0",
+    "@prisma/client": "7.2.0",
     "@types/node": "25.0.0",
     "@types/pluralize": "0.0.33",
     "tsd": "0.33.0",

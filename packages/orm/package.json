@@ -30,7 +30,7 @@
     "vitest": "4.0.15"
   },
   "peerDependencies": {
-    "@prisma/client": ">=5.0.0"
+    "@prisma/client": ">=7.0.0"
   },
   "peerDependenciesMeta": {
     "@prisma/client": {
