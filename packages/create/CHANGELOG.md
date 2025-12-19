@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.5.0
+
+### Minor Changes
+
+- Auto-register procedures + inject Prisma models feature
+
 ## 0.4.21
 
 ### Patch Changes

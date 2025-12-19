@@ -1,5 +1,20 @@
 # @veloxts/velox
 
+## 0.5.0
+
+### Minor Changes
+
+- Auto-register procedures + inject Prisma models feature
+
+### Patch Changes
+
+- Updated dependencies
+  - @veloxts/auth@0.5.0
+  - @veloxts/core@0.5.0
+  - @veloxts/orm@0.5.0
+  - @veloxts/router@0.5.0
+  - @veloxts/validation@0.5.0
+
 ## 0.4.21
 
 ### Patch Changes
