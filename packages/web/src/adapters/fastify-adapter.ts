@@ -179,7 +179,8 @@ function injectToWebResponse(response: LightMyRequestResponse): Response {
     contentType.includes('application/json') ||
     contentType.includes('application/xml');
 
-  const body = isText ? response.body : response.rawPayload;
+  // Use text body for text types, raw payload (converted to Uint8Array) for binary
+  const body: BodyInit = isText ? response.body : new Uint8Array(response.rawPayload);
 
   return new Response(body, {
     status: response.statusCode,
