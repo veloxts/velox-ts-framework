@@ -14,6 +14,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import {
+  type CompiledProcedure,
   type DiscoveryOptions,
   discoverProceduresVerbose,
   getRouteSummary,
@@ -119,12 +120,8 @@ function extractProcedureIntrospection(
 
   for (const collection of collections) {
     for (const [name, proc] of Object.entries(collection.procedures)) {
-      const procedure = proc as unknown as {
-        type: 'query' | 'mutation';
-        inputSchema?: unknown;
-        outputSchema?: unknown;
-        guards?: ReadonlyArray<{ name?: string }>;
-      };
+      // Procedure type is CompiledProcedure from @veloxts/router
+      const procedure = proc as CompiledProcedure;
 
       const key = `${collection.namespace}:${name}`;
       const route = routeMap.get(key);
@@ -135,7 +132,7 @@ function extractProcedureIntrospection(
         type: procedure.type,
         hasInput: procedure.inputSchema !== undefined,
         hasOutput: procedure.outputSchema !== undefined,
-        guards: (procedure.guards ?? []).map((g) => g.name ?? 'anonymous'),
+        guards: procedure.guards.map((g) => g.name),
         route,
       });
     }

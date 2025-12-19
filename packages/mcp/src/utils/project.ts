@@ -4,7 +4,7 @@
  * Utilities for detecting and introspecting VeloxTS projects.
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
@@ -61,9 +61,8 @@ export function isVeloxProject(dir: string): boolean {
   }
 
   try {
-    const packageJson = JSON.parse(
-      require('node:fs').readFileSync(packageJsonPath, 'utf-8')
-    ) as PackageJson;
+    const content = readFileSync(packageJsonPath, 'utf-8');
+    const packageJson = JSON.parse(content) as PackageJson;
 
     const deps = {
       ...packageJson.dependencies,

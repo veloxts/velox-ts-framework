@@ -14,6 +14,7 @@ import {
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 
 import { getPromptTemplate, listPromptTemplates } from './prompts/index.js';
 import {
@@ -29,6 +30,33 @@ import {
 import { formatGenerateResult, type GeneratorType, generate } from './tools/generate.js';
 import { formatMigrateResult, type MigrateAction, migrate } from './tools/migrate.js';
 import { findProjectRoot, getProjectInfo } from './utils/project.js';
+
+// ============================================================================
+// Tool Argument Schemas (Zod validation)
+// ============================================================================
+
+/**
+ * Schema for velox_generate tool arguments
+ */
+const GenerateArgsSchema = z.object({
+  type: z
+    .enum(['procedure', 'schema', 'model', 'migration', 'test', 'resource', 'seeder', 'factory'])
+    .describe('Type of code to generate'),
+  name: z.string().min(1).describe('Entity name (e.g., User, Post)'),
+  crud: z.boolean().optional().describe('Generate full CRUD operations'),
+  dryRun: z.boolean().optional().describe('Preview without writing files'),
+});
+
+/**
+ * Schema for velox_migrate tool arguments
+ */
+const MigrateArgsSchema = z.object({
+  action: z
+    .enum(['status', 'run', 'rollback', 'fresh', 'reset'])
+    .describe('Migration action to perform'),
+  dev: z.boolean().optional().describe('Development mode (creates migration from schema diff)'),
+  dryRun: z.boolean().optional().describe('Preview without executing'),
+});
 
 // ============================================================================
 // Types
@@ -294,11 +322,26 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
 
     switch (name) {
       case 'velox_generate': {
+        // Validate arguments with Zod
+        const parsed = GenerateArgsSchema.safeParse(args);
+        if (!parsed.success) {
+          const errors = parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Invalid arguments for velox_generate:\n${errors.join('\n')}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
         const result = await generate({
-          type: (args?.type as GeneratorType) ?? 'procedure',
-          name: (args?.name as string) ?? 'Unknown',
-          crud: args?.crud as boolean | undefined,
-          dryRun: args?.dryRun as boolean | undefined,
+          type: parsed.data.type as GeneratorType,
+          name: parsed.data.name,
+          crud: parsed.data.crud,
+          dryRun: parsed.data.dryRun,
           json: true,
         });
 
@@ -314,10 +357,25 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
       }
 
       case 'velox_migrate': {
+        // Validate arguments with Zod
+        const parsed = MigrateArgsSchema.safeParse(args);
+        if (!parsed.success) {
+          const errors = parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Invalid arguments for velox_migrate:\n${errors.join('\n')}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
         const result = await migrate({
-          action: (args?.action as MigrateAction) ?? 'status',
-          dev: args?.dev as boolean | undefined,
-          dryRun: args?.dryRun as boolean | undefined,
+          action: parsed.data.action as MigrateAction,
+          dev: parsed.data.dev,
+          dryRun: parsed.data.dryRun,
           json: true,
         });
 
