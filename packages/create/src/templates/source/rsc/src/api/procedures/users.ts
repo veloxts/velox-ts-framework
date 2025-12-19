@@ -2,11 +2,13 @@
  * User Procedures
  *
  * CRUD operations for user management.
+ * Uses direct db import for proper PrismaClient typing.
  */
 
 import { defineProcedures, procedure } from '@veloxts/router';
 import { z } from 'zod';
 
+import { db } from '../database.js';
 import { CreateUserSchema, UpdateUserSchema, UserSchema } from '../schemas/user.js';
 
 export const userProcedures = defineProcedures('users', {
@@ -16,8 +18,8 @@ export const userProcedures = defineProcedures('users', {
    */
   listUsers: procedure()
     .output(z.array(UserSchema))
-    .query(async ({ ctx }) => {
-      return ctx.db.user.findMany({
+    .query(async () => {
+      return db.user.findMany({
         orderBy: { createdAt: 'desc' },
       });
     }),
@@ -28,11 +30,17 @@ export const userProcedures = defineProcedures('users', {
    */
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
-    .output(UserSchema.nullable())
-    .query(async ({ ctx, input }) => {
-      return ctx.db.user.findUnique({
+    .output(UserSchema)
+    .query(async ({ input }) => {
+      const user = await db.user.findUnique({
         where: { id: input.id },
       });
+
+      if (!user) {
+        throw Object.assign(new Error('User not found'), { statusCode: 404 });
+      }
+
+      return user;
     }),
 
   /**
@@ -42,8 +50,8 @@ export const userProcedures = defineProcedures('users', {
   createUser: procedure()
     .input(CreateUserSchema)
     .output(UserSchema)
-    .mutation(async ({ ctx, input }) => {
-      return ctx.db.user.create({
+    .mutation(async ({ input }) => {
+      return db.user.create({
         data: input,
       });
     }),
@@ -55,9 +63,9 @@ export const userProcedures = defineProcedures('users', {
   updateUser: procedure()
     .input(UpdateUserSchema.extend({ id: z.string().uuid() }))
     .output(UserSchema)
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const { id, ...data } = input;
-      return ctx.db.user.update({
+      return db.user.update({
         where: { id },
         data,
       });
@@ -70,8 +78,8 @@ export const userProcedures = defineProcedures('users', {
   deleteUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .output(z.object({ success: z.boolean() }))
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db.user.delete({
+    .mutation(async ({ input }) => {
+      await db.user.delete({
         where: { id: input.id },
       });
       return { success: true };

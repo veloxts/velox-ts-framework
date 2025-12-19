@@ -18,6 +18,6 @@
     },
     "types": ["node"]
   },
-  "include": ["src/**/*", "app/**/*", "*.config.ts"],
+  "include": ["src/**/*", "src/**/*.d.ts", "app/**/*", "*.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

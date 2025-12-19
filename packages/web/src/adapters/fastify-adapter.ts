@@ -15,14 +15,22 @@ import type { CreateApiHandlerOptions, VinxiHandler } from '../types.js';
 const DEFAULT_TIMEOUT = 30_000;
 
 /**
+ * Node.js IncomingMessage with readable stream
+ */
+interface NodeRequest {
+  method?: string;
+  url?: string;
+  headers: Record<string, string | string[] | undefined>;
+  // Make it iterable for consuming the body stream
+  [Symbol.asyncIterator]?: () => AsyncIterableIterator<Buffer>;
+}
+
+/**
  * h3 event type (minimal interface to avoid dependency)
  */
 interface H3Event {
   node: {
-    req: {
-      method?: string;
-      url?: string;
-      headers: Record<string, string | string[] | undefined>;
+    req: NodeRequest & {
     };
     res: {
       statusCode?: number;
@@ -246,6 +254,46 @@ function createErrorResponse(error: unknown, elapsed: number): Response {
 }
 
 /**
+ * Reads the request body from a Node.js IncomingMessage.
+ * Returns the body as a string for text content types, or Buffer for binary.
+ */
+async function readRequestBody(
+  req: NodeRequest,
+  contentType: string | undefined
+): Promise<string | Buffer | undefined> {
+  // Skip body for GET/HEAD requests
+  const method = req.method?.toUpperCase();
+  if (!method || method === 'GET' || method === 'HEAD') {
+    return undefined;
+  }
+
+  // No async iterator means no body to read
+  if (!req[Symbol.asyncIterator]) {
+    return undefined;
+  }
+
+  const chunks: Buffer[] = [];
+  for await (const chunk of req as AsyncIterable<Buffer>) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+
+  if (chunks.length === 0) {
+    return undefined;
+  }
+
+  const buffer = Buffer.concat(chunks);
+
+  // Return as string for text content types, buffer for binary
+  const isText =
+    !contentType ||
+    contentType.includes('application/json') ||
+    contentType.includes('text/') ||
+    contentType.includes('application/x-www-form-urlencoded');
+
+  return isText ? buffer.toString('utf-8') : buffer;
+}
+
+/**
  * Global singleton cache for Fastify instances.
  * This prevents duplicate initialization during HMR reloads in Vinxi dev mode.
  * Uses globalThis to persist across module reloads.
@@ -414,11 +462,16 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
         }
       }
 
+      // Read request body for POST/PUT/PATCH/DELETE
+      const contentType = headers['content-type'];
+      const payload = await readRequestBody(req, contentType);
+
       // Create inject options
       const injectOptions: InjectOptions = {
         method: (req.method || 'GET') as HTTPMethod,
         url: fullPath,
         headers,
+        payload,
       };
 
       // Create timeout promise

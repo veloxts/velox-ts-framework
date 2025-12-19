@@ -599,7 +599,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
 test_rsc_template() {
   local project_name="smoke-test-rsc"
   local test_port=3030
-  local dev_timeout=60
+  local dev_timeout=30
 
   echo ""
   echo "=========================================="

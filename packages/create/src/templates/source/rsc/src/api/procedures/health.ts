@@ -6,6 +6,8 @@
 
 import { defineProcedures, procedure } from '@veloxts/router';
 
+import { db } from '../database.js';
+
 export const healthProcedures = defineProcedures('health', {
   /**
    * Basic health check
@@ -25,10 +27,10 @@ export const healthProcedures = defineProcedures('health', {
    */
   getReady: procedure()
     .rest({ method: 'GET', path: '/health/ready' })
-    .query(async ({ ctx }) => {
+    .query(async () => {
       try {
         // Test database connection
-        await ctx.db.$queryRaw`SELECT 1`;
+        await db.$queryRaw`SELECT 1`;
 
         return {
           status: 'ready',

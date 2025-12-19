@@ -32,11 +32,7 @@ export type AppRouter = typeof router;
  */
 export default createH3ApiHandler({
   app: async () => {
-    const app = await createVeloxApp({
-      fastify: {
-        logger: process.env.NODE_ENV !== 'production',
-      },
-    });
+    const app = await createVeloxApp();
 
     // Register database plugin
     await app.register(databasePlugin({ client: db }));
