@@ -29,7 +29,7 @@ export {
   getRoutesByNamespace,
 } from './routes.js';
 // Schemas resource
-export type { SchemaFieldInfo, SchemaInfo, SchemasResourceResponse } from './schemas.js';
+export type { SchemaInfo, SchemasResourceResponse } from './schemas.js';
 export {
   formatSchemasAsText,
   getSchemas,

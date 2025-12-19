@@ -26,6 +26,14 @@ import { config as loadEnv } from 'dotenv';
 import pc from 'picocolors';
 
 import { getErrorsByCategory } from '../errors/index.js';
+import { extractSchemaNames, extractSchemaTypes } from '../utils/schema-patterns.js';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Default API prefix for REST routes */
+const DEFAULT_API_PREFIX = '/api';
 
 // ============================================================================
 // Types
@@ -35,6 +43,7 @@ interface IntrospectOptions {
   path?: string;
   recursive?: boolean;
   json?: boolean;
+  apiPrefix?: string;
 }
 
 interface ProcedureIntrospection {
@@ -148,16 +157,6 @@ function extractProcedureIntrospection(
 }
 
 /**
- * Pattern to match schema exports
- */
-const SCHEMA_PATTERN = /export\s+const\s+(\w+Schema)\s*=/g;
-
-/**
- * Pattern to match type exports derived from schemas
- */
-const TYPE_PATTERN = /export\s+type\s+(\w+)\s*=\s*z\.infer<typeof\s+(\w+Schema)>/g;
-
-/**
  * Result of schema scanning
  */
 interface SchemaScanResult {
@@ -188,18 +187,10 @@ async function scanSchemas(schemasPath: string): Promise<SchemaScanResult> {
       const filePath = join(schemasPath, entry.name);
       try {
         const content = await readFile(filePath, 'utf-8');
-        const schemaNames = new Set<string>();
-        const typeMap = new Map<string, string>();
 
-        // Find all schema exports
-        for (const match of content.matchAll(SCHEMA_PATTERN)) {
-          schemaNames.add(match[1]);
-        }
-
-        // Find associated type exports
-        for (const match of content.matchAll(TYPE_PATTERN)) {
-          typeMap.set(match[2], match[1]);
-        }
+        // Use shared utilities for pattern matching
+        const schemaNames = extractSchemaNames(content);
+        const typeMap = extractSchemaTypes(content);
 
         // Build schema info
         for (const schemaName of schemaNames) {
@@ -442,11 +433,13 @@ function createProceduresSubcommand(): Command {
     .description('Introspect procedure definitions')
     .option('-p, --path <path>', 'Path to procedures directory', './src/procedures')
     .option('-r, --recursive', 'Scan subdirectories', false)
+    .option('--api-prefix <prefix>', 'API route prefix', DEFAULT_API_PREFIX)
     .option('--json', 'Output as JSON', false)
     .action(async (options: IntrospectOptions) => {
       loadEnvironment();
 
       const proceduresPath = options.path ?? './src/procedures';
+      const apiPrefix = options.apiPrefix ?? DEFAULT_API_PREFIX;
       const discoveryOptions: DiscoveryOptions = {
         recursive: options.recursive ?? false,
         onInvalidExport: 'warn',
@@ -454,7 +447,7 @@ function createProceduresSubcommand(): Command {
 
       try {
         const discovery = await discoverProceduresVerbose(proceduresPath, discoveryOptions);
-        const procedures = extractProcedureIntrospection(discovery.collections, '/api');
+        const procedures = extractProcedureIntrospection(discovery.collections, apiPrefix);
 
         const result: IntrospectResult = {
           procedures,
@@ -529,11 +522,13 @@ function createRoutesSubcommand(): Command {
     .description('Introspect REST route mappings')
     .option('-p, --path <path>', 'Path to procedures directory', './src/procedures')
     .option('-r, --recursive', 'Scan subdirectories', false)
+    .option('--api-prefix <prefix>', 'API route prefix', DEFAULT_API_PREFIX)
     .option('--json', 'Output as JSON', false)
     .action(async (options: IntrospectOptions) => {
       loadEnvironment();
 
       const proceduresPath = options.path ?? './src/procedures';
+      const apiPrefix = options.apiPrefix ?? DEFAULT_API_PREFIX;
       const discoveryOptions: DiscoveryOptions = {
         recursive: options.recursive ?? false,
         onInvalidExport: 'warn',
@@ -541,7 +536,7 @@ function createRoutesSubcommand(): Command {
 
       try {
         const discovery = await discoverProceduresVerbose(proceduresPath, discoveryOptions);
-        const routeSummary = getRouteSummary(discovery.collections, '/api');
+        const routeSummary = getRouteSummary(discovery.collections, apiPrefix);
 
         const routes: RouteIntrospection[] = routeSummary.map((r) => ({
           method: r.method,
@@ -617,12 +612,14 @@ function createAllSubcommand(): Command {
     .option('-p, --path <path>', 'Path to procedures directory', './src/procedures')
     .option('-s, --schemas-path <path>', 'Path to schemas directory', './src/schemas')
     .option('-r, --recursive', 'Scan subdirectories', false)
+    .option('--api-prefix <prefix>', 'API route prefix', DEFAULT_API_PREFIX)
     .option('--json', 'Output as JSON', false)
     .action(async (options: IntrospectOptions & { schemasPath?: string }) => {
       loadEnvironment();
 
       const proceduresPath = options.path ?? './src/procedures';
       const schemasPath = options.schemasPath ?? './src/schemas';
+      const apiPrefix = options.apiPrefix ?? DEFAULT_API_PREFIX;
       const discoveryOptions: DiscoveryOptions = {
         recursive: options.recursive ?? false,
         onInvalidExport: 'warn',
@@ -631,8 +628,8 @@ function createAllSubcommand(): Command {
       try {
         // Discover procedures and routes
         const discovery = await discoverProceduresVerbose(proceduresPath, discoveryOptions);
-        const procedures = extractProcedureIntrospection(discovery.collections, '/api');
-        const routeSummary = getRouteSummary(discovery.collections, '/api');
+        const procedures = extractProcedureIntrospection(discovery.collections, apiPrefix);
+        const routeSummary = getRouteSummary(discovery.collections, apiPrefix);
         const routes: RouteIntrospection[] = routeSummary.map((r) => ({
           method: r.method,
           path: r.path,

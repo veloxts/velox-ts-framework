@@ -8,23 +8,13 @@ import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { extractSchemaNames as extractNames, extractSchemaTypes } from '@veloxts/cli';
+
 import { getSchemasPath } from '../utils/project.js';
 
 // ============================================================================
 // Types
 // ============================================================================
-
-/**
- * Schema field information
- */
-export interface SchemaFieldInfo {
-  /** Field name */
-  name: string;
-  /** Field type description */
-  type: string;
-  /** Whether the field is optional */
-  optional: boolean;
-}
 
 /**
  * Information about a schema
@@ -56,50 +46,20 @@ export interface SchemasResourceResponse {
 // ============================================================================
 
 /**
- * Pattern to match schema exports
- * Matches: export const FooSchema = z.object(...)
+ * Extract schema information from file content
+ * Uses shared utilities from @veloxts/cli
  */
-const SCHEMA_PATTERN = /export\s+const\s+(\w+Schema)\s*=/g;
+function extractSchemaInfo(content: string, filePath: string): SchemaInfo[] {
+  const schemaNames = extractNames(content);
+  const typeMap = extractSchemaTypes(content);
 
-/**
- * Pattern to match type exports derived from schemas
- * Matches: export type Foo = z.infer<typeof FooSchema>
- */
-const TYPE_PATTERN = /export\s+type\s+(\w+)\s*=\s*z\.infer<typeof\s+(\w+Schema)>/g;
-
-/**
- * Extract schema names from file content
- */
-function extractSchemaNames(content: string, filePath: string): SchemaInfo[] {
   const schemas: SchemaInfo[] = [];
-  const schemaNames = new Set<string>();
-
-  // Find all schema exports
-  for (const match of content.matchAll(SCHEMA_PATTERN)) {
-    const schemaName = match[1];
-    if (!schemaNames.has(schemaName)) {
-      schemaNames.add(schemaName);
-      schemas.push({
-        name: schemaName,
-        file: filePath,
-      });
-    }
-  }
-
-  // Find associated type exports
-  const typeMap = new Map<string, string>();
-  for (const match of content.matchAll(TYPE_PATTERN)) {
-    const typeName = match[1];
-    const schemaName = match[2];
-    typeMap.set(schemaName, typeName);
-  }
-
-  // Add type names to schemas
-  for (const schema of schemas) {
-    const typeName = typeMap.get(schema.name);
-    if (typeName) {
-      schema.typeName = typeName;
-    }
+  for (const schemaName of schemaNames) {
+    schemas.push({
+      name: schemaName,
+      file: filePath,
+      typeName: typeMap.get(schemaName),
+    });
   }
 
   return schemas;
@@ -171,7 +131,7 @@ export async function getSchemas(projectRoot: string): Promise<SchemasResourceRe
   const files: string[] = [];
 
   for (const { file, content } of schemaFiles) {
-    const schemas = extractSchemaNames(content, file);
+    const schemas = extractSchemaInfo(content, file);
     if (schemas.length > 0) {
       files.push(file);
       allSchemas.push(...schemas);

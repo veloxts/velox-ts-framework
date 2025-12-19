@@ -40,7 +40,6 @@ export type {
   ProceduresResourceResponse,
   RouteInfo,
   RoutesResourceResponse,
-  SchemaFieldInfo,
   SchemaInfo,
   SchemasResourceResponse,
 } from './resources/index.js';

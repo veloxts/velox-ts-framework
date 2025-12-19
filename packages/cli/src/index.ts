@@ -50,3 +50,4 @@ export * from './seeding/index.js';
  */
 export * from './utils/output.js';
 export * from './utils/paths.js';
+export * from './utils/schema-patterns.js';
