@@ -92,7 +92,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        template: [default, auth, trpc]
+        template: [default, auth, trpc, rsc]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
