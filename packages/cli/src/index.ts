@@ -31,6 +31,7 @@ export const CLI_VERSION: string = packageJson.version ?? '0.0.0-unknown';
  */
 export { createDbCommand } from './commands/db.js';
 export { createDevCommand } from './commands/dev.js';
+export { createIntrospectCommand } from './commands/introspect.js';
 export { createMigrateCommand } from './commands/migrate.js';
 /**
  * Export error system

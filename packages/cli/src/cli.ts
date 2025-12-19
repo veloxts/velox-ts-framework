@@ -14,6 +14,7 @@ import { Command } from 'commander';
 
 import { createDbCommand } from './commands/db.js';
 import { createDevCommand } from './commands/dev.js';
+import { createIntrospectCommand } from './commands/introspect.js';
 import { createMakeCommand } from './commands/make.js';
 import { createMigrateCommand } from './commands/migrate.js';
 import { createProceduresCommand } from './commands/procedures.js';
@@ -34,6 +35,7 @@ function createCLI(): Command {
   // Register commands
   program.addCommand(createDbCommand());
   program.addCommand(createDevCommand(CLI_VERSION));
+  program.addCommand(createIntrospectCommand());
   program.addCommand(createMakeCommand());
   program.addCommand(createMigrateCommand());
   program.addCommand(createProceduresCommand());
