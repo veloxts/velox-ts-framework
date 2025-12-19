@@ -585,9 +585,11 @@ describe('renderToStream', () => {
         }
 
         expect(chunks.length).toBeGreaterThan(0);
-        const html = new TextDecoder().decode(
-          new Uint8Array(chunks.reduce((acc, chunk) => [...acc, ...chunk], [] as number[]))
-        );
+        const allBytes: number[] = [];
+        for (const chunk of chunks) {
+          allBytes.push(...chunk);
+        }
+        const html = new TextDecoder().decode(new Uint8Array(allBytes));
         expect(html).toContain('Test Page');
       }
     });

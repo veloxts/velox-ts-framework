@@ -552,7 +552,7 @@ describe('client-hydrator utilities', () => {
       const hydrateRootCall = vi.mocked(hydrateRoot).mock.calls[0];
       const options = hydrateRootCall[2] as { onRecoverableError: (error: unknown) => void };
 
-      const longMessage = 'Hydration ' + 'a'.repeat(300);
+      const longMessage = `Hydration ${'a'.repeat(300)}`;
       options.onRecoverableError(new Error(longMessage));
 
       const warning = document.getElementById('velox-hydration-warning');

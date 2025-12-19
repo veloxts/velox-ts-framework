@@ -156,7 +156,10 @@ export interface ClassificationResult {
  * }
  * ```
  */
-export function classifyError(error: unknown, options: ClassifyErrorOptions = {}): ClassificationResult {
+export function classifyError(
+  error: unknown,
+  options: ClassifyErrorOptions = {}
+): ClassificationResult {
   const {
     patterns,
     additionalPatterns,

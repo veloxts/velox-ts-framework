@@ -12,7 +12,6 @@ import {
   createMockAuthenticatedH3Context,
   createMockH3Context,
   type H3ActionContext,
-  type H3AdapterConfig,
   H3AuthError,
   isAuthenticatedH3Context,
   isH3Context,
@@ -32,11 +31,11 @@ vi.mock('vinxi/http', () => {
 
   return {
     getWebRequest: vi.fn(() => mockRequest),
-    getCookie: vi.fn((event: unknown, name: string) => mockCookies.get(name)),
-    setCookie: vi.fn((event: unknown, name: string, value: string) => {
+    getCookie: vi.fn((_event: unknown, name: string) => mockCookies.get(name)),
+    setCookie: vi.fn((_event: unknown, name: string, value: string) => {
       mockCookies.set(name, value);
     }),
-    deleteCookie: vi.fn((event: unknown, name: string) => {
+    deleteCookie: vi.fn((_event: unknown, name: string) => {
       mockCookies.delete(name);
     }),
     parseCookies: vi.fn(() => Object.fromEntries(mockCookies)),

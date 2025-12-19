@@ -58,7 +58,10 @@ export type ExtractProcedurePaths<TRouter, TPrefix extends string = ''> = TRoute
  * @template TRouter - The tRPC router type
  * @template TPath - The dot-separated procedure path
  */
-export type ExtractProcedureInput<TRouter, TPath extends string> = TPath extends `${infer Head}.${infer Tail}`
+export type ExtractProcedureInput<
+  TRouter,
+  TPath extends string,
+> = TPath extends `${infer Head}.${infer Tail}`
   ? Head extends keyof TRouter
     ? ExtractProcedureInput<TRouter[Head], Tail>
     : unknown
@@ -76,7 +79,10 @@ export type ExtractProcedureInput<TRouter, TPath extends string> = TPath extends
  * @template TRouter - The tRPC router type
  * @template TPath - The dot-separated procedure path
  */
-export type ExtractProcedureOutput<TRouter, TPath extends string> = TPath extends `${infer Head}.${infer Tail}`
+export type ExtractProcedureOutput<
+  TRouter,
+  TPath extends string,
+> = TPath extends `${infer Head}.${infer Tail}`
   ? Head extends keyof TRouter
     ? ExtractProcedureOutput<TRouter[Head], Tail>
     : unknown
@@ -185,7 +191,9 @@ export interface TrpcBridge<TRouter> {
    * @template TOutput - Output type (defaults to inferred from router)
    */
   createAction<
-    TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+    TPath extends ExtractProcedurePaths<TRouter> extends never
+      ? string
+      : ExtractProcedurePaths<TRouter>,
     TInput = ExtractProcedureInput<TRouter, TPath>,
     TOutput = ExtractProcedureOutput<TRouter, TPath>,
   >(
@@ -199,7 +207,9 @@ export interface TrpcBridge<TRouter> {
    * Same as createAction but with requireAuth: true.
    */
   createProtectedAction<
-    TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+    TPath extends ExtractProcedurePaths<TRouter> extends never
+      ? string
+      : ExtractProcedurePaths<TRouter>,
     TInput = ExtractProcedureInput<TRouter, TPath>,
     TOutput = ExtractProcedureOutput<TRouter, TPath>,
   >(
@@ -271,7 +281,9 @@ export interface TrpcActionOptions<TInput, TOutput> {
  * @template TRouter - The tRPC router type for path validation
  */
 export type TrpcCaller<TRouter = unknown> = <
-  TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+  TPath extends ExtractProcedurePaths<TRouter> extends never
+    ? string
+    : ExtractProcedurePaths<TRouter>,
   TOutput = ExtractProcedureOutput<TRouter, TPath>,
 >(
   procedurePath: TPath,
@@ -291,7 +303,9 @@ class TrpcBridgeImpl<TRouter> implements TrpcBridge<TRouter> {
   constructor(private config: BridgeConfig) {}
 
   createAction<
-    TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+    TPath extends ExtractProcedurePaths<TRouter> extends never
+      ? string
+      : ExtractProcedurePaths<TRouter>,
     TInput = ExtractProcedureInput<TRouter, TPath>,
     TOutput = ExtractProcedureOutput<TRouter, TPath>,
   >(
@@ -319,7 +333,9 @@ class TrpcBridgeImpl<TRouter> implements TrpcBridge<TRouter> {
   }
 
   createProtectedAction<
-    TPath extends ExtractProcedurePaths<TRouter> extends never ? string : ExtractProcedurePaths<TRouter>,
+    TPath extends ExtractProcedurePaths<TRouter> extends never
+      ? string
+      : ExtractProcedurePaths<TRouter>,
     TInput = ExtractProcedureInput<TRouter, TPath>,
     TOutput = ExtractProcedureOutput<TRouter, TPath>,
   >(
@@ -386,10 +402,8 @@ class TrpcBridgeImpl<TRouter> implements TrpcBridge<TRouter> {
     const handler: ActionHandler<TInput, TOutput> = async (input, ctx) => {
       // Create a bound caller that forwards context
       // Uses TrpcCaller<TRouter> for type-safe path validation in the handler
-      const boundCaller = <TCallOutput = unknown>(
-        procedurePath: string,
-        callInput: unknown
-      ) => this.call<TCallOutput>(procedurePath, callInput, ctx);
+      const boundCaller = <TCallOutput = unknown>(procedurePath: string, callInput: unknown) =>
+        this.call<TCallOutput>(procedurePath, callInput, ctx);
 
       return handlerFn(input, ctx, boundCaller as TrpcCaller<TRouter>);
     };

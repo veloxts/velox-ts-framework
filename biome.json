@@ -28,6 +28,18 @@
       "recommended": true
     }
   },
+  "overrides": [
+    {
+      "includes": ["**/rendering/document.tsx"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "single",

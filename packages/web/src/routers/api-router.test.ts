@@ -223,7 +223,7 @@ describe('createApiRouter', () => {
       const errorApp = Fastify();
 
       // Create a handler that throws an error before the response is created
-      const errorHandler = createApiRouter({
+      const _errorHandler = createApiRouter({
         app: errorApp,
         basePath: '/api',
         logging: true,
@@ -247,7 +247,10 @@ describe('createApiRouter', () => {
           throw new Error('Should not reach here');
         } catch (error) {
           const elapsed = performance.now() - startTime;
-          console.error(`[API] ${req.method} ${url.pathname} → ERROR (${elapsed.toFixed(1)}ms)`, error);
+          console.error(
+            `[API] ${req.method} ${url.pathname} → ERROR (${elapsed.toFixed(1)}ms)`,
+            error
+          );
           throw error;
         }
       };

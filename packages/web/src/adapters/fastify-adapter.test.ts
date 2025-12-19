@@ -195,7 +195,7 @@ describe('content type handling', () => {
 
   it('should handle multipart/form-data body', async () => {
     const app = Fastify();
-    app.post('/upload', async (request) => {
+    app.post('/upload', async (_request) => {
       // Just verify the request was received
       return { received: true };
     });

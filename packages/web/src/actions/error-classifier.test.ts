@@ -186,7 +186,10 @@ describe('classifyError', () => {
     it('should log unclassified errors in development', () => {
       process.env.NODE_ENV = 'development';
       classifyError(new Error('Unknown error'));
-      expect(consoleErrorSpy).toHaveBeenCalledWith('[VeloxTS] Unclassified error:', expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[VeloxTS] Unclassified error:',
+        expect.any(Error)
+      );
     });
 
     it('should not log unclassified errors in production', () => {
@@ -342,7 +345,9 @@ describe('classifyPrismaError', () => {
   });
 
   it('should classify Prisma record not found errors', () => {
-    const error = new Error('P2025: An operation failed because it depends on one or more records that were required but not found.');
+    const error = new Error(
+      'P2025: An operation failed because it depends on one or more records that were required but not found.'
+    );
     const result = classifyPrismaError(error);
     expect(result.code).toBe('NOT_FOUND');
   });

@@ -32,7 +32,11 @@ export {
   wrapProcedure,
 } from './bridge.js';
 // Error classification
-export type { ClassificationResult, ClassifyErrorOptions, ErrorPattern } from './error-classifier.js';
+export type {
+  ClassificationResult,
+  ClassifyErrorOptions,
+  ErrorPattern,
+} from './error-classifier.js';
 export {
   classifyError,
   classifyPrismaError,
