@@ -448,11 +448,11 @@ export class ResourceGenerator extends BaseGenerator<ResourceCliOptions> {
         { name: injectable.modelName, content: injectable.modelContent },
       ];
 
-      const enums: PrismaEnumDefinition[] = injectable.enumNames.map((name, idx) => {
-        // Split enum content if multiple enums
-        const enumContents = injectable.enumContent.split('\n\n');
-        return { name, content: enumContents[idx] || '' };
-      });
+      // Use structured enum data directly (no fragile string splitting)
+      const enums: PrismaEnumDefinition[] = injectable.enums.map((e) => ({
+        name: e.name,
+        content: e.content,
+      }));
 
       // Save original for rollback
       saveOriginal(snapshot, schemaPath);

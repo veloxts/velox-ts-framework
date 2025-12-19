@@ -174,17 +174,25 @@ export function generatePrismaEnums(fields: FieldDefinition[]): string {
 // ============================================================================
 
 /**
+ * Structured enum definition for injection
+ */
+export interface InjectableEnumDef {
+  /** Enum name (PascalCase) */
+  readonly name: string;
+  /** Full enum content (including `enum Name { ... }`) */
+  readonly content: string;
+}
+
+/**
  * Result of generating injectable Prisma content
  */
 export interface InjectablePrismaContent {
   /** Full model definition (for injection into schema.prisma) */
   readonly modelContent: string;
-  /** Enum definitions if any (for injection before model) */
-  readonly enumContent: string;
   /** Model name (PascalCase) */
   readonly modelName: string;
-  /** Enum names if any */
-  readonly enumNames: string[];
+  /** Structured enum definitions (for injection before model) */
+  readonly enums: InjectableEnumDef[];
 }
 
 /**
@@ -230,29 +238,27 @@ ${timestampFields}${softDeleteField}
   @@map("${camel}s")
 }`;
 
-  // Generate enum content and collect enum names
-  const enumNames: string[] = [];
-  let enumContent = '';
+  // Generate structured enum definitions
+  const enums: InjectableEnumDef[] = [];
 
   if (fields.length > 0) {
     const enumFields = fields.filter((f) => f.type === 'enum' && f.enumDef);
-    if (enumFields.length > 0) {
-      const enums = enumFields.map((f) => {
-        const enumDef = f.enumDef;
-        if (!enumDef) return '';
-        enumNames.push(enumDef.name);
+    for (const field of enumFields) {
+      const enumDef = field.enumDef;
+      if (enumDef) {
         const values = enumDef.values.map((v) => `  ${v}`).join('\n');
-        return `enum ${enumDef.name} {\n${values}\n}`;
-      });
-      enumContent = enums.filter(Boolean).join('\n\n');
+        enums.push({
+          name: enumDef.name,
+          content: `enum ${enumDef.name} {\n${values}\n}`,
+        });
+      }
     }
   }
 
   return {
     modelContent,
-    enumContent,
     modelName: pascal,
-    enumNames,
+    enums,
   };
 }
 
@@ -279,7 +285,8 @@ function generatePrismaModel(
 `
       : '';
 
-  const enumSection = injectable.enumContent ? `\n${injectable.enumContent}\n` : '';
+  const enumSection =
+    injectable.enums.length > 0 ? `\n${injectable.enums.map((e) => e.content).join('\n\n')}\n` : '';
 
   return `// Add this model to your prisma/schema.prisma file
 ${enumSection}

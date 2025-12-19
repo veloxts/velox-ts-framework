@@ -5,9 +5,11 @@
  * Enables adding imports, modifying arrays/objects without breaking code structure.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 import ts from 'typescript';
+
+import { GeneratorError, GeneratorErrorCode } from '../types.js';
 
 // ============================================================================
 // Types
@@ -118,10 +120,40 @@ export function parseTypeScriptSource(content: string, fileName = 'source.ts'): 
 
 /**
  * Analyze a TypeScript file for imports, variables, and exports
+ *
+ * @throws GeneratorError if file doesn't exist or cannot be parsed
  */
 export function analyzeFile(filePath: string): FileAnalysis {
-  const content = readFileSync(filePath, 'utf-8');
-  const sourceFile = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true);
+  // Check file exists
+  if (!existsSync(filePath)) {
+    throw new GeneratorError(
+      GeneratorErrorCode.PROJECT_STRUCTURE,
+      `TypeScript file not found: ${filePath}`,
+      'Ensure the file exists and the path is correct.'
+    );
+  }
+
+  let content: string;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch (err) {
+    throw new GeneratorError(
+      GeneratorErrorCode.PROJECT_STRUCTURE,
+      `Failed to read TypeScript file: ${filePath}`,
+      err instanceof Error ? err.message : String(err)
+    );
+  }
+
+  let sourceFile: ts.SourceFile;
+  try {
+    sourceFile = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true);
+  } catch (err) {
+    throw new GeneratorError(
+      GeneratorErrorCode.PROJECT_STRUCTURE,
+      `Failed to parse TypeScript file: ${filePath}`,
+      err instanceof Error ? err.message : String(err)
+    );
+  }
 
   const imports: ImportInfo[] = [];
   const variables: VariableInfo[] = [];

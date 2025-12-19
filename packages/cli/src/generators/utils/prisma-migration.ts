@@ -64,7 +64,6 @@ function execCommand(
 
     const proc = spawn(command, args, {
       cwd,
-      shell: true,
       stdio: 'pipe',
     });
 

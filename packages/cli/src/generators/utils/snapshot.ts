@@ -15,12 +15,15 @@ import pc from 'picocolors';
 
 /**
  * Snapshot of file states before modification
+ *
+ * Note: These properties are intentionally mutable since the snapshot
+ * is populated incrementally as files are created/modified.
  */
 export interface FileSnapshot {
-  /** Files that were created (didn't exist before) */
-  readonly createdFiles: string[];
-  /** Files that were modified (original content saved) */
-  readonly modifiedFiles: Map<string, string>;
+  /** Files that were created (didn't exist before) - mutated by trackCreated() */
+  createdFiles: string[];
+  /** Files that were modified (original content saved) - mutated by saveOriginal() */
+  modifiedFiles: Map<string, string>;
 }
 
 /**
