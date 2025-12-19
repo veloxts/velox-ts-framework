@@ -251,6 +251,9 @@ export function defineVeloxApp(options: DefineVeloxAppOptions = {}): VinxiApp {
   });
 
   // Create and return a proper Vinxi app with hooks, dev(), build() methods, etc.
+  // Pass port/host through server config to make them available to the Vinxi dev server.
+  // While Vinxi primarily uses CLI args and env vars for port, passing it in server config
+  // ensures consistency and allows the config to be used in deployment scripts.
   return createApp({
     name: 'velox-app',
     server: {

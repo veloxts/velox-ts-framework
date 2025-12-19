@@ -323,9 +323,10 @@ export type VinxiHandler = (request: Request) => Promise<Response> | Response;
  */
 export interface CreateApiHandlerOptions {
   /**
-   * The Fastify instance to embed
+   * The Fastify instance to embed, or a factory function that returns one.
+   * Factory function enables lazy initialization to avoid module evaluation issues.
    */
-  app: FastifyInstance;
+  app: FastifyInstance | (() => Promise<FastifyInstance>);
 
   /**
    * Base path for API routes (used for path stripping)

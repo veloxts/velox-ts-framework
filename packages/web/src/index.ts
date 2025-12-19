@@ -67,6 +67,7 @@ export {
 // Fastify adapter
 export {
   createApiHandler,
+  createH3ApiHandler,
   isFastifyInstance,
 } from './adapters/fastify-adapter.js';
 export type {

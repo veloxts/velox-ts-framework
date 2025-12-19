@@ -3,12 +3,17 @@
  *
  * This creates the Fastify API handler that gets embedded in Vinxi.
  * All routes under /api/* are handled by this Fastify instance.
+ *
+ * IMPORTANT:
+ * - Vinxi HTTP routers expect h3 event handlers as default export
+ * - We use lazy initialization (factory function) to avoid Vite SSR module issues
+ * - createH3ApiHandler handles the Fastify app lifecycle and initialization
  */
 
 import { createVeloxApp } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
 import { rest } from '@veloxts/router';
-import { createApiHandler } from '@veloxts/web';
+import { createH3ApiHandler } from '@veloxts/web';
 
 import { db } from './database.js';
 import { healthProcedures } from './procedures/health.js';
@@ -19,23 +24,34 @@ const router = { health: healthProcedures, users: userProcedures };
 export type AppRouter = typeof router;
 
 /**
- * Create the Fastify app for API routes
+ * Export the h3 event handler for Vinxi embedding.
+ *
+ * We use a factory function for lazy initialization to avoid
+ * Vite trying to evaluate the Fastify app during build time.
+ * The app is initialized on the first HTTP request.
  */
-const app = createVeloxApp({
-  fastify: {
-    logger: process.env.NODE_ENV !== 'production',
+export default createH3ApiHandler({
+  app: async () => {
+    const app = await createVeloxApp({
+      fastify: {
+        logger: process.env.NODE_ENV !== 'production',
+      },
+    });
+
+    // Register database plugin
+    await app.register(databasePlugin({ client: db }));
+
+    // Register REST routes from procedures
+    app.routes(
+      rest([healthProcedures, userProcedures], {
+        prefix: '', // No prefix - Vinxi handles /api/*
+      })
+    );
+
+    // Ensure Fastify is ready before handling requests
+    await app.ready();
+
+    return app;
   },
+  basePath: '/api',
 });
-
-// Register database plugin
-app.register(databasePlugin({ client: db }));
-
-// Register REST routes from procedures
-rest([healthProcedures, userProcedures], {
-  prefix: '', // No prefix - Vinxi handles /api/*
-})(app);
-
-/**
- * Export the API handler for Vinxi embedding
- */
-export default createApiHandler({ app, basePath: '/api' });

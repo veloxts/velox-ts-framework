@@ -580,6 +580,21 @@ export function rest(
     registerRestRoutes(instance, collections, defaultOptions);
   };
 
+  // Add plugin metadata for VeloxTS plugin validation
+  // Note: Using Object.defineProperty to avoid TypeScript errors about function properties
+  Object.defineProperty(dualModePlugin, Symbol.for('plugin-meta'), {
+    value: true,
+  });
+  Object.defineProperty(dualModePlugin, Symbol.for('fastify.display-name'), {
+    value: 'dualModePlugin',
+  });
+  Object.defineProperty(dualModePlugin, 'name', {
+    value: 'dualModePlugin',
+  });
+  Object.defineProperty(dualModePlugin, 'version', {
+    value: '1.0.0',
+  });
+
   // Cast to RestPlugin - TypeScript needs help understanding this dual nature
   // The function satisfies both signatures:
   // - (instance, opts) => Promise<void> for Fastify register
