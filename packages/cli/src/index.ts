@@ -33,6 +33,10 @@ export { createDbCommand } from './commands/db.js';
 export { createDevCommand } from './commands/dev.js';
 export { createMigrateCommand } from './commands/migrate.js';
 /**
+ * Export error system
+ */
+export * from './errors/index.js';
+/**
  * Export migration runner
  */
 export * from './migrations/index.js';

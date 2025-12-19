@@ -7,7 +7,7 @@
 
 import pc from 'picocolors';
 
-import { ERROR_CATALOG, getErrorDefinition, type ErrorDefinition } from './catalog.js';
+import { ERROR_CATALOG, type ErrorDefinition, getErrorDefinition } from './catalog.js';
 
 // ============================================================================
 // Types

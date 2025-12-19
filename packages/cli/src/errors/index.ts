@@ -25,11 +25,10 @@
 // Error catalog and definitions
 export {
   ERROR_CATALOG,
+  type ErrorDefinition,
   getErrorDefinition,
   getErrorsByCategory,
   isValidErrorCode,
-  type ErrorDefinition,
 } from './catalog.js';
-
 // Base error class
-export { VeloxError, type ErrorLocation, type VeloxErrorOptions } from './velox-error.js';
+export { type ErrorLocation, VeloxError, type VeloxErrorOptions } from './velox-error.js';

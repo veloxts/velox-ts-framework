@@ -1,0 +1,63 @@
+{
+  "name": "@veloxts/mcp",
+  "version": "0.5.0",
+  "description": "Model Context Protocol server for VeloxTS - expose project context to AI tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "velox-mcp": "dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.25.1",
+    "@veloxts/cli": "workspace:*",
+    "@veloxts/router": "workspace:*",
+    "@veloxts/validation": "workspace:*"
+  },
+  "peerDependencies": {
+    "zod": ">=3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "25.0.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.15"
+  },
+  "keywords": [
+    "velox",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "claude",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/veloxts/velox-ts-framework",
+    "directory": "packages/mcp"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
