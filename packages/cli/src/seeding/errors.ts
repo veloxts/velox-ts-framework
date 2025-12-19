@@ -4,6 +4,8 @@
  * Structured error classes for the VeloxTS database seeding system.
  */
 
+import { VeloxError } from '../errors/index.js';
+
 // ============================================================================
 // Error Codes
 // ============================================================================
@@ -60,38 +62,18 @@ export enum SeederErrorCode {
 // ============================================================================
 
 /**
- * Structured error for seeding operations
+ * Structured error for seeding operations.
+ *
+ * Extends VeloxError for consistent error handling across the CLI.
  */
-export class SeederError extends Error {
+export class SeederError extends VeloxError {
   constructor(
     public readonly code: SeederErrorCode,
     message: string,
-    public readonly fix?: string
+    fix?: string
   ) {
-    super(message);
+    super(code, { message, fix });
     this.name = 'SeederError';
-  }
-
-  /**
-   * Format error for display
-   */
-  format(): string {
-    let output = `SeederError[${this.code}]: ${this.message}`;
-    if (this.fix) {
-      output += `\n\n  Fix: ${this.fix}`;
-    }
-    return output;
-  }
-
-  /**
-   * Convert to JSON for --json output
-   */
-  toJSON(): Record<string, unknown> {
-    return {
-      code: this.code,
-      message: this.message,
-      fix: this.fix,
-    };
   }
 }
 
@@ -100,38 +82,18 @@ export class SeederError extends Error {
 // ============================================================================
 
 /**
- * Structured error for factory operations
+ * Structured error for factory operations.
+ *
+ * Extends VeloxError for consistent error handling across the CLI.
  */
-export class FactoryError extends Error {
+export class FactoryError extends VeloxError {
   constructor(
     public readonly code: SeederErrorCode,
     message: string,
-    public readonly fix?: string
+    fix?: string
   ) {
-    super(message);
+    super(code, { message, fix });
     this.name = 'FactoryError';
-  }
-
-  /**
-   * Format error for display
-   */
-  format(): string {
-    let output = `FactoryError[${this.code}]: ${this.message}`;
-    if (this.fix) {
-      output += `\n\n  Fix: ${this.fix}`;
-    }
-    return output;
-  }
-
-  /**
-   * Convert to JSON for --json output
-   */
-  toJSON(): Record<string, unknown> {
-    return {
-      code: this.code,
-      message: this.message,
-      fix: this.fix,
-    };
   }
 }
 

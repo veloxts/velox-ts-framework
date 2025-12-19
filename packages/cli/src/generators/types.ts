@@ -4,6 +4,8 @@
  * Core type definitions for the VeloxTS code generator system.
  */
 
+import { VeloxError } from '../errors/index.js';
+
 // ============================================================================
 // Entity Naming
 // ============================================================================
@@ -284,37 +286,17 @@ export enum GeneratorErrorCode {
 }
 
 /**
- * Structured generator error with code and optional fix suggestion
+ * Structured generator error with code and optional fix suggestion.
+ *
+ * Extends VeloxError for consistent error handling across the CLI.
  */
-export class GeneratorError extends Error {
+export class GeneratorError extends VeloxError {
   constructor(
     public readonly code: GeneratorErrorCode,
     message: string,
-    public readonly fix?: string
+    fix?: string
   ) {
-    super(message);
+    super(code, { message, fix });
     this.name = 'GeneratorError';
-  }
-
-  /**
-   * Format error for display
-   */
-  format(): string {
-    let output = `GeneratorError[${this.code}]: ${this.message}`;
-    if (this.fix) {
-      output += `\n\n  Fix: ${this.fix}`;
-    }
-    return output;
-  }
-
-  /**
-   * Convert to JSON for --json output
-   */
-  toJSON(): Record<string, unknown> {
-    return {
-      code: this.code,
-      message: this.message,
-      fix: this.fix,
-    };
   }
 }

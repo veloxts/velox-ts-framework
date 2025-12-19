@@ -1,0 +1,187 @@
+# VeloxTS Project - Cursor AI Rules
+
+This is a VeloxTS full-stack TypeScript application.
+
+## Project Type
+
+- **Framework**: VeloxTS (Laravel-inspired TypeScript framework)
+- **Backend**: Fastify + VeloxTS procedures (apps/api)
+- **Frontend**: React + Vite + TanStack Router (apps/web)
+- **Database**: Prisma with SQLite
+- **Validation**: Zod schemas
+
+## Architecture Rules
+
+### Backend (apps/api)
+
+Procedures in `src/procedures/` define API endpoints. Naming conventions determine HTTP methods:
+
+- `get*`, `find*` → GET (single resource)
+- `list*` → GET (collection)
+- `create*`, `add*` → POST
+- `update*`, `edit*` → PUT
+- `patch*` → PATCH
+- `delete*`, `remove*` → DELETE
+
+Schemas in `src/schemas/` use Zod for validation.
+
+Context available in procedures:
+- `ctx.db` - Prisma client
+- `ctx.request` - Fastify request
+- `ctx.reply` - Fastify reply
+/* @if auth */
+- `ctx.user` - Authenticated user (if logged in)
+/* @endif auth */
+
+### Frontend (apps/web)
+
+Routes in `src/routes/` use TanStack Router file-based routing.
+API calls use `@veloxts/client` hooks: `useQuery`, `useMutation`.
+Types flow from backend automatically - no codegen needed.
+
+## Code Style
+
+### TypeScript Strictness
+
+CRITICAL - Never violate these rules:
+- NEVER use `any` type
+- NEVER use `as any` assertions
+- NEVER use `@ts-ignore` or `@ts-expect-error`
+- Use `unknown` with type guards instead
+- Use proper generics and type inference
+
+### Procedure Pattern
+
+```typescript
+import { defineProcedures, procedure, z } from '@veloxts/velox';
+
+export const entityProcedures = defineProcedures('entities', {
+  getEntity: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .output(EntitySchema)
+    .query(async ({ input, ctx }) => {
+      return ctx.db.entity.findUnique({ where: { id: input.id } });
+    }),
+
+  createEntity: procedure()
+    .input(CreateEntitySchema)
+    .output(EntitySchema)
+    .mutation(async ({ input, ctx }) => {
+      return ctx.db.entity.create({ data: input });
+    }),
+});
+```
+
+### Schema Pattern
+
+```typescript
+import { z } from '@veloxts/velox';
+
+export const EntitySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(255),
+  createdAt: z.date(),
+});
+
+export type Entity = z.infer<typeof EntitySchema>;
+
+export const CreateEntitySchema = EntitySchema.omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CreateEntity = z.infer<typeof CreateEntitySchema>;
+```
+
+/* @if auth */
+### Protected Procedures
+
+```typescript
+import { authenticated, hasRole } from '@veloxts/auth';
+
+// Require authentication
+const getProfile = procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => ctx.user);
+
+// Require role
+const adminOnly = procedure()
+  .guard(hasRole('admin'))
+  .mutation(({ ctx, input }) => { /* ... */ });
+```
+/* @endif auth */
+
+## CLI Commands
+
+Common commands for development:
+
+```bash
+# Development
+__RUN_CMD__ dev                      # Start dev server with HMR
+__RUN_CMD__ velox dev --verbose      # With timing info
+
+# Code generation
+__RUN_CMD__ velox make resource Post --crud  # Full CRUD resource
+__RUN_CMD__ velox make procedure Users       # Just procedure
+__RUN_CMD__ velox make schema Post           # Just schema
+
+# Database
+__RUN_CMD__ velox migrate run        # Run migrations
+__RUN_CMD__ velox migrate status     # Check status
+__RUN_CMD__ velox db seed            # Run seeders
+__RUN_CMD__ db:push                  # Push schema (Prisma)
+__RUN_CMD__ db:studio                # Open Prisma Studio
+```
+
+## File Naming Conventions
+
+- Procedures: `src/procedures/{entity}.ts` (plural, kebab-case for multi-word)
+- Schemas: `src/schemas/{entity}.ts` (singular, kebab-case)
+- Routes: `src/routes/{path}.tsx`
+- Components: `src/components/{Name}.tsx` (PascalCase)
+
+## Import Conventions
+
+```typescript
+// VeloxTS imports (use umbrella package)
+import { defineProcedures, procedure, z } from '@veloxts/velox';
+/* @if auth */
+import { authenticated, hasRole } from '@veloxts/auth';
+/* @endif auth */
+
+// Prisma client from config
+import { prisma } from '../config/database';
+
+// Local schemas
+import { UserSchema, CreateUserSchema } from '../schemas/user';
+```
+
+## Error Handling
+
+Use structured errors with codes:
+
+```typescript
+import { VeloxError } from '@veloxts/core';
+
+// Not found
+throw VeloxError.notFound('User', userId);
+
+// Validation
+throw VeloxError.validation('Invalid email format');
+
+// Unauthorized
+throw VeloxError.unauthorized('Login required');
+
+// Forbidden
+throw VeloxError.forbidden('Cannot access this resource');
+```
+
+## JSON Output
+
+All CLI commands support `--json` for AI tooling:
+
+```bash
+velox migrate status --json
+velox make resource Post --json --dry-run
+velox procedures list --json
+```

@@ -136,6 +136,85 @@ JWT_REFRESH_SECRET=<64+ chars>   # Generate: openssl rand -base64 64
 | `patchUser` | PATCH | `/users/:id` |
 | `deleteUser` | DELETE | `/users/:id` |
 
+## Guards and Policies
+
+### Using Guards
+
+Guards protect procedures from unauthorized access:
+
+```typescript
+import { authenticated, hasRole, hasPermission, allOf, anyOf } from '@veloxts/auth';
+
+// Require authentication
+const getProfile = procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => ctx.user);
+
+// Require specific role
+const adminDashboard = procedure()
+  .guard(hasRole('admin'))
+  .query(({ ctx }) => { /* ... */ });
+
+// Require permission
+const deletePost = procedure()
+  .guard(hasPermission('posts.delete'))
+  .mutation(({ ctx, input }) => { /* ... */ });
+
+// Combine guards (AND logic)
+const adminWithPermission = procedure()
+  .guard(allOf([hasRole('admin'), hasPermission('users.manage')]))
+  .mutation(({ ctx, input }) => { /* ... */ });
+
+// Any of guards (OR logic)
+const moderatorOrAdmin = procedure()
+  .guard(anyOf([hasRole('admin'), hasRole('moderator')]))
+  .mutation(({ ctx, input }) => { /* ... */ });
+```
+
+### Available Guards
+
+| Guard | Description |
+|-------|-------------|
+| `authenticated` | Requires logged-in user |
+| `emailVerified` | Requires verified email |
+| `hasRole(role)` | Checks user role |
+| `hasPermission(perm)` | Checks user permission |
+| `hasAnyPermission(perms)` | Any permission matches |
+| `allOf(guards)` | All guards must pass |
+| `anyOf(guards)` | Any guard must pass |
+| `not(guard)` | Inverts guard result |
+
+### Resource Policies
+
+Define authorization rules for resources:
+
+```typescript
+import { definePolicy, registerPolicy, authorize } from '@veloxts/auth';
+
+// Define policy for Post resource
+const PostPolicy = definePolicy<User, Post>({
+  view: () => true,
+  create: (user) => user.emailVerified,
+  update: (user, post) => user.id === post.authorId,
+  delete: (user, post) => user.id === post.authorId || user.role === 'admin',
+});
+
+// Register the policy
+registerPolicy('Post', PostPolicy);
+
+// Use in procedures
+const deletePost = procedure()
+  .guard(authenticated)
+  .mutation(async ({ ctx, input }) => {
+    const post = await ctx.db.post.findUnique({ where: { id: input.id } });
+
+    // Throws 403 if unauthorized
+    await authorize(ctx.user, 'delete', 'Post', post);
+
+    return ctx.db.post.delete({ where: { id: input.id } });
+  });
+```
+
 ## Database
 
 After schema changes:
@@ -146,3 +225,188 @@ __RUN_CMD__ db:generate  # Regenerate client
 ```
 
 Access via context: `ctx.db.user.findMany()`
+
+## Code Generation
+
+### Available Generators
+
+| Generator | Alias | Description |
+|-----------|-------|-------------|
+| `procedure` | `p` | API procedure with queries/mutations |
+| `schema` | `s` | Zod validation schema |
+| `model` | `m` | Prisma model definition |
+| `migration` | `mig` | Database migration file |
+| `test` | `t` | Unit/integration test file |
+| `resource` | `r` | Complete CRUD resource (all above) |
+| `seeder` | `seed` | Database seeder |
+| `factory` | `f` | Test data factory |
+
+### Usage Examples
+
+```bash
+# Generate a complete CRUD resource
+__RUN_CMD__ velox make resource Post --crud
+
+# Generate just a procedure
+__RUN_CMD__ velox make procedure Users --crud
+
+# Generate with soft-delete support
+__RUN_CMD__ velox m r Comment --soft-delete
+
+# Preview without writing files
+__RUN_CMD__ velox make --dry-run resource Post
+
+# JSON output for scripting
+__RUN_CMD__ velox make resource Post --json
+```
+
+### Generator Options
+
+**Common Options:**
+- `--dry-run, -d` - Preview changes without writing
+- `--force, -f` - Overwrite existing files
+- `--json` - Output results as JSON
+
+**Resource/Procedure Options:**
+- `--crud, -c` - Generate full CRUD operations
+- `--paginated, -P` - Include pagination for list
+- `--soft-delete, -s` - Add soft delete support
+- `--timestamps, -t` - Include timestamps (default: true)
+
+## Migration Runner
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `velox migrate status` | Show migration status |
+| `velox migrate run` | Run pending migrations |
+| `velox migrate rollback` | Rollback last migration |
+| `velox migrate fresh` | Drop all tables and re-run |
+| `velox migrate reset` | Rollback all then re-run |
+
+### Usage
+
+```bash
+# Check status
+__RUN_CMD__ velox migrate status
+
+# Run pending migrations
+__RUN_CMD__ velox migrate run
+
+# Development mode (creates migration from schema diff)
+__RUN_CMD__ velox migrate run --dev
+
+# Rollback last migration
+__RUN_CMD__ velox migrate rollback
+
+# Fresh database
+__RUN_CMD__ velox migrate fresh
+
+# JSON output
+__RUN_CMD__ velox migrate status --json
+```
+
+## Database Seeding
+
+### Commands
+
+```bash
+# Run all seeders
+__RUN_CMD__ velox db seed
+
+# Run specific seeder
+__RUN_CMD__ velox db seed UserSeeder
+
+# Fresh seed (truncate first)
+__RUN_CMD__ velox db seed --fresh
+
+# Preview
+__RUN_CMD__ velox db seed --dry-run
+```
+
+### Seeder Example
+
+```typescript
+// apps/api/src/database/seeders/UserSeeder.ts
+import type { Seeder } from '@veloxts/cli';
+
+export const UserSeeder: Seeder = {
+  name: 'UserSeeder',
+  dependencies: [],
+
+  async run(prisma) {
+    await prisma.user.createMany({
+      data: [
+        { email: 'admin@example.com', name: 'Admin' },
+        { email: 'user@example.com', name: 'User' },
+      ],
+    });
+  },
+};
+```
+
+## Error Handling
+
+VeloxTS uses structured error codes for AI tooling:
+
+```typescript
+// Error format: VeloxError[E1001]: Message
+// E1xxx - Core errors
+// E2xxx - Generator errors
+// E3xxx - Seeding errors
+// E4xxx - Migration errors
+// E5xxx - Dev server errors
+```
+
+### Common Patterns
+
+```typescript
+import { VeloxError } from '@veloxts/core';
+
+const getUser = procedure()
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+
+    if (!user) {
+      throw VeloxError.notFound('User', input.id);
+    }
+
+    return user;
+  });
+```
+
+## Development Workflow
+
+### Hot Module Replacement (HMR)
+
+```bash
+# Default: HMR enabled
+__RUN_CMD__ velox dev
+
+# With verbose timing
+__RUN_CMD__ velox dev --verbose
+
+# Disable HMR
+__RUN_CMD__ velox dev --no-hmr
+```
+
+### CLI JSON Output
+
+All CLI commands support `--json` for scripting:
+
+```bash
+velox migrate status --json
+velox db seed --json --dry-run
+velox procedures list --json
+```
+
+### Recommended Flow
+
+1. Define Zod schemas in `apps/api/src/schemas/`
+2. Generate resource: `velox make resource Post --crud`
+3. Customize generated procedures as needed
+4. Run migrations: `velox migrate run --dev`
+5. Seed data: `velox db seed --fresh`
+6. Test endpoints with Thunder Client or curl

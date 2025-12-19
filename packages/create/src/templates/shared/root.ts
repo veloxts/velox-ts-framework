@@ -37,6 +37,10 @@ export function generateRootClaudeMd(config: TemplateConfig, isAuthTemplate: boo
   return compileTemplate(sourceFile, config);
 }
 
+export function generateRootCursorrules(config: TemplateConfig): string {
+  return compileTemplate('root/.cursorrules', config);
+}
+
 // ============================================================================
 // Generate All Root Files
 // ============================================================================
@@ -49,5 +53,6 @@ export function generateRootFiles(config: TemplateConfig, isAuthTemplate: boolea
     { path: '.gitignore', content: generateRootGitignore() },
     { path: 'README.md', content: generateRootReadme(config) },
     { path: 'CLAUDE.md', content: generateRootClaudeMd(config, isAuthTemplate) },
+    { path: '.cursorrules', content: generateRootCursorrules(config) },
   ];
 }
