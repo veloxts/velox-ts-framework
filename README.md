@@ -1,8 +1,8 @@
 # VeloxTS Framework
 
-> **Alpha Release** - This framework is in early development. APIs may change. Not recommended for production use yet.
+> **Pre-Alpha (v0.5.x)** - APIs are stabilizing but may still change. Use with caution in production.
 
-A TypeScript-first full-stack web framework focused on developer experience and end-to-end type safety.
+A TypeScript-first full-stack web framework with end-to-end type safety and zero code generation.
 
 ## Key Features
 
@@ -10,20 +10,28 @@ A TypeScript-first full-stack web framework focused on developer experience and 
 
 - **Unified API Layer** - Define your API once with procedures, get both tRPC (for internal type-safe calls) and REST endpoints (for external consumers) automatically.
 
-- **Convention Over Configuration** - Sensible defaults with escape hatches. Naming conventions auto-generate REST routes:
-  - `getUser` becomes `GET /api/users/:id`
-  - `listUsers` becomes `GET /api/users`
-  - `createUser` becomes `POST /api/users`
+- **Full REST Support** - Convention-based routing for all HTTP methods:
+  - `getUser` / `findUser` → `GET /api/users/:id`
+  - `listUsers` → `GET /api/users`
+  - `createUser` / `addUser` → `POST /api/users`
+  - `updateUser` / `editUser` → `PUT /api/users/:id`
+  - `patchUser` → `PATCH /api/users/:id`
+  - `deleteUser` / `removeUser` → `DELETE /api/users/:id`
+
+- **Built-in Authentication** - JWT and session-based auth with guards, rate limiting, CSRF protection, and token rotation.
 
 - **Modern Stack** - Built on proven technologies: Fastify, tRPC, Prisma, and Zod.
 
-- **Elegant, Expressive Syntax** - Clean APIs that are easy to read and write.
+- **Elegant, Expressive Syntax** - Fluent builder APIs with full IntelliSense support and minimal boilerplate.
 
 ## Quick Start
 
 ```bash
-# Create a new project
+# Create a new project (default template)
 npx create-velox-app my-app
+
+# Or with authentication included
+npx create-velox-app my-app --auth
 
 # Navigate to project
 cd my-app
@@ -35,7 +43,15 @@ npm run db:push
 npm run dev
 ```
 
-Your API is now running at `http://localhost:3030`.
+Your API is now running at `http://localhost:3210`.
+
+### Available Templates
+
+| Template | Command | Description |
+|----------|---------|-------------|
+| Default | `npx create-velox-app my-app` | Basic REST API with user CRUD procedures |
+| Auth | `npx create-velox-app my-app --auth` | Full authentication (JWT, sessions, guards) |
+| tRPC | `npx create-velox-app my-app --trpc` | tRPC-only setup for type-safe internal APIs |
 
 ## Example: Defining Procedures
 
@@ -73,13 +89,16 @@ export const userProcedures = defineProcedures('users', {
 
 | Package | Description |
 |---------|-------------|
+| [`@veloxts/velox`](./packages/velox) | Umbrella package - all framework features in one import |
 | [`@veloxts/core`](./packages/core) | Fastify wrapper, plugin system, and application lifecycle |
 | [`@veloxts/router`](./packages/router) | Procedure definitions with tRPC and REST routing |
 | [`@veloxts/validation`](./packages/validation) | Zod integration and common validation schemas |
 | [`@veloxts/orm`](./packages/orm) | Prisma wrapper with enhanced developer experience |
+| [`@veloxts/auth`](./packages/auth) | JWT, sessions, guards, rate limiting, CSRF protection |
 | [`@veloxts/client`](./packages/client) | Type-safe frontend API client |
-| [`@veloxts/cli`](./packages/cli) | Development server and CLI commands |
-| [`create-velox-app`](./packages/create) | Project scaffolder |
+| [`@veloxts/cli`](./packages/cli) | Development server with HMR and CLI commands |
+| [`@veloxts/mcp`](./packages/mcp) | Model Context Protocol server for AI tool integration |
+| [`create-velox-app`](./packages/create) | Interactive project scaffolder |
 
 ## Documentation
 
@@ -140,41 +159,48 @@ pnpm lint
 
 ## Current Status
 
-**v0.1.0-alpha** - Initial MVP release.
+**v0.5.x** - Pre-release with stable core features.
 
-This is an early alpha. The framework provides a solid foundation but is not feature-complete:
+The framework provides a solid foundation for building type-safe APIs:
 
 | Feature | Status |
 |---------|--------|
-| Core framework | Available |
-| Procedure-based routing | GET and POST only |
-| Prisma integration | Available |
-| Type-safe client | Available |
-| Development CLI | Basic (`velox dev`) |
-| Project scaffolder | Available |
-| Authentication | Planned for v1.1 |
-| PUT/PATCH/DELETE | Planned for v1.1 |
-| CLI generators | Planned for v1.1 |
+| Core framework | ✅ Stable |
+| Procedure-based routing | ✅ All HTTP methods (GET, POST, PUT, PATCH, DELETE) |
+| Prisma integration | ✅ Stable |
+| Type-safe client | ✅ Stable |
+| JWT Authentication | ✅ Available |
+| Session Authentication | ✅ Available |
+| Guards & Authorization | ✅ Available |
+| Rate Limiting | ✅ Available |
+| Development CLI with HMR | ✅ Available |
+| Project scaffolder | ✅ Available (default + auth templates) |
+| MCP Server (AI integration) | ✅ Available |
+| CLI code generators | 🚧 Planned for v1.0 |
+| Database seeding | 🚧 Planned for v1.0 |
 
 ### What Works Well
 
 - Fluent procedure builder API with excellent type inference
-- Convention-based REST route generation
+- Convention-based REST route generation for all HTTP methods
 - End-to-end type safety without code generation
+- Comprehensive authentication system (JWT + sessions)
+- Guard-based authorization with composable rules
+- Hot Module Replacement in development
 - Clean plugin system for extensibility
 
-### Known Limitations
+### Current Limitations
 
-- Only GET and POST HTTP methods in v0.1.0
-- No built-in authentication (use external packages or wait for v1.1)
-- CLI is minimal - no code generators yet
-- Limited documentation and examples
+- CLI code generators not yet available
+- Database seeding system not yet available
+- Limited deployment documentation
+- Small ecosystem (early adopter stage)
 
 ## Contributing
 
-This project is in early alpha. **Contributions are not expected at this time.** The API is still stabilizing and significant changes are planned for v1.1.
+This project is in pre-alpha development. We welcome feedback and bug reports through GitHub issues.
 
-If you're interested in following development, watch the repository for updates.
+For code contributions, please open an issue first to discuss the proposed changes. The API is stabilizing but may still evolve before v1.0.
 
 ## License
 

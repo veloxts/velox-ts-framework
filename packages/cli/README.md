@@ -1,6 +1,6 @@
 # @veloxts/cli
 
-**Pre-Alpha Notice:** This framework is in early development (v0.4.x). APIs are subject to change. Not recommended for production use.
+**Pre-Alpha Notice:** This framework is in early development (v0.5.x). APIs are subject to change. Not recommended for production use.
 
 ## What is this?
 
