@@ -15,6 +15,7 @@ import type {
   GeneratorOption,
   GeneratorOutput,
   ProjectContext,
+  ProjectType,
   TemplateContext,
 } from './types.js';
 import { GeneratorError, GeneratorErrorCode } from './types.js';
@@ -63,6 +64,11 @@ export async function ensureVeloxProject(cwd: string): Promise<void> {
 }
 
 /**
+ * Markers that indicate a Vinxi/RSC project
+ */
+const VINXI_PROJECT_MARKERS = ['vinxi', '@vinxi/server-functions', '@veloxts/web'] as const;
+
+/**
  * Detect project configuration from package.json and velox config
  */
 export async function detectProjectContext(cwd: string): Promise<ProjectContext> {
@@ -73,6 +79,9 @@ export async function detectProjectContext(cwd: string): Promise<ProjectContext>
       name: 'unknown',
       hasAuth: false,
       database: 'sqlite',
+      projectType: 'api',
+      isVinxiProject: false,
+      hasWeb: false,
     };
   }
 
@@ -85,13 +94,37 @@ export async function detectProjectContext(cwd: string): Promise<ProjectContext>
   // Detect auth package
   const hasAuth = '@veloxts/auth' in dependencies;
 
+  // Detect web package
+  const hasWeb = '@veloxts/web' in dependencies;
+
   // Detect database from Prisma schema or default to SQLite
   const database = detectDatabase(cwd);
+
+  // Detect Vinxi project by checking markers or app.config.ts
+  const hasVinxiMarker = VINXI_PROJECT_MARKERS.some((marker) => marker in dependencies);
+  const hasAppConfig =
+    existsSync(join(cwd, 'app.config.ts')) || existsSync(join(cwd, 'app.config.js'));
+  const isVinxiProject = hasVinxiMarker || hasAppConfig;
+
+  // Detect project type
+  const hasAppPagesDir = existsSync(join(cwd, 'app', 'pages'));
+  const projectType: ProjectType = isVinxiProject || hasAppPagesDir ? 'fullstack' : 'api';
+
+  // Detect directory structure
+  const pagesDir = projectType === 'fullstack' ? 'app/pages' : undefined;
+  const layoutsDir = projectType === 'fullstack' ? 'app/layouts' : undefined;
+  const actionsDir = projectType === 'fullstack' ? 'app/actions' : 'src/actions';
 
   return {
     name: packageJson.name ?? 'velox-app',
     hasAuth,
     database,
+    projectType,
+    isVinxiProject,
+    hasWeb,
+    pagesDir,
+    layoutsDir,
+    actionsDir,
   };
 }
 

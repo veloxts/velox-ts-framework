@@ -54,6 +54,11 @@ export interface EntityNames {
 // ============================================================================
 
 /**
+ * Project type based on architecture
+ */
+export type ProjectType = 'api' | 'fullstack';
+
+/**
  * Project-level context for template generation
  */
 export interface ProjectContext {
@@ -65,6 +70,24 @@ export interface ProjectContext {
 
   /** Database type from configuration */
   readonly database: 'sqlite' | 'postgresql' | 'mysql';
+
+  /** Project type: 'api' for API-only, 'fullstack' for RSC/Vinxi */
+  readonly projectType: ProjectType;
+
+  /** Whether this is a Vinxi/RSC project */
+  readonly isVinxiProject: boolean;
+
+  /** Whether @veloxts/web is installed */
+  readonly hasWeb: boolean;
+
+  /** Root directory for pages (app/pages for fullstack, undefined for api) */
+  readonly pagesDir?: string;
+
+  /** Root directory for layouts (app/layouts for fullstack, undefined for api) */
+  readonly layoutsDir?: string;
+
+  /** Root directory for actions (app/actions for fullstack, src/actions for api) */
+  readonly actionsDir?: string;
 }
 
 /**

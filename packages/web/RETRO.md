@@ -4,13 +4,38 @@ This document tracks code review findings, technical debt, and improvement oppor
 
 ---
 
+## Week 5: Auth & CLI Integration (2024-12)
+
+### Resolved Issues
+
+| Issue | Status | Resolution |
+|-------|--------|------------|
+| H3 auth adapter for RSC context | IMPLEMENTED | Created `h3-adapter.ts` with `createH3Context()`, `createH3AuthAdapter()`, and `createH3Action()` |
+| Mock context in server actions | RESOLVED | H3 adapter provides real request context from Vinxi via `getWebRequest()` |
+| Cookie management in RSC | IMPLEMENTED | H3 adapter provides `getCookie()`, `setCookie()`, `deleteCookie()` methods |
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| `createH3Context()` | Creates ActionContext with real Request from Vinxi H3 layer |
+| `createH3AuthAdapter()` | Configurable auth adapter with userLoader, session cookie, and JWT support |
+| `createH3Action()` | Type-safe server action factory with real context and auth guards |
+| Mock helpers | `createMockH3Context()` and `createMockAuthenticatedH3Context()` for testing |
+
+### Test Coverage
+
+- 44 new tests for H3 adapter (total: 497 tests passing)
+
+---
+
 ## Week 4: Server Actions (2024-12)
 
 ### Resolved Issues
 
 | Issue | Status | Resolution |
 |-------|--------|------------|
-| Mock context in production code | DOCUMENTED | Added JSDoc limitation notices to `createAction()` and `createFormAction()`. Will integrate with Vinxi's `getWebRequest()` in Week 5 auth adapter work. |
+| Mock context in production code | RESOLVED | Week 5 H3 adapter provides real request context via `createH3Context()` |
 
 ### Deferred Improvements
 
@@ -40,7 +65,7 @@ This document tracks code review findings, technical debt, and improvement oppor
 | Input validation | IMPLEMENTED | Zod validation enforced before handler execution |
 | Output validation | IMPLEMENTED | Prevents leaking unexpected data |
 | Cookie parsing | IMPLEMENTED | Values URL-decoded |
-| Authentication | PARTIAL | `requireAuth` option exists but ineffective with mock context |
+| Authentication | RESOLVED | `requireAuth` now works via H3 adapter (Week 5). Use `createH3Action()` for real auth |
 | CSRF protection | NOT IMPLEMENTED | Forms may need token validation |
 | Rate limiting | NOT IMPLEMENTED | Error code exists but no enforcement |
 

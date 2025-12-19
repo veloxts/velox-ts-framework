@@ -42,6 +42,8 @@ Options:
 Templates:
   default    ${TEMPLATE_METADATA.default.description}
   auth       ${TEMPLATE_METADATA.auth.description}
+  trpc       ${TEMPLATE_METADATA.trpc.description}
+  fullstack  ${TEMPLATE_METADATA.fullstack.description}
 
 Examples:
   npx create-velox-app my-app                    # Interactive mode

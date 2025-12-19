@@ -21,8 +21,14 @@ import {
   info,
   instruction,
   printBanner,
+  success,
 } from '../utils/output.js';
-import { findEntryPoint, isVeloxProject, validateEntryPath } from '../utils/paths.js';
+import {
+  detectProjectType,
+  findEntryPoint,
+  isVeloxProject,
+  validateEntryPath,
+} from '../utils/paths.js';
 
 interface DevOptions {
   port?: string;
@@ -55,6 +61,77 @@ export function createDevCommand(version: string): Command {
 }
 
 /**
+ * Run Vinxi development server for RSC projects
+ */
+async function runVinxiServer(options: DevOptions, version: string): Promise<void> {
+  // Print startup banner
+  printBanner(version);
+
+  const port = options.port || '3030';
+  const host = options.host || 'localhost';
+
+  info('Starting Vinxi development server...');
+  console.log(`  ${pc.dim('React Server Components with file-based routing')}`);
+  console.log('');
+
+  // Set environment variables
+  const env = {
+    ...process.env,
+    PORT: port,
+    HOST: host,
+    NODE_ENV: 'development',
+  };
+
+  // Spawn vinxi dev
+  const vinxiProcess = spawn('npx', ['vinxi', 'dev', '--port', port, '--host', host], {
+    stdio: 'inherit',
+    env,
+    shell: true,
+  });
+
+  // Handle process termination
+  let isShuttingDown = false;
+
+  const shutdown = (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    console.log(`\n\n${pc.yellow('⚠')} ${pc.dim(`Received ${signal}, shutting down...`)}`);
+
+    vinxiProcess.kill('SIGTERM');
+
+    // Force kill after 5 seconds
+    const forceKillTimeout = setTimeout(() => {
+      console.log(pc.red('✗ Force killing process...'));
+      vinxiProcess.kill('SIGKILL');
+      process.exit(1);
+    }, 5000);
+
+    vinxiProcess.on('exit', () => {
+      clearTimeout(forceKillTimeout);
+      console.log(pc.dim('Vinxi server stopped.'));
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+  vinxiProcess.on('error', (err) => {
+    error(`Failed to start Vinxi server: ${err.message}`);
+    instruction('Make sure vinxi is installed: pnpm add vinxi');
+    process.exit(1);
+  });
+
+  vinxiProcess.on('exit', (code) => {
+    if (!isShuttingDown && code !== 0) {
+      error(`Vinxi server exited with code ${code}`);
+      process.exit(code || 1);
+    }
+  });
+}
+
+/**
  * Run the development server
  */
 async function runDevServer(options: DevOptions, version: string): Promise<void> {
@@ -71,7 +148,18 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
       instruction(`Run ${formatCommand('npx create-velox-app')} to create a new project.`);
       process.exit(1);
     }
-    s.stop('Project validated');
+
+    // Detect project type (API-only vs Vinxi/RSC)
+    const projectType = await detectProjectType();
+
+    if (projectType.isVinxi) {
+      s.stop('Vinxi project detected');
+      success('Detected VeloxTS full-stack project (RSC + Vinxi)');
+      await runVinxiServer(options, version);
+      return;
+    }
+
+    s.stop('API project validated');
 
     // Find and validate entry point
     let entryPoint: string;

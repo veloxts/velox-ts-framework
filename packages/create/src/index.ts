@@ -438,9 +438,12 @@ async function generatePrismaClient(config: ProjectConfig): Promise<void> {
   }).start();
 
   try {
-    // Run prisma generate in the apps/api directory
+    // Fullstack template has Prisma in root, others in apps/api
+    const prismaDir =
+      config.template === 'fullstack' ? config.directory : path.join(config.directory, 'apps', 'api');
+
     await execAsync('npx prisma generate', {
-      cwd: path.join(config.directory, 'apps', 'api'),
+      cwd: prismaDir,
       timeout: EXEC_TIMEOUT_MS,
     });
 
@@ -512,9 +515,18 @@ function printSuccessMessage(config: ProjectConfig): void {
     pc.green(`  Success! Created ${pc.bold(config.name)} with ${config.template} template`)
   );
   console.log('');
-  console.log(pc.dim('  Full-stack workspace with:'));
-  console.log(pc.dim('    apps/api - Backend API (Fastify + VeloxTS)'));
-  console.log(pc.dim('    apps/web - Frontend (React + Vite + TanStack Router)'));
+
+  // Different structure messages based on template
+  if (config.template === 'fullstack') {
+    console.log(pc.dim('  Full-stack RSC application with:'));
+    console.log(pc.dim('    app/pages   - React Server Components (file-based routing)'));
+    console.log(pc.dim('    app/actions - Server actions'));
+    console.log(pc.dim('    src/api     - Embedded Fastify API at /api/*'));
+  } else {
+    console.log(pc.dim('  Full-stack workspace with:'));
+    console.log(pc.dim('    apps/api - Backend API (Fastify + VeloxTS)'));
+    console.log(pc.dim('    apps/web - Frontend (React + Vite + TanStack Router)'));
+  }
   console.log('');
   console.log('  Next steps:');
   console.log('');
@@ -530,9 +542,17 @@ function printSuccessMessage(config: ProjectConfig): void {
   console.log(`    ${pc.cyan(dbCommand)}${pc.dim('  # Setup database')}`);
   console.log(`    ${pc.cyan(devCommand)}${pc.dim('   # Start dev servers')}`);
   console.log('');
-  console.log(`  Your app will be available at:`);
-  console.log(`    ${pc.cyan('http://localhost:8080')}${pc.dim('  # Web (React)')}`);
-  console.log(`    ${pc.cyan('http://localhost:3030')}${pc.dim('  # API')}`);
+
+  // Different URL messages based on template
+  if (config.template === 'fullstack') {
+    console.log('  Your app will be available at:');
+    console.log(`    ${pc.cyan('http://localhost:3030')}${pc.dim('  # Full-stack app')}`);
+    console.log(`    ${pc.cyan('http://localhost:3030/api/*')}${pc.dim('  # API routes')}`);
+  } else {
+    console.log('  Your app will be available at:');
+    console.log(`    ${pc.cyan('http://localhost:8080')}${pc.dim('  # Web (React)')}`);
+    console.log(`    ${pc.cyan('http://localhost:3030')}${pc.dim('  # API')}`);
+  }
 
   // Auth template specific message
   if (config.template === 'auth') {

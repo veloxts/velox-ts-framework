@@ -6,6 +6,7 @@
 
 import { generateAuthTemplate } from './auth.js';
 import { generateDefaultTemplate } from './default.js';
+import { generateFullstackTemplate } from './fullstack.js';
 import { VELOXTS_VERSION } from './shared.js';
 import { generateTrpcTemplate } from './trpc.js';
 import type { TemplateConfig, TemplateFile, TemplateType } from './types.js';
@@ -56,6 +57,8 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
       return generateAuthTemplate(config);
     case 'trpc':
       return generateTrpcTemplate(config);
+    case 'fullstack':
+      return generateFullstackTemplate(config);
     case 'default':
       return generateDefaultTemplate(config);
     default: {
@@ -69,8 +72,31 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
 /**
  * Get directories that need to be created for the template
  */
-export function getTemplateDirectories(_template: TemplateType): string[] {
-  // Workspace-based directory structure
+export function getTemplateDirectories(template: TemplateType): string[] {
+  // Full-stack RSC template has a different structure
+  if (template === 'fullstack') {
+    return [
+      // App layer (RSC)
+      'app',
+      'app/pages',
+      'app/layouts',
+      'app/actions',
+
+      // Source layer
+      'src',
+      'src/api',
+      'src/api/procedures',
+      'src/api/schemas',
+
+      // Prisma
+      'prisma',
+
+      // Public assets
+      'public',
+    ];
+  }
+
+  // Workspace-based directory structure (default, auth, trpc)
   return [
     // Root
     'apps',

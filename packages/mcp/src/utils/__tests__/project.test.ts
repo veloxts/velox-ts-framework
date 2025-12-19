@@ -5,6 +5,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -188,8 +189,7 @@ describe('Project Utilities', () => {
         if (typeof path !== 'string') return false;
         // Both directories have package.json
         return (
-          path.endsWith('/project/package.json') ||
-          path.endsWith('/project/nested/package.json')
+          path.endsWith('/project/package.json') || path.endsWith('/project/nested/package.json')
         );
       });
 

@@ -29,8 +29,10 @@ describe('defineVeloxApp', () => {
 
     it('should create app with custom port and host', () => {
       const app = defineVeloxApp({
-        port: 8080,
-        host: '0.0.0.0',
+        server: {
+          port: 8080,
+          host: '0.0.0.0',
+        },
       });
 
       expect(app.server.port).toBe(8080);
@@ -42,7 +44,9 @@ describe('defineVeloxApp', () => {
       process.env.HOST = '127.0.0.1';
 
       const app = defineVeloxApp({
-        port: 3000, // This should override env
+        server: {
+          port: 3000, // This should override env
+        },
       });
 
       expect(app.server.port).toBe(3000);
@@ -54,8 +58,10 @@ describe('defineVeloxApp', () => {
       process.env.HOST = 'localhost';
 
       const app = defineVeloxApp({
-        port: 5000,
-        host: '0.0.0.0',
+        server: {
+          port: 5000,
+          host: '0.0.0.0',
+        },
       });
 
       expect(app.server.port).toBe(5000);
@@ -75,21 +81,25 @@ describe('defineVeloxApp', () => {
 
     it('should configure API router correctly', () => {
       const app = defineVeloxApp({
-        apiBase: '/api',
+        api: {
+          prefix: '/api',
+        },
       });
 
       const apiRouter = app.routers.find((r) => r.name === 'api');
 
       expect(apiRouter).toBeDefined();
       expect(apiRouter?.type).toBe('http');
-      expect(apiRouter?.handler).toBe('./src/api.handler');
+      expect(apiRouter?.handler).toBe('./src/api/handler');
       expect(apiRouter?.target).toBe('server');
       expect(apiRouter?.base).toBe('/api');
     });
 
     it('should configure client router correctly', () => {
       const app = defineVeloxApp({
-        buildBase: '/_build',
+        build: {
+          buildBase: '/_build',
+        },
       });
 
       const clientRouter = app.routers.find((r) => r.name === 'client');
@@ -115,8 +125,12 @@ describe('defineVeloxApp', () => {
 
     it('should use custom base paths', () => {
       const app = defineVeloxApp({
-        apiBase: '/v1',
-        buildBase: '/static',
+        api: {
+          prefix: '/v1',
+        },
+        build: {
+          buildBase: '/static',
+        },
       });
 
       const apiRouter = app.routers.find((r) => r.name === 'api');
@@ -135,14 +149,16 @@ describe('defineVeloxApp', () => {
       const clientRouter = app.routers.find((r) => r.name === 'client');
       const ssrRouter = app.routers.find((r) => r.name === 'ssr');
 
-      expect(apiRouter?.handler).toBe('./src/api.handler');
+      expect(apiRouter?.handler).toBe('./src/api/handler');
       expect(clientRouter?.handler).toBe('./src/entry.client');
       expect(ssrRouter?.handler).toBe('./src/entry.server');
     });
 
     it('should use custom handler paths', () => {
       const app = defineVeloxApp({
-        apiHandler: './custom/api.ts',
+        api: {
+          handlerPath: './custom/api.ts',
+        },
         serverEntry: './custom/server.tsx',
         clientEntry: './custom/client.tsx',
       });
@@ -158,7 +174,9 @@ describe('defineVeloxApp', () => {
 
     it('should allow partial handler path overrides', () => {
       const app = defineVeloxApp({
-        apiHandler: './my-api.ts',
+        api: {
+          handlerPath: './my-api.ts',
+        },
       });
 
       const apiRouter = app.routers.find((r) => r.name === 'api');
@@ -171,36 +189,17 @@ describe('defineVeloxApp', () => {
 
   describe('configuration validation', () => {
     it('should throw for invalid port numbers', () => {
-      expect(() => defineVeloxApp({ port: 0 })).toThrow('Invalid port');
-      expect(() => defineVeloxApp({ port: -1 })).toThrow('Invalid port');
-      expect(() => defineVeloxApp({ port: 65536 })).toThrow('Invalid port');
-    });
-
-    it('should throw for conflicting base paths', () => {
-      expect(() =>
-        defineVeloxApp({
-          apiBase: '/api',
-          trpcBase: '/api',
-        })
-      ).toThrow('Conflicting base paths');
-    });
-
-    it('should throw for nested base paths', () => {
-      expect(() =>
-        defineVeloxApp({
-          apiBase: '/api',
-          trpcBase: '/api/trpc',
-        })
-      ).toThrow('Nested base paths are not allowed');
+      expect(() => defineVeloxApp({ server: { port: 0 } })).toThrow('Invalid port');
+      expect(() => defineVeloxApp({ server: { port: -1 } })).toThrow('Invalid port');
+      expect(() => defineVeloxApp({ server: { port: 65536 } })).toThrow('Invalid port');
     });
 
     it('should accept valid configurations', () => {
       expect(() =>
         defineVeloxApp({
-          port: 3030,
-          apiBase: '/api',
-          trpcBase: '/trpc',
-          buildBase: '/_build',
+          server: { port: 3030 },
+          api: { prefix: '/api' },
+          build: { buildBase: '/_build' },
         })
       ).not.toThrow();
     });
@@ -219,9 +218,11 @@ describe('defineVeloxApp', () => {
 
     it('should accept custom directory paths', () => {
       const app = defineVeloxApp({
-        pagesDir: 'src/pages',
-        layoutsDir: 'src/layouts',
-        actionsDir: 'src/actions',
+        routing: {
+          pagesDir: 'src/pages',
+          layoutsDir: 'src/layouts',
+          actionsDir: 'src/actions',
+        },
       });
 
       expect(app).toBeDefined();
@@ -263,8 +264,8 @@ describe('defineVeloxApp', () => {
 
     it('should preserve router order with custom config', () => {
       const app = defineVeloxApp({
-        apiBase: '/v1',
-        buildBase: '/assets',
+        api: { prefix: '/v1' },
+        build: { buildBase: '/assets' },
       });
 
       expect(app.routers[0].name).toBe('api');
@@ -276,8 +277,8 @@ describe('defineVeloxApp', () => {
   describe('base path normalization', () => {
     it('should normalize base paths in routers', () => {
       const app = defineVeloxApp({
-        apiBase: 'api/',
-        buildBase: '_build',
+        api: { prefix: 'api/' },
+        build: { buildBase: '_build' },
       });
 
       const apiRouter = app.routers.find((r) => r.name === 'api');
@@ -289,7 +290,7 @@ describe('defineVeloxApp', () => {
 
     it('should handle root path correctly', () => {
       const app = defineVeloxApp({
-        apiBase: '/',
+        api: { prefix: '/' },
       });
 
       const apiRouter = app.routers.find((r) => r.name === 'api');

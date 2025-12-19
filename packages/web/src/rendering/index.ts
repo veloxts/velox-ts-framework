@@ -46,3 +46,5 @@ export {
   type RenderToStreamOptions,
   renderToStream,
 } from './server-renderer.js';
+// SSR Handler
+export { createSsrHandler, type SsrHandlerOptions } from './ssr-handler.js';

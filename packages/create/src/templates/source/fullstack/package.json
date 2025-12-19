@@ -1,0 +1,37 @@
+{
+  "name": "__PROJECT_NAME__",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "start": "vinxi start",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "6.1.0",
+    "@veloxts/core": "__VELOXTS_VERSION__",
+    "@veloxts/orm": "__VELOXTS_VERSION__",
+    "@veloxts/router": "__VELOXTS_VERSION__",
+    "@veloxts/validation": "__VELOXTS_VERSION__",
+    "@veloxts/web": "__VELOXTS_VERSION__",
+    "@vinxi/server-functions": "0.5.1",
+    "dotenv": "16.4.5",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "vinxi": "0.5.10",
+    "zod": "3.24.4"
+  },
+  "devDependencies": {
+    "@types/node": "22.9.0",
+    "@types/react": "19.0.1",
+    "@types/react-dom": "19.0.2",
+    "prisma": "6.1.0",
+    "typescript": "5.7.2"
+  }
+}

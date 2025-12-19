@@ -113,3 +113,71 @@ export async function isVeloxProject(cwd: string = process.cwd()): Promise<boole
     return false;
   }
 }
+
+/**
+ * Markers that indicate a Vinxi/RSC project
+ */
+const VINXI_PROJECT_MARKERS = ['vinxi', '@vinxi/server-functions', '@veloxts/web'] as const;
+
+/**
+ * Project type detection result
+ */
+export interface ProjectType {
+  /** Whether this is a Vinxi-based RSC project */
+  isVinxi: boolean;
+  /** Whether @veloxts/web is installed */
+  hasWeb: boolean;
+  /** All dependencies (for debugging) */
+  dependencies: Record<string, string>;
+}
+
+/**
+ * Detect the project type (API-only vs Vinxi/RSC full-stack)
+ *
+ * Checks for:
+ * 1. Vinxi markers in dependencies (vinxi, @vinxi/server-functions, @veloxts/web)
+ * 2. app.config.ts or app.config.js (Vinxi configuration)
+ */
+export async function detectProjectType(cwd: string = process.cwd()): Promise<ProjectType> {
+  const packageJsonPath = path.join(cwd, 'package.json');
+
+  const result: ProjectType = {
+    isVinxi: false,
+    hasWeb: false,
+    dependencies: {},
+  };
+
+  // Check for app.config.ts/js (Vinxi config file)
+  const hasAppConfig =
+    existsSync(path.join(cwd, 'app.config.ts')) || existsSync(path.join(cwd, 'app.config.js'));
+
+  if (!existsSync(packageJsonPath)) {
+    // No package.json, but might have app.config
+    result.isVinxi = hasAppConfig;
+    return result;
+  }
+
+  try {
+    const fs = await import('node:fs/promises');
+    const content = await fs.readFile(packageJsonPath, 'utf-8');
+    const pkg = JSON.parse(content);
+
+    // Collect all dependencies
+    result.dependencies = { ...pkg.dependencies, ...pkg.devDependencies };
+
+    // Check for Vinxi markers
+    const hasVinxiMarker = VINXI_PROJECT_MARKERS.some((marker) => marker in result.dependencies);
+
+    // Check for @veloxts/web specifically
+    result.hasWeb = '@veloxts/web' in result.dependencies;
+
+    // Project is Vinxi if it has markers OR app.config
+    result.isVinxi = hasVinxiMarker || hasAppConfig;
+
+    return result;
+  } catch {
+    // Error reading package.json, fall back to app.config check
+    result.isVinxi = hasAppConfig;
+    return result;
+  }
+}

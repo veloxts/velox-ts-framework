@@ -5,6 +5,7 @@
 
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import { findProjectRoot } from '../../utils/project.js';

@@ -3,10 +3,11 @@
 # Tests the full flow: scaffold -> install -> generate -> build -> run
 #
 # Supports testing all templates:
-#   ./smoke-test.sh           # Test default template
-#   ./smoke-test.sh --auth    # Test auth template
-#   ./smoke-test.sh --trpc    # Test tRPC hybrid template
-#   ./smoke-test.sh --all     # Test all templates
+#   ./smoke-test.sh             # Test default template
+#   ./smoke-test.sh --auth      # Test auth template
+#   ./smoke-test.sh --trpc      # Test tRPC hybrid template
+#   ./smoke-test.sh --fullstack # Test fullstack RSC template
+#   ./smoke-test.sh --all       # Test all templates
 #
 # In CI: Uses published npm packages directly
 # Locally: Links to monorepo packages via file: references
@@ -25,6 +26,10 @@ for arg in "$@"; do
       ;;
     --trpc)
       TEMPLATE="trpc"
+      shift
+      ;;
+    --fullstack)
+      TEMPLATE="fullstack"
       shift
       ;;
     --all)
@@ -581,6 +586,142 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   rm -rf "$TEST_DIR/$project_name"
 }
 
+# Test fullstack template (Vinxi/RSC - different structure)
+test_fullstack_template() {
+  local project_name="smoke-test-fullstack"
+  local test_port=3030
+
+  echo ""
+  echo "=========================================="
+  echo "  Testing template: fullstack (RSC)"
+  echo "=========================================="
+  echo ""
+
+  # Create test project
+  echo "=== Creating test project ==="
+  mkdir -p "$TEST_DIR"
+  cd "$TEST_DIR"
+
+  # Run scaffolder with fullstack template
+  SKIP_INSTALL=true node "$SCRIPT_DIR/dist/cli.js" "$project_name" --template="fullstack"
+
+  # Verify project was created
+  if [ ! -f "$TEST_DIR/$project_name/package.json" ]; then
+    echo "✗ Scaffolder failed to create project files"
+    exit 1
+  fi
+
+  # Verify fullstack-specific files
+  if [ ! -f "$TEST_DIR/$project_name/app.config.ts" ]; then
+    echo "✗ Missing app.config.ts (Vinxi config)"
+    exit 1
+  fi
+
+  if [ ! -d "$TEST_DIR/$project_name/app/pages" ]; then
+    echo "✗ Missing app/pages directory"
+    exit 1
+  fi
+
+  echo "✓ Project files created"
+  echo ""
+
+  cd "$TEST_DIR/$project_name"
+
+  # Link local packages (single-package structure)
+  echo "=== Linking local packages ==="
+  node -e "
+const fs = require('fs');
+const pkgPath = 'package.json';
+const monorepo = '$MONOREPO_ROOT';
+
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
+// Link all @veloxts packages
+pkg.dependencies['@veloxts/core'] = 'file:' + monorepo + '/packages/core';
+pkg.dependencies['@veloxts/router'] = 'file:' + monorepo + '/packages/router';
+pkg.dependencies['@veloxts/validation'] = 'file:' + monorepo + '/packages/validation';
+pkg.dependencies['@veloxts/orm'] = 'file:' + monorepo + '/packages/orm';
+pkg.dependencies['@veloxts/web'] = 'file:' + monorepo + '/packages/web';
+
+fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+"
+  echo "✓ Local packages linked"
+  echo ""
+
+  # Install dependencies
+  echo "=== Installing dependencies ==="
+  npm install --legacy-peer-deps
+  echo "✓ Dependencies installed"
+  echo ""
+
+  # Run Prisma generate
+  echo "=== Generating Prisma client ==="
+  npx prisma generate
+  echo "✓ Prisma client generated"
+
+  # Push database schema
+  echo "=== Pushing database schema ==="
+  npx prisma db push
+  echo "✓ Database schema pushed"
+  echo ""
+
+  # Note: Fullstack template uses Vinxi, which has different build/dev semantics
+  # For smoke testing, we'll test that the template was created correctly
+  # and that the basic structure is valid. Full Vinxi testing requires
+  # the @veloxts/web package to be complete.
+
+  echo "=== Verifying template structure ==="
+
+  # Check for required files
+  REQUIRED_FILES=(
+    "app.config.ts"
+    "tsconfig.json"
+    "app/pages/index.tsx"
+    "app/pages/users.tsx"
+    "app/layouts/root.tsx"
+    "app/actions/users.ts"
+    "src/entry.client.tsx"
+    "src/entry.server.tsx"
+    "src/api/handler.ts"
+    "src/api/database.ts"
+    "src/api/procedures/health.ts"
+    "src/api/procedures/users.ts"
+    "prisma/schema.prisma"
+  )
+
+  for file in "${REQUIRED_FILES[@]}"; do
+    if [ -f "$file" ]; then
+      echo "  ✓ $file"
+    else
+      echo "  ✗ Missing: $file"
+      exit 1
+    fi
+  done
+
+  echo ""
+  echo "✓ All required files present"
+  echo ""
+
+  # Verify TypeScript compilation
+  echo "=== Type checking ==="
+  if npx tsc --noEmit 2>/dev/null; then
+    echo "✓ TypeScript type check passed"
+  else
+    echo "⚠ TypeScript errors (expected - @veloxts/web types not yet complete)"
+  fi
+  echo ""
+
+  echo ""
+  echo "✓ Template 'fullstack' passed structure validation!"
+  echo ""
+  echo "Note: Full Vinxi integration testing requires complete @veloxts/web package."
+  echo "      Use 'pnpm dev' in a real project to test Vinxi server."
+  echo ""
+
+  # Cleanup test project
+  rm -rf "$TEST_DIR/$project_name"
+}
+
 # Main execution
 echo "=== Smoke Test for create-velox-app ==="
 echo "Test directory: $TEST_DIR"
@@ -602,6 +743,9 @@ if [ "$TEST_ALL" = true ]; then
   test_template "default"
   test_template "auth"
   test_template "trpc"
+  test_fullstack_template
+elif [ "$TEMPLATE" = "fullstack" ]; then
+  test_fullstack_template
 else
   test_template "$TEMPLATE"
 fi

@@ -65,6 +65,17 @@ export const TRPC_CONFIG: TemplateConfig = {
   database: 'sqlite',
 };
 
+/**
+ * Full-stack template configuration for RSC + Vinxi projects.
+ * Uses React Server Components with file-based routing.
+ */
+export const FULLSTACK_CONFIG: TemplateConfig = {
+  projectName: '',
+  packageManager: 'pnpm',
+  template: 'fullstack',
+  database: 'sqlite',
+};
+
 // ============================================================================
 // Placeholder Replacement
 // ============================================================================
@@ -190,8 +201,8 @@ export function processConditionals(content: string, template: TemplateConfig['t
   }
 
   // Process default conditionals (both JS and JSX style)
-  // Note: 'trpc' template uses default-style content (no auth)
-  if (template === 'default' || template === 'trpc') {
+  // Note: 'trpc' and 'fullstack' templates use default-style content (no auth)
+  if (template === 'default' || template === 'trpc' || template === 'fullstack') {
     // Keep default content but remove markers
     result = result.replaceAll(CONDITIONALS.DEFAULT_START, '');
     result = result.replaceAll(CONDITIONALS.DEFAULT_END, '');

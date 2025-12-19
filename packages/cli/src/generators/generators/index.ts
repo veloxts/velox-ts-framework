@@ -5,9 +5,12 @@
  */
 
 import { registerGenerator } from '../registry.js';
+import { createActionGenerator } from './action.js';
 import { createFactoryGenerator } from './factory.js';
+import { createLayoutGenerator } from './layout.js';
 import { createMigrationGenerator } from './migration.js';
 import { createModelGenerator } from './model.js';
+import { createPageGenerator } from './page.js';
 import { createProcedureGenerator } from './procedure.js';
 import { createResourceGenerator } from './resource.js';
 import { createSchemaGenerator } from './schema.js';
@@ -18,9 +21,12 @@ import { createTestGenerator } from './test.js';
 // Generator Exports
 // ============================================================================
 
+export { ActionGenerator, createActionGenerator } from './action.js';
 export { createFactoryGenerator, FactoryGenerator } from './factory.js';
+export { createLayoutGenerator, LayoutGenerator } from './layout.js';
 export { createMigrationGenerator, MigrationGenerator } from './migration.js';
 export { createModelGenerator, ModelGenerator } from './model.js';
+export { createPageGenerator, PageGenerator } from './page.js';
 export { createProcedureGenerator, ProcedureGenerator } from './procedure.js';
 export { createResourceGenerator, ResourceGenerator } from './resource.js';
 export { createSchemaGenerator, SchemaGenerator } from './schema.js';
@@ -59,4 +65,9 @@ export function registerBuiltinGenerators(): void {
 
   // Register factory generator
   registerGenerator(createFactoryGenerator());
+
+  // Register RSC generators (for full-stack projects)
+  registerGenerator(createPageGenerator());
+  registerGenerator(createLayoutGenerator());
+  registerGenerator(createActionGenerator());
 }

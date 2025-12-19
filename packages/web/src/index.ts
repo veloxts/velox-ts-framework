@@ -8,11 +8,77 @@
  * @packageDocumentation
  */
 
+// Action types
+export type {
+  ActionBuilder,
+  ActionContext,
+  ActionError,
+  ActionErrorCode,
+  ActionHandler,
+  ActionMetadata,
+  ActionRegistry,
+  ActionResult,
+  ActionSuccess,
+  AuthenticatedActionContext,
+  CallableAction,
+  CallableFormAction,
+  CreateActionOptions,
+  FormActionHandler,
+  RegisteredAction,
+  TrpcActionOptions,
+  TrpcBridge,
+  TrpcBridgeOptions,
+  TrpcCaller,
+} from './actions/index.js';
+// Server Actions
+export {
+  // Action creation
+  createAction,
+  // Context utilities
+  createActionContext,
+  // Registry
+  createActionRegistry,
+  // tRPC Bridge
+  createActions,
+  createAuthenticatedContext,
+  createFormAction,
+  createTrpcBridge,
+  // Result helpers
+  error,
+  getActionRegistry,
+  isAuthenticatedContext,
+  isError,
+  isSuccess,
+  parseCookies,
+  registerAction,
+  resetActionRegistry,
+  success,
+  TrpcBridgeError,
+  wrapProcedure,
+} from './actions/index.js';
 // Fastify adapter
 export {
   createApiHandler,
   isFastifyInstance,
 } from './adapters/fastify-adapter.js';
+export type {
+  AuthenticatedH3ActionContext,
+  H3ActionContext,
+  H3AdapterConfig,
+  H3AuthAdapter,
+  H3CookieOptions,
+} from './adapters/h3-adapter.js';
+// H3/Vinxi auth adapter for RSC server actions
+export {
+  createH3Action,
+  createH3AuthAdapter,
+  createH3Context,
+  createMockAuthenticatedH3Context,
+  createMockH3Context,
+  H3AuthError,
+  isAuthenticatedH3Context,
+  isH3Context,
+} from './adapters/h3-adapter.js';
 export {
   getEnvConfig,
   resolveConfig,
@@ -20,9 +86,15 @@ export {
 } from './app/config.js';
 // App configuration
 export {
+  type ApiConfig,
+  type BuildConfig,
   type DefineVeloxAppOptions,
   defineVeloxApp,
+  type RoutingConfig,
+  type ServerConfig,
 } from './app/create-app.js';
+// SSR Handler
+export { createSsrHandler, type SsrHandlerOptions } from './rendering/ssr-handler.js';
 export {
   extractInitialData,
   getInitialData,
@@ -72,7 +144,6 @@ export {
   parseFilePath,
   type SpecialPages,
 } from './routing/file-router.js';
-
 // Layout resolution
 export {
   createLayoutResolver,
@@ -82,57 +153,6 @@ export {
   type LayoutResolverOptions,
   wrapWithLayouts,
 } from './routing/layouts.js';
-
-// Server Actions
-export {
-  // Action creation
-  createAction,
-  createFormAction,
-  // Result helpers
-  error,
-  isError,
-  isSuccess,
-  success,
-  // Context utilities
-  createActionContext,
-  createAuthenticatedContext,
-  isAuthenticatedContext,
-  parseCookies,
-  // Registry
-  createActionRegistry,
-  getActionRegistry,
-  registerAction,
-  resetActionRegistry,
-  // tRPC Bridge
-  createActions,
-  createTrpcBridge,
-  TrpcBridgeError,
-  wrapProcedure,
-} from './actions/index.js';
-
-// Action types
-export type {
-  ActionBuilder,
-  ActionContext,
-  ActionError,
-  ActionErrorCode,
-  ActionHandler,
-  ActionMetadata,
-  ActionRegistry,
-  ActionResult,
-  ActionSuccess,
-  AuthenticatedActionContext,
-  CallableAction,
-  CallableFormAction,
-  CreateActionOptions,
-  FormActionHandler,
-  RegisteredAction,
-  TrpcActionOptions,
-  TrpcBridge,
-  TrpcBridgeOptions,
-  TrpcCaller,
-} from './actions/index.js';
-
 // Core types
 export type {
   CreateApiHandlerOptions,

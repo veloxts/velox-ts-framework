@@ -11,7 +11,7 @@
 /**
  * Available template types
  */
-export type TemplateType = 'default' | 'auth' | 'trpc';
+export type TemplateType = 'default' | 'auth' | 'trpc' | 'fullstack';
 
 /**
  * Available database types
@@ -141,6 +141,12 @@ export const TEMPLATE_METADATA: Record<TemplateType, TemplateMetadata> = {
     label: 'tRPC Hybrid',
     description: 'tRPC + REST hybrid API with end-to-end type safety',
     hint: 'Showcases type-safe frontend-backend communication',
+  },
+  fullstack: {
+    type: 'fullstack',
+    label: 'Full-Stack RSC',
+    description: 'React Server Components with Vinxi + file-based routing',
+    hint: 'Modern RSC architecture with server actions and streaming',
   },
 };
 
