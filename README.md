@@ -103,6 +103,7 @@ export const userProcedures = defineProcedures('users', {
 ## Documentation
 
 - [Getting Started Guide](./docs/GETTING_STARTED.md) - Complete walkthrough for new users
+- [Deployment Guide](./docs/DEPLOYMENT.md) - Docker, Railway, and Render deployment
 - [Prisma 7 Setup Guide](./docs/PRISMA-7-SETUP.md) - Comprehensive guide for configuring Prisma 7 driver adapters
 - [REST Naming Conventions](./docs/REST-NAMING-CONVENTIONS.md) - Complete reference for procedure naming patterns
 - [Test Development Guide](./docs/TEST-DEVELOPMENT-GUIDE.md) - Testing patterns and utilities
@@ -193,7 +194,6 @@ The framework provides a solid foundation for building type-safe APIs:
 
 - CLI code generators not yet available
 - Database seeding system not yet available
-- Limited deployment documentation
 - Small ecosystem (early adopter stage)
 
 ## Contributing
