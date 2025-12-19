@@ -130,11 +130,13 @@ jobs:
           pnpm smoke-test --${{ matrix.template }}
 
   # Job 4: Release to npm (only on main, only after all tests pass, only if changesets exist)
+  # DISABLED: npm E404 errors - re-enable when publishing is configured
   release:
     name: Release
     runs-on: ubuntu-latest
     # Only run on main branch pushes, after all checks pass
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # DISABLED: if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: false
     needs: [test, build, smoke-test]
     permissions:
       contents: write
