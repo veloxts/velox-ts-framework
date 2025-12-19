@@ -4,6 +4,7 @@
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ParsedRoute } from '../types.js';
@@ -168,7 +169,10 @@ describe('createLayoutResolver', () => {
       // Create segment layouts
       mkdirSync(join(PAGES_DIR, 'users'), { recursive: true });
       mkdirSync(join(PAGES_DIR, 'users/profile'), { recursive: true });
-      writeFileSync(join(PAGES_DIR, '_layout.tsx'), 'export default function RootSegmentLayout() {}');
+      writeFileSync(
+        join(PAGES_DIR, '_layout.tsx'),
+        'export default function RootSegmentLayout() {}'
+      );
       writeFileSync(
         join(PAGES_DIR, 'users/_layout.tsx'),
         'export default function UsersLayout() {}'
@@ -353,7 +357,11 @@ describe('createLayoutResolver', () => {
 
 describe('wrapWithLayouts', () => {
   it('should return original element when no layouts provided', () => {
-    const pageElement = { type: 'div', props: { children: 'Page' }, key: null } as React.ReactElement;
+    const pageElement = {
+      type: 'div',
+      props: { children: 'Page' },
+      key: null,
+    } as React.ReactElement;
 
     const result = wrapWithLayouts(pageElement, []);
 
@@ -361,7 +369,11 @@ describe('wrapWithLayouts', () => {
   });
 
   it('should wrap with single layout', () => {
-    const pageElement = { type: 'div', props: { children: 'Page' }, key: null } as React.ReactElement;
+    const pageElement = {
+      type: 'div',
+      props: { children: 'Page' },
+      key: null,
+    } as React.ReactElement;
     const Layout = ({ children }: { children: React.ReactNode }) => children;
 
     const result = wrapWithLayouts(pageElement, [Layout]);
@@ -371,7 +383,11 @@ describe('wrapWithLayouts', () => {
   });
 
   it('should wrap with multiple layouts in correct order', () => {
-    const pageElement = { type: 'div', props: { children: 'Page' }, key: null } as React.ReactElement;
+    const pageElement = {
+      type: 'div',
+      props: { children: 'Page' },
+      key: null,
+    } as React.ReactElement;
     const OuterLayout = ({ children }: { children: React.ReactNode }) => children;
     const InnerLayout = ({ children }: { children: React.ReactNode }) => children;
 
@@ -386,8 +402,18 @@ describe('wrapWithLayouts', () => {
   });
 
   it('should pass params to layouts', () => {
-    const pageElement = { type: 'div', props: { children: 'Page' }, key: null } as React.ReactElement;
-    const Layout = ({ children, params }: { children: React.ReactNode; params?: Record<string, string> }) => children;
+    const pageElement = {
+      type: 'div',
+      props: { children: 'Page' },
+      key: null,
+    } as React.ReactElement;
+    const Layout = ({
+      children,
+      params: _params,
+    }: {
+      children: React.ReactNode;
+      params?: Record<string, string>;
+    }) => children;
     const testParams = { id: '123' };
 
     const result = wrapWithLayouts(pageElement, [Layout], testParams);

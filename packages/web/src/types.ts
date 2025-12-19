@@ -182,6 +182,31 @@ export interface RouteMatch {
 }
 
 /**
+ * Special page types for error handling
+ */
+export type SpecialPageType = 'not-found' | 'error' | 'loading';
+
+/**
+ * Props passed to not-found (404) page
+ */
+export interface NotFoundProps {
+  /**
+   * The path that was not found
+   */
+  pathname: string;
+}
+
+/**
+ * Props passed to loading page/component
+ */
+export interface LoadingProps {
+  /**
+   * Optional message to display
+   */
+  message?: string;
+}
+
+/**
  * Props passed to page components
  */
 export interface PageProps<TParams = Record<string, string>> {

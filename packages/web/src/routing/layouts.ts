@@ -206,11 +206,7 @@ export function createLayoutResolver(options: LayoutResolverOptions = {}): Layou
  * - app/pages/users/[id]/_layout.tsx
  * - app/pages/users/[id]/posts/_layout.tsx
  */
-function findSegmentLayouts(
-  filePath: string,
-  pagesDir: string,
-  extensions: string[]
-): string[] {
+function findSegmentLayouts(filePath: string, pagesDir: string, extensions: string[]): string[] {
   const layouts: string[] = [];
 
   // Get the directory path (without the file)

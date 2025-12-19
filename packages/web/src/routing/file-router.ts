@@ -197,7 +197,9 @@ export async function createFileRouter(options: FileRouterOptions = {}): Promise
 
     // Handle both absolute and relative paths
     const absolutePagesDir = isAbsolute(pagesDir) ? pagesDir : join(process.cwd(), pagesDir);
-    const absoluteLayoutsDir = isAbsolute(layoutsDir) ? layoutsDir : join(process.cwd(), layoutsDir);
+    const absoluteLayoutsDir = isAbsolute(layoutsDir)
+      ? layoutsDir
+      : join(process.cwd(), layoutsDir);
 
     if (!existsSync(absolutePagesDir)) {
       specialPages = {};
@@ -295,7 +297,8 @@ export async function createFileRouter(options: FileRouterOptions = {}): Promise
 }
 
 /**
- * Recursively scans a directory for page files
+ * Recursively scans a directory for page files.
+ * Handles file system race conditions gracefully (files deleted during scan).
  */
 function scanDirectory(dir: string, extensions: string[], ignore: string[]): string[] {
   const files: string[] = [];
@@ -304,7 +307,14 @@ function scanDirectory(dir: string, extensions: string[], ignore: string[]): str
     return files;
   }
 
-  const entries = readdirSync(dir);
+  // Read directory entries with error handling
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    // Directory became inaccessible (deleted, permissions changed)
+    return files;
+  }
 
   for (const entry of entries) {
     // Skip hidden files and ignored patterns
@@ -313,7 +323,15 @@ function scanDirectory(dir: string, extensions: string[], ignore: string[]): str
     }
 
     const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
+
+    // Get file stats with error handling for race conditions
+    let stat: ReturnType<typeof statSync>;
+    try {
+      stat = statSync(fullPath);
+    } catch {
+      // File was deleted or became inaccessible between readdir and stat
+      continue;
+    }
 
     if (stat.isDirectory()) {
       // Recurse into subdirectories (including route groups like (auth))
@@ -416,7 +434,8 @@ function extractParams(
 }
 
 /**
- * Normalizes a pathname
+ * Normalizes a pathname with security validation.
+ * Prevents path traversal attacks by rejecting dangerous patterns.
  */
 function normalizePath(pathname: string): string {
   // Ensure leading slash
@@ -425,6 +444,21 @@ function normalizePath(pathname: string): string {
   // Remove trailing slash (except for root)
   if (normalized.length > 1 && normalized.endsWith('/')) {
     normalized = normalized.slice(0, -1);
+  }
+
+  // Security: Prevent path traversal attacks
+  // Check for null bytes (can bypass path checks in some systems)
+  if (normalized.includes('\0')) {
+    return '/';
+  }
+
+  // Check for directory traversal patterns
+  // Split into segments and reject if any segment is '..' or '.'
+  const segments = normalized.split('/');
+  for (const segment of segments) {
+    if (segment === '..' || segment === '.') {
+      return '/';
+    }
   }
 
   return normalized;

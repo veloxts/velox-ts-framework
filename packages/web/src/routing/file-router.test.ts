@@ -4,6 +4,7 @@
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createFileRouter, parseFilePath } from './file-router.js';
@@ -456,14 +457,8 @@ describe('createFileRouter with file system', () => {
       writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
       writeFileSync(join(PAGES_DIR, 'about.tsx'), 'export default function About() {}');
       mkdirSync(join(PAGES_DIR, 'users'), { recursive: true });
-      writeFileSync(
-        join(PAGES_DIR, 'users/index.tsx'),
-        'export default function UsersList() {}'
-      );
-      writeFileSync(
-        join(PAGES_DIR, 'users/[id].tsx'),
-        'export default function UserDetail() {}'
-      );
+      writeFileSync(join(PAGES_DIR, 'users/index.tsx'), 'export default function UsersList() {}');
+      writeFileSync(join(PAGES_DIR, 'users/[id].tsx'), 'export default function UserDetail() {}');
     });
 
     afterAll(() => {
@@ -501,10 +496,7 @@ describe('createFileRouter with file system', () => {
       writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
       writeFileSync(join(PAGES_DIR, 'about.tsx'), 'export default function About() {}');
       mkdirSync(join(PAGES_DIR, 'posts'), { recursive: true });
-      writeFileSync(
-        join(PAGES_DIR, 'posts/[slug].tsx'),
-        'export default function Post() {}'
-      );
+      writeFileSync(join(PAGES_DIR, 'posts/[slug].tsx'), 'export default function Post() {}');
       writeFileSync(
         join(PAGES_DIR, 'posts/[...path].tsx'),
         'export default function CatchAll() {}'
@@ -716,6 +708,73 @@ describe('createFileRouter with file system', () => {
 
       const patterns = router.routes.map((r) => r.pattern);
       expect(patterns).not.toContain('/_components/Button');
+    });
+  });
+
+  describe('security: path traversal protection', () => {
+    beforeAll(() => {
+      writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
+      writeFileSync(join(PAGES_DIR, 'about.tsx'), 'export default function About() {}');
+    });
+
+    afterAll(() => {
+      rmSync(join(PAGES_DIR, 'index.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, 'about.tsx'), { force: true });
+    });
+
+    it('should reject paths with .. directory traversal', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      // Path traversal attempts should not match any routes
+      const maliciousPaths = [
+        '/../../../etc/passwd',
+        '/users/../../../etc/passwd',
+        '/..',
+        '/about/..',
+        '/users/../../secret',
+      ];
+
+      for (const path of maliciousPaths) {
+        const match = router.match(path);
+        // Should either return null or match root (/) - never expose traversal
+        if (match !== null) {
+          expect(match.route.pattern).toBe('/');
+        }
+      }
+    });
+
+    it('should reject paths with null bytes', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      // Null byte injection attempts should be sanitized
+      const maliciousPaths = ['/about\0.tsx', '/users\0', '\0/etc/passwd'];
+
+      for (const path of maliciousPaths) {
+        const match = router.match(path);
+        // Should either return null or match root (/) - never allow null bytes through
+        if (match !== null) {
+          expect(match.route.pattern).toBe('/');
+        }
+      }
+    });
+
+    it('should reject single dot segments', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const match = router.match('/./about');
+      // Should either return null or match root
+      if (match !== null) {
+        expect(match.route.pattern).toBe('/');
+      }
     });
   });
 });
