@@ -33,7 +33,7 @@
     "@veloxts/validation": "workspace:*"
   },
   "peerDependencies": {
-    "zod": ">=3.24.0"
+    "zod": ">=3.25.0"
   },
   "devDependencies": {
     "@types/node": "25.0.0",

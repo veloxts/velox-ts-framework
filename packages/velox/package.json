@@ -52,7 +52,7 @@
     "typescript": "5.9.3"
   },
   "peerDependencies": {
-    "zod": "^3.24.0"
+    "zod": "^3.25.0"
   },
   "keywords": [
     "velox",
