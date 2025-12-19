@@ -279,6 +279,8 @@ export enum GeneratorErrorCode {
   INVALID_OPTION = 'E2004',
   GENERATION_FAILED = 'E2005',
   CANCELED = 'E2006',
+  PROJECT_STRUCTURE = 'E2007',
+  MIGRATION_FAILED = 'E2008',
 }
 
 /**

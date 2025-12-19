@@ -173,11 +173,30 @@ export function generatePrismaEnums(fields: FieldDefinition[]): string {
 // Prisma Model Template
 // ============================================================================
 
-function generatePrismaModel(
+/**
+ * Result of generating injectable Prisma content
+ */
+export interface InjectablePrismaContent {
+  /** Full model definition (for injection into schema.prisma) */
+  readonly modelContent: string;
+  /** Enum definitions if any (for injection before model) */
+  readonly enumContent: string;
+  /** Model name (PascalCase) */
+  readonly modelName: string;
+  /** Enum names if any */
+  readonly enumNames: string[];
+}
+
+/**
+ * Generate injectable Prisma content (model + enums without comments)
+ *
+ * This content can be directly injected into schema.prisma
+ */
+export function generateInjectablePrismaContent(
   entity: { pascal: string; camel: string },
   options: ResourceOptions,
   database: DatabaseType = 'sqlite'
-): string {
+): InjectablePrismaContent {
   const { pascal, camel } = entity;
   const { softDelete, timestamps, fields = [] } = options;
 
@@ -192,20 +211,61 @@ function generatePrismaModel(
   deletedAt DateTime?`
     : '';
 
-  // Generate custom fields or placeholder
+  // Generate custom fields
   let customFields: string;
   if (fields.length > 0) {
     customFields = `\n${fields.map((f) => fieldToPrisma(f, database)).join('\n')}`;
   } else {
+    // Placeholder comment for when no fields are defined
     customFields = `
-  // TODO: Add your fields here
-  // name   String
-  // email  String  @unique
-  // status Status  @default(ACTIVE)`;
+  // TODO: Add your fields here`;
   }
 
-  // Generate enum definitions if any
-  const enumDefs = fields.length > 0 ? generatePrismaEnums(fields) : '';
+  // Generate model content (without header comment)
+  const modelContent = `model ${pascal} {
+  id String @id @default(uuid())
+${customFields}
+${timestampFields}${softDeleteField}
+
+  @@map("${camel}s")
+}`;
+
+  // Generate enum content and collect enum names
+  const enumNames: string[] = [];
+  let enumContent = '';
+
+  if (fields.length > 0) {
+    const enumFields = fields.filter((f) => f.type === 'enum' && f.enumDef);
+    if (enumFields.length > 0) {
+      const enums = enumFields.map((f) => {
+        const enumDef = f.enumDef;
+        if (!enumDef) return '';
+        enumNames.push(enumDef.name);
+        const values = enumDef.values.map((v) => `  ${v}`).join('\n');
+        return `enum ${enumDef.name} {\n${values}\n}`;
+      });
+      enumContent = enums.filter(Boolean).join('\n\n');
+    }
+  }
+
+  return {
+    modelContent,
+    enumContent,
+    modelName: pascal,
+    enumNames,
+  };
+}
+
+/**
+ * Generate Prisma model as a standalone file (with instructions header)
+ */
+function generatePrismaModel(
+  entity: { pascal: string; camel: string },
+  options: ResourceOptions,
+  database: DatabaseType = 'sqlite'
+): string {
+  const { fields = [] } = options;
+  const injectable = generateInjectablePrismaContent(entity, options, database);
 
   const enumComment =
     fields.length === 0
@@ -219,19 +279,12 @@ function generatePrismaModel(
 `
       : '';
 
+  const enumSection = injectable.enumContent ? `\n${injectable.enumContent}\n` : '';
+
   return `// Add this model to your prisma/schema.prisma file
-
-model ${pascal} {
-  id String @id @default(uuid())
-${customFields}
-${timestampFields}${softDeleteField}
-
-  // Relations
-  // posts Post[]
-
-  @@map("${camel}s")
-}
-${enumDefs}${enumComment}`;
+${enumSection}
+${injectable.modelContent}
+${enumComment}`;
 }
 
 // ============================================================================

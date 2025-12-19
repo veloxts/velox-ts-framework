@@ -83,6 +83,10 @@ export function createMakeCommand(): Command {
     .option('--skip-procedure', 'Skip procedure generation', false)
     .option('-i, --interactive', 'Interactively define fields (resource/model)', false)
     .option('--skip-fields', 'Skip field prompts, generate skeleton only', false)
+    // Auto-registration options
+    .option('--skip-registration', 'Skip auto-registering procedures in router', false)
+    .option('--skip-migration', 'Skip Prisma migration prompt', false)
+    .option('--auto-migrate', 'Auto-run Prisma migration without prompting', false)
     .action(async (type: string | undefined, name: string | undefined, options: MakeOptions) => {
       await runMake(type, name, options);
     });
@@ -94,12 +98,14 @@ export function createMakeCommand(): Command {
 Available generators:${formatGeneratorList()}
 
 Examples:
-  ${formatCommand('velox make resource Post')}         Scaffold complete Post resource
-  ${formatCommand('velox m r User --soft-delete')}     Resource with soft delete support
-  ${formatCommand('velox m p User --crud')}            Scaffold CRUD procedures only
-  ${formatCommand('velox m s User --crud')}            Scaffold Zod schemas only
-  ${formatCommand('velox m t User -G procedure')}      Scaffold procedure unit tests
-  ${formatCommand('velox make --dry-run r Post')}      Preview resource scaffolding
+  ${formatCommand('velox make resource Post')}               Scaffold complete Post resource
+  ${formatCommand('velox m r User --soft-delete')}           Resource with soft delete support
+  ${formatCommand('velox m r Post --auto-migrate')}          Auto-run Prisma migration
+  ${formatCommand('velox m r Post --skip-registration')}     Skip auto-registration
+  ${formatCommand('velox m p User --crud')}                  Scaffold CRUD procedures only
+  ${formatCommand('velox m s User --crud')}                  Scaffold Zod schemas only
+  ${formatCommand('velox m t User -G procedure')}            Scaffold procedure unit tests
+  ${formatCommand('velox make --dry-run r Post')}            Preview resource scaffolding
 `
   );
 
