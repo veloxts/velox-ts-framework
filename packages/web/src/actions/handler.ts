@@ -171,6 +171,13 @@ export function generateActionId(name?: string): string {
 /**
  * Creates a server action with validation and error handling.
  *
+ * **Important Limitation (v0.5.0):** Currently uses a mock context for testing.
+ * The `requireAuth` option will always fail until integrated with Vinxi's
+ * request context in a future release. For authenticated actions, use the
+ * tRPC bridge which forwards headers from the original request.
+ *
+ * @see createTrpcBridge - For actions that need real request context
+ *
  * @example
  * ```typescript
  * import { createAction } from '@veloxts/web';
@@ -244,6 +251,12 @@ export function createAction<TInput, TOutput>(
 
 /**
  * Creates a form action that handles FormData input.
+ *
+ * **Important Limitation (v0.5.0):** Currently uses a mock context for testing.
+ * The `requireAuth` option will always fail until integrated with Vinxi's
+ * request context in a future release.
+ *
+ * @see createTrpcBridge - For actions that need real request context
  *
  * @example
  * ```typescript
