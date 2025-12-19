@@ -82,11 +82,10 @@ async function runVinxiServer(options: DevOptions, version: string): Promise<voi
     NODE_ENV: 'development',
   };
 
-  // Spawn vinxi dev
+  // Spawn vinxi dev (use shell: false to avoid deprecation warning)
   const vinxiProcess = spawn('npx', ['vinxi', 'dev', '--port', port, '--host', host], {
     stdio: 'inherit',
     env,
-    shell: true,
   });
 
   // Handle process termination
@@ -263,7 +262,6 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
     const devProcess = spawn('npx', watchArgs, {
       stdio: 'inherit',
       env,
-      shell: true,
     });
 
     // Handle process termination
