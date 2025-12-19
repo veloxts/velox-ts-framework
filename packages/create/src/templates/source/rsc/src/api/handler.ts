@@ -48,10 +48,9 @@ export default createH3ApiHandler({
       })
     );
 
-    // Ensure Fastify is ready before handling requests
-    await app.ready();
-
-    return app;
+    // Return the underlying Fastify instance for the h3 adapter
+    // The adapter will call ready() on it
+    return app.server;
   },
   basePath: '/api',
 });

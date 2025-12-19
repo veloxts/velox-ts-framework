@@ -229,6 +229,28 @@ export function isVeloxPlugin(value: unknown): value is VeloxPlugin {
   );
 }
 
+/**
+ * Type guard to check if a value is a Fastify plugin function
+ *
+ * Fastify plugins are async functions that receive (server, options).
+ * This distinguishes them from VeloxPlugin objects.
+ *
+ * @param value - Value to check
+ * @returns true if value is a FastifyPluginAsync function
+ *
+ * @example
+ * ```typescript
+ * if (isFastifyPlugin(someValue)) {
+ *   await server.register(someValue);
+ * }
+ * ```
+ */
+export function isFastifyPlugin<Options extends PluginOptions = PluginOptions>(
+  value: unknown
+): value is FastifyPluginAsync<Options> {
+  return typeof value === 'function';
+}
+
 // ============================================================================
 // Utility Types
 // ============================================================================

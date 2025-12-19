@@ -246,14 +246,23 @@ function createErrorResponse(error: unknown, elapsed: number): Response {
 }
 
 /**
- * Module-level singleton cache for Fastify instances.
+ * Global singleton cache for Fastify instances.
  * This prevents duplicate initialization during HMR reloads in Vinxi dev mode.
- * Each handler is identified by a unique symbol to support multiple handlers in the same app.
+ * Uses globalThis to persist across module reloads.
  */
-const appSingletons = new WeakMap<object, {
+const CACHE_KEY = Symbol.for('@veloxts/web:fastify-instances');
+
+interface AppCache {
   instance: FastifyInstance | null;
   promise: Promise<FastifyInstance> | null;
-}>();
+}
+
+function getGlobalCache(): Map<string, AppCache> {
+  if (!(CACHE_KEY in globalThis)) {
+    (globalThis as Record<symbol, unknown>)[CACHE_KEY] = new Map<string, AppCache>();
+  }
+  return (globalThis as Record<symbol, Map<string, AppCache>>)[CACHE_KEY];
+}
 
 /**
  * Creates an h3 event handler that delegates to a Fastify instance.
@@ -287,25 +296,35 @@ const appSingletons = new WeakMap<object, {
 export function createH3ApiHandler(options: CreateApiHandlerOptions) {
   const { app: appOrFactory, basePath = '/api', timeout = DEFAULT_TIMEOUT } = options;
 
-  // Create a stable identity for this handler (survives HMR)
-  const handlerId = typeof appOrFactory === 'function' ? appOrFactory : {};
+  // Create a stable cache key for this handler
+  // Use basePath as the key since there's typically one API handler per app
+  const cacheKey = `api:${basePath}`;
+  const cache = getGlobalCache();
 
-  // Get or create singleton cache for this handler
-  if (!appSingletons.has(handlerId)) {
-    appSingletons.set(handlerId, {
+  // Get or create cache entry for this handler
+  if (!cache.has(cacheKey)) {
+    cache.set(cacheKey, {
       instance: null,
       promise: null,
     });
   }
 
-  const singleton = appSingletons.get(handlerId)!;
+  const singleton = cache.get(cacheKey)!;
 
   async function getApp(): Promise<FastifyInstance> {
     // If already resolved, return it
-    if (singleton.instance) return singleton.instance;
+    if (singleton.instance) {
+      console.log('[VeloxTS] Returning cached Fastify instance for', cacheKey);
+      return singleton.instance;
+    }
 
     // If initialization in progress, wait for it
-    if (singleton.promise) return singleton.promise;
+    if (singleton.promise) {
+      console.log('[VeloxTS] Waiting for Fastify initialization to complete for', cacheKey);
+      return singleton.promise;
+    }
+
+    console.log('[VeloxTS] Creating new Fastify instance for', cacheKey);
 
     // Determine if we have a factory or an instance
     if (typeof appOrFactory === 'function') {
@@ -325,6 +344,7 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
         }
 
         singleton.instance = app;
+        console.log('[VeloxTS] Fastify instance initialized and cached for', cacheKey);
         return app;
       })();
 

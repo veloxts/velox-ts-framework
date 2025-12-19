@@ -4,14 +4,18 @@
  * @module app
  */
 
-import fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
+import fastify, {
+  type FastifyInstance,
+  type FastifyPluginAsync,
+  type FastifyServerOptions,
+} from 'fastify';
 import fp from 'fastify-plugin';
 
 import { type BaseContext, createContext } from './context.js';
 import { type Container, container } from './di/index.js';
 import { isVeloxError, VeloxError } from './errors.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
-import { validatePluginMetadata } from './plugin.js';
+import { isFastifyPlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
 import { requestLogger } from './plugins/request-logger.js';
 import type { StaticOptions } from './plugins/static.js';
 import { registerStatic } from './plugins/static.js';
@@ -299,44 +303,80 @@ export class VeloxApp {
   /**
    * Registers a plugin with the application
    *
+   * Accepts both VeloxPlugin objects and standard FastifyPluginAsync functions.
+   * VeloxPlugins provide metadata (name, version, dependencies) for better DX.
+   * FastifyPluginAsync functions are registered directly with Fastify.
+   *
    * Plugins must be registered before calling `start()`
    *
    * @template Options - Type of options the plugin accepts
-   * @param plugin - Plugin to register
+   * @param plugin - VeloxPlugin object or FastifyPluginAsync function to register
    * @param options - Options to pass to the plugin
-   * @throws {VeloxError} If plugin metadata is invalid
+   * @throws {VeloxError} If VeloxPlugin metadata is invalid
    *
-   * @example
+   * @example VeloxPlugin (recommended for framework plugins)
    * ```typescript
    * await app.register(databasePlugin, {
    *   connectionString: 'postgresql://...'
    * });
    * ```
+   *
+   * @example FastifyPluginAsync (for standard Fastify plugins)
+   * ```typescript
+   * import { rest } from '@veloxts/router';
+   *
+   * await app.register(rest([userProcedures]), { prefix: '/api' });
+   * ```
    */
   async register<Options extends PluginOptions>(
-    plugin: VeloxPlugin<Options>,
+    plugin: VeloxPlugin<Options> | FastifyPluginAsync<Options>,
     options?: Options
   ): Promise<void> {
-    // Validate plugin metadata
-    validatePluginMetadata(plugin);
+    // Handle VeloxPlugin objects (with name, version, register)
+    if (isVeloxPlugin(plugin)) {
+      // Validate plugin metadata
+      validatePluginMetadata(plugin);
 
-    // Wrap plugin with fastify-plugin for proper encapsulation
-    const wrappedPlugin = fp(plugin.register, {
-      name: plugin.name,
-      dependencies: plugin.dependencies,
-      fastify: '5.x',
-    });
+      // Wrap plugin with fastify-plugin for proper encapsulation
+      const wrappedPlugin = fp(plugin.register, {
+        name: plugin.name,
+        dependencies: plugin.dependencies,
+        fastify: '5.x',
+      });
 
-    // Register with Fastify
-    try {
-      await this._server.register(wrappedPlugin, options ?? ({} as Options));
-    } catch (error) {
-      throw new VeloxError(
-        `Failed to register plugin "${plugin.name}": ${error instanceof Error ? error.message : String(error)}`,
-        500,
-        'PLUGIN_REGISTRATION_ERROR'
-      );
+      // Register with Fastify
+      try {
+        await this._server.register(wrappedPlugin, options ?? ({} as Options));
+      } catch (error) {
+        throw new VeloxError(
+          `Failed to register plugin "${plugin.name}": ${error instanceof Error ? error.message : String(error)}`,
+          500,
+          'PLUGIN_REGISTRATION_ERROR'
+        );
+      }
+      return;
     }
+
+    // Handle FastifyPluginAsync functions (standard Fastify plugins)
+    if (isFastifyPlugin<Options>(plugin)) {
+      try {
+        await this._server.register(plugin, options ?? ({} as Options));
+      } catch (error) {
+        throw new VeloxError(
+          `Failed to register Fastify plugin: ${error instanceof Error ? error.message : String(error)}`,
+          500,
+          'PLUGIN_REGISTRATION_ERROR'
+        );
+      }
+      return;
+    }
+
+    // Invalid plugin type
+    throw new VeloxError(
+      'Invalid plugin: must be a VeloxPlugin object or FastifyPluginAsync function',
+      500,
+      'INVALID_PLUGIN_TYPE'
+    );
   }
 
   /**
@@ -348,7 +388,7 @@ export class VeloxApp {
    * @param options - Options to pass to the plugin
    */
   async use<Options extends PluginOptions>(
-    plugin: VeloxPlugin<Options>,
+    plugin: VeloxPlugin<Options> | FastifyPluginAsync<Options>,
     options?: Options
   ): Promise<void> {
     return this.register(plugin, options);

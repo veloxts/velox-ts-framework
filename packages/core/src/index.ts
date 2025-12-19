@@ -137,7 +137,7 @@ export {
 } from './errors.js';
 export type { InferPluginOptions, PluginMetadata, PluginOptions, VeloxPlugin } from './plugin.js';
 // Plugin system
-export { definePlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
+export { definePlugin, isFastifyPlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
 // Core types
 export type {
   AsyncHandler,
