@@ -7,6 +7,64 @@
 import type { FastifyInstance } from 'fastify';
 
 /**
+ * Simplified Hookable interface (from hookable package)
+ * We define this locally to avoid adding hookable as a dependency
+ */
+interface Hookable {
+  hook<NameT extends string>(name: NameT, fn: (...args: unknown[]) => unknown): () => void;
+  callHook<NameT extends string>(name: NameT, ...args: unknown[]): Promise<void>;
+  afterEach(fn: (result: { name: string; args: unknown[] }) => void): void;
+}
+
+/**
+ * Simplified NitroConfig interface (from nitropack)
+ * We only include the properties relevant to Vinxi server configuration
+ */
+interface NitroServerConfig {
+  preset?: string;
+  prerender?: {
+    routes?: string[];
+    crawlLinks?: boolean;
+  };
+  routeRules?: Record<string, unknown>;
+  baseURL?: string;
+  runtimeConfig?: Record<string, unknown>;
+  storage?: Record<string, unknown>;
+  devStorage?: Record<string, unknown>;
+  timing?: boolean;
+  renderer?: string;
+  serveStatic?: boolean | 'node' | 'deno';
+  noPublicDir?: boolean;
+  publicAssets?: Array<{ dir?: string; baseURL?: string; maxAge?: number }>;
+  compressPublicAssets?: boolean | { gzip?: boolean; brotli?: boolean };
+  node?: boolean;
+  sourceMap?: boolean | 'inline' | 'hidden';
+  minify?: boolean;
+  externals?: {
+    external?: string[];
+    inline?: string[];
+    trace?: boolean;
+    traceOptions?: Record<string, unknown>;
+  };
+  moduleSideEffects?: string[];
+  typescript?: {
+    strict?: boolean;
+    generateTsConfig?: boolean;
+    internalPaths?: boolean;
+  };
+  hooks?: Record<string, (...args: unknown[]) => void | Promise<void>>;
+  plugins?: string[];
+  esbuild?: {
+    options?: Record<string, unknown>;
+  };
+  rollupConfig?: Record<string, unknown>;
+  analyze?: boolean | { filename?: string };
+  experimental?: Record<string, unknown>;
+  future?: Record<string, unknown>;
+  logLevel?: number;
+}
+
+/**
  * Configuration for the VeloxTS web application
  */
 export interface VeloxWebConfig {
@@ -82,15 +140,67 @@ export interface ResolvedVeloxWebConfig {
 
 /**
  * Vinxi router definition for the VeloxTS application
+ *
+ * Matches Vinxi's expected router schema input types:
+ * - 'http': Server-side HTTP handlers
+ * - 'client': Browser-side JavaScript bundles
+ * - 'static': Static file serving
+ * - 'spa': Single-page application mode
  */
 export interface VinxiRouter {
+  /** Unique name for this router */
   name: string;
-  type: 'http' | 'client' | 'static';
+
+  /** Router type determines how Vinxi processes and serves this router */
+  type: 'http' | 'client' | 'static' | 'spa';
+
+  /** Path to the handler module (required for http, client, spa) */
   handler?: string;
+
+  /** Build target: 'server' for Node.js, 'browser' for client bundles */
   target?: 'server' | 'browser';
+
+  /** Base URL path for this router (defaults to '/') */
   base?: string;
+
+  /** Root directory for this router (optional, defaults to project root) */
+  root?: string;
+
+  /** Directory for static assets (required for 'static' type) */
   dir?: string;
-  routes?: VinxiRouteConfig[];
+
+  /** Output directory for builds (optional) */
+  outDir?: string;
+
+  /** Custom routes configuration */
+  routes?: VinxiRouteConfig[] | VinxiRoutesFn;
+
+  /** Whether to build this router (for http type) */
+  build?: boolean;
+
+  /** Whether to run in a worker (for http type) */
+  worker?: boolean;
+
+  /** Middleware module path (for http type) */
+  middleware?: string;
+
+  /** Vite plugins function */
+  plugins?: () => unknown[];
+
+  /** File extensions to process */
+  extensions?: string[];
+}
+
+/**
+ * Routes function signature for dynamic route generation
+ */
+export type VinxiRoutesFn = (router: VinxiRouter, app: VinxiAppOptions) => VinxiCompiledRouter;
+
+/**
+ * Compiled router interface (simplified)
+ */
+export interface VinxiCompiledRouter {
+  getRoutes(): VinxiRouteConfig[];
 }
 
 /**
@@ -101,6 +211,105 @@ export interface VinxiRouteConfig {
   component?: string;
   layout?: string;
   children?: VinxiRouteConfig[];
+}
+
+/**
+ * Vinxi app options passed to createApp()
+ */
+export interface VinxiAppOptions {
+  /** Application name */
+  name?: string;
+
+  /** Server configuration (Nitro-compatible) */
+  server?: NitroServerConfig & {
+    port?: number;
+    host?: string;
+  };
+
+  /** Router configurations */
+  routers?: VinxiRouter[];
+
+  /** Root directory */
+  root?: string;
+
+  /** Build mode */
+  mode?: string;
+
+  /** Enable devtools */
+  devtools?: boolean;
+}
+
+/**
+ * Vinxi App instance returned by createApp()
+ *
+ * This is the runtime application object with hooks, methods for
+ * running dev server, building, and managing routers.
+ */
+export interface VinxiApp {
+  /** Resolved application configuration */
+  config: {
+    name: string;
+    devtools?: boolean;
+    server: NitroServerConfig & { port?: number; host?: string };
+    routers: VinxiResolvedRouter[];
+    root: string;
+    mode?: string;
+  };
+
+  /** Add a router dynamically */
+  addRouter: (router: VinxiRouter) => VinxiApp;
+
+  /** Add plugins to routers matching a filter */
+  addRouterPlugins: (
+    apply: (router: VinxiResolvedRouter) => boolean,
+    plugins: () => unknown[]
+  ) => void;
+
+  /** Get a router by name */
+  getRouter: (name: string) => VinxiResolvedRouter;
+
+  /** Resolve a module path */
+  resolveSync: (mod: string) => string;
+
+  /** Dynamically import a module */
+  import: (mod: string) => Promise<unknown>;
+
+  /** Apply a stack function to the app */
+  stack: (stack: (app: VinxiApp) => void | Promise<void>) => Promise<VinxiApp>;
+
+  /** Start the development server */
+  dev: () => Promise<void>;
+
+  /** Build the application */
+  build: () => Promise<void>;
+
+  /** Hookable instance for lifecycle events */
+  hooks: Hookable;
+}
+
+/**
+ * Resolved router with additional computed properties
+ */
+export interface VinxiResolvedRouter extends VinxiRouter {
+  /** Resolved base path */
+  base: string;
+
+  /** Router order in the stack */
+  order: number;
+
+  /** Resolved output directory */
+  outDir: string;
+
+  /** Resolved root directory */
+  root: string;
+
+  /** Internal router state */
+  internals: {
+    routes?: VinxiCompiledRouter;
+    devServer?: unknown;
+    appWorker?: unknown;
+    type: unknown;
+  };
 }
 
 /**

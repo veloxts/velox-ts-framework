@@ -21,10 +21,10 @@ describe('defineVeloxApp', () => {
     it('should create app with default configuration', () => {
       const app = defineVeloxApp();
 
-      expect(app.name).toBe('velox-app');
-      expect(app.server.port).toBe(3030);
-      expect(app.server.host).toBe('localhost');
-      expect(app.routers).toHaveLength(3);
+      expect(app.config.name).toBe('velox-app');
+      expect(app.config.server.port).toBe(3030);
+      expect(app.config.server.host).toBe('localhost');
+      expect(app.config.routers).toHaveLength(3);
     });
 
     it('should create app with custom port and host', () => {
@@ -35,8 +35,8 @@ describe('defineVeloxApp', () => {
         },
       });
 
-      expect(app.server.port).toBe(8080);
-      expect(app.server.host).toBe('0.0.0.0');
+      expect(app.config.server.port).toBe(8080);
+      expect(app.config.server.host).toBe('0.0.0.0');
     });
 
     it('should merge environment config with provided options', () => {
@@ -49,8 +49,8 @@ describe('defineVeloxApp', () => {
         },
       });
 
-      expect(app.server.port).toBe(3000);
-      expect(app.server.host).toBe('127.0.0.1'); // From env
+      expect(app.config.server.port).toBe(3000);
+      expect(app.config.server.host).toBe('127.0.0.1'); // From env
     });
 
     it('should prioritize explicit options over environment variables', () => {
@@ -64,8 +64,8 @@ describe('defineVeloxApp', () => {
         },
       });
 
-      expect(app.server.port).toBe(5000);
-      expect(app.server.host).toBe('0.0.0.0');
+      expect(app.config.server.port).toBe(5000);
+      expect(app.config.server.host).toBe('0.0.0.0');
     });
   });
 
@@ -73,10 +73,10 @@ describe('defineVeloxApp', () => {
     it('should create three routers', () => {
       const app = defineVeloxApp();
 
-      expect(app.routers).toHaveLength(3);
-      expect(app.routers[0].name).toBe('api');
-      expect(app.routers[1].name).toBe('client');
-      expect(app.routers[2].name).toBe('ssr');
+      expect(app.config.routers).toHaveLength(3);
+      expect(app.config.routers[0].name).toBe('api');
+      expect(app.config.routers[1].name).toBe('client');
+      expect(app.config.routers[2].name).toBe('ssr');
     });
 
     it('should configure API router correctly', () => {
@@ -86,11 +86,12 @@ describe('defineVeloxApp', () => {
         },
       });
 
-      const apiRouter = app.routers.find((r) => r.name === 'api');
+      const apiRouter = app.config.routers.find((r) => r.name === 'api');
 
       expect(apiRouter).toBeDefined();
       expect(apiRouter?.type).toBe('http');
-      expect(apiRouter?.handler).toBe('./src/api/handler');
+      // Vinxi normalizes handler paths by stripping './' prefix
+      expect(apiRouter?.handler).toBe('src/api/handler');
       expect(apiRouter?.target).toBe('server');
       expect(apiRouter?.base).toBe('/api');
     });
@@ -102,11 +103,12 @@ describe('defineVeloxApp', () => {
         },
       });
 
-      const clientRouter = app.routers.find((r) => r.name === 'client');
+      const clientRouter = app.config.routers.find((r) => r.name === 'client');
 
       expect(clientRouter).toBeDefined();
       expect(clientRouter?.type).toBe('client');
-      expect(clientRouter?.handler).toBe('./src/entry.client');
+      // Vinxi normalizes handler paths by stripping './' prefix
+      expect(clientRouter?.handler).toBe('src/entry.client');
       expect(clientRouter?.target).toBe('browser');
       expect(clientRouter?.base).toBe('/_build');
     });
@@ -114,13 +116,15 @@ describe('defineVeloxApp', () => {
     it('should configure SSR router correctly', () => {
       const app = defineVeloxApp();
 
-      const ssrRouter = app.routers.find((r) => r.name === 'ssr');
+      const ssrRouter = app.config.routers.find((r) => r.name === 'ssr');
 
       expect(ssrRouter).toBeDefined();
       expect(ssrRouter?.type).toBe('http');
-      expect(ssrRouter?.handler).toBe('./src/entry.server');
+      // Vinxi normalizes handler paths by stripping './' prefix
+      expect(ssrRouter?.handler).toBe('src/entry.server');
       expect(ssrRouter?.target).toBe('server');
-      expect(ssrRouter?.base).toBeUndefined(); // No base = catch-all
+      // Vinxi defaults empty base to '/' (catch-all for remaining routes)
+      expect(ssrRouter?.base).toBe('/');
     });
 
     it('should use custom base paths', () => {
@@ -133,8 +137,8 @@ describe('defineVeloxApp', () => {
         },
       });
 
-      const apiRouter = app.routers.find((r) => r.name === 'api');
-      const clientRouter = app.routers.find((r) => r.name === 'client');
+      const apiRouter = app.config.routers.find((r) => r.name === 'api');
+      const clientRouter = app.config.routers.find((r) => r.name === 'client');
 
       expect(apiRouter?.base).toBe('/v1');
       expect(clientRouter?.base).toBe('/static');
@@ -145,13 +149,14 @@ describe('defineVeloxApp', () => {
     it('should use default handler paths', () => {
       const app = defineVeloxApp();
 
-      const apiRouter = app.routers.find((r) => r.name === 'api');
-      const clientRouter = app.routers.find((r) => r.name === 'client');
-      const ssrRouter = app.routers.find((r) => r.name === 'ssr');
+      const apiRouter = app.config.routers.find((r) => r.name === 'api');
+      const clientRouter = app.config.routers.find((r) => r.name === 'client');
+      const ssrRouter = app.config.routers.find((r) => r.name === 'ssr');
 
-      expect(apiRouter?.handler).toBe('./src/api/handler');
-      expect(clientRouter?.handler).toBe('./src/entry.client');
-      expect(ssrRouter?.handler).toBe('./src/entry.server');
+      // Vinxi normalizes handler paths by stripping './' prefix
+      expect(apiRouter?.handler).toBe('src/api/handler');
+      expect(clientRouter?.handler).toBe('src/entry.client');
+      expect(ssrRouter?.handler).toBe('src/entry.server');
     });
 
     it('should use custom handler paths', () => {
@@ -163,13 +168,14 @@ describe('defineVeloxApp', () => {
         clientEntry: './custom/client.tsx',
       });
 
-      const apiRouter = app.routers.find((r) => r.name === 'api');
-      const clientRouter = app.routers.find((r) => r.name === 'client');
-      const ssrRouter = app.routers.find((r) => r.name === 'ssr');
+      const apiRouter = app.config.routers.find((r) => r.name === 'api');
+      const clientRouter = app.config.routers.find((r) => r.name === 'client');
+      const ssrRouter = app.config.routers.find((r) => r.name === 'ssr');
 
-      expect(apiRouter?.handler).toBe('./custom/api.ts');
-      expect(clientRouter?.handler).toBe('./custom/client.tsx');
-      expect(ssrRouter?.handler).toBe('./custom/server.tsx');
+      // Vinxi normalizes handler paths by stripping './' prefix
+      expect(apiRouter?.handler).toBe('custom/api.ts');
+      expect(clientRouter?.handler).toBe('custom/client.tsx');
+      expect(ssrRouter?.handler).toBe('custom/server.tsx');
     });
 
     it('should allow partial handler path overrides', () => {
@@ -179,11 +185,12 @@ describe('defineVeloxApp', () => {
         },
       });
 
-      const apiRouter = app.routers.find((r) => r.name === 'api');
-      const clientRouter = app.routers.find((r) => r.name === 'client');
+      const apiRouter = app.config.routers.find((r) => r.name === 'api');
+      const clientRouter = app.config.routers.find((r) => r.name === 'client');
 
-      expect(apiRouter?.handler).toBe('./my-api.ts');
-      expect(clientRouter?.handler).toBe('./src/entry.client'); // Default
+      // Vinxi normalizes handler paths by stripping './' prefix
+      expect(apiRouter?.handler).toBe('my-api.ts');
+      expect(clientRouter?.handler).toBe('src/entry.client'); // Default
     });
   });
 
@@ -213,7 +220,7 @@ describe('defineVeloxApp', () => {
       // We can't directly access them from the app config
       // but we can verify the app was created successfully
       expect(app).toBeDefined();
-      expect(app.routers).toHaveLength(3);
+      expect(app.config.routers).toHaveLength(3);
     });
 
     it('should accept custom directory paths', () => {
@@ -226,7 +233,7 @@ describe('defineVeloxApp', () => {
       });
 
       expect(app).toBeDefined();
-      expect(app.routers).toHaveLength(3);
+      expect(app.config.routers).toHaveLength(3);
     });
   });
 
@@ -257,9 +264,9 @@ describe('defineVeloxApp', () => {
     it('should maintain router order (api, client, ssr)', () => {
       const app = defineVeloxApp();
 
-      expect(app.routers[0].name).toBe('api');
-      expect(app.routers[1].name).toBe('client');
-      expect(app.routers[2].name).toBe('ssr');
+      expect(app.config.routers[0].name).toBe('api');
+      expect(app.config.routers[1].name).toBe('client');
+      expect(app.config.routers[2].name).toBe('ssr');
     });
 
     it('should preserve router order with custom config', () => {
@@ -268,9 +275,9 @@ describe('defineVeloxApp', () => {
         build: { buildBase: '/assets' },
       });
 
-      expect(app.routers[0].name).toBe('api');
-      expect(app.routers[1].name).toBe('client');
-      expect(app.routers[2].name).toBe('ssr');
+      expect(app.config.routers[0].name).toBe('api');
+      expect(app.config.routers[1].name).toBe('client');
+      expect(app.config.routers[2].name).toBe('ssr');
     });
   });
 
@@ -281,8 +288,8 @@ describe('defineVeloxApp', () => {
         build: { buildBase: '_build' },
       });
 
-      const apiRouter = app.routers.find((r) => r.name === 'api');
-      const clientRouter = app.routers.find((r) => r.name === 'client');
+      const apiRouter = app.config.routers.find((r) => r.name === 'api');
+      const clientRouter = app.config.routers.find((r) => r.name === 'client');
 
       expect(apiRouter?.base).toBe('/api');
       expect(clientRouter?.base).toBe('/_build');
@@ -293,7 +300,7 @@ describe('defineVeloxApp', () => {
         api: { prefix: '/' },
       });
 
-      const apiRouter = app.routers.find((r) => r.name === 'api');
+      const apiRouter = app.config.routers.find((r) => r.name === 'api');
       expect(apiRouter?.base).toBe('/');
     });
   });

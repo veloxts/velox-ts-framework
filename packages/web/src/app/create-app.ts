@@ -1,26 +1,16 @@
 /**
  * VeloxTS Web Application Factory
  *
- * Creates a Vinxi application configuration with three routers:
+ * Creates a Vinxi application with three routers:
  * 1. API router - Embeds Fastify for /api/* and /trpc/*
  * 2. Client router - Serves static assets from /_build/*
  * 3. SSR router - Renders React Server Components for all other routes
  */
 
-import type { ResolvedVeloxWebConfig, VeloxWebConfig, VinxiRouter } from '../types.js';
-import { getEnvConfig, resolveConfig, validateConfig } from './config.js';
+import { createApp } from 'vinxi';
 
-/**
- * Vinxi app configuration type (simplified for our use case)
- */
-interface VinxiAppConfig {
-  name: string;
-  server: {
-    port: number;
-    host: string;
-  };
-  routers: VinxiRouter[];
-}
+import type { ResolvedVeloxWebConfig, VeloxWebConfig, VinxiApp, VinxiRouter } from '../types.js';
+import { getEnvConfig, resolveConfig, validateConfig } from './config.js';
 
 /**
  * Server configuration options
@@ -227,7 +217,7 @@ export interface DefineVeloxAppOptions {
  * });
  * ```
  */
-export function defineVeloxApp(options: DefineVeloxAppOptions = {}): VinxiAppConfig {
+export function defineVeloxApp(options: DefineVeloxAppOptions = {}): VinxiApp {
   // Merge environment config with provided options
   const envConfig = getEnvConfig();
 
@@ -260,14 +250,15 @@ export function defineVeloxApp(options: DefineVeloxAppOptions = {}): VinxiAppCon
     clientEntry,
   });
 
-  return {
+  // Create and return a proper Vinxi app with hooks, dev(), build() methods, etc.
+  return createApp({
     name: 'velox-app',
     server: {
       port: config.port,
       host: config.host,
     },
     routers,
-  };
+  });
 }
 
 /**
