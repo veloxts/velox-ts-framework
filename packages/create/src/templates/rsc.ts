@@ -61,6 +61,10 @@ function generateUsersPage(): string {
   return compileTemplate('rsc/app/pages/users.tsx', RSC_CONFIG);
 }
 
+function generateUserDetailPage(): string {
+  return compileTemplate('rsc/app/pages/users/[id].tsx', RSC_CONFIG);
+}
+
 function generateRootLayout(): string {
   return compileTemplate('rsc/app/layouts/root.tsx', RSC_CONFIG);
 }
@@ -124,6 +128,7 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
     // App layer (RSC)
     { path: 'app/pages/index.tsx', content: generateHomePage() },
     { path: 'app/pages/users.tsx', content: generateUsersPage() },
+    { path: 'app/pages/users/[id].tsx', content: generateUserDetailPage() },
     { path: 'app/layouts/root.tsx', content: generateRootLayout() },
     { path: 'app/actions/users.ts', content: generateUserActions() },
 

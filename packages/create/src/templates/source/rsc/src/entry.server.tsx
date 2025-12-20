@@ -3,6 +3,7 @@
  *
  * Handles server-side rendering of React Server Components.
  * Uses h3 event handler for Vinxi compatibility.
+ * Supports dynamic routes with [param] and [...catchAll] patterns.
  */
 
 import type { ComponentType } from 'react';
@@ -13,21 +14,75 @@ import { PassThrough } from 'node:stream';
 // Static imports for page components (using .tsx extension for Vite)
 import HomePage from '../app/pages/index.tsx';
 import UsersPage from '../app/pages/users.tsx';
-
-// Page registry
-const pages: Record<string, ComponentType<PageProps>> = {
-  '/': HomePage,
-  '/index': HomePage,
-  '/users': UsersPage,
-};
-
-console.log('[SSR] Available pages:', Object.keys(pages));
+import UserDetailPage from '../app/pages/users/[id].tsx';
 
 // Page props type
 interface PageProps {
   params: Record<string, string>;
   searchParams: Record<string, string | string[]>;
 }
+
+// Route definition with pattern matching
+interface RouteDefinition {
+  pattern: string;
+  component: ComponentType<PageProps>;
+  // Compiled regex and param names for matching
+  regex: RegExp;
+  paramNames: string[];
+}
+
+// Route match result
+interface RouteMatch {
+  component: ComponentType<PageProps>;
+  params: Record<string, string>;
+}
+
+/**
+ * Compiles a file-based route pattern into a regex
+ * Supports:
+ *   - Static segments: /users -> matches exactly /users
+ *   - Dynamic segments: /users/[id] -> matches /users/123, extracts id=123
+ *   - Catch-all: /posts/[...slug] -> matches /posts/a/b/c, extracts slug=a/b/c
+ */
+function compileRoute(pattern: string): { regex: RegExp; paramNames: string[] } {
+  const paramNames: string[] = [];
+
+  // Escape special regex chars except [ and ]
+  let regexStr = pattern
+    .replace(/[.+?^${}()|\\]/g, '\\$&')
+    // Handle catch-all [...param]
+    .replace(/\[\.\.\.(\w+)\]/g, (_, name) => {
+      paramNames.push(name);
+      return '(.+)';
+    })
+    // Handle dynamic [param]
+    .replace(/\[(\w+)\]/g, (_, name) => {
+      paramNames.push(name);
+      return '([^/]+)';
+    });
+
+  // Exact match
+  const regex = new RegExp(`^${regexStr}$`);
+  return { regex, paramNames };
+}
+
+/**
+ * Creates a route definition from pattern and component
+ */
+function defineRoute(pattern: string, component: ComponentType<PageProps>): RouteDefinition {
+  const { regex, paramNames } = compileRoute(pattern);
+  return { pattern, component, regex, paramNames };
+}
+
+// Route registry with patterns (order matters - more specific first)
+const routes: RouteDefinition[] = [
+  defineRoute('/', HomePage),
+  defineRoute('/index', HomePage),
+  defineRoute('/users', UsersPage),
+  defineRoute('/users/[id]', UserDetailPage),
+];
+
+console.log('[SSR] Available routes:', routes.map(r => r.pattern));
 
 // H3 event type for Vinxi
 interface H3Event {
@@ -42,10 +97,44 @@ interface H3Event {
   };
 }
 
-// Resolve page component from path
-function getPageComponent(pathname: string): ComponentType<PageProps> | null {
-  console.log('[SSR] Looking for:', pathname);
-  return pages[pathname] || null;
+/**
+ * Match a pathname against registered routes
+ * Returns the matched component and extracted params
+ */
+function matchRoute(pathname: string): RouteMatch | null {
+  console.log('[SSR] Matching:', pathname);
+
+  for (const route of routes) {
+    const match = pathname.match(route.regex);
+    if (match) {
+      // Extract params from capture groups
+      const params: Record<string, string> = {};
+      route.paramNames.forEach((name, index) => {
+        params[name] = match[index + 1];
+      });
+
+      console.log('[SSR] Matched:', route.pattern, 'params:', params);
+      return { component: route.component, params };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Parse search params from URL
+ */
+function parseSearchParams(url: URL): Record<string, string | string[]> {
+  const searchParams: Record<string, string | string[]> = {};
+  url.searchParams.forEach((value, key) => {
+    const existing = searchParams[key];
+    if (existing) {
+      searchParams[key] = Array.isArray(existing) ? [...existing, value] : [existing, value];
+    } else {
+      searchParams[key] = value;
+    }
+  });
+  return searchParams;
 }
 
 /**
@@ -53,24 +142,27 @@ function getPageComponent(pathname: string): ComponentType<PageProps> | null {
  */
 export default async function ssrHandler(event: H3Event): Promise<void> {
   const res = event.node.res;
-  const pathname = new URL(event.node.req.url || '/', 'http://localhost').pathname;
+  const url = new URL(event.node.req.url || '/', 'http://localhost');
+  const pathname = url.pathname;
 
   console.log('[SSR] Handling:', pathname);
 
-  // Get page component
-  const PageComponent = getPageComponent(pathname);
+  // Match route and extract params
+  const match = matchRoute(pathname);
 
-  if (!PageComponent) {
+  if (!match) {
     res.statusCode = 404;
     res.setHeader('Content-Type', 'text/html');
     res.end(`<!DOCTYPE html><html><body><h1>404 - Page Not Found</h1><p>Path: ${pathname}</p></body></html>`);
     return;
   }
 
-  // Prepare page props
+  const { component: PageComponent, params } = match;
+
+  // Prepare page props with extracted params and search params
   const pageProps: PageProps = {
-    params: {},
-    searchParams: {},
+    params,
+    searchParams: parseSearchParams(url),
   };
 
   try {

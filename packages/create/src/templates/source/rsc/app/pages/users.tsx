@@ -25,8 +25,10 @@ export default async function UsersPage() {
         <ul className="user-list">
           {users.map((user) => (
             <li key={user.id} className="user-card">
-              <span className="user-name">{user.name}</span>
-              <span className="user-email">{user.email}</span>
+              <a href={`/users/${user.id}`} className="user-link">
+                <span className="user-name">{user.name}</span>
+                <span className="user-email">{user.email}</span>
+              </a>
             </li>
           ))}
         </ul>

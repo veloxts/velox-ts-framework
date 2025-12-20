@@ -979,6 +979,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   RESPONSE=$(curl -s -X POST "http://localhost:$test_port/api/users" \
     -H "Content-Type: application/json" \
     -d '{"name":"Page Test User","email":"pagetest@example.com"}')
+  PAGE_USER_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
 
   # Test home page
   echo "Testing GET / (home page)..."
@@ -1036,6 +1037,64 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     exit 1
   fi
 
+  # Test user detail page (dynamic route)
+  echo "Testing GET /users/:id (user detail page with dynamic route)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/users/$PAGE_USER_ID")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    # Check for expected content from users/[id].tsx
+    if echo "$BODY" | grep -q "Page Test User"; then
+      if echo "$BODY" | grep -q "pagetest@example.com"; then
+        echo "  ✓ GET /users/:id (200 OK, contains user detail from database)"
+      else
+        echo "  ✗ GET /users/:id missing user email"
+        echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+        kill $SERVER_PID 2>/dev/null
+        wait $SERVER_PID 2>/dev/null
+        exit 1
+      fi
+    else
+      echo "  ✗ GET /users/:id missing user name"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /users/:id returned $HTTP_CODE"
+    echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # Test user detail page with non-existent ID
+  echo "Testing GET /users/:id (non-existent user)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/users/00000000-0000-0000-0000-000000000000")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    # Check for "not found" content
+    if echo "$BODY" | grep -q "User Not Found"; then
+      echo "  ✓ GET /users/:id (200 OK, shows not found message for missing user)"
+    else
+      echo "  ✗ GET /users/:id missing 'not found' message"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /users/:id (non-existent) returned $HTTP_CODE"
+    echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
   echo ""
   echo "✓ All RSC page rendering tests passed"
   echo ""
@@ -1069,7 +1128,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   echo "  - Structure validation: PASSED"
   echo "  - Production build: WIP (Vinxi integration incomplete)"
   echo "  - API endpoints: PASSED (8 tests)"
-  echo "  - RSC page rendering: PASSED (2 pages)"
+  echo "  - RSC page rendering: PASSED (4 tests, including dynamic routes)"
   echo "  - Client hydration: VERIFIED"
   echo ""
 
