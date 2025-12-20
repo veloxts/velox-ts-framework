@@ -36,9 +36,9 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "4.0.15",
+    "@vitest/coverage-v8": "4.0.16",
     "typescript": "5.9.3",
-    "vitest": "4.0.15"
+    "vitest": "4.0.16"
   },
   "peerDependencies": {
     "zod": "^3.25.0"

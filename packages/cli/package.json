@@ -61,7 +61,7 @@
     "@types/pluralize": "0.0.33",
     "tsd": "0.33.0",
     "typescript": "5.9.3",
-    "vitest": "4.0.15"
+    "vitest": "4.0.16"
   },
   "keywords": [
     "velox",
