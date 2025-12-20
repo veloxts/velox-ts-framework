@@ -407,6 +407,92 @@ Currently in **Week 1** of 6-week MVP sprint:
 - **Testing:** Vitest (when tests are added)
 - **CLI Framework:** Commander.js (when CLI is built)
 
+## Prisma 7 Configuration (IMPORTANT)
+
+VeloxTS uses Prisma 7 which has significant breaking changes from Prisma 5/6. **Memorize these patterns.**
+
+### Configuration File (`prisma.config.ts`)
+Required in Prisma 7. Database URL is configured here, NOT in `schema.prisma`:
+
+```typescript
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
+
+export default defineConfig({
+  schema: './prisma/schema.prisma',
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+});
+```
+
+### Schema Changes (`schema.prisma`)
+- **`url` NOT allowed** in datasource block (breaking change)
+- **`output` required** in generator block
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"  // Required in v7
+}
+
+datasource db {
+  provider = "sqlite"
+  // NO url here - it's in prisma.config.ts
+}
+```
+
+### Runtime: Driver Adapters Required
+**Breaking change**: `datasourceUrl` and `datasources` options REMOVED from PrismaClient constructor.
+
+Must use driver adapters for direct database connections:
+
+```typescript
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '@prisma/client';
+
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
+const db = new PrismaClient({ adapter });
+```
+
+### Required Dependencies by Database
+
+**SQLite:**
+```json
+{
+  "@prisma/adapter-better-sqlite3": "7.2.0",
+  "@prisma/client": "7.2.0",
+  "better-sqlite3": "11.9.1",
+  "prisma": "7.2.0"
+}
+```
+
+**PostgreSQL:** `@prisma/adapter-pg`
+**MySQL:** `@prisma/adapter-mysql`
+**LibSQL/Turso:** `@prisma/adapter-libsql`
+
+### Vite SSR Compatibility
+Vite's SSR module evaluation doesn't automatically load `.env` files. Must explicitly load dotenv:
+
+```typescript
+import dotenv from 'dotenv';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const projectRoot = resolve(__dirname, '..', '..');
+dotenv.config({ path: resolve(projectRoot, '.env') });
+```
+
+### Common Errors and Solutions
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Unknown property datasourceUrl` | Prisma 7 removed this option | Use driver adapter instead |
+| `Unknown property datasources` | Prisma 7 removed this option | Use driver adapter instead |
+| `needs non-empty valid PrismaClientOptions` | No adapter or accelerateUrl provided | Add driver adapter |
+| `Generating into @prisma/client not allowed` | Wrong output path | Use `.prisma/client` instead |
+
 ## Working with This Codebase
 
 ### When Adding New Features
