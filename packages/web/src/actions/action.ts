@@ -39,6 +39,7 @@ import type { CompiledProcedure } from '@veloxts/router';
 import type { infer as ZodInfer, ZodSchema, ZodType, ZodTypeDef } from 'zod';
 
 import { toActionError } from './error-classifier.js';
+import { formDataToObject } from './form-parser.js';
 import {
   executeProcedureDirectly,
   type ExecuteProcedureOptions,
@@ -278,52 +279,6 @@ function createContext(): ActionContext {
  */
 function hasAuthenticatedUser(ctx: ActionContext): ctx is AuthenticatedActionContext {
   return 'user' in ctx && ctx.user !== undefined && ctx.user !== null;
-}
-
-// ============================================================================
-// FormData Utilities
-// ============================================================================
-
-/**
- * Converts FormData to a plain object.
- * Handles multiple values for the same key by creating arrays.
- * Supports nested keys using dot notation (e.g., 'user.name').
- */
-function formDataToObject(formData: FormData): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-
-  formData.forEach((value, key) => {
-    // Handle nested keys (e.g., 'user.name' -> { user: { name: value } })
-    const keys = key.split('.');
-    let current: Record<string, unknown> = result;
-
-    for (let i = 0; i < keys.length - 1; i++) {
-      const k = keys[i];
-      if (!(k in current) || typeof current[k] !== 'object' || current[k] === null) {
-        current[k] = {};
-      }
-      current = current[k] as Record<string, unknown>;
-    }
-
-    const finalKey = keys[keys.length - 1];
-    const existingValue = current[finalKey];
-
-    // Convert File to undefined (skip files for now, will be handled in Phase 2)
-    const processedValue = value instanceof File ? undefined : value;
-
-    if (existingValue !== undefined) {
-      // Convert to array if multiple values with same key
-      if (Array.isArray(existingValue)) {
-        existingValue.push(processedValue);
-      } else {
-        current[finalKey] = [existingValue, processedValue];
-      }
-    } else {
-      current[finalKey] = processedValue;
-    }
-  });
-
-  return result;
 }
 
 // ============================================================================

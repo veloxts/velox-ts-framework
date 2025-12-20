@@ -34,9 +34,31 @@ export interface ExecuteProcedureOptions {
   skipGuards?: boolean;
 
   /**
-   * Custom context extensions to merge
+   * Custom context extensions to merge.
+   * Use this to provide properties like `db` (Prisma client) that
+   * procedures expect on their context type.
+   *
+   * @example
+   * ```typescript
+   * executeProcedureDirectly(proc, input, ctx, {
+   *   contextExtensions: { db: prisma },
+   *   requiredContextKeys: ['db'],
+   * });
+   * ```
    */
   contextExtensions?: Record<string, unknown>;
+
+  /**
+   * Keys that should be present on the final context.
+   * In development, a warning is logged if any are missing.
+   * This helps catch configuration errors early.
+   *
+   * @example
+   * ```typescript
+   * { requiredContextKeys: ['db', 'user'] }
+   * ```
+   */
+  requiredContextKeys?: readonly string[];
 }
 
 /**
@@ -130,6 +152,29 @@ function createMockFastifyReply(): MockFastifyReply {
  * Maps the Web API Request from actions to the Fastify-like context
  * that procedures expect. Includes user info if authenticated.
  */
+/**
+ * Validates that required context properties are present.
+ * Logs a warning in development if expected properties are missing.
+ *
+ * @internal
+ */
+function validateContextExtensions(
+  ctx: BaseContext,
+  requiredKeys: readonly string[]
+): void {
+  if (process.env.NODE_ENV === 'production') {
+    return; // Skip validation in production for performance
+  }
+
+  const missingKeys = requiredKeys.filter((key) => !(key in ctx));
+  if (missingKeys.length > 0) {
+    console.warn(
+      `[VeloxTS] Procedure context missing expected properties: ${missingKeys.join(', ')}. ` +
+        'Ensure contextExtensions includes all properties required by your procedure context type.'
+    );
+  }
+}
+
 export function createProcedureContext(
   actionCtx: ActionContext,
   extensions?: Record<string, unknown>
@@ -138,6 +183,15 @@ export function createProcedureContext(
   const reply = createMockFastifyReply();
 
   // Build base context with mock Fastify objects
+  //
+  // SAFETY NOTE: We use double assertion (as unknown as X) here intentionally.
+  // MockFastifyRequest/Reply implement the subset of Fastify's interfaces that
+  // procedures actually use (headers, method, url, statusCode, etc.). Full Fastify
+  // compatibility is not needed since procedures only access common properties.
+  // This pattern is safe because:
+  // 1. MockFastify* types cover all properties accessed by guards and middleware
+  // 2. Procedures don't call Fastify-specific methods like .hijack() or .raw
+  // 3. Runtime errors would surface in tests if a procedure needs unsupported methods
   const baseContext: BaseContext = {
     request: request as unknown as BaseContext['request'],
     reply: reply as unknown as BaseContext['reply'],
@@ -212,11 +266,18 @@ export async function executeProcedureDirectly<
   actionCtx: ActionContext,
   options: ExecuteProcedureOptions = {}
 ): Promise<ActionResult<TOutput>> {
-  const { skipGuards = false, contextExtensions } = options;
+  const { skipGuards = false, contextExtensions, requiredContextKeys = [] } = options;
 
   try {
     // Create procedure-compatible context
+    // NOTE: The `as TContext` cast is used here because createProcedureContext returns
+    // BaseContext, but procedures may require a more specific context type (e.g., with `db`).
+    // The contextExtensions option should provide any additional required properties.
+    // Use requiredContextKeys to validate in development that all expected properties exist.
     const ctx = createProcedureContext(actionCtx, contextExtensions) as TContext;
+
+    // Validate context has required properties (development only)
+    validateContextExtensions(ctx, requiredContextKeys);
 
     // Step 1: Execute guards (unless skipped)
     if (!skipGuards && procedure.guards.length > 0) {
