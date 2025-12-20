@@ -34,14 +34,18 @@ describe('TimingTracker', () => {
 
     it('should overwrite existing measurement with same label', () => {
       tracker.start('startup');
-      const first = tracker.getDuration('startup');
 
-      // Wait a tiny bit
+      // End the first measurement
+      const firstDuration = tracker.end('startup');
+      expect(firstDuration).toBeGreaterThanOrEqual(0);
+      expect(tracker.isComplete('startup')).toBe(true);
+
+      // Start again - should overwrite the completed measurement
       tracker.start('startup');
-      const second = tracker.getDuration('startup');
 
-      // Second duration should be smaller or equal (freshly started)
-      expect(second).toBeLessThanOrEqual(first ?? 0);
+      // After restart, measurement should be in-progress (not completed)
+      expect(tracker.isInProgress('startup')).toBe(true);
+      expect(tracker.isComplete('startup')).toBe(false);
     });
 
     it('should support custom labels', () => {
