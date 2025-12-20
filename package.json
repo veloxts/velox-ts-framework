@@ -3,7 +3,7 @@
   "version": "0.4.9",
   "description": "A full-stack TypeScript framework with type-safe APIs, hybrid tRPC/REST architecture, with great DX",
   "main": "dist/index.js",
-  "packageManager": "pnpm@10.24.0",
+  "packageManager": "pnpm@10.26.1",
   "scripts": {
     "build": "turbo build",
     "build:tsc": "tsc --build",
