@@ -35,9 +35,9 @@ export interface LayoutChain {
   rootLayout?: string;
 
   /**
-   * Group layout file path (if any)
+   * Group layouts in order (outermost to innermost)
    */
-  groupLayout?: string;
+  groupLayouts?: string[];
 
   /**
    * Segment layouts (directory-based)
@@ -153,7 +153,7 @@ export function createLayoutResolver(options: LayoutResolverOptions = {}): Layou
     resolve(route: ParsedRoute): LayoutChain {
       const layouts: string[] = [];
       let rootLayout: string | undefined;
-      let groupLayout: string | undefined;
+      const groupLayouts: string[] = [];
       const segmentLayouts: string[] = [];
 
       // 1. Check for root layout
@@ -163,11 +163,12 @@ export function createLayoutResolver(options: LayoutResolverOptions = {}): Layou
         layouts.push(rootLayoutFile);
       }
 
-      // 2. Check for group layout
-      if (route.group) {
-        const groupLayoutFile = layoutCache.get(route.group);
+      // 2. Check for group layouts (supports multiple groups)
+      const routeGroups = route.groups ?? [];
+      for (const groupName of routeGroups) {
+        const groupLayoutFile = layoutCache.get(groupName);
         if (groupLayoutFile) {
-          groupLayout = groupLayoutFile;
+          groupLayouts.push(groupLayoutFile);
           layouts.push(groupLayoutFile);
         }
       }
@@ -182,7 +183,7 @@ export function createLayoutResolver(options: LayoutResolverOptions = {}): Layou
       return {
         layouts,
         rootLayout,
-        groupLayout,
+        groupLayouts: groupLayouts.length > 0 ? groupLayouts : undefined,
         segmentLayouts,
       };
     },

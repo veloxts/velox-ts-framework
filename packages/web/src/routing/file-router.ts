@@ -360,12 +360,14 @@ function findLayout(
     return undefined;
   }
 
-  // Check for group-specific layout first
-  if (route.group) {
-    for (const ext of extensions) {
-      const groupLayoutPath = join(layoutsDir, `${route.group}${ext}`);
-      if (existsSync(groupLayoutPath)) {
-        return `${route.group}${ext}`;
+  // Check for group-specific layouts first (uses first group)
+  if (route.groups && route.groups.length > 0) {
+    for (const groupName of route.groups) {
+      for (const ext of extensions) {
+        const groupLayoutPath = join(layoutsDir, `${groupName}${ext}`);
+        if (existsSync(groupLayoutPath)) {
+          return `${groupName}${ext}`;
+        }
       }
     }
   }
@@ -496,62 +498,72 @@ function compareRouteSpecificity(a: ParsedRoute, b: ParsedRoute): number {
 /**
  * Parses a file path into a route pattern.
  *
+ * Route groups (directories wrapped in parentheses) are stripped from the URL
+ * but used for layout resolution:
+ *
  * @example
  * parseFilePath('users/[id].tsx') // { pattern: '/users/:id', params: ['id'], ... }
- * parseFilePath('(auth)/login.tsx') // { pattern: '/login', group: 'auth', ... }
+ * parseFilePath('(auth)/login.tsx') // { pattern: '/login', group: 'auth', groups: ['auth'], ... }
+ * parseFilePath('(auth)/(admin)/users.tsx') // { pattern: '/users', groups: ['auth', 'admin'], ... }
+ * parseFilePath('users/(settings)/profile.tsx') // { pattern: '/users/profile', groups: ['settings'], ... }
  */
 export function parseFilePath(filePath: string): ParsedRoute {
   // Remove extension
-  let path = filePath.replace(/\.(tsx?|jsx?)$/, '');
+  const path = filePath.replace(/\.(tsx?|jsx?)$/, '');
 
   // Track extracted info
   const params: string[] = [];
+  const groups: string[] = [];
   let catchAll = false;
-  let group: string | undefined;
-
-  // Handle route groups: (group)/...
-  const groupMatch = path.match(/^\(([^)]+)\)\//);
-  if (groupMatch) {
-    group = groupMatch[1];
-    path = path.slice(groupMatch[0].length);
-  }
 
   // Split into segments
   const segments = path.split('/').filter(Boolean);
 
   // Process each segment
-  const processedSegments = segments.map((segment) => {
+  const processedSegments: string[] = [];
+
+  for (const segment of segments) {
+    // Route group: (groupName) - extract group name but don't add to URL pattern
+    if (segment.startsWith('(') && segment.endsWith(')')) {
+      const groupName = segment.slice(1, -1);
+      groups.push(groupName);
+      continue; // Skip adding to processedSegments
+    }
+
     // Catch-all: [...slug]
     if (segment.startsWith('[...') && segment.endsWith(']')) {
       catchAll = true;
       const param = segment.slice(4, -1);
       params.push(param);
-      return '*';
+      processedSegments.push('*');
+      continue;
     }
 
     // Dynamic: [param]
     if (segment.startsWith('[') && segment.endsWith(']')) {
       const param = segment.slice(1, -1);
       params.push(param);
-      return `:${param}`;
+      processedSegments.push(`:${param}`);
+      continue;
     }
 
     // Index route
     if (segment === 'index') {
-      return '';
+      continue; // Skip adding to processedSegments
     }
 
-    return segment;
-  });
+    // Static segment
+    processedSegments.push(segment);
+  }
 
   // Build the pattern
-  const pattern = `/${processedSegments.filter(Boolean).join('/')}` || '/';
+  const pattern = `/${processedSegments.join('/')}` || '/';
 
   return {
     filePath,
     pattern,
     params,
     catchAll,
-    group,
+    groups: groups.length > 0 ? groups : undefined,
   };
 }

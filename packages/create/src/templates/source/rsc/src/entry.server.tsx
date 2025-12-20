@@ -15,9 +15,11 @@ import { PassThrough } from 'node:stream';
 import HomePage from '../app/pages/index.tsx';
 import UsersPage from '../app/pages/users.tsx';
 import UserDetailPage from '../app/pages/users/[id].tsx';
+import AboutPage from '../app/pages/(marketing)/about.tsx';
 
 // Static imports for layout components
 import RootLayout from '../app/layouts/root.tsx';
+import MarketingLayout from '../app/layouts/marketing.tsx';
 
 // Page props type
 interface PageProps {
@@ -114,6 +116,8 @@ const routes: RouteDefinition[] = [
   defineRoute('/index', HomePage),
   defineRoute('/users', UsersPage),
   defineRoute('/users/[id]', UserDetailPage),
+  // Route from (marketing) group - URL is /about, not /marketing/about
+  defineRoute('/about', AboutPage, [RootLayout, MarketingLayout]),
 ];
 
 console.log('[SSR] Available routes:', routes.map(r => r.pattern));

@@ -154,7 +154,7 @@ describe('parseFilePath', () => {
       const route = parseFilePath('(auth)/login.tsx');
 
       expect(route.pattern).toBe('/login');
-      expect(route.group).toBe('auth');
+      expect(route.groups).toEqual(['auth']);
       expect(route.params).toEqual([]);
     });
 
@@ -162,35 +162,77 @@ describe('parseFilePath', () => {
       const route = parseFilePath('(auth)/register.tsx');
 
       expect(route.pattern).toBe('/register');
-      expect(route.group).toBe('auth');
+      expect(route.groups).toEqual(['auth']);
     });
 
     it('should parse (dashboard)/settings.tsx as /settings', () => {
       const route = parseFilePath('(dashboard)/settings.tsx');
 
       expect(route.pattern).toBe('/settings');
-      expect(route.group).toBe('dashboard');
+      expect(route.groups).toEqual(['dashboard']);
     });
 
     it('should handle groups with nested routes', () => {
       const route = parseFilePath('(admin)/users/list.tsx');
 
       expect(route.pattern).toBe('/users/list');
-      expect(route.group).toBe('admin');
+      expect(route.groups).toEqual(['admin']);
     });
 
     it('should handle groups with dynamic parameters', () => {
       const route = parseFilePath('(api)/users/[id].tsx');
 
       expect(route.pattern).toBe('/users/:id');
-      expect(route.group).toBe('api');
+      expect(route.groups).toEqual(['api']);
       expect(route.params).toEqual(['id']);
     });
 
-    it('should not define group for non-grouped routes', () => {
+    it('should not define groups for non-grouped routes', () => {
       const route = parseFilePath('home.tsx');
 
-      expect(route.group).toBeUndefined();
+      expect(route.groups).toBeUndefined();
+    });
+
+    it('should handle multiple route groups', () => {
+      const route = parseFilePath('(auth)/(admin)/users.tsx');
+
+      expect(route.pattern).toBe('/users');
+      expect(route.groups).toEqual(['auth', 'admin']);
+    });
+
+    it('should handle route groups in middle of path', () => {
+      const route = parseFilePath('users/(settings)/profile.tsx');
+
+      expect(route.pattern).toBe('/users/profile');
+      expect(route.groups).toEqual(['settings']);
+    });
+
+    it('should handle route groups with static segments before and after', () => {
+      const route = parseFilePath('dashboard/(settings)/account/security.tsx');
+
+      expect(route.pattern).toBe('/dashboard/account/security');
+      expect(route.groups).toEqual(['settings']);
+    });
+
+    it('should handle multiple groups at different positions', () => {
+      const route = parseFilePath('(auth)/users/(admin)/manage.tsx');
+
+      expect(route.pattern).toBe('/users/manage');
+      expect(route.groups).toEqual(['auth', 'admin']);
+    });
+
+    it('should handle groups with index routes', () => {
+      const route = parseFilePath('(marketing)/index.tsx');
+
+      expect(route.pattern).toBe('/');
+      expect(route.groups).toEqual(['marketing']);
+    });
+
+    it('should preserve group order from path', () => {
+      const route = parseFilePath('(outer)/(middle)/(inner)/page.tsx');
+
+      expect(route.pattern).toBe('/page');
+      expect(route.groups).toEqual(['outer', 'middle', 'inner']);
     });
   });
 
@@ -269,7 +311,7 @@ describe('parseFilePath', () => {
       const route = parseFilePath('(dashboard)/projects/[id]/settings.tsx');
 
       expect(route.pattern).toBe('/projects/:id/settings');
-      expect(route.group).toBe('dashboard');
+      expect(route.groups).toEqual(['dashboard']);
       expect(route.params).toEqual(['id']);
     });
 
@@ -277,7 +319,7 @@ describe('parseFilePath', () => {
       const route = parseFilePath('(docs)/[...slug].tsx');
 
       expect(route.pattern).toBe('/*');
-      expect(route.group).toBe('docs');
+      expect(route.groups).toEqual(['docs']);
       expect(route.params).toEqual(['slug']);
       expect(route.catchAll).toBe(true);
     });
@@ -286,7 +328,7 @@ describe('parseFilePath', () => {
       const route = parseFilePath('(api)/v1/[resource]/[id].tsx');
 
       expect(route.pattern).toBe('/v1/:resource/:id');
-      expect(route.group).toBe('api');
+      expect(route.groups).toEqual(['api']);
       expect(route.params).toEqual(['resource', 'id']);
     });
 
@@ -294,7 +336,16 @@ describe('parseFilePath', () => {
       const route = parseFilePath('(auth)/index.tsx');
 
       expect(route.pattern).toBe('/');
-      expect(route.group).toBe('auth');
+      expect(route.groups).toEqual(['auth']);
+    });
+
+    it('should handle multiple groups with parameters and catch-all', () => {
+      const route = parseFilePath('(api)/(v2)/docs/[...path].tsx');
+
+      expect(route.pattern).toBe('/docs/*');
+      expect(route.groups).toEqual(['api', 'v2']);
+      expect(route.params).toEqual(['path']);
+      expect(route.catchAll).toBe(true);
     });
   });
 
@@ -308,12 +359,12 @@ describe('parseFilePath', () => {
       expect(route).toHaveProperty('catchAll');
     });
 
-    it('should only include group when present', () => {
-      const withGroup = parseFilePath('(admin)/users.tsx');
-      expect(withGroup.group).toBe('admin');
+    it('should only include groups when present', () => {
+      const withGroups = parseFilePath('(admin)/users.tsx');
+      expect(withGroups.groups).toEqual(['admin']);
 
-      const withoutGroup = parseFilePath('users.tsx');
-      expect(withoutGroup.group).toBeUndefined();
+      const withoutGroups = parseFilePath('users.tsx');
+      expect(withoutGroups.groups).toBeUndefined();
     });
 
     it('should have correct types for all properties', () => {
@@ -796,6 +847,125 @@ describe('createFileRouter with file system', () => {
         join(PAGES_DIR, 'docs/[...slug].tsx'),
         'export default function DocsCatchAll() {}'
       );
+    });
+  });
+
+  describe('route groups with file system', () => {
+    beforeAll(() => {
+      // Create route group structure
+      mkdirSync(join(PAGES_DIR, '(auth)'), { recursive: true });
+      mkdirSync(join(PAGES_DIR, '(dashboard)'), { recursive: true });
+      mkdirSync(join(PAGES_DIR, 'users/(settings)'), { recursive: true });
+      mkdirSync(join(PAGES_DIR, '(api)/(v2)/docs'), { recursive: true });
+
+      writeFileSync(join(PAGES_DIR, 'index.tsx'), 'export default function Home() {}');
+      writeFileSync(join(PAGES_DIR, '(auth)/login.tsx'), 'export default function Login() {}');
+      writeFileSync(
+        join(PAGES_DIR, '(auth)/register.tsx'),
+        'export default function Register() {}'
+      );
+      writeFileSync(
+        join(PAGES_DIR, '(dashboard)/analytics.tsx'),
+        'export default function Analytics() {}'
+      );
+      writeFileSync(
+        join(PAGES_DIR, 'users/(settings)/profile.tsx'),
+        'export default function Profile() {}'
+      );
+      writeFileSync(
+        join(PAGES_DIR, '(api)/(v2)/docs/index.tsx'),
+        'export default function Docs() {}'
+      );
+    });
+
+    afterAll(() => {
+      rmSync(join(PAGES_DIR, 'index.tsx'), { force: true });
+      rmSync(join(PAGES_DIR, '(auth)'), { recursive: true, force: true });
+      rmSync(join(PAGES_DIR, '(dashboard)'), { recursive: true, force: true });
+      rmSync(join(PAGES_DIR, 'users'), { recursive: true, force: true });
+      rmSync(join(PAGES_DIR, '(api)'), { recursive: true, force: true });
+    });
+
+    it('should scan route groups and strip from URL pattern', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const patterns = router.routes.map((r) => r.pattern);
+
+      // Route groups should be stripped from patterns
+      expect(patterns).toContain('/login');
+      expect(patterns).toContain('/register');
+      expect(patterns).toContain('/analytics');
+
+      // Group names should NOT appear in URL patterns
+      expect(patterns).not.toContain('/(auth)/login');
+      expect(patterns).not.toContain('/(dashboard)/analytics');
+    });
+
+    it('should handle route groups in middle of path', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const patterns = router.routes.map((r) => r.pattern);
+
+      // /users/(settings)/profile.tsx → /users/profile
+      expect(patterns).toContain('/users/profile');
+      expect(patterns).not.toContain('/users/(settings)/profile');
+    });
+
+    it('should handle multiple nested route groups', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const patterns = router.routes.map((r) => r.pattern);
+
+      // /(api)/(v2)/docs/index.tsx → /docs
+      expect(patterns).toContain('/docs');
+      expect(patterns).not.toContain('/(api)/(v2)/docs');
+    });
+
+    it('should populate groups array on matched routes', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      // Find the login route and check groups
+      const loginRoute = router.routes.find((r) => r.pattern === '/login');
+      expect(loginRoute?.groups).toEqual(['auth']);
+
+      // Find the profile route (middle group)
+      const profileRoute = router.routes.find((r) => r.pattern === '/users/profile');
+      expect(profileRoute?.groups).toEqual(['settings']);
+
+      // Find the docs route (multiple groups)
+      const docsRoute = router.routes.find((r) => r.pattern === '/docs');
+      expect(docsRoute?.groups).toEqual(['api', 'v2']);
+    });
+
+    it('should match routes with groups correctly', async () => {
+      const router = await createFileRouter({
+        pagesDir: join(TEST_DIR, 'app/pages'),
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+      });
+
+      const loginMatch = router.match('/login');
+      expect(loginMatch).not.toBeNull();
+      expect(loginMatch?.route.groups).toEqual(['auth']);
+
+      const profileMatch = router.match('/users/profile');
+      expect(profileMatch).not.toBeNull();
+      expect(profileMatch?.route.groups).toEqual(['settings']);
+
+      const docsMatch = router.match('/docs');
+      expect(docsMatch).not.toBeNull();
+      expect(docsMatch?.route.groups).toEqual(['api', 'v2']);
     });
   });
 

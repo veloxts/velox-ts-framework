@@ -366,9 +366,10 @@ export interface ParsedRoute {
   catchAll: boolean;
 
   /**
-   * Route group (if any)
+   * Route groups this route belongs to (in order from outermost to innermost)
+   * e.g., `(auth)/(admin)/users.tsx` → ['auth', 'admin']
    */
-  group?: string;
+  groups?: string[];
 
   /**
    * Associated layout file (if any)

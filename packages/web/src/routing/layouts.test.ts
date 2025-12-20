@@ -125,16 +125,16 @@ describe('createLayoutResolver', () => {
         pattern: '/login',
         params: [],
         catchAll: false,
-        group: 'auth',
+        groups: ['auth'],
       };
 
       const chain = resolver.resolve(route);
 
-      expect(chain.groupLayout).toBe('auth.tsx');
+      expect(chain.groupLayouts).toEqual(['auth.tsx']);
       expect(chain.layouts).toContain('auth.tsx');
     });
 
-    it('should not include group layout for non-grouped routes', () => {
+    it('should not include group layouts for non-grouped routes', () => {
       const resolver = createLayoutResolver({
         layoutsDir: join(TEST_DIR, 'app/layouts'),
         pagesDir: join(TEST_DIR, 'app/pages'),
@@ -149,7 +149,7 @@ describe('createLayoutResolver', () => {
 
       const chain = resolver.resolve(route);
 
-      expect(chain.groupLayout).toBeUndefined();
+      expect(chain.groupLayouts).toBeUndefined();
     });
 
     it('should return true for hasLayout with group name', () => {
@@ -230,6 +230,11 @@ describe('createLayoutResolver', () => {
       // Create all layout types
       writeFileSync(join(LAYOUTS_DIR, 'root.tsx'), 'export default function RootLayout() {}');
       writeFileSync(join(LAYOUTS_DIR, 'admin.tsx'), 'export default function AdminLayout() {}');
+      writeFileSync(join(LAYOUTS_DIR, 'auth.tsx'), 'export default function AuthLayout() {}');
+      writeFileSync(
+        join(LAYOUTS_DIR, 'dashboard.tsx'),
+        'export default function DashboardLayout() {}'
+      );
       mkdirSync(join(PAGES_DIR, '(admin)/settings'), { recursive: true });
       writeFileSync(
         join(PAGES_DIR, '(admin)/_layout.tsx'),
@@ -240,6 +245,8 @@ describe('createLayoutResolver', () => {
     afterAll(() => {
       rmSync(join(LAYOUTS_DIR, 'root.tsx'), { force: true });
       rmSync(join(LAYOUTS_DIR, 'admin.tsx'), { force: true });
+      rmSync(join(LAYOUTS_DIR, 'auth.tsx'), { force: true });
+      rmSync(join(LAYOUTS_DIR, 'dashboard.tsx'), { force: true });
       rmSync(join(PAGES_DIR, '(admin)'), { recursive: true, force: true });
     });
 
@@ -254,7 +261,7 @@ describe('createLayoutResolver', () => {
         pattern: '/settings',
         params: [],
         catchAll: false,
-        group: 'admin',
+        groups: ['admin'],
       };
 
       const chain = resolver.resolve(route);
@@ -267,7 +274,30 @@ describe('createLayoutResolver', () => {
 
       // All layouts should be present
       expect(chain.rootLayout).toBe('root.tsx');
-      expect(chain.groupLayout).toBe('admin.tsx');
+      expect(chain.groupLayouts).toEqual(['admin.tsx']);
+    });
+
+    it('should resolve multiple group layouts in order', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: '(auth)/(dashboard)/settings.tsx',
+        pattern: '/settings',
+        params: [],
+        catchAll: false,
+        groups: ['auth', 'dashboard'],
+      };
+
+      const chain = resolver.resolve(route);
+
+      // Root layout first, then both group layouts in order
+      expect(chain.layouts[0]).toBe('root.tsx');
+      expect(chain.layouts[1]).toBe('auth.tsx');
+      expect(chain.layouts[2]).toBe('dashboard.tsx');
+      expect(chain.groupLayouts).toEqual(['auth.tsx', 'dashboard.tsx']);
     });
   });
 
@@ -289,7 +319,7 @@ describe('createLayoutResolver', () => {
 
       expect(chain.layouts).toEqual([]);
       expect(chain.rootLayout).toBeUndefined();
-      expect(chain.groupLayout).toBeUndefined();
+      expect(chain.groupLayouts).toBeUndefined();
       expect(chain.segmentLayouts).toEqual([]);
     });
 
