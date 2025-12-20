@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.0
+
+### Minor Changes
+
+- RSC streaming, dynamic routes, Vinxi integration
+
 ## 0.5.0
 
 ### Minor Changes

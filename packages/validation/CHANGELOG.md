@@ -1,5 +1,16 @@
 # @veloxts/validation
 
+## 0.6.0
+
+### Minor Changes
+
+- RSC streaming, dynamic routes, Vinxi integration
+
+### Patch Changes
+
+- Updated dependencies
+  - @veloxts/core@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes
