@@ -85,8 +85,48 @@ function generatePrintPage(): string {
   return compileTemplate('rsc/app/pages/print.tsx', RSC_CONFIG);
 }
 
+function generateNotFoundPage(): string {
+  return compileTemplate('rsc/app/pages/_not-found.tsx', RSC_CONFIG);
+}
+
 function generateUserActions(): string {
   return compileTemplate('rsc/app/actions/users.ts', RSC_CONFIG);
+}
+
+// Route group pages
+function generateSettingsPage(): string {
+  return compileTemplate('rsc/app/pages/(dashboard)/settings.tsx', RSC_CONFIG);
+}
+
+function generateProfilePage(): string {
+  return compileTemplate('rsc/app/pages/(dashboard)/profile.tsx', RSC_CONFIG);
+}
+
+// Nested dynamic route pages
+function generateUserPostsPage(): string {
+  return compileTemplate('rsc/app/pages/users/[id]/posts/index.tsx', RSC_CONFIG);
+}
+
+function generatePostDetailPage(): string {
+  return compileTemplate('rsc/app/pages/users/[id]/posts/[postId].tsx', RSC_CONFIG);
+}
+
+function generateNewPostPage(): string {
+  return compileTemplate('rsc/app/pages/users/[id]/posts/new.tsx', RSC_CONFIG);
+}
+
+// Catch-all page
+function generateDocsPage(): string {
+  return compileTemplate('rsc/app/pages/docs/[...slug].tsx', RSC_CONFIG);
+}
+
+// Additional layouts
+function generateDashboardLayout(): string {
+  return compileTemplate('rsc/app/layouts/dashboard.tsx', RSC_CONFIG);
+}
+
+function generateUsersLayout(): string {
+  return compileTemplate('rsc/app/pages/users/_layout.tsx', RSC_CONFIG);
 }
 
 // Source layer
@@ -114,8 +154,16 @@ function generateUserProcedures(): string {
   return compileTemplate('rsc/src/api/procedures/users.ts', RSC_CONFIG);
 }
 
+function generatePostProcedures(): string {
+  return compileTemplate('rsc/src/api/procedures/posts.ts', RSC_CONFIG);
+}
+
 function generateUserSchemas(): string {
   return compileTemplate('rsc/src/api/schemas/user.ts', RSC_CONFIG);
+}
+
+function generatePostSchemas(): string {
+  return compileTemplate('rsc/src/api/schemas/post.ts', RSC_CONFIG);
 }
 
 function generateFavicon(): string {
@@ -141,25 +189,48 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'prisma/schema.prisma', content: generatePrismaSchema() },
     { path: 'prisma.config.ts', content: generatePrismaConfig() },
 
-    // App layer (RSC)
+    // App layer (RSC) - Basic pages
     { path: 'app/pages/index.tsx', content: generateHomePage() },
     { path: 'app/pages/users.tsx', content: generateUsersPage() },
-    { path: 'app/pages/users/[id].tsx', content: generateUserDetailPage() },
-    { path: 'app/pages/(marketing)/about.tsx', content: generateAboutPage() },
     { path: 'app/pages/print.tsx', content: generatePrintPage() },
+    { path: 'app/pages/_not-found.tsx', content: generateNotFoundPage() },
+
+    // App layer (RSC) - Nested dynamic routes (users/[id]/*)
+    { path: 'app/pages/users/[id].tsx', content: generateUserDetailPage() },
+    { path: 'app/pages/users/[id]/posts/index.tsx', content: generateUserPostsPage() },
+    { path: 'app/pages/users/[id]/posts/[postId].tsx', content: generatePostDetailPage() },
+    { path: 'app/pages/users/[id]/posts/new.tsx', content: generateNewPostPage() },
+
+    // App layer (RSC) - Route groups
+    { path: 'app/pages/(marketing)/about.tsx', content: generateAboutPage() },
+    { path: 'app/pages/(dashboard)/settings.tsx', content: generateSettingsPage() },
+    { path: 'app/pages/(dashboard)/profile.tsx', content: generateProfilePage() },
+
+    // App layer (RSC) - Catch-all routes
+    { path: 'app/pages/docs/[...slug].tsx', content: generateDocsPage() },
+
+    // App layer (RSC) - Layouts
     { path: 'app/layouts/root.tsx', content: generateRootLayout() },
     { path: 'app/layouts/marketing.tsx', content: generateMarketingLayout() },
     { path: 'app/layouts/minimal.tsx', content: generateMinimalLayout() },
+    { path: 'app/layouts/dashboard.tsx', content: generateDashboardLayout() },
+    { path: 'app/pages/users/_layout.tsx', content: generateUsersLayout() },
+
+    // App layer (RSC) - Server actions
     { path: 'app/actions/users.ts', content: generateUserActions() },
 
-    // Source layer
+    // Source layer - Entry points
     { path: 'src/entry.client.tsx', content: generateEntryClient() },
     { path: 'src/entry.server.tsx', content: generateEntryServer() },
+
+    // Source layer - API
     { path: 'src/api/handler.ts', content: generateApiHandler() },
     { path: 'src/api/database.ts', content: generateDatabase() },
     { path: 'src/api/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'src/api/procedures/users.ts', content: generateUserProcedures() },
+    { path: 'src/api/procedures/posts.ts', content: generatePostProcedures() },
     { path: 'src/api/schemas/user.ts', content: generateUserSchemas() },
+    { path: 'src/api/schemas/post.ts', content: generatePostSchemas() },
 
     // Public assets
     { path: 'public/favicon.svg', content: generateFavicon() },

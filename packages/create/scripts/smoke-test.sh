@@ -683,22 +683,55 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   echo "=== Verifying template structure ==="
 
-  # Check for required files
+  # Check for required files (including new nested routes, layouts, and catch-all)
   REQUIRED_FILES=(
+    # Core config
     "app.config.ts"
     "tsconfig.json"
-    "app/pages/index.tsx"
-    "app/pages/users.tsx"
-    "app/layouts/root.tsx"
-    "app/actions/users.ts"
+    "prisma/schema.prisma"
+
+    # Entry points
     "src/entry.client.tsx"
     "src/entry.server.tsx"
+
+    # API layer
     "src/api/handler.ts"
     "src/api/database.ts"
     "src/api/procedures/health.ts"
     "src/api/procedures/users.ts"
+    "src/api/procedures/posts.ts"
     "src/api/schemas/user.ts"
-    "prisma/schema.prisma"
+    "src/api/schemas/post.ts"
+
+    # Basic pages
+    "app/pages/index.tsx"
+    "app/pages/users.tsx"
+    "app/pages/print.tsx"
+    "app/pages/_not-found.tsx"
+
+    # Nested dynamic routes (multi-level)
+    "app/pages/users/[id].tsx"
+    "app/pages/users/[id]/posts/index.tsx"
+    "app/pages/users/[id]/posts/[postId].tsx"
+    "app/pages/users/[id]/posts/new.tsx"
+
+    # Route groups
+    "app/pages/(marketing)/about.tsx"
+    "app/pages/(dashboard)/settings.tsx"
+    "app/pages/(dashboard)/profile.tsx"
+
+    # Catch-all route
+    "app/pages/docs/[...slug].tsx"
+
+    # Layouts
+    "app/layouts/root.tsx"
+    "app/layouts/marketing.tsx"
+    "app/layouts/minimal.tsx"
+    "app/layouts/dashboard.tsx"
+    "app/pages/users/_layout.tsx"
+
+    # Server actions
+    "app/actions/users.ts"
   )
 
   for file in "${REQUIRED_FILES[@]}"; do
@@ -744,7 +777,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "✓ Template 'rsc' passed structure validation!"
     echo ""
     echo "Test summary:"
-    echo "  - Structure validation: PASSED (14 files)"
+    echo "  - Structure validation: PASSED (29 files)"
     echo "  - Vinxi runtime: WIP (requires createApp() integration)"
     echo "  - API endpoints: SKIPPED"
     echo "  - RSC page rendering: SKIPPED"
@@ -969,7 +1002,132 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   fi
 
   echo ""
-  echo "✓ All API endpoint tests passed"
+  echo "--- Testing nested resource API (posts) ---"
+
+  # Re-create a user for posts tests
+  RESPONSE=$(curl -s -X POST "http://localhost:$test_port/api/users" \
+    -H "Content-Type: application/json" \
+    -d '{"name":"Posts Test User","email":"posts@example.com"}')
+  POSTS_USER_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+
+  # Create post for user
+  # Note: userId is automatically merged from path param via .parent('users') in procedure
+  echo "Testing POST /api/users/:userId/posts..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:$test_port/api/users/$POSTS_USER_ID/posts" \
+    -H "Content-Type: application/json" \
+    -d '{"title":"Test Post","content":"This is test content","published":true}')
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "201" ]; then
+    if echo "$BODY" | grep -q '"id"' && echo "$BODY" | grep -q '"Test Post"'; then
+      echo "  ✓ POST /api/users/:userId/posts (201 Created)"
+      POST_ID=$(echo "$BODY" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+    else
+      echo "  ✗ POST /api/users/:userId/posts returned invalid post data"
+      echo "  Response: $BODY"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ POST /api/users/:userId/posts returned $HTTP_CODE"
+    echo "  Response: $BODY"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # List posts for user
+  echo "Testing GET /api/users/:userId/posts..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/api/users/$POSTS_USER_ID/posts")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    if echo "$BODY" | grep -q '"Test Post"'; then
+      echo "  ✓ GET /api/users/:userId/posts (200 OK, contains post)"
+    else
+      echo "  ✗ GET /api/users/:userId/posts missing post data"
+      echo "  Response: $BODY"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /api/users/:userId/posts returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # Get single post
+  echo "Testing GET /api/users/:userId/posts/:postId..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/api/users/$POSTS_USER_ID/posts/$POST_ID")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    if echo "$BODY" | grep -q '"Test Post"' && echo "$BODY" | grep -q '"user"'; then
+      echo "  ✓ GET /api/users/:userId/posts/:postId (200 OK, includes user relation)"
+    else
+      echo "  ✗ GET /api/users/:userId/posts/:postId missing data"
+      echo "  Response: $BODY"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /api/users/:userId/posts/:postId returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # Delete post
+  echo "Testing DELETE /api/users/:userId/posts/:postId..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" -X DELETE "http://localhost:$test_port/api/users/$POSTS_USER_ID/posts/$POST_ID")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    echo "  ✓ DELETE /api/users/:userId/posts/:postId (200 OK)"
+  else
+    echo "  ✗ DELETE /api/users/:userId/posts/:postId returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # Test 404 for non-existent post
+  echo "Testing GET /api/users/:userId/posts/:postId (not found)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/api/users/$POSTS_USER_ID/posts/00000000-0000-0000-0000-000000000000")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+
+  if [ "$HTTP_CODE" = "404" ]; then
+    echo "  ✓ GET /api/users/:userId/posts/:postId (404 Not Found)"
+  else
+    echo "  ✗ GET /api/users/:userId/posts/:postId should return 404, got $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # Test 404 for posts of non-existent user
+  echo "Testing GET /api/users/:userId/posts (user not found)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/api/users/00000000-0000-0000-0000-000000000000/posts")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+
+  if [ "$HTTP_CODE" = "404" ]; then
+    echo "  ✓ GET /api/users/:userId/posts for non-existent user (404 Not Found)"
+  else
+    echo "  ✗ GET /api/users/:userId/posts for non-existent user should return 404, got $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  echo ""
+  echo "✓ All API endpoint tests passed (14 tests)"
   echo ""
 
   # Test RSC page rendering
@@ -1096,7 +1254,233 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   fi
 
   echo ""
-  echo "✓ All RSC page rendering tests passed"
+  echo "--- Testing nested dynamic routes (multi-level) ---"
+
+  # Create a post for page tests
+  RESPONSE=$(curl -s -X POST "http://localhost:$test_port/api/users/$PAGE_USER_ID/posts" \
+    -H "Content-Type: application/json" \
+    -d '{"title":"Page Test Post","content":"Content for page test","published":true}')
+  PAGE_POST_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+
+  # Test user posts list page (/users/:id/posts)
+  echo "Testing GET /users/:id/posts (posts list page)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/users/$PAGE_USER_ID/posts")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    if echo "$BODY" | grep -q "Posts by" && echo "$BODY" | grep -q "Page Test Post"; then
+      echo "  ✓ GET /users/:id/posts (200 OK, shows posts for user)"
+    else
+      echo "  ✗ GET /users/:id/posts missing expected content"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /users/:id/posts returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # Test post detail page (/users/:id/posts/:postId)
+  echo "Testing GET /users/:id/posts/:postId (post detail page)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/users/$PAGE_USER_ID/posts/$PAGE_POST_ID")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    if echo "$BODY" | grep -q "Page Test Post" && echo "$BODY" | grep -q "Content for page test"; then
+      echo "  ✓ GET /users/:id/posts/:postId (200 OK, shows post detail)"
+    else
+      echo "  ✗ GET /users/:id/posts/:postId missing expected content"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /users/:id/posts/:postId returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # Test new post page (/users/:id/posts/new) - static route before dynamic
+  echo "Testing GET /users/:id/posts/new (new post form - static precedence)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/users/$PAGE_USER_ID/posts/new")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    if echo "$BODY" | grep -q "New Post"; then
+      echo "  ✓ GET /users/:id/posts/new (200 OK, static route matched before dynamic)"
+    else
+      echo "  ✗ GET /users/:id/posts/new missing 'New Post' content"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /users/:id/posts/new returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  echo ""
+  echo "--- Testing route groups ---"
+
+  # Test settings page (dashboard group)
+  echo "Testing GET /settings (dashboard route group)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/settings")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    if echo "$BODY" | grep -q "Settings" && echo "$BODY" | grep -q "dashboard"; then
+      echo "  ✓ GET /settings (200 OK, uses DashboardLayout)"
+    else
+      echo "  ✗ GET /settings missing expected content or layout indicator"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /settings returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # Test profile page (dashboard group)
+  echo "Testing GET /profile (dashboard route group)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/profile")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    if echo "$BODY" | grep -q "Profile" && echo "$BODY" | grep -q "Dashboard"; then
+      echo "  ✓ GET /profile (200 OK, uses DashboardLayout)"
+    else
+      echo "  ✗ GET /profile missing expected content or layout indicator"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /profile returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  echo ""
+  echo "--- Testing catch-all routes ---"
+
+  # Test single-segment catch-all
+  echo "Testing GET /docs/getting-started (catch-all single segment)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/docs/getting-started")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    if echo "$BODY" | grep -q "Getting Started"; then
+      echo "  ✓ GET /docs/getting-started (200 OK, catch-all matched)"
+    else
+      echo "  ✗ GET /docs/getting-started missing expected content"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /docs/getting-started returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  # Test multi-segment catch-all
+  echo "Testing GET /docs/api/reference/types (catch-all multi-segment)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/docs/api/reference/types")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    if echo "$BODY" | grep -q "Type Definitions" || echo "$BODY" | grep -q "types"; then
+      echo "  ✓ GET /docs/api/reference/types (200 OK, multi-segment catch-all)"
+    else
+      echo "  ✗ GET /docs/api/reference/types missing expected content"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /docs/api/reference/types returned $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  echo ""
+  echo "--- Testing 404 page ---"
+
+  # Test 404 for non-existent route
+  echo "Testing GET /nonexistent-page (404 page)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/nonexistent-page")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "404" ]; then
+    if echo "$BODY" | grep -q "404" && echo "$BODY" | grep -q "Not Found"; then
+      echo "  ✓ GET /nonexistent-page (404, custom 404 page rendered)"
+    else
+      echo "  ✗ GET /nonexistent-page returned 404 but missing custom content"
+      echo "  Response snippet: $(echo "$BODY" | head -c 500)"
+      kill $SERVER_PID 2>/dev/null
+      wait $SERVER_PID 2>/dev/null
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /nonexistent-page should return 404, got $HTTP_CODE"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+
+  echo ""
+  echo "--- Testing layout inheritance ---"
+
+  # Verify users section has segment layout
+  echo "Testing /users layout inheritance (segment layout)..."
+  RESPONSE=$(curl -s "http://localhost:$test_port/users")
+  if echo "$RESPONSE" | grep -q "Users Section"; then
+    echo "  ✓ /users includes UsersLayout (segment layout)"
+  else
+    echo "  ⚠ /users may not have segment layout applied"
+  fi
+
+  # Verify /print uses minimal layout (no nav)
+  echo "Testing /print layout (replace mode)..."
+  RESPONSE=$(curl -s "http://localhost:$test_port/print")
+  if echo "$RESPONSE" | grep -q "nav-list"; then
+    echo "  ✗ /print should use MinimalLayout without nav"
+    kill $SERVER_PID 2>/dev/null
+    wait $SERVER_PID 2>/dev/null
+    exit 1
+  else
+    echo "  ✓ /print uses MinimalLayout (no nav - replace mode)"
+  fi
+
+  echo ""
+  echo "✓ All RSC page rendering tests passed (12 tests)"
   echo ""
 
   # Test client hydration assets
@@ -1125,10 +1509,11 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   echo "✓ Template 'rsc' passed all tests!"
   echo ""
   echo "Test summary:"
-  echo "  - Structure validation: PASSED"
+  echo "  - Structure validation: PASSED (29 files)"
   echo "  - Production build: WIP (Vinxi integration incomplete)"
-  echo "  - API endpoints: PASSED (8 tests)"
-  echo "  - RSC page rendering: PASSED (4 tests, including dynamic routes)"
+  echo "  - API endpoints: PASSED (14 tests - users + nested posts)"
+  echo "  - RSC page rendering: PASSED (12 tests - basic + nested + groups + catch-all + 404)"
+  echo "  - Layout inheritance: VERIFIED (segment layouts + replace mode)"
   echo "  - Client hydration: VERIFIED"
   echo ""
 

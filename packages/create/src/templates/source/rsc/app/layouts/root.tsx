@@ -213,8 +213,18 @@ export default function RootLayout({ children }: RootLayoutProps) {
                 </a>
               </li>
               <li>
+                <a href="/settings" className="nav-link">
+                  Settings
+                </a>
+              </li>
+              <li>
+                <a href="/docs/getting-started" className="nav-link">
+                  Docs
+                </a>
+              </li>
+              <li>
                 <a href="/api/health" className="nav-link">
-                  API Health
+                  API
                 </a>
               </li>
             </ul>

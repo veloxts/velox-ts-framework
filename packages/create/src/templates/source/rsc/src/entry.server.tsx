@@ -15,13 +15,22 @@ import { PassThrough } from 'node:stream';
 import HomePage from '../app/pages/index.tsx';
 import UsersPage from '../app/pages/users.tsx';
 import UserDetailPage from '../app/pages/users/[id].tsx';
+import UserPostsPage from '../app/pages/users/[id]/posts/index.tsx';
+import PostDetailPage from '../app/pages/users/[id]/posts/[postId].tsx';
+import NewPostPage from '../app/pages/users/[id]/posts/new.tsx';
 import AboutPage from '../app/pages/(marketing)/about.tsx';
+import SettingsPage from '../app/pages/(dashboard)/settings.tsx';
+import ProfilePage from '../app/pages/(dashboard)/profile.tsx';
 import PrintPage from '../app/pages/print.tsx';
+import DocsPage from '../app/pages/docs/[...slug].tsx';
+import NotFoundPage from '../app/pages/_not-found.tsx';
 
 // Static imports for layout components
 import RootLayout from '../app/layouts/root.tsx';
 import MarketingLayout from '../app/layouts/marketing.tsx';
 import MinimalLayout from '../app/layouts/minimal.tsx';
+import DashboardLayout from '../app/layouts/dashboard.tsx';
+import UsersLayout from '../app/pages/users/_layout.tsx';
 
 // Page props type
 interface PageProps {
@@ -65,19 +74,23 @@ interface RouteMatch {
 function compileRoute(pattern: string): { regex: RegExp; paramNames: string[] } {
   const paramNames: string[] = [];
 
-  // Escape special regex chars except [ and ]
+  // Process pattern replacements BEFORE escaping to preserve [...] and [] syntax
   let regexStr = pattern
-    .replace(/[.+?^${}()|\\]/g, '\\$&')
-    // Handle catch-all [...param]
+    // Handle catch-all [...param] first (before escaping dots)
     .replace(/\[\.\.\.(\w+)\]/g, (_, name) => {
       paramNames.push(name);
-      return '(.+)';
+      return '___CATCH_ALL___';
     })
     // Handle dynamic [param]
     .replace(/\[(\w+)\]/g, (_, name) => {
       paramNames.push(name);
-      return '([^/]+)';
-    });
+      return '___DYNAMIC___';
+    })
+    // Now escape special regex chars
+    .replace(/[.+?^${}()|\\]/g, '\\$&')
+    // Restore placeholders with actual regex patterns
+    .replace(/___CATCH_ALL___/g, '(.+)')
+    .replace(/___DYNAMIC___/g, '([^/]+)');
 
   // Exact match
   const regex = new RegExp(`^${regexStr}$`);
@@ -114,12 +127,28 @@ function wrapWithLayouts(
 
 // Route registry with patterns (order matters - more specific first)
 const routes: RouteDefinition[] = [
+  // Home
   defineRoute('/', HomePage),
   defineRoute('/index', HomePage),
-  defineRoute('/users', UsersPage),
-  defineRoute('/users/[id]', UserDetailPage),
-  // Route from (marketing) group - URL is /about, not /marketing/about
+
+  // Users section (with segment layout)
+  defineRoute('/users', UsersPage, [RootLayout, UsersLayout]),
+  // Static 'new' before dynamic [postId] for proper precedence
+  defineRoute('/users/[id]/posts/new', NewPostPage, [RootLayout, UsersLayout]),
+  defineRoute('/users/[id]/posts/[postId]', PostDetailPage, [RootLayout, UsersLayout]),
+  defineRoute('/users/[id]/posts', UserPostsPage, [RootLayout, UsersLayout]),
+  defineRoute('/users/[id]', UserDetailPage, [RootLayout, UsersLayout]),
+
+  // Dashboard group pages (with dashboard layout)
+  defineRoute('/settings', SettingsPage, [RootLayout, DashboardLayout]),
+  defineRoute('/profile', ProfilePage, [RootLayout, DashboardLayout]),
+
+  // Marketing group pages
   defineRoute('/about', AboutPage, [RootLayout, MarketingLayout]),
+
+  // Documentation catch-all
+  defineRoute('/docs/[...slug]', DocsPage),
+
   // Per-route layout override - uses MinimalLayout instead of RootLayout
   defineRoute('/print', PrintPage, [MinimalLayout]),
 ];
@@ -193,9 +222,31 @@ export default async function ssrHandler(event: H3Event): Promise<void> {
   const match = matchRoute(pathname);
 
   if (!match) {
-    res.statusCode = 404;
-    res.setHeader('Content-Type', 'text/html');
-    res.end(`<!DOCTYPE html><html><body><h1>404 - Page Not Found</h1><p>Path: ${pathname}</p></body></html>`);
+    // Use the NotFoundPage component with RootLayout
+    const pageProps: PageProps = {
+      params: {},
+      searchParams: parseSearchParams(url),
+    };
+
+    const notFoundElement = <NotFoundPage {...pageProps} />;
+    const html = wrapWithLayouts(notFoundElement, [RootLayout], {});
+
+    const passThrough = new PassThrough();
+    const { pipe } = renderToPipeableStream(html, {
+      onShellReady() {
+        res.statusCode = 404;
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        passThrough.on('data', (chunk) => res.write(chunk));
+        passThrough.on('end', () => res.end());
+        pipe(passThrough);
+      },
+      onShellError(error) {
+        console.error('[SSR] 404 Shell error:', error);
+        res.statusCode = 404;
+        res.setHeader('Content-Type', 'text/html');
+        res.end(`<!DOCTYPE html><html><body><h1>404 - Page Not Found</h1><p>Path: ${pathname}</p></body></html>`);
+      },
+    });
     return;
   }
 

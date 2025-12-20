@@ -17,10 +17,11 @@ import { createH3ApiHandler } from '@veloxts/web';
 
 import { db } from './database.js';
 import { healthProcedures } from './procedures/health.js';
+import { postProcedures } from './procedures/posts.js';
 import { userProcedures } from './procedures/users.js';
 
 // Export router type for frontend type safety
-const router = { health: healthProcedures, users: userProcedures };
+const router = { health: healthProcedures, users: userProcedures, posts: postProcedures };
 export type AppRouter = typeof router;
 
 /**
@@ -39,7 +40,7 @@ export default createH3ApiHandler({
 
     // Register REST routes from procedures
     app.routes(
-      rest([healthProcedures, userProcedures], {
+      rest([healthProcedures, userProcedures, postProcedures], {
         prefix: '', // No prefix - Vinxi handles /api/*
       })
     );
