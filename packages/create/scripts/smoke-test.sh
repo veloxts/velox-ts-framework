@@ -1116,8 +1116,8 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   # Cleanup
   echo "=== Cleaning up ==="
-  kill $SERVER_PID 2>/dev/null
-  wait $SERVER_PID 2>/dev/null
+  kill $SERVER_PID 2>/dev/null || true
+  wait $SERVER_PID 2>/dev/null || true
   echo "✓ Server stopped"
   echo ""
 
@@ -1169,3 +1169,6 @@ echo ""
 echo "=========================================="
 echo "  All smoke tests passed!"
 echo "=========================================="
+
+# Explicit success exit
+exit 0
