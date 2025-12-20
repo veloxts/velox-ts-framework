@@ -69,6 +69,22 @@ function generateRootLayout(): string {
   return compileTemplate('rsc/app/layouts/root.tsx', RSC_CONFIG);
 }
 
+function generateMarketingLayout(): string {
+  return compileTemplate('rsc/app/layouts/marketing.tsx', RSC_CONFIG);
+}
+
+function generateMinimalLayout(): string {
+  return compileTemplate('rsc/app/layouts/minimal.tsx', RSC_CONFIG);
+}
+
+function generateAboutPage(): string {
+  return compileTemplate('rsc/app/pages/(marketing)/about.tsx', RSC_CONFIG);
+}
+
+function generatePrintPage(): string {
+  return compileTemplate('rsc/app/pages/print.tsx', RSC_CONFIG);
+}
+
 function generateUserActions(): string {
   return compileTemplate('rsc/app/actions/users.ts', RSC_CONFIG);
 }
@@ -129,7 +145,11 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'app/pages/index.tsx', content: generateHomePage() },
     { path: 'app/pages/users.tsx', content: generateUsersPage() },
     { path: 'app/pages/users/[id].tsx', content: generateUserDetailPage() },
+    { path: 'app/pages/(marketing)/about.tsx', content: generateAboutPage() },
+    { path: 'app/pages/print.tsx', content: generatePrintPage() },
     { path: 'app/layouts/root.tsx', content: generateRootLayout() },
+    { path: 'app/layouts/marketing.tsx', content: generateMarketingLayout() },
+    { path: 'app/layouts/minimal.tsx', content: generateMinimalLayout() },
     { path: 'app/actions/users.ts', content: generateUserActions() },
 
     // Source layer
