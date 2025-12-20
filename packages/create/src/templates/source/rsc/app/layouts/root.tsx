@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 
 interface RootLayoutProps {
   children: ReactNode;
+  params?: Record<string, string>;
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
@@ -223,6 +224,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
           <footer className="footer">Built with VeloxTS &bull; React Server Components</footer>
         </div>
+        <script src="/_build/entry.client.js" type="module" />
       </body>
     </html>
   );

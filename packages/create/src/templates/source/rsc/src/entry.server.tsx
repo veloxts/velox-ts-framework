@@ -6,7 +6,7 @@
  * Supports dynamic routes with [param] and [...catchAll] patterns.
  */
 
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactElement, ReactNode } from 'react';
 
 import { renderToPipeableStream } from 'react-dom/server';
 import { PassThrough } from 'node:stream';
@@ -16,11 +16,22 @@ import HomePage from '../app/pages/index.tsx';
 import UsersPage from '../app/pages/users.tsx';
 import UserDetailPage from '../app/pages/users/[id].tsx';
 
+// Static imports for layout components
+import RootLayout from '../app/layouts/root.tsx';
+
 // Page props type
 interface PageProps {
   params: Record<string, string>;
   searchParams: Record<string, string | string[]>;
 }
+
+// Layout props type
+interface LayoutProps {
+  children: ReactNode;
+  params: Record<string, string>;
+}
+
+type LayoutComponent = ComponentType<LayoutProps>;
 
 // Route definition with pattern matching
 interface RouteDefinition {
@@ -29,12 +40,15 @@ interface RouteDefinition {
   // Compiled regex and param names for matching
   regex: RegExp;
   paramNames: string[];
+  // Layout chain for this route (outermost first)
+  layouts: LayoutComponent[];
 }
 
 // Route match result
 interface RouteMatch {
   component: ComponentType<PageProps>;
   params: Record<string, string>;
+  layouts: LayoutComponent[];
 }
 
 /**
@@ -69,9 +83,29 @@ function compileRoute(pattern: string): { regex: RegExp; paramNames: string[] } 
 /**
  * Creates a route definition from pattern and component
  */
-function defineRoute(pattern: string, component: ComponentType<PageProps>): RouteDefinition {
+function defineRoute(
+  pattern: string,
+  component: ComponentType<PageProps>,
+  layouts: LayoutComponent[] = [RootLayout]
+): RouteDefinition {
   const { regex, paramNames } = compileRoute(pattern);
-  return { pattern, component, regex, paramNames };
+  return { pattern, component, regex, paramNames, layouts };
+}
+
+/**
+ * Wraps a page element with its layout chain.
+ * Layouts are applied from outermost (root) to innermost.
+ * Uses reduceRight to build the nested component tree.
+ */
+function wrapWithLayouts(
+  pageElement: ReactElement,
+  layouts: LayoutComponent[],
+  params: Record<string, string>
+): ReactElement {
+  return layouts.reduceRight(
+    (children, Layout) => <Layout params={params}>{children}</Layout>,
+    pageElement
+  );
 }
 
 // Route registry with patterns (order matters - more specific first)
@@ -114,7 +148,7 @@ function matchRoute(pathname: string): RouteMatch | null {
       });
 
       console.log('[SSR] Matched:', route.pattern, 'params:', params);
-      return { component: route.component, params };
+      return { component: route.component, params, layouts: route.layouts };
     }
   }
 
@@ -157,7 +191,7 @@ export default async function ssrHandler(event: H3Event): Promise<void> {
     return;
   }
 
-  const { component: PageComponent, params } = match;
+  const { component: PageComponent, params, layouts } = match;
 
   // Prepare page props with extracted params and search params
   const pageProps: PageProps = {
@@ -169,20 +203,8 @@ export default async function ssrHandler(event: H3Event): Promise<void> {
     // Create the page element
     const pageElement = <PageComponent {...pageProps} />;
 
-    // Wrap in HTML document
-    const html = (
-      <html lang="en">
-        <head>
-          <meta charSet="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>VeloxTS RSC</title>
-        </head>
-        <body>
-          <div id="root">{pageElement}</div>
-          <script src="/_build/entry.client.js" type="module" />
-        </body>
-      </html>
-    );
+    // Wrap page with layout chain (layouts provide the HTML shell)
+    const html = wrapWithLayouts(pageElement, layouts, params);
 
     // Stream the response
     const passThrough = new PassThrough();
