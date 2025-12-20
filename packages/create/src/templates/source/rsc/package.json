@@ -23,7 +23,7 @@
     "@veloxts/validation": "__VELOXTS_VERSION__",
     "@veloxts/web": "__VELOXTS_VERSION__",
     "@vinxi/server-functions": "0.5.1",
-    "dotenv": "16.4.5",
+    "dotenv": "17.2.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "vinxi": "0.5.10",

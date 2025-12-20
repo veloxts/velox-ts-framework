@@ -47,7 +47,8 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@biomejs/biome",
-      "@prisma/client"
+      "@prisma/engines",
+      "prisma"
     ]
   }
 }
