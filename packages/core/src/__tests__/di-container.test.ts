@@ -7,7 +7,7 @@
  * explicit inject arrays instead of automatic constructor injection.
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   Container,
@@ -603,6 +603,415 @@ describe('DI Container', () => {
       const provider = child.getProvider(ConfigService);
 
       expect(provider).toBeDefined();
+    });
+  });
+
+  describe('REQUEST Scope Resolution', () => {
+    let onRequestHook: ((request: unknown) => Promise<void>) | null = null;
+    let onResponseHook: ((request: unknown) => Promise<void>) | null = null;
+
+    function setupFastifyMock(c: Container) {
+      onRequestHook = null;
+      onResponseHook = null;
+
+      const mockServer = {
+        addHook: vi.fn((name: string, handler: (request: unknown) => Promise<void>) => {
+          if (name === 'onRequest') onRequestHook = handler;
+          if (name === 'onResponse') onResponseHook = handler;
+        }),
+      };
+
+      c.attachToFastify(mockServer as never);
+    }
+
+    it('should resolve request-scoped service within request context', async () => {
+      @Injectable({ scope: Scope.REQUEST })
+      class RequestScopedService {
+        readonly id = Math.random();
+      }
+
+      const REQUEST_TOKEN = createStringToken<RequestScopedService>('REQUEST_SERVICE');
+      testContainer.register({
+        provide: REQUEST_TOKEN,
+        useClass: RequestScopedService,
+        scope: Scope.REQUEST,
+      });
+
+      setupFastifyMock(testContainer);
+
+      // Simulate request lifecycle
+      const mockRequest = {};
+      await onRequestHook!(mockRequest);
+
+      // Resolve within request context
+      const instance1 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest as never });
+      const instance2 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest as never });
+
+      // Same instance within same request
+      expect(instance1).toBe(instance2);
+
+      // Cleanup
+      await onResponseHook!(mockRequest);
+    });
+
+    it('should create new instance for different requests', async () => {
+      @Injectable({ scope: Scope.REQUEST })
+      class RequestScopedService {
+        readonly id = Math.random();
+      }
+
+      const REQUEST_TOKEN = createStringToken<RequestScopedService>('REQUEST_SERVICE_2');
+      testContainer.register({
+        provide: REQUEST_TOKEN,
+        useClass: RequestScopedService,
+        scope: Scope.REQUEST,
+      });
+
+      setupFastifyMock(testContainer);
+
+      // First request
+      const mockRequest1 = {};
+      await onRequestHook!(mockRequest1);
+      const instance1 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest1 as never });
+      await onResponseHook!(mockRequest1);
+
+      // Second request
+      const mockRequest2 = {};
+      await onRequestHook!(mockRequest2);
+      const instance2 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest2 as never });
+      await onResponseHook!(mockRequest2);
+
+      // Different instances for different requests
+      expect(instance1).not.toBe(instance2);
+      expect(instance1.id).not.toBe(instance2.id);
+    });
+
+    it('should throw when resolving request-scoped outside request', () => {
+      const REQUEST_TOKEN = createStringToken<object>('REQUEST_SERVICE_3');
+      testContainer.register({
+        provide: REQUEST_TOKEN,
+        useFactory: () => ({ value: 'test' }),
+        scope: Scope.REQUEST,
+      });
+
+      setupFastifyMock(testContainer);
+
+      // No request context
+      expect(() => testContainer.resolve(REQUEST_TOKEN)).toThrow(
+        'Cannot resolve request-scoped service outside of request context'
+      );
+    });
+
+    it('should resolve request-scoped factory provider', async () => {
+      let callCount = 0;
+      const REQUEST_TOKEN = createStringToken<{ count: number }>('REQUEST_FACTORY');
+
+      testContainer.register({
+        provide: REQUEST_TOKEN,
+        useFactory: () => {
+          callCount++;
+          return { count: callCount };
+        },
+        scope: Scope.REQUEST,
+      });
+
+      setupFastifyMock(testContainer);
+
+      const mockRequest = {};
+      await onRequestHook!(mockRequest);
+
+      const instance1 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest as never });
+      const instance2 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest as never });
+
+      // Factory called once, cached for request
+      expect(callCount).toBe(1);
+      expect(instance1).toBe(instance2);
+
+      await onResponseHook!(mockRequest);
+    });
+  });
+
+  describe('Async Resolution with Optional Dependencies', () => {
+    it('should resolve async factory with optional dependency returning undefined', async () => {
+      const OPTIONAL_DEP = createStringToken<{ value: string }>('OPTIONAL_DEP');
+      const SERVICE = createStringToken<{ dep: { value: string } | undefined }>('SERVICE_WITH_OPTIONAL');
+
+      // OPTIONAL_DEP is NOT registered
+
+      testContainer.register({
+        provide: SERVICE,
+        useFactory: async () => {
+          const dep = testContainer.resolveOptional(OPTIONAL_DEP);
+          return { dep };
+        },
+      });
+
+      const instance = await testContainer.resolveAsync(SERVICE);
+      expect(instance.dep).toBeUndefined();
+    });
+
+    it('should handle async factory with missing dependency', async () => {
+      const DEP_TOKEN = createStringToken<{ value: number }>('ASYNC_DEP');
+      const SERVICE_TOKEN = createStringToken<{ dep: { value: number } | undefined }>(
+        'SERVICE_WITH_ASYNC_DEP'
+      );
+
+      // DEP_TOKEN is NOT registered - use resolveOptional in factory
+      testContainer.register({
+        provide: SERVICE_TOKEN,
+        useFactory: async () => {
+          const dep = testContainer.resolveOptional(DEP_TOKEN);
+          return { dep };
+        },
+      });
+
+      const instance = await testContainer.resolveAsync(SERVICE_TOKEN);
+      expect(instance.dep).toBeUndefined();
+    });
+
+    it('should resolve async factory with available dependency', async () => {
+      const DEP_TOKEN = createStringToken<{ value: number }>('ASYNC_DEP_AVAILABLE');
+      const SERVICE_TOKEN = createStringToken<{ dep: { value: number } }>(
+        'SERVICE_WITH_AVAILABLE_DEP'
+      );
+
+      // Register the dependency
+      testContainer.register({
+        provide: DEP_TOKEN,
+        useValue: { value: 42 },
+      });
+
+      // Factory uses inject array for explicit dependency injection
+      testContainer.register({
+        provide: SERVICE_TOKEN,
+        useFactory: async (dep: { value: number }) => ({ dep }),
+        inject: [DEP_TOKEN],
+      });
+
+      const instance = await testContainer.resolveAsync(SERVICE_TOKEN);
+      expect(instance.dep).toEqual({ value: 42 });
+    });
+
+    it('should handle async factory with multiple dependencies', async () => {
+      const DEP_A = createStringToken<{ a: string }>('DEP_A');
+      const DEP_B = createStringToken<{ b: number }>('DEP_B');
+      const COMBINED = createStringToken<{ a: string; b: number }>('COMBINED');
+
+      testContainer.register({
+        provide: DEP_A,
+        useFactory: async () => ({ a: 'hello' }),
+      });
+
+      testContainer.register({
+        provide: DEP_B,
+        useValue: { b: 100 },
+      });
+
+      testContainer.register({
+        provide: COMBINED,
+        useFactory: async (depA: { a: string }, depB: { b: number }) => ({
+          a: depA.a,
+          b: depB.b,
+        }),
+        inject: [DEP_A, DEP_B],
+      });
+
+      const instance = await testContainer.resolveAsync(COMBINED);
+      expect(instance).toEqual({ a: 'hello', b: 100 });
+    });
+  });
+
+  describe('Container.createContext', () => {
+    it('should create a resolution context from request', () => {
+      const mockRequest = { id: 'test-request-123' };
+      const context = Container.createContext(mockRequest as never);
+
+      expect(context).toEqual({ request: mockRequest });
+    });
+
+    it('should create context that works with request-scoped resolution', async () => {
+      const REQUEST_TOKEN = createStringToken<object>('CONTEXT_TEST_SERVICE');
+
+      testContainer.register({
+        provide: REQUEST_TOKEN,
+        useFactory: () => ({ data: 'test' }),
+        scope: Scope.REQUEST,
+      });
+
+      // Setup Fastify hooks
+      let onRequestHook: ((request: unknown) => Promise<void>) | null = null;
+      const mockServer = {
+        addHook: vi.fn((name: string, handler: (request: unknown) => Promise<void>) => {
+          if (name === 'onRequest') onRequestHook = handler;
+        }),
+      };
+      testContainer.attachToFastify(mockServer as never);
+
+      const mockRequest = { url: '/test' };
+      await onRequestHook!(mockRequest);
+
+      // Use Container.createContext to create context
+      const context = Container.createContext(mockRequest as never);
+      const instance = testContainer.resolve(REQUEST_TOKEN, context);
+
+      expect(instance).toEqual({ data: 'test' });
+    });
+  });
+
+  describe('attachToFastify', () => {
+    it('should return the container for chaining', () => {
+      const mockServer = {
+        addHook: vi.fn(),
+      };
+
+      const result = testContainer.attachToFastify(mockServer as never);
+      expect(result).toBe(testContainer);
+    });
+  });
+
+  describe('Async REQUEST Scope Resolution', () => {
+    let onRequestHook: ((request: unknown) => Promise<void>) | null = null;
+    let onResponseHook: ((request: unknown) => Promise<void>) | null = null;
+
+    function setupFastifyMock(c: Container) {
+      onRequestHook = null;
+      onResponseHook = null;
+
+      const mockServer = {
+        addHook: vi.fn((name: string, handler: (request: unknown) => Promise<void>) => {
+          if (name === 'onRequest') onRequestHook = handler;
+          if (name === 'onResponse') onResponseHook = handler;
+        }),
+      };
+
+      c.attachToFastify(mockServer as never);
+    }
+
+    it('should resolve async request-scoped service', async () => {
+      const REQUEST_TOKEN = createStringToken<{ id: number }>('ASYNC_REQUEST_SERVICE');
+      let callCount = 0;
+
+      testContainer.register({
+        provide: REQUEST_TOKEN,
+        useFactory: async () => {
+          callCount++;
+          return { id: callCount };
+        },
+        scope: Scope.REQUEST,
+      });
+
+      setupFastifyMock(testContainer);
+
+      const mockRequest = {};
+      await onRequestHook!(mockRequest);
+
+      // First resolution creates instance
+      const instance1 = await testContainer.resolveAsync(REQUEST_TOKEN, {
+        request: mockRequest as never,
+      });
+      // Second resolution returns cached instance
+      const instance2 = await testContainer.resolveAsync(REQUEST_TOKEN, {
+        request: mockRequest as never,
+      });
+
+      expect(instance1).toBe(instance2);
+      expect(callCount).toBe(1);
+
+      await onResponseHook!(mockRequest);
+    });
+
+    it('should throw when resolving async request-scoped outside request', async () => {
+      const REQUEST_TOKEN = createStringToken<object>('ASYNC_REQUEST_SERVICE_2');
+
+      testContainer.register({
+        provide: REQUEST_TOKEN,
+        useFactory: async () => ({ data: 'test' }),
+        scope: Scope.REQUEST,
+      });
+
+      setupFastifyMock(testContainer);
+
+      await expect(testContainer.resolveAsync(REQUEST_TOKEN)).rejects.toThrow(
+        'Cannot resolve request-scoped service outside of request context'
+      );
+    });
+  });
+
+  describe('Async useExisting Provider', () => {
+    it('should resolve async existing/alias provider', async () => {
+      const ORIGINAL = createStringToken<{ value: string }>('ORIGINAL_ASYNC');
+      const ALIAS = createStringToken<{ value: string }>('ALIAS_ASYNC');
+
+      testContainer.register({
+        provide: ORIGINAL,
+        useFactory: async () => ({ value: 'original' }),
+      });
+
+      testContainer.register({
+        provide: ALIAS,
+        useExisting: ORIGINAL,
+      });
+
+      const original = await testContainer.resolveAsync(ORIGINAL);
+      const alias = await testContainer.resolveAsync(ALIAS);
+
+      expect(original).toBe(alias);
+      expect(alias.value).toBe('original');
+    });
+  });
+
+  describe('Async Class Instantiation', () => {
+    it('should resolve async class provider', async () => {
+      @Injectable()
+      class AsyncService {
+        readonly timestamp = Date.now();
+      }
+
+      testContainer.register({
+        provide: AsyncService,
+        useClass: AsyncService,
+      });
+
+      const instance = await testContainer.resolveAsync(AsyncService);
+      expect(instance).toBeInstanceOf(AsyncService);
+      expect(typeof instance.timestamp).toBe('number');
+    });
+
+    it('should cache singleton from async class resolution', async () => {
+      @Injectable()
+      class AsyncSingletonService {
+        readonly id = Math.random();
+      }
+
+      testContainer.register({
+        provide: AsyncSingletonService,
+        useClass: AsyncSingletonService,
+        scope: Scope.SINGLETON,
+      });
+
+      const instance1 = await testContainer.resolveAsync(AsyncSingletonService);
+      const instance2 = await testContainer.resolveAsync(AsyncSingletonService);
+
+      expect(instance1).toBe(instance2);
+    });
+
+    it('should create new instances for transient async class', async () => {
+      @Injectable()
+      class AsyncTransientService {
+        readonly id = Math.random();
+      }
+
+      testContainer.register({
+        provide: AsyncTransientService,
+        useClass: AsyncTransientService,
+        scope: Scope.TRANSIENT,
+      });
+
+      const instance1 = await testContainer.resolveAsync(AsyncTransientService);
+      const instance2 = await testContainer.resolveAsync(AsyncTransientService);
+
+      expect(instance1).not.toBe(instance2);
+      expect(instance1.id).not.toBe(instance2.id);
     });
   });
 });

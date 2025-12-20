@@ -11,12 +11,17 @@ import {
   asFactory,
   asValue,
   describeProvider,
+  factory,
   isClassProvider,
   isExistingProvider,
   isFactoryProvider,
   isValueProvider,
   normalizeProvider,
+  scoped,
+  singleton,
+  transient,
   validateProvider,
+  value,
 } from '../di/providers.js';
 import { Scope } from '../di/scope.js';
 import { createStringToken, createSymbolToken } from '../di/tokens.js';
@@ -411,6 +416,96 @@ describe('DI Providers', () => {
       expect(description).toContain('ExistingProvider');
       expect(description).toContain('ALIAS');
       expect(description).toContain('UserService');
+    });
+  });
+
+  describe('Convenience Helper Functions', () => {
+    describe('singleton()', () => {
+      it('should create a singleton class provider', () => {
+        const provider = singleton(UserService);
+
+        expect(provider.provide).toBe(UserService);
+        expect(provider.useClass).toBe(UserService);
+        expect(provider.scope).toBe(Scope.SINGLETON);
+      });
+
+      it('should be a valid class provider', () => {
+        const provider = singleton(ConfigService);
+        expect(isClassProvider(provider)).toBe(true);
+      });
+    });
+
+    describe('scoped()', () => {
+      it('should create a request-scoped class provider', () => {
+        const provider = scoped(UserService);
+
+        expect(provider.provide).toBe(UserService);
+        expect(provider.useClass).toBe(UserService);
+        expect(provider.scope).toBe(Scope.REQUEST);
+      });
+
+      it('should be a valid class provider', () => {
+        const provider = scoped(ConfigService);
+        expect(isClassProvider(provider)).toBe(true);
+      });
+    });
+
+    describe('transient()', () => {
+      it('should create a transient class provider', () => {
+        const provider = transient(UserService);
+
+        expect(provider.provide).toBe(UserService);
+        expect(provider.useClass).toBe(UserService);
+        expect(provider.scope).toBe(Scope.TRANSIENT);
+      });
+
+      it('should be a valid class provider', () => {
+        const provider = transient(ConfigService);
+        expect(isClassProvider(provider)).toBe(true);
+      });
+    });
+
+    describe('value()', () => {
+      it('should create a value provider', () => {
+        const CONFIG = createStringToken<{ port: number }>('CONFIG');
+        const config = { port: 3030 };
+        const provider = value(CONFIG, config);
+
+        expect(provider.provide).toBe(CONFIG);
+        expect(provider.useValue).toBe(config);
+      });
+
+      it('should be a valid value provider', () => {
+        const CONFIG = createStringToken<{ port: number }>('CONFIG');
+        const provider = value(CONFIG, { port: 8080 });
+        expect(isValueProvider(provider)).toBe(true);
+      });
+    });
+
+    describe('factory()', () => {
+      it('should create a factory provider', () => {
+        const DATABASE = createStringToken<{ query: () => string[] }>('DATABASE');
+        const factoryFn = () => ({ query: () => [] });
+        const provider = factory(DATABASE, factoryFn);
+
+        expect(provider.provide).toBe(DATABASE);
+        expect(provider.useFactory).toBe(factoryFn);
+        expect(provider.scope).toBe(Scope.SINGLETON);
+      });
+
+      it('should accept dependencies', () => {
+        const DATABASE = createStringToken<{ query: () => string[] }>('DATABASE');
+        const factoryFn = (_config: ConfigService) => ({ query: () => [] });
+        const provider = factory(DATABASE, factoryFn, [ConfigService]);
+
+        expect(provider.inject).toEqual([ConfigService]);
+      });
+
+      it('should be a valid factory provider', () => {
+        const DATABASE = createStringToken<object>('DATABASE');
+        const provider = factory(DATABASE, () => ({}));
+        expect(isFactoryProvider(provider)).toBe(true);
+      });
     });
   });
 });

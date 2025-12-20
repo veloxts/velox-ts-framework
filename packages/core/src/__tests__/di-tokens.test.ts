@@ -12,6 +12,7 @@ import {
   isClassToken,
   isStringToken,
   isSymbolToken,
+  token,
   validateToken,
 } from '../di/tokens.js';
 
@@ -169,6 +170,53 @@ describe('DI Tokens', () => {
 
     it('should throw for boolean token', () => {
       expect(() => validateToken(true)).toThrow('Invalid injection token type: boolean');
+    });
+  });
+
+  describe('token() - Succinct API', () => {
+    describe('token()', () => {
+      it('should create a string token', () => {
+        const DATABASE = token<string>('DATABASE');
+        expect(typeof DATABASE).toBe('string');
+        expect(DATABASE).toBe('DATABASE');
+      });
+
+      it('should be equivalent to createStringToken', () => {
+        const t1 = token<number>('CONFIG');
+        const t2 = createStringToken<number>('CONFIG');
+        expect(t1).toBe(t2);
+      });
+    });
+
+    describe('token.symbol()', () => {
+      it('should create a symbol token', () => {
+        const LOGGER = token.symbol<string>('LOGGER');
+        expect(typeof LOGGER).toBe('symbol');
+        expect(LOGGER.description).toBe('LOGGER');
+      });
+
+      it('should create unique symbols', () => {
+        const s1 = token.symbol<string>('SAME');
+        const s2 = token.symbol<string>('SAME');
+        expect(s1).not.toBe(s2);
+      });
+
+      it('should work without description', () => {
+        const s = token.symbol<string>();
+        expect(typeof s).toBe('symbol');
+      });
+    });
+  });
+
+  describe('getTokenName - Edge Cases', () => {
+    it('should return "Unknown" for invalid token types', () => {
+      // Force a non-standard token type by casting
+      const invalidToken = { invalid: true } as never;
+      expect(getTokenName(invalidToken)).toBe('Unknown');
+    });
+
+    it('should return "Unknown" for number token', () => {
+      expect(getTokenName(42 as never)).toBe('Unknown');
     });
   });
 });

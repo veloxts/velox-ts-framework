@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
 import { createVeloxApp } from '../app.js';
-import { createContext, isContext } from '../context.js';
+import { createContext, isContext, setupTestContext } from '../context.js';
 import { definePlugin } from '../plugin.js';
 
 describe('VeloxApp - Context Availability', () => {
@@ -243,6 +243,36 @@ describe('Context - Unit Tests', () => {
     it('should return false for arrays', () => {
       expect(isContext([])).toBe(false);
       expect(isContext([1, 2, 3])).toBe(false);
+    });
+  });
+
+  describe('setupTestContext', () => {
+    it('should add onRequest hook that sets up context', async () => {
+      // Create a mock Fastify server
+      let capturedHook: ((request: unknown, reply: unknown) => Promise<void>) | null = null;
+
+      const mockServer = {
+        addHook: (
+          _hookName: string,
+          handler: (request: unknown, reply: unknown) => Promise<void>
+        ) => {
+          capturedHook = handler;
+        },
+      };
+
+      setupTestContext(mockServer as never);
+
+      expect(capturedHook).not.toBeNull();
+
+      // Test that the hook sets up context on the request
+      const mockRequest: { context?: unknown } = {};
+      const mockReply = { status: () => {} };
+
+      await capturedHook!(mockRequest, mockReply);
+
+      expect(mockRequest.context).toBeDefined();
+      expect((mockRequest.context as { request: unknown }).request).toBe(mockRequest);
+      expect((mockRequest.context as { reply: unknown }).reply).toBe(mockReply);
     });
   });
 });
