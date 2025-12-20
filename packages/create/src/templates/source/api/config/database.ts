@@ -2,23 +2,43 @@
  * Database Client (Prisma 7.x)
  *
  * Prisma 7 requires:
- * - Generated client from custom output path
  * - Driver adapter for database connections
+ * - Uses standard @prisma/client import path
  *
  * Uses Laravel-style `db` export for consistency.
  */
 
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '@prisma/client';
 
-import { PrismaClient } from '../generated/prisma/client.js';
-
-// Validate DATABASE_URL is set
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is required');
+declare global {
+  // Allow global `var` declarations for hot reload in development
+  // eslint-disable-next-line no-var
+  var __db: PrismaClient | undefined;
 }
 
-// Create SQLite adapter with database URL from environment
-const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
+/**
+ * Create a Prisma client instance using the SQLite adapter.
+ * Validates that DATABASE_URL is set before creating the client.
+ */
+function createPrismaClient(): PrismaClient {
+  const databaseUrl = process.env.DATABASE_URL;
 
-// Export configured Prisma client
-export const db = new PrismaClient({ adapter });
+  if (!databaseUrl) {
+    throw new Error(
+      '[VeloxTS] DATABASE_URL environment variable is not set. ' +
+        'Ensure .env file exists with DATABASE_URL defined.'
+    );
+  }
+
+  // Prisma 7 requires driver adapters for direct connections
+  const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
+  return new PrismaClient({ adapter });
+}
+
+// Use global singleton for hot reload in development
+export const db = globalThis.__db ?? createPrismaClient();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.__db = db;
+}
