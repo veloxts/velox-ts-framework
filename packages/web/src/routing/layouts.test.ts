@@ -420,4 +420,122 @@ describe('wrapWithLayouts', () => {
 
     expect(result.props.params).toEqual(testParams);
   });
+
+  it('should handle undefined params', () => {
+    const pageElement = {
+      type: 'div',
+      props: { children: 'Page' },
+      key: null,
+    } as React.ReactElement;
+    const Layout = ({
+      children,
+    }: {
+      children: React.ReactNode;
+      params?: Record<string, string>;
+    }) => children;
+
+    const result = wrapWithLayouts(pageElement, [Layout], undefined);
+
+    expect(result.props.params).toBeUndefined();
+  });
+
+  it('should handle empty params object', () => {
+    const pageElement = {
+      type: 'div',
+      props: { children: 'Page' },
+      key: null,
+    } as React.ReactElement;
+    const Layout = ({
+      children,
+    }: {
+      children: React.ReactNode;
+      params?: Record<string, string>;
+    }) => children;
+
+    const result = wrapWithLayouts(pageElement, [Layout], {});
+
+    expect(result.props.params).toEqual({});
+  });
+
+  it('should create unique keys for each layout', () => {
+    const pageElement = {
+      type: 'div',
+      props: { children: 'Page' },
+      key: null,
+    } as React.ReactElement;
+    const Layout1 = ({ children }: { children: React.ReactNode }) => children;
+    const Layout2 = ({ children }: { children: React.ReactNode }) => children;
+    const Layout3 = ({ children }: { children: React.ReactNode }) => children;
+
+    const result = wrapWithLayouts(pageElement, [Layout1, Layout2, Layout3]);
+
+    // Check that keys are present and unique
+    expect(result.key).toBe('layout-0');
+    expect(result.props.children.key).toBe('layout-1');
+    expect(result.props.children.props.children.key).toBe('layout-2');
+  });
+
+  it('should handle large layout chains (10+ layouts)', () => {
+    const pageElement = {
+      type: 'div',
+      props: { children: 'Page' },
+      key: null,
+    } as React.ReactElement;
+
+    // Create 15 layouts
+    const layouts = Array.from({ length: 15 }, () => {
+      return ({ children }: { children: React.ReactNode }) => children;
+    });
+
+    const result = wrapWithLayouts(pageElement, layouts);
+
+    // Outer should be the first layout
+    expect(result.type).toBe(layouts[0]);
+
+    // Walk down to verify nesting
+    let current = result;
+    for (let i = 1; i < layouts.length; i++) {
+      current = current.props.children;
+      expect(current.type).toBe(layouts[i]);
+    }
+
+    // Innermost should be the page
+    expect(current.props.children).toBe(pageElement);
+  });
+
+  it('should preserve all params through nested layouts', () => {
+    const pageElement = {
+      type: 'div',
+      props: { children: 'Page' },
+      key: null,
+    } as React.ReactElement;
+
+    const Layout1 = ({
+      children,
+    }: {
+      children: React.ReactNode;
+      params?: Record<string, string>;
+    }) => children;
+    const Layout2 = ({
+      children,
+    }: {
+      children: React.ReactNode;
+      params?: Record<string, string>;
+    }) => children;
+    const Layout3 = ({
+      children,
+    }: {
+      children: React.ReactNode;
+      params?: Record<string, string>;
+    }) => children;
+
+    const testParams = { id: '123', slug: 'test-post', category: 'tech' };
+
+    const result = wrapWithLayouts(pageElement, [Layout1, Layout2, Layout3], testParams);
+
+    // All layouts should receive the same params
+    expect(result.props.params).toEqual(testParams);
+    expect(result.props.children.props.params).toEqual(testParams);
+    expect(result.props.children.props.children.props.params).toEqual(testParams);
+  });
 });
