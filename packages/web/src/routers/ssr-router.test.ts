@@ -5,7 +5,70 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { RouteMatch } from '../types.js';
-import { createSsrRouter } from './ssr-router.js';
+import { createSsrRouter, type H3Event } from './ssr-router.js';
+
+/**
+ * Creates a mock H3Event for testing purposes.
+ * Captures the response body and headers for assertions.
+ */
+function createMockH3Event(
+  url: string,
+  method = 'GET'
+): {
+  event: H3Event;
+  getResponse: () => { status: number; headers: Map<string, string>; body: string };
+} {
+  const responseHeaders = new Map<string, string>();
+  const chunks: unknown[] = [];
+  let statusCode = 200;
+
+  const parsedUrl = new URL(url);
+
+  const event: H3Event = {
+    node: {
+      req: {
+        method,
+        url: parsedUrl.pathname + parsedUrl.search,
+        headers: {
+          host: parsedUrl.host,
+        },
+      },
+      res: {
+        get statusCode() {
+          return statusCode;
+        },
+        set statusCode(value: number) {
+          statusCode = value;
+        },
+        setHeader(name: string, value: string | string[]) {
+          responseHeaders.set(name.toLowerCase(), Array.isArray(value) ? value.join(', ') : value);
+        },
+        write(chunk: unknown) {
+          chunks.push(chunk);
+          return true;
+        },
+        end(data?: unknown) {
+          if (data !== undefined) {
+            chunks.push(data);
+          }
+        },
+        on(_event: string, _listener: () => void) {
+          // No-op for tests
+        },
+      },
+    },
+  };
+
+  const getResponse = () => ({
+    status: statusCode,
+    headers: responseHeaders,
+    body: chunks
+      .map((c) => (c instanceof Uint8Array ? new TextDecoder().decode(c) : String(c)))
+      .join(''),
+  });
+
+  return { event, getResponse };
+}
 
 describe('createSsrRouter', () => {
   let originalEnv: NodeJS.ProcessEnv;
@@ -42,8 +105,8 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/users');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/users');
+      await handler(event);
 
       expect(resolveRoute).toHaveBeenCalledWith('/users');
     });
@@ -66,10 +129,10 @@ describe('createSsrRouter', () => {
         render,
       });
 
-      const request = new Request('http://localhost:3030/users');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/users');
+      await handler(event);
 
-      expect(render).toHaveBeenCalledWith(match, request);
+      expect(render).toHaveBeenCalledWith(match, expect.any(Request));
     });
 
     it('should return the rendered response', async () => {
@@ -88,11 +151,12 @@ describe('createSsrRouter', () => {
         render: async () => new Response('About page', { status: 200 }),
       });
 
-      const request = new Request('http://localhost:3030/about');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/about');
+      await handler(event);
 
+      const response = getResponse();
       expect(response.status).toBe(200);
-      expect(await response.text()).toBe('About page');
+      expect(response.body).toBe('About page');
     });
 
     it('should handle routes with parameters', async () => {
@@ -113,10 +177,10 @@ describe('createSsrRouter', () => {
         render,
       });
 
-      const request = new Request('http://localhost:3030/users/123');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/users/123');
+      await handler(event);
 
-      expect(render).toHaveBeenCalledWith(match, request);
+      expect(render).toHaveBeenCalledWith(match, expect.any(Request));
     });
   });
 
@@ -127,13 +191,13 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/unknown');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/unknown');
+      await handler(event);
 
+      const response = getResponse();
       expect(response.status).toBe(404);
-      const html = await response.text();
-      expect(html).toContain('404');
-      expect(html).toContain('Not Found');
+      expect(response.body).toContain('404');
+      expect(response.body).toContain('Not Found');
     });
 
     it('should use custom 404 handler', async () => {
@@ -145,12 +209,13 @@ describe('createSsrRouter', () => {
         notFound,
       });
 
-      const request = new Request('http://localhost:3030/missing');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/missing');
+      await handler(event);
 
-      expect(notFound).toHaveBeenCalledWith(request);
+      expect(notFound).toHaveBeenCalledWith(expect.any(Request));
+      const response = getResponse();
       expect(response.status).toBe(404);
-      expect(await response.text()).toBe('Custom 404');
+      expect(response.body).toBe('Custom 404');
     });
 
     it('should return HTML with proper content type for default 404', async () => {
@@ -159,10 +224,11 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/nope');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/nope');
+      await handler(event);
 
-      expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+      const response = getResponse();
+      expect(response.headers.get('content-type')).toBe('text/html; charset=utf-8');
     });
 
     it('should include link to home in default 404', async () => {
@@ -171,12 +237,12 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/404');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/404');
+      await handler(event);
 
-      const html = await response.text();
-      expect(html).toContain('href="/"');
-      expect(html).toContain('Back to home');
+      const response = getResponse();
+      expect(response.body).toContain('href="/"');
+      expect(response.body).toContain('Back to home');
     });
   });
 
@@ -189,10 +255,10 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/users');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/users');
+      await handler(event);
 
-      expect(response.status).toBe(500);
+      expect(getResponse().status).toBe(500);
     });
 
     it('should catch errors during rendering', async () => {
@@ -213,10 +279,10 @@ describe('createSsrRouter', () => {
         },
       });
 
-      const request = new Request('http://localhost:3030/error');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/error');
+      await handler(event);
 
-      expect(response.status).toBe(500);
+      expect(getResponse().status).toBe(500);
     });
 
     it('should use custom error handler', async () => {
@@ -230,15 +296,15 @@ describe('createSsrRouter', () => {
         onError,
       });
 
-      const request = new Request('http://localhost:3030/test');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/test');
+      await handler(event);
 
       expect(onError).toHaveBeenCalled();
       const [error, req] = onError.mock.calls[0];
       expect(error).toBeInstanceOf(Error);
       expect(error.message).toBe('Test error');
-      expect(req).toBe(request);
-      expect(await response.text()).toBe('Custom error');
+      expect(req).toBeInstanceOf(Request);
+      expect(getResponse().body).toBe('Custom error');
     });
 
     it('should convert non-Error values to Error', async () => {
@@ -252,8 +318,8 @@ describe('createSsrRouter', () => {
         onError,
       });
 
-      const request = new Request('http://localhost:3030/test');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/test');
+      await handler(event);
 
       expect(onError).toHaveBeenCalled();
       const [error] = onError.mock.calls[0];
@@ -273,10 +339,10 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/test');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/test');
+      await handler(event);
 
-      const html = await response.text();
+      const html = getResponse().body;
       expect(html).toContain('Error: Dev error');
       expect(html).toContain('at test.ts:1:1');
     });
@@ -293,10 +359,10 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/test');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/test');
+      await handler(event);
 
-      const html = await response.text();
+      const html = getResponse().body;
       expect(html).not.toContain('Sensitive error');
       expect(html).not.toContain('secret.ts');
       expect(html).toContain('500');
@@ -311,10 +377,10 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/test');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/test');
+      await handler(event);
 
-      expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+      expect(getResponse().headers.get('content-type')).toBe('text/html; charset=utf-8');
     });
 
     it('should escape HTML in error messages to prevent XSS', async () => {
@@ -327,10 +393,10 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/test');
-      const response = await handler(request);
+      const { event, getResponse } = createMockH3Event('http://localhost:3030/test');
+      await handler(event);
 
-      const html = await response.text();
+      const html = getResponse().body;
       expect(html).not.toContain('<script>');
       expect(html).toContain('&lt;script&gt;');
       expect(html).toContain('&quot;xss&quot;');
@@ -356,8 +422,8 @@ describe('createSsrRouter', () => {
         render: async () => new Response('Home', { status: 200 }),
       });
 
-      const request = new Request('http://localhost:3030/');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/');
+      await handler(event);
 
       expect(consoleLogSpy).toHaveBeenCalled();
       const logCall = consoleLogSpy.mock.calls[0][0];
@@ -384,8 +450,8 @@ describe('createSsrRouter', () => {
         render: async () => new Response('Home'),
       });
 
-      const request = new Request('http://localhost:3030/');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/');
+      await handler(event);
 
       expect(consoleLogSpy).not.toHaveBeenCalled();
     });
@@ -399,8 +465,8 @@ describe('createSsrRouter', () => {
         logging: true,
       });
 
-      const request = new Request('http://localhost:3030/test');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/test');
+      await handler(event);
 
       expect(consoleLogSpy).toHaveBeenCalled();
     });
@@ -424,8 +490,8 @@ describe('createSsrRouter', () => {
         logging: false,
       });
 
-      const request = new Request('http://localhost:3030/test');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/test');
+      await handler(event);
 
       expect(consoleLogSpy).not.toHaveBeenCalled();
     });
@@ -438,8 +504,8 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/missing');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/missing');
+      await handler(event);
 
       expect(consoleLogSpy).toHaveBeenCalled();
       const logCall = consoleLogSpy.mock.calls[0][0];
@@ -458,8 +524,8 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/error');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/error');
+      await handler(event);
 
       expect(consoleErrorSpy).toHaveBeenCalled();
       const errorLog = consoleErrorSpy.mock.calls[0][0];
@@ -486,8 +552,8 @@ describe('createSsrRouter', () => {
         render: async () => new Response('Test'),
       });
 
-      const request = new Request('http://localhost:3030/test');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/test');
+      await handler(event);
 
       const logCall = consoleLogSpy.mock.calls[0][0];
       expect(logCall).toMatch(/\d+\.\d+ms/);
@@ -503,8 +569,8 @@ describe('createSsrRouter', () => {
         render: async () => new Response('OK'),
       });
 
-      const request = new Request('http://localhost:3030/error');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/error');
+      await handler(event);
 
       expect(consoleErrorSpy).toHaveBeenCalled();
       expect(consoleErrorSpy.mock.calls[0][1]).toBeInstanceOf(Error);
@@ -530,10 +596,14 @@ describe('createSsrRouter', () => {
         render,
       });
 
-      const request = new Request('http://localhost:3030/search?q=test&page=1');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/search?q=test&page=1');
+      await handler(event);
 
-      expect(render).toHaveBeenCalledWith(match, request);
+      expect(render).toHaveBeenCalledWith(match, expect.any(Request));
+      // Verify the request URL contains query parameters
+      const passedRequest = render.mock.calls[0][1] as Request;
+      expect(passedRequest.url).toContain('q=test');
+      expect(passedRequest.url).toContain('page=1');
     });
   });
 
@@ -556,10 +626,10 @@ describe('createSsrRouter', () => {
         render,
       });
 
-      const request = new Request('http://localhost:3030/docs/guide/intro');
-      await handler(request);
+      const { event } = createMockH3Event('http://localhost:3030/docs/guide/intro');
+      await handler(event);
 
-      expect(render).toHaveBeenCalledWith(match, request);
+      expect(render).toHaveBeenCalledWith(match, expect.any(Request));
     });
   });
 });
