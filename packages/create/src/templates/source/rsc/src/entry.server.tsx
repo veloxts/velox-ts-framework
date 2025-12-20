@@ -16,10 +16,12 @@ import HomePage from '../app/pages/index.tsx';
 import UsersPage from '../app/pages/users.tsx';
 import UserDetailPage from '../app/pages/users/[id].tsx';
 import AboutPage from '../app/pages/(marketing)/about.tsx';
+import PrintPage from '../app/pages/print.tsx';
 
 // Static imports for layout components
 import RootLayout from '../app/layouts/root.tsx';
 import MarketingLayout from '../app/layouts/marketing.tsx';
+import MinimalLayout from '../app/layouts/minimal.tsx';
 
 // Page props type
 interface PageProps {
@@ -118,6 +120,8 @@ const routes: RouteDefinition[] = [
   defineRoute('/users/[id]', UserDetailPage),
   // Route from (marketing) group - URL is /about, not /marketing/about
   defineRoute('/about', AboutPage, [RootLayout, MarketingLayout]),
+  // Per-route layout override - uses MinimalLayout instead of RootLayout
+  defineRoute('/print', PrintPage, [MinimalLayout]),
 ];
 
 console.log('[SSR] Available routes:', routes.map(r => r.pattern));

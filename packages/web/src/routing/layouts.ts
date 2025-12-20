@@ -25,7 +25,8 @@ export type LayoutComponent = React.ComponentType<{
  */
 export interface LayoutChain {
   /**
-   * Ordered list of layout file paths, from outermost to innermost
+   * Final ordered list of layout file paths, from outermost to innermost
+   * This is the result after applying any per-route layout configuration
    */
   layouts: string[];
 
@@ -43,6 +44,16 @@ export interface LayoutChain {
    * Segment layouts (directory-based)
    */
   segmentLayouts: string[];
+
+  /**
+   * Per-route layout files (from page's layoutConfig)
+   */
+  pageLayouts?: string[];
+
+  /**
+   * Layout mode applied (from page's layoutConfig)
+   */
+  layoutMode?: 'inherit' | 'replace' | 'prepend' | 'append';
 }
 
 /**
@@ -151,7 +162,8 @@ export function createLayoutResolver(options: LayoutResolverOptions = {}): Layou
 
   return {
     resolve(route: ParsedRoute): LayoutChain {
-      const layouts: string[] = [];
+      // Build inherited layouts (root, groups, segments)
+      const inheritedLayouts: string[] = [];
       let rootLayout: string | undefined;
       const groupLayouts: string[] = [];
       const segmentLayouts: string[] = [];
@@ -160,7 +172,7 @@ export function createLayoutResolver(options: LayoutResolverOptions = {}): Layou
       const rootLayoutFile = layoutCache.get('root');
       if (rootLayoutFile) {
         rootLayout = rootLayoutFile;
-        layouts.push(rootLayoutFile);
+        inheritedLayouts.push(rootLayoutFile);
       }
 
       // 2. Check for group layouts (supports multiple groups)
@@ -169,7 +181,7 @@ export function createLayoutResolver(options: LayoutResolverOptions = {}): Layou
         const groupLayoutFile = layoutCache.get(groupName);
         if (groupLayoutFile) {
           groupLayouts.push(groupLayoutFile);
-          layouts.push(groupLayoutFile);
+          inheritedLayouts.push(groupLayoutFile);
         }
       }
 
@@ -177,14 +189,50 @@ export function createLayoutResolver(options: LayoutResolverOptions = {}): Layou
       const segmentLayoutFiles = findSegmentLayouts(route.filePath, absolutePagesDir, extensions);
       for (const segmentLayout of segmentLayoutFiles) {
         segmentLayouts.push(segmentLayout);
-        layouts.push(segmentLayout);
+        inheritedLayouts.push(segmentLayout);
+      }
+
+      // 4. Apply per-route layout configuration if present
+      const pageLayouts = route.layoutConfig?.layouts;
+      const layoutMode = route.layoutConfig?.mode ?? 'inherit';
+
+      let finalLayouts: string[];
+
+      if (pageLayouts && pageLayouts.length > 0) {
+        switch (layoutMode) {
+          case 'replace':
+            // Replace all inherited layouts with page-specified layouts
+            finalLayouts = [...pageLayouts];
+            break;
+          case 'prepend':
+            // Add page layouts before inherited layouts
+            finalLayouts = [...pageLayouts, ...inheritedLayouts];
+            break;
+          case 'append':
+            // Add page layouts after inherited layouts
+            finalLayouts = [...inheritedLayouts, ...pageLayouts];
+            break;
+          case 'inherit':
+          default:
+            // Use inherited layouts only
+            finalLayouts = inheritedLayouts;
+            break;
+        }
+      } else if (layoutMode === 'replace' && pageLayouts?.length === 0) {
+        // Explicit empty array with replace mode = no layouts
+        finalLayouts = [];
+      } else {
+        // No page config or inherit mode - use inherited layouts
+        finalLayouts = inheritedLayouts;
       }
 
       return {
-        layouts,
+        layouts: finalLayouts,
         rootLayout,
         groupLayouts: groupLayouts.length > 0 ? groupLayouts : undefined,
         segmentLayouts,
+        pageLayouts: pageLayouts && pageLayouts.length > 0 ? pageLayouts : undefined,
+        layoutMode: route.layoutConfig ? layoutMode : undefined,
       };
     },
 

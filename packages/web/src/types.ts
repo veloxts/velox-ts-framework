@@ -375,6 +375,22 @@ export interface ParsedRoute {
    * Associated layout file (if any)
    */
   layout?: string;
+
+  /**
+   * Per-route layout configuration (from page's exported config)
+   * Contains layout file paths and mode for runtime resolution
+   */
+  layoutConfig?: {
+    /**
+     * Layout file paths relative to layouts directory
+     */
+    layouts: string[];
+
+    /**
+     * How to combine with inherited layouts
+     */
+    mode: LayoutMode;
+  };
 }
 
 /**
@@ -445,6 +461,88 @@ export interface LayoutProps {
    * Route parameters (available in nested layouts)
    */
   params?: Record<string, string>;
+}
+
+/**
+ * Layout component type for page configuration
+ */
+export type LayoutComponent = React.ComponentType<LayoutProps>;
+
+/**
+ * Layout configuration modes for per-route customization
+ */
+export type LayoutMode =
+  | 'inherit' // Use layouts from groups and segments (default)
+  | 'replace' // Replace all layouts with specified ones
+  | 'prepend' // Add layouts before inherited ones
+  | 'append'; // Add layouts after inherited ones
+
+/**
+ * Per-route layout configuration
+ *
+ * Pages can export this to customize their layout chain:
+ *
+ * @example
+ * ```tsx
+ * // Replace all inherited layouts
+ * export const layoutConfig: LayoutConfig = {
+ *   layouts: [MinimalLayout],
+ *   mode: 'replace',
+ * };
+ *
+ * // Add a layout after inherited ones
+ * export const layoutConfig: LayoutConfig = {
+ *   layouts: [SidebarLayout],
+ *   mode: 'append',
+ * };
+ *
+ * // Disable all layouts (render page directly)
+ * export const layoutConfig: LayoutConfig = {
+ *   layouts: [],
+ *   mode: 'replace',
+ * };
+ * ```
+ */
+export interface LayoutConfig {
+  /**
+   * Layout components to use
+   */
+  layouts: LayoutComponent[];
+
+  /**
+   * How to combine with inherited layouts
+   * @default 'inherit'
+   */
+  mode?: LayoutMode;
+}
+
+/**
+ * Page configuration export
+ *
+ * Pages can export this to customize routing behavior:
+ *
+ * @example
+ * ```tsx
+ * // pages/admin/dashboard.tsx
+ * import { AdminLayout, DashboardLayout } from '../../layouts';
+ *
+ * export const config: PageConfig = {
+ *   layout: {
+ *     layouts: [AdminLayout, DashboardLayout],
+ *     mode: 'replace',
+ *   },
+ * };
+ *
+ * export default function DashboardPage() {
+ *   return <div>Dashboard</div>;
+ * }
+ * ```
+ */
+export interface PageConfig {
+  /**
+   * Layout configuration for this page
+   */
+  layout?: LayoutConfig;
 }
 
 /**

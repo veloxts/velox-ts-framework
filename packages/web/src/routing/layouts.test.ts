@@ -569,3 +569,258 @@ describe('wrapWithLayouts', () => {
     expect(result.props.children.props.children.props.params).toEqual(testParams);
   });
 });
+
+describe('per-route layout configuration', () => {
+  beforeAll(() => {
+    // Create layouts for testing
+    mkdirSync(LAYOUTS_DIR, { recursive: true });
+    writeFileSync(join(LAYOUTS_DIR, 'root.tsx'), 'export default function RootLayout() {}');
+    writeFileSync(join(LAYOUTS_DIR, 'admin.tsx'), 'export default function AdminLayout() {}');
+    writeFileSync(join(LAYOUTS_DIR, 'minimal.tsx'), 'export default function MinimalLayout() {}');
+    writeFileSync(join(LAYOUTS_DIR, 'sidebar.tsx'), 'export default function SidebarLayout() {}');
+  });
+
+  afterAll(() => {
+    rmSync(join(LAYOUTS_DIR, 'root.tsx'), { force: true });
+    rmSync(join(LAYOUTS_DIR, 'admin.tsx'), { force: true });
+    rmSync(join(LAYOUTS_DIR, 'minimal.tsx'), { force: true });
+    rmSync(join(LAYOUTS_DIR, 'sidebar.tsx'), { force: true });
+  });
+
+  describe('replace mode', () => {
+    it('should replace all inherited layouts with page-specified layouts', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: 'admin/dashboard.tsx',
+        pattern: '/admin/dashboard',
+        params: [],
+        catchAll: false,
+        layoutConfig: {
+          layouts: ['minimal.tsx'],
+          mode: 'replace',
+        },
+      };
+
+      const chain = resolver.resolve(route);
+
+      // Should only have the page-specified layout
+      expect(chain.layouts).toEqual(['minimal.tsx']);
+      expect(chain.pageLayouts).toEqual(['minimal.tsx']);
+      expect(chain.layoutMode).toBe('replace');
+    });
+
+    it('should return empty layouts when replace mode with empty array', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: 'print/invoice.tsx',
+        pattern: '/print/invoice',
+        params: [],
+        catchAll: false,
+        layoutConfig: {
+          layouts: [],
+          mode: 'replace',
+        },
+      };
+
+      const chain = resolver.resolve(route);
+
+      // No layouts at all (for print-friendly pages)
+      expect(chain.layouts).toEqual([]);
+      expect(chain.layoutMode).toBe('replace');
+    });
+  });
+
+  describe('prepend mode', () => {
+    it('should add page layouts before inherited layouts', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: 'dashboard.tsx',
+        pattern: '/dashboard',
+        params: [],
+        catchAll: false,
+        layoutConfig: {
+          layouts: ['admin.tsx'],
+          mode: 'prepend',
+        },
+      };
+
+      const chain = resolver.resolve(route);
+
+      // Admin layout first, then root layout
+      expect(chain.layouts[0]).toBe('admin.tsx');
+      expect(chain.layouts[1]).toBe('root.tsx');
+      expect(chain.pageLayouts).toEqual(['admin.tsx']);
+      expect(chain.layoutMode).toBe('prepend');
+    });
+  });
+
+  describe('append mode', () => {
+    it('should add page layouts after inherited layouts', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: 'dashboard.tsx',
+        pattern: '/dashboard',
+        params: [],
+        catchAll: false,
+        layoutConfig: {
+          layouts: ['sidebar.tsx'],
+          mode: 'append',
+        },
+      };
+
+      const chain = resolver.resolve(route);
+
+      // Root layout first, then sidebar layout
+      expect(chain.layouts[0]).toBe('root.tsx');
+      expect(chain.layouts[1]).toBe('sidebar.tsx');
+      expect(chain.pageLayouts).toEqual(['sidebar.tsx']);
+      expect(chain.layoutMode).toBe('append');
+    });
+
+    it('should add multiple page layouts after inherited layouts', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: 'dashboard.tsx',
+        pattern: '/dashboard',
+        params: [],
+        catchAll: false,
+        layoutConfig: {
+          layouts: ['admin.tsx', 'sidebar.tsx'],
+          mode: 'append',
+        },
+      };
+
+      const chain = resolver.resolve(route);
+
+      // Root layout first, then admin, then sidebar
+      expect(chain.layouts).toEqual(['root.tsx', 'admin.tsx', 'sidebar.tsx']);
+      expect(chain.pageLayouts).toEqual(['admin.tsx', 'sidebar.tsx']);
+    });
+  });
+
+  describe('inherit mode (default)', () => {
+    it('should use inherited layouts when mode is inherit', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: 'page.tsx',
+        pattern: '/page',
+        params: [],
+        catchAll: false,
+        layoutConfig: {
+          layouts: ['sidebar.tsx'],
+          mode: 'inherit',
+        },
+      };
+
+      const chain = resolver.resolve(route);
+
+      // Should use inherited layouts, ignoring page layouts
+      expect(chain.layouts).toEqual(['root.tsx']);
+      expect(chain.layoutMode).toBe('inherit');
+    });
+
+    it('should default to inherit mode when mode is not specified', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: 'page.tsx',
+        pattern: '/page',
+        params: [],
+        catchAll: false,
+        // No layoutConfig means inherit mode
+      };
+
+      const chain = resolver.resolve(route);
+
+      expect(chain.layouts).toEqual(['root.tsx']);
+      expect(chain.layoutMode).toBeUndefined();
+    });
+  });
+
+  describe('combination with route groups', () => {
+    beforeAll(() => {
+      writeFileSync(join(LAYOUTS_DIR, 'auth.tsx'), 'export default function AuthLayout() {}');
+    });
+
+    afterAll(() => {
+      rmSync(join(LAYOUTS_DIR, 'auth.tsx'), { force: true });
+    });
+
+    it('should replace group layouts when using replace mode', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: '(auth)/login.tsx',
+        pattern: '/login',
+        params: [],
+        catchAll: false,
+        groups: ['auth'],
+        layoutConfig: {
+          layouts: ['minimal.tsx'],
+          mode: 'replace',
+        },
+      };
+
+      const chain = resolver.resolve(route);
+
+      // Should replace root+auth with just minimal
+      expect(chain.layouts).toEqual(['minimal.tsx']);
+      expect(chain.rootLayout).toBe('root.tsx'); // Still tracked for reference
+      expect(chain.groupLayouts).toEqual(['auth.tsx']); // Still tracked for reference
+    });
+
+    it('should append to group layouts when using append mode', () => {
+      const resolver = createLayoutResolver({
+        layoutsDir: join(TEST_DIR, 'app/layouts'),
+        pagesDir: join(TEST_DIR, 'app/pages'),
+      });
+
+      const route: ParsedRoute = {
+        filePath: '(auth)/settings.tsx',
+        pattern: '/settings',
+        params: [],
+        catchAll: false,
+        groups: ['auth'],
+        layoutConfig: {
+          layouts: ['sidebar.tsx'],
+          mode: 'append',
+        },
+      };
+
+      const chain = resolver.resolve(route);
+
+      // Root, then auth (from group), then sidebar (appended)
+      expect(chain.layouts).toEqual(['root.tsx', 'auth.tsx', 'sidebar.tsx']);
+    });
+  });
+});
