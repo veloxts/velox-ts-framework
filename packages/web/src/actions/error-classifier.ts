@@ -36,6 +36,9 @@ export interface ErrorPattern {
  * - Conflict: duplicate, conflict
  * - Rate limiting: rate limit, too many
  * - Validation: validation (caught before handler in most cases)
+ *
+ * Note: All pattern strings are already lowercase to avoid toLowerCase()
+ * calls during error classification. Keep them lowercase when adding new patterns.
  */
 export const DEFAULT_ERROR_PATTERNS: readonly ErrorPattern[] = [
   // Authentication errors
@@ -74,6 +77,25 @@ export const DEFAULT_ERROR_PATTERNS: readonly ErrorPattern[] = [
     code: 'BAD_REQUEST',
   },
 ] as const;
+
+/**
+ * Pre-processed error patterns with lowercase strings for fast matching.
+ * Created at module load time to avoid repeated toLowerCase() calls.
+ *
+ * Performance impact: Avoids toLowerCase() on each pattern during classification.
+ */
+interface ProcessedErrorPattern {
+  readonly patterns: readonly string[];
+  readonly code: ActionErrorCode;
+}
+
+const PREPROCESSED_DEFAULT_PATTERNS: readonly ProcessedErrorPattern[] = DEFAULT_ERROR_PATTERNS.map(
+  (pattern) => ({
+    code: pattern.code,
+    // Patterns are already lowercase, but this ensures any future additions are normalized
+    patterns: pattern.patterns.map((p) => p.toLowerCase()),
+  })
+);
 
 /**
  * Options for error classification.
@@ -168,9 +190,6 @@ export function classifyError(
     logInDevelopment = true,
   } = options;
 
-  // Build the pattern list
-  const effectivePatterns = patterns ?? [...(additionalPatterns ?? []), ...DEFAULT_ERROR_PATTERNS];
-
   // Handle non-Error values
   if (!(error instanceof Error)) {
     return {
@@ -183,15 +202,35 @@ export function classifyError(
   const message = error.message;
   const lowerMessage = message.toLowerCase();
 
-  // Check each pattern
-  for (const pattern of effectivePatterns) {
-    for (const substring of pattern.patterns) {
-      if (lowerMessage.includes(substring.toLowerCase())) {
-        return {
-          code: pattern.code,
-          message,
-          matched: true,
-        };
+  // Use pre-processed patterns when no custom patterns provided (fast path)
+  // Custom patterns still need lowercase conversion
+  if (!patterns && !additionalPatterns) {
+    // Fast path: use pre-processed patterns with pre-lowercased strings
+    for (const pattern of PREPROCESSED_DEFAULT_PATTERNS) {
+      for (const substring of pattern.patterns) {
+        if (lowerMessage.includes(substring)) {
+          return {
+            code: pattern.code,
+            message,
+            matched: true,
+          };
+        }
+      }
+    }
+  } else {
+    // Custom patterns path: need to build and process patterns
+    const effectivePatterns = patterns ?? [...(additionalPatterns ?? []), ...DEFAULT_ERROR_PATTERNS];
+
+    for (const pattern of effectivePatterns) {
+      for (const substring of pattern.patterns) {
+        // Custom patterns need toLowerCase() since they're not pre-processed
+        if (lowerMessage.includes(substring.toLowerCase())) {
+          return {
+            code: pattern.code,
+            message,
+            matched: true,
+          };
+        }
       }
     }
   }

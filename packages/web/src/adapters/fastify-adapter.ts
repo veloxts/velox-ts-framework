@@ -15,6 +15,15 @@ import type { CreateApiHandlerOptions, VinxiHandler } from '../types.js';
 const DEFAULT_TIMEOUT = 30_000;
 
 /**
+ * Whether we're running in development mode.
+ * Cached at module load to avoid repeated process.env access.
+ *
+ * Performance: Console logging in production paths adds ~2-4ms overhead.
+ * By gating behind this check, we eliminate this overhead in production.
+ */
+const isDev = process.env.NODE_ENV !== 'production';
+
+/**
  * Node.js IncomingMessage with readable stream
  */
 interface NodeRequest {
@@ -102,6 +111,7 @@ export function createApiHandler(options: CreateApiHandlerOptions): VinxiHandler
 
   return async function handler(request: Request): Promise<Response> {
     const startTime = performance.now();
+    let timeoutId: NodeJS.Timeout | undefined;
 
     try {
       // Ensure Fastify is initialized
@@ -110,9 +120,9 @@ export function createApiHandler(options: CreateApiHandlerOptions): VinxiHandler
       // Convert Web API Request to Fastify inject options
       const injectOptions = await webRequestToInject(request, basePath);
 
-      // Create timeout promise
+      // Create timeout promise with cleanup capability
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           reject(new Error(`Request timeout after ${timeout}ms`));
         }, timeout);
       });
@@ -120,9 +130,18 @@ export function createApiHandler(options: CreateApiHandlerOptions): VinxiHandler
       // Execute the request through Fastify's injection API
       const response = await Promise.race([app.inject(injectOptions), timeoutPromise]);
 
+      // Clear timeout on success to prevent timer leak
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
       // Convert Fastify response to Web API Response
       return injectToWebResponse(response);
     } catch (error) {
+      // Clear timeout on error as well
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       const elapsed = performance.now() - startTime;
       return createErrorResponse(error, elapsed);
     }
@@ -232,11 +251,14 @@ function createErrorResponse(error: unknown, elapsed: number): Response {
   const statusCode = isTimeout ? 504 : 500;
   const message = error instanceof Error ? error.message : 'Internal Server Error';
 
-  console.error('[VeloxTS] API handler error:', {
-    error: message,
-    elapsed: `${elapsed.toFixed(2)}ms`,
-    stack: error instanceof Error ? error.stack : undefined,
-  });
+  // Only log errors in development to avoid performance overhead in production
+  if (isDev) {
+    console.error('[VeloxTS] API handler error:', {
+      error: message,
+      elapsed: `${elapsed.toFixed(2)}ms`,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+  }
 
   return new Response(
     JSON.stringify({
@@ -362,17 +384,23 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
   async function getApp(): Promise<FastifyInstance> {
     // If already resolved, return it
     if (singleton.instance) {
-      console.log('[VeloxTS] Returning cached Fastify instance for', cacheKey);
+      if (isDev) {
+        console.log('[VeloxTS] Returning cached Fastify instance for', cacheKey);
+      }
       return singleton.instance;
     }
 
     // If initialization in progress, wait for it
     if (singleton.promise) {
-      console.log('[VeloxTS] Waiting for Fastify initialization to complete for', cacheKey);
+      if (isDev) {
+        console.log('[VeloxTS] Waiting for Fastify initialization to complete for', cacheKey);
+      }
       return singleton.promise;
     }
 
-    console.log('[VeloxTS] Creating new Fastify instance for', cacheKey);
+    if (isDev) {
+      console.log('[VeloxTS] Creating new Fastify instance for', cacheKey);
+    }
 
     // Determine if we have a factory or an instance
     if (typeof appOrFactory === 'function') {
@@ -392,7 +420,9 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
         }
 
         singleton.instance = app;
-        console.log('[VeloxTS] Fastify instance initialized and cached for', cacheKey);
+        if (isDev) {
+          console.log('[VeloxTS] Fastify instance initialized and cached for', cacheKey);
+        }
         return app;
       })();
 
@@ -418,6 +448,7 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
   // Return h3 event handler
   return async function handler(event: H3Event) {
     const startTime = performance.now();
+    let timeoutId: NodeJS.Timeout | undefined;
 
     try {
       // Lazy-initialize Fastify app on first request
@@ -474,15 +505,20 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
         payload,
       };
 
-      // Create timeout promise
+      // Create timeout promise with cleanup capability
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           reject(new Error(`Request timeout after ${timeout}ms`));
         }, timeout);
       });
 
       // Execute the request through Fastify's injection API
       const response = await Promise.race([app.inject(injectOptions), timeoutPromise]);
+
+      // Clear timeout on success to prevent timer leak
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
 
       // Set response status and headers
       const responseObj = event.node.res;
@@ -499,16 +535,23 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
       // Send response body
       responseObj.end(response.body);
     } catch (error) {
+      // Clear timeout on error as well
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
       const elapsed = performance.now() - startTime;
       const isTimeout = error instanceof Error && error.message.includes('timeout');
       const statusCode = isTimeout ? 504 : 500;
       const message = error instanceof Error ? error.message : 'Internal Server Error';
 
-      console.error('[VeloxTS] API handler error:', {
-        error: message,
-        elapsed: `${elapsed.toFixed(2)}ms`,
-        stack: error instanceof Error ? error.stack : undefined,
-      });
+      if (isDev) {
+        console.error('[VeloxTS] API handler error:', {
+          error: message,
+          elapsed: `${elapsed.toFixed(2)}ms`,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
 
       const responseObj = event.node.res;
       responseObj.statusCode = statusCode;

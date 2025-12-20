@@ -230,27 +230,57 @@ function fail(
 // ============================================================================
 
 /**
+ * Formats a Zod error into an ActionError.
+ */
+function formatZodError(err: unknown): ActionError {
+  if (err && typeof err === 'object' && 'errors' in err) {
+    const zodError = err as { errors: Array<{ path: (string | number)[]; message: string }> };
+    return fail('VALIDATION_ERROR', 'Validation failed', {
+      errors: zodError.errors.map((e) => ({
+        path: e.path.join('.'),
+        message: e.message,
+      })),
+    });
+  }
+  return fail('VALIDATION_ERROR', 'Validation failed');
+}
+
+/**
  * Validates input against a Zod schema.
  * Returns a discriminated result for safe handling.
+ *
+ * Performance optimization: Uses synchronous parse() first, which is faster
+ * for schemas without async refinements. Falls back to parseAsync() only
+ * when the schema has async refinements.
+ *
+ * @see https://zod.dev/?id=parseasync - Zod async parsing docs
  */
 async function validateWithSchema<T>(
   schema: ZodSchema<T>,
   data: unknown
 ): Promise<ActionResult<T>> {
   try {
-    const result = await schema.parseAsync(data);
+    // Try synchronous parse first (faster for most schemas)
+    const result = schema.parse(data);
     return ok(result);
   } catch (err) {
-    if (err && typeof err === 'object' && 'errors' in err) {
-      const zodError = err as { errors: Array<{ path: (string | number)[]; message: string }> };
-      return fail('VALIDATION_ERROR', 'Validation failed', {
-        errors: zodError.errors.map((e) => ({
-          path: e.path.join('.'),
-          message: e.message,
-        })),
-      });
+    // Check if this is an async schema that requires parseAsync
+    // Zod throws a specific error when sync parse is used on async schema
+    if (
+      err instanceof Error &&
+      err.message.includes('Async refinement encountered during synchronous parse')
+    ) {
+      // Fall back to async parse for schemas with async refinements
+      try {
+        const result = await schema.parseAsync(data);
+        return ok(result);
+      } catch (asyncErr) {
+        return formatZodError(asyncErr);
+      }
     }
-    return fail('VALIDATION_ERROR', 'Validation failed');
+
+    // Regular validation error - format and return
+    return formatZodError(err);
   }
 }
 

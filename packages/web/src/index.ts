@@ -148,6 +148,7 @@ export {
 } from './rendering/flight.js';
 // Rendering utilities
 export {
+  clearComponentCache,
   type RenderToStreamOptions,
   renderToStream,
 } from './rendering/server-renderer.js';
