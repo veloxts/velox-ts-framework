@@ -10,20 +10,33 @@
  * @module @veloxts/web/templates/entry.server
  */
 
-import { createFileRouter, createSsrRouter, renderToStream } from '../index.js';
+import {
+  createFileRouter,
+  createSsrRouter,
+  renderToStream,
+  type FileRouter,
+} from '../index.js';
 
 /**
- * Initialize the file-based router.
+ * Lazy-initialized file router.
  *
  * The file router scans the pages directory and creates routes
  * based on the file structure using Laravel-inspired conventions.
  *
- * Using top-level await to initialize the router before exporting the handler.
+ * Initialized on first request to avoid top-level await issues
+ * with some bundlers.
  */
-const fileRouter = await createFileRouter({
-  pagesDir: 'app/pages',
-  layoutsDir: 'app/layouts',
-});
+let fileRouter: FileRouter | null = null;
+
+async function getFileRouter(): Promise<FileRouter> {
+  if (!fileRouter) {
+    fileRouter = await createFileRouter({
+      pagesDir: 'app/pages',
+      layoutsDir: 'app/layouts',
+    });
+  }
+  return fileRouter;
+}
 
 /**
  * Export the SSR handler for Vinxi.
@@ -52,10 +65,12 @@ const fileRouter = await createFileRouter({
 export default createSsrRouter({
   /**
    * Resolve a URL path to a route match.
+   * Uses lazy-initialized FileRouter for dynamic route support.
    * Returns null if no route matches (404).
    */
   resolveRoute: async (pathname) => {
-    return fileRouter.match(pathname);
+    const router = await getFileRouter();
+    return router.match(pathname);
   },
 
   /**

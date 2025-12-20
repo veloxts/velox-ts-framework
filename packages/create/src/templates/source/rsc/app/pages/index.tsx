@@ -2,15 +2,10 @@
  * Home Page
  *
  * A React Server Component that runs on the server at request time.
- * Data fetching happens directly in the component - no useEffect needed.
+ * For database access, use the API endpoints at /api/users.
  */
 
-import { db } from '@/api/database';
-
-export default async function HomePage() {
-  // Server-side data fetching
-  const userCount = await db.user.count();
-
+export default function HomePage() {
   return (
     <div className="home-page">
       <header className="hero">
@@ -20,8 +15,8 @@ export default async function HomePage() {
 
       <section className="stats">
         <div className="stat-card">
-          <span className="stat-value">{userCount}</span>
           <span className="stat-label">Users in Database</span>
+          <p>Use the API at <code>/api/users</code> to manage users.</p>
         </div>
       </section>
 

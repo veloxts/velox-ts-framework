@@ -2,19 +2,25 @@
  * Client Entry Point
  *
  * Hydrates the React application on the client side.
- * For RSC apps, Vinxi handles the component streaming and hydration.
- * We just need to initialize the hydration process with the root container.
+ * For SSR apps, the server streams the component tree as HTML.
+ * We hydrate the existing DOM to attach event handlers.
  */
 
-import { hydrateRoot } from 'react-dom/client';
+import { hydrateRoot } from '@veloxts/web';
 
 const rootElement = document.getElementById('root');
 
-if (rootElement) {
-  // For RSC, the server streams the component tree via React Flight.
-  // The firstElementChild contains the server-rendered React tree.
-  // We hydrate it to attach event handlers and make it interactive.
-  hydrateRoot(rootElement, rootElement.firstElementChild as unknown as React.ReactNode);
+if (rootElement && rootElement.firstElementChild) {
+  // Hydrate the server-rendered React tree
+  // This attaches event handlers and makes the app interactive
+  hydrateRoot(rootElement, rootElement.firstElementChild as unknown as React.ReactNode, {
+    onRecoverableError: (error: unknown) => {
+      // Log hydration mismatches in development
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[VeloxTS] Hydration warning:', error);
+      }
+    },
+  });
 } else {
-  console.error('[VeloxTS] Root element not found. Ensure #root exists in the document.');
+  console.error('[VeloxTS] Root element or content not found. Ensure #root exists with server-rendered content.');
 }

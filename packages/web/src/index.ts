@@ -144,6 +144,8 @@ export {
 } from './routers/client-router.js';
 export {
   createSsrRouter,
+  type H3Event,
+  type H3EventHandler,
   type SsrRouterOptions,
 } from './routers/ssr-router.js';
 // File-based routing

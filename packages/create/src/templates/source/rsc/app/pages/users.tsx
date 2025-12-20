@@ -1,10 +1,11 @@
 /**
  * Users Page
  *
- * Demonstrates data fetching and displaying a list of users.
+ * A React Server Component that runs on the server at request time.
+ * Demonstrates direct database access from RSC.
  */
 
-import { db } from '@/api/database';
+import { db } from '../../src/api/database.js';
 
 export default async function UsersPage() {
   const users = await db.user.findMany({
@@ -30,6 +31,12 @@ export default async function UsersPage() {
           ))}
         </ul>
       )}
+
+      <footer className="cta">
+        <p>
+          Edit <code>app/pages/users.tsx</code> to customize this page.
+        </p>
+      </footer>
     </div>
   );
 }

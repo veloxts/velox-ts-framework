@@ -6,10 +6,37 @@
  * - Matching incoming requests to page components
  * - Resolving layouts
  * - Streaming RSC responses
+ *
+ * Returns an h3-compatible event handler for Vinxi integration.
  */
 
-import type { RouteMatch, VinxiHandler } from '../types.js';
+import type { RouteMatch } from '../types.js';
 import { escapeHtml } from '../utils/html.js';
+
+/**
+ * h3 event type (minimal interface to avoid h3 dependency)
+ */
+export interface H3Event {
+  node: {
+    req: {
+      method?: string;
+      url?: string;
+      headers: Record<string, string | string[] | undefined>;
+    };
+    res: {
+      statusCode?: number;
+      setHeader: (name: string, value: string | string[]) => void;
+      end: (data?: unknown) => void;
+      write: (chunk: unknown) => boolean;
+      on: (event: string, listener: () => void) => void;
+    };
+  };
+}
+
+/**
+ * H3 event handler type for Vinxi HTTP routers
+ */
+export type H3EventHandler = (event: H3Event) => Promise<void>;
 
 /**
  * Options for creating the SSR router handler
@@ -45,6 +72,9 @@ export interface SsrRouterOptions {
 /**
  * Creates the SSR router handler for Vinxi.
  *
+ * Returns an h3-compatible event handler that Vinxi can use
+ * for its HTTP router type.
+ *
  * @example
  * ```typescript
  * // src/entry.server.tsx
@@ -61,7 +91,7 @@ export interface SsrRouterOptions {
  * });
  * ```
  */
-export function createSsrRouter(options: SsrRouterOptions): VinxiHandler {
+export function createSsrRouter(options: SsrRouterOptions): H3EventHandler {
   const {
     resolveRoute,
     render,
@@ -72,9 +102,21 @@ export function createSsrRouter(options: SsrRouterOptions): VinxiHandler {
 
   const shouldLog = logging ?? process.env.NODE_ENV !== 'production';
 
-  return async function ssrHandler(request: Request): Promise<Response> {
+  return async function ssrHandler(event: H3Event): Promise<void> {
     const startTime = performance.now();
-    const url = new URL(request.url);
+    const req = event.node.req;
+    const res = event.node.res;
+
+    // Build URL from request
+    const protocol = 'http';
+    const host = (req.headers.host as string) || 'localhost';
+    const url = new URL(req.url || '/', `${protocol}://${host}`);
+
+    // Create a Web Request from h3 event
+    const request = new Request(url.toString(), {
+      method: req.method || 'GET',
+      headers: normalizeHeaders(req.headers),
+    });
 
     try {
       // Resolve the route
@@ -84,7 +126,9 @@ export function createSsrRouter(options: SsrRouterOptions): VinxiHandler {
         if (shouldLog) {
           console.log(`[SSR] ${url.pathname} → 404 Not Found`);
         }
-        return notFound(request);
+        const notFoundResponse = await notFound(request);
+        await sendResponse(res, notFoundResponse);
+        return;
       }
 
       // Render the matched route
@@ -95,7 +139,7 @@ export function createSsrRouter(options: SsrRouterOptions): VinxiHandler {
         console.log(`[SSR] ${url.pathname} → ${response.status} (${elapsed.toFixed(1)}ms)`);
       }
 
-      return response;
+      await sendResponse(res, response);
     } catch (error) {
       const elapsed = performance.now() - startTime;
 
@@ -103,9 +147,77 @@ export function createSsrRouter(options: SsrRouterOptions): VinxiHandler {
         console.error(`[SSR] ${url.pathname} → ERROR (${elapsed.toFixed(1)}ms)`, error);
       }
 
-      return onError(error instanceof Error ? error : new Error(String(error)), request);
+      const errorResponse = await onError(
+        error instanceof Error ? error : new Error(String(error)),
+        request
+      );
+      await sendResponse(res, errorResponse);
     }
   };
+}
+
+/**
+ * Normalizes h3 request headers to Headers object
+ */
+function normalizeHeaders(headers: Record<string, string | string[] | undefined>): Headers {
+  const result = new Headers();
+  for (const [key, value] of Object.entries(headers)) {
+    if (value !== undefined) {
+      if (Array.isArray(value)) {
+        for (const v of value) {
+          result.append(key, v);
+        }
+      } else {
+        result.set(key, value);
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Sends a Web Response through h3's response object
+ */
+async function sendResponse(
+  res: H3Event['node']['res'],
+  response: Response
+): Promise<void> {
+  // Set status code
+  res.statusCode = response.status;
+
+  // Set headers
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value);
+  });
+
+  // Handle the response body
+  if (!response.body) {
+    res.end();
+    return;
+  }
+
+  // Check if body is a ReadableStream (streaming response)
+  const body = response.body;
+
+  if (body instanceof ReadableStream) {
+    // Stream the response
+    const reader = body.getReader();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    res.end();
+  } else {
+    // Non-streaming response - read all at once
+    const text = await response.text();
+    res.end(text);
+  }
 }
 
 /**
