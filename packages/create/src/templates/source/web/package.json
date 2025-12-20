@@ -11,14 +11,14 @@
   },
   "dependencies": {
     "@tanstack/react-query": "5.90.12",
-    "@tanstack/react-router": "1.140.5",
+    "@tanstack/react-router": "1.141.8",
     "@veloxts/client": "__VELOXTS_VERSION__",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-error-boundary": "5.0.0"
+    "react-error-boundary": "6.0.0"
   },
   "devDependencies": {
-    "@tanstack/router-plugin": "1.140.5",
+    "@tanstack/router-plugin": "1.142.0",
     "@types/node": "25.0.3",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",

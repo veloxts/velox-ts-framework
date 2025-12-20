@@ -1,15 +1,3 @@
-module.exports = {
-  // Other ncu options can go here
-  filterResults: (package, desiredVersion) => {
-    // Check if the package name is 'mobx'
-    if (package.name === 'zod') {
-      // Use a regular expression to allow only versions starting with '6.'
-      // Replace '6.' with your desired max major version prefix.
-      if (!/^3\./.test(desiredVersion)) {
-        console.log(`[ncu] Ignoring major update for ${package.name} to ${desiredVersion}. Staying within v6.x.`);
-        return false; // returning false excludes it from the results
-      }
-    }
-    return true; // allow all other packages/versions
-  },
-};
+{
+  "reject": ["zod"]
+}
