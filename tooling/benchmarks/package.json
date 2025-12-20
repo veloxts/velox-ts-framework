@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/benchmarks",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Performance benchmarks for VeloxTS framework",
   "type": "module",
   "private": true,
@@ -14,7 +14,7 @@
     "bench:startup": "pnpm build && node dist/benchmarks/startup.js"
   },
   "devDependencies": {
-    "@types/node": "25.0.0",
+    "@types/node": "25.0.3",
     "autocannon": "8.0.0",
     "typescript": "5.9.3"
   },

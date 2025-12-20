@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.1
+
+### Patch Changes
+
+- route groups for file-based routing; add dynamic route support with [param] segments
+
 ## 0.6.0
 
 ### Minor Changes
