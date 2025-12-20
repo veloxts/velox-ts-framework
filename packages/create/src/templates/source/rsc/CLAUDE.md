@@ -13,7 +13,8 @@ __PROJECT_NAME__/
 │   ├── layouts/            # Layout components
 │   │   └── root.tsx        # Root layout (wraps all pages)
 │   └── actions/            # Server actions
-│       └── users.ts        # User-related actions
+│       ├── users.ts        # User-related actions
+│       └── posts.ts        # Post actions (procedure bridge)
 ├── src/                    # Source layer
 │   ├── api/                # API layer (Fastify embedded in Vinxi)
 │   │   ├── handler.ts      # API handler for /api/* routes
@@ -45,6 +46,25 @@ __PROJECT_NAME__/
 - Defined in `app/actions/` with `'use server'` directive
 - Type-safe with Zod validation via `createAction()`
 - Can be called directly from client components
+
+### Procedure Bridge Pattern
+Server actions can bridge to API procedures for code reuse:
+```typescript
+// app/actions/posts.ts
+'use server';
+import { action } from '@veloxts/web';
+import { postProcedures } from '@/api/procedures/posts';
+
+export const createPost = action.fromProcedure(
+  postProcedures.procedures.createPost,
+  { parseFormData: true }  // Auto-parse FormData
+);
+```
+
+This pattern:
+- Reuses procedure validation, guards, and business logic
+- Type safety flows from procedure → action → form
+- Works with HTML forms for progressive enhancement
 
 ### API Routes
 - All `/api/*` routes are handled by embedded Fastify

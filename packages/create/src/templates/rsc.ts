@@ -93,6 +93,10 @@ function generateUserActions(): string {
   return compileTemplate('rsc/app/actions/users.ts', RSC_CONFIG);
 }
 
+function generatePostActions(): string {
+  return compileTemplate('rsc/app/actions/posts.ts', RSC_CONFIG);
+}
+
 // Route group pages
 function generateSettingsPage(): string {
   return compileTemplate('rsc/app/pages/(dashboard)/settings.tsx', RSC_CONFIG);
@@ -218,6 +222,7 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
 
     // App layer (RSC) - Server actions
     { path: 'app/actions/users.ts', content: generateUserActions() },
+    { path: 'app/actions/posts.ts', content: generatePostActions() },
 
     // Source layer - Entry points
     { path: 'src/entry.client.tsx', content: generateEntryClient() },

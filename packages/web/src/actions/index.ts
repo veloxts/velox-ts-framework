@@ -12,10 +12,29 @@ export type {
   ActionConfig,
   ActionHandlerFn,
   ErrorHandler,
+  FromProcedureOptions,
   ValidatedAction,
 } from './action.js';
 // New action() helper - recommended API
 export { action } from './action.js';
+
+// Procedure bridge - direct procedure execution
+export type { ExecuteProcedureOptions } from './procedure-bridge.js';
+export {
+  createProcedureContext,
+  executeProcedureDirectly,
+  type InferProcedureInputType,
+  type InferProcedureOutputType,
+} from './procedure-bridge.js';
+
+// FormData parsing
+export type { FormParseOptions } from './form-parser.js';
+export {
+  formDataToObject,
+  isFormData,
+  parseFormDataToSchema,
+  parseFormDataToSchemaAsync,
+} from './form-parser.js';
 export type {
   ExtractProcedureInput,
   ExtractProcedureOutput,

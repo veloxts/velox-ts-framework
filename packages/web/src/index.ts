@@ -27,8 +27,11 @@ export type {
   CallableFormAction,
   CreateActionOptions,
   ErrorHandler,
+  ExecuteProcedureOptions,
   FluentActionBuilder,
   FormActionHandler,
+  FormParseOptions,
+  FromProcedureOptions,
   RegisteredAction,
   TrpcActionOptions,
   TrpcBridge,
@@ -44,6 +47,8 @@ export {
   createAction,
   // Context utilities
   createActionContext,
+  // Procedure bridge
+  createProcedureContext,
   // Registry
   createActionRegistry,
   // tRPC Bridge
@@ -53,17 +58,35 @@ export {
   createTrpcBridge,
   // Result helpers
   error,
+  executeProcedureDirectly,
+  // FormData parsing
+  formDataToObject,
   getActionRegistry,
   isAuthenticatedContext,
   isError,
+  isFormData,
   isSuccess,
   parseCookies,
+  parseFormDataToSchema,
+  parseFormDataToSchemaAsync,
   registerAction,
   resetActionRegistry,
   success,
   TrpcBridgeError,
   wrapProcedure,
 } from './actions/index.js';
+
+// Client hooks for server actions
+export type {
+  InferFormActionOutput,
+  UseActionOptions,
+  UseActionReturn,
+  UseActionState,
+  UseFormActionOptions,
+  UseFormActionReturn,
+  UseFormActionState,
+} from './client/index.js';
+export { useAction, useFormAction } from './client/index.js';
 // Fastify adapter
 export {
   createApiHandler,

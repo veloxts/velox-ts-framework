@@ -34,9 +34,15 @@
  * ```
  */
 
+import type { BaseContext } from '@veloxts/core';
+import type { CompiledProcedure } from '@veloxts/router';
 import type { infer as ZodInfer, ZodSchema, ZodType, ZodTypeDef } from 'zod';
 
 import { toActionError } from './error-classifier.js';
+import {
+  executeProcedureDirectly,
+  type ExecuteProcedureOptions,
+} from './procedure-bridge.js';
 import type {
   ActionContext,
   ActionError,
@@ -86,6 +92,18 @@ type ErrorHandler<TContext extends ActionContext = ActionContext> = (
   error: unknown,
   ctx: TContext
 ) => ActionError | Promise<ActionError>;
+
+/**
+ * Options for creating an action from a procedure.
+ */
+interface FromProcedureOptions extends ExecuteProcedureOptions {
+  /**
+   * Whether to parse FormData input using the procedure's schema.
+   * When true, FormData will be converted to an object before validation.
+   * @default false
+   */
+  parseFormData?: boolean;
+}
 
 // ============================================================================
 // Fluent Builder Interface
@@ -260,6 +278,52 @@ function createContext(): ActionContext {
  */
 function hasAuthenticatedUser(ctx: ActionContext): ctx is AuthenticatedActionContext {
   return 'user' in ctx && ctx.user !== undefined && ctx.user !== null;
+}
+
+// ============================================================================
+// FormData Utilities
+// ============================================================================
+
+/**
+ * Converts FormData to a plain object.
+ * Handles multiple values for the same key by creating arrays.
+ * Supports nested keys using dot notation (e.g., 'user.name').
+ */
+function formDataToObject(formData: FormData): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  formData.forEach((value, key) => {
+    // Handle nested keys (e.g., 'user.name' -> { user: { name: value } })
+    const keys = key.split('.');
+    let current: Record<string, unknown> = result;
+
+    for (let i = 0; i < keys.length - 1; i++) {
+      const k = keys[i];
+      if (!(k in current) || typeof current[k] !== 'object' || current[k] === null) {
+        current[k] = {};
+      }
+      current = current[k] as Record<string, unknown>;
+    }
+
+    const finalKey = keys[keys.length - 1];
+    const existingValue = current[finalKey];
+
+    // Convert File to undefined (skip files for now, will be handled in Phase 2)
+    const processedValue = value instanceof File ? undefined : value;
+
+    if (existingValue !== undefined) {
+      // Convert to array if multiple values with same key
+      if (Array.isArray(existingValue)) {
+        existingValue.push(processedValue);
+      } else {
+        current[finalKey] = [existingValue, processedValue];
+      }
+    } else {
+      current[finalKey] = processedValue;
+    }
+  });
+
+  return result;
 }
 
 // ============================================================================
@@ -444,6 +508,37 @@ interface Action {
    * Creates a protected action builder (requires authentication).
    */
   protected(): ActionBuilder<unknown, unknown, AuthenticatedActionContext>;
+
+  /**
+   * Creates a server action from a VeloxTS procedure.
+   *
+   * This bridges the gap between procedures (which define API logic)
+   * and server actions (which enable form submissions and direct calls).
+   * The procedure's validation, guards, and business logic are reused.
+   *
+   * @example
+   * ```typescript
+   * 'use server';
+   *
+   * import { action } from '@veloxts/web';
+   * import { userProcedures } from './procedures/users';
+   *
+   * // Simple bridge - inherits all procedure behavior
+   * export const createUser = action.fromProcedure(
+   *   userProcedures.procedures.createUser
+   * );
+   *
+   * // With options
+   * export const updateUser = action.fromProcedure(
+   *   userProcedures.procedures.updateUser,
+   *   { skipGuards: true }
+   * );
+   * ```
+   */
+  fromProcedure<TInput, TOutput, TContext extends BaseContext = BaseContext>(
+    procedure: CompiledProcedure<TInput, TOutput, TContext>,
+    options?: FromProcedureOptions
+  ): ValidatedAction<TInput, TOutput>;
 }
 
 /**
@@ -588,6 +683,31 @@ const action: Action = Object.assign(
         requireAuth: true,
       });
     },
+
+    fromProcedure<TInput, TOutput, TContext extends BaseContext = BaseContext>(
+      procedure: CompiledProcedure<TInput, TOutput, TContext>,
+      options?: FromProcedureOptions
+    ): ValidatedAction<TInput, TOutput> {
+      const { parseFormData = false, ...executionOptions } = options ?? {};
+
+      return async (rawInput: TInput): Promise<ActionResult<TOutput>> => {
+        try {
+          // Create context for the action
+          const ctx = createContext();
+
+          // Handle FormData if enabled
+          let input: unknown = rawInput;
+          if (parseFormData && rawInput instanceof FormData) {
+            input = formDataToObject(rawInput);
+          }
+
+          // Execute the procedure directly
+          return await executeProcedureDirectly(procedure, input, ctx, executionOptions);
+        } catch (err) {
+          return handleError(err);
+        }
+      };
+    },
   }
 );
 
@@ -596,4 +716,12 @@ const action: Action = Object.assign(
 // ============================================================================
 
 export { action };
-export type { Action, ActionBuilder, ActionConfig, ActionHandlerFn, ErrorHandler, ValidatedAction };
+export type {
+  Action,
+  ActionBuilder,
+  ActionConfig,
+  ActionHandlerFn,
+  ErrorHandler,
+  FromProcedureOptions,
+  ValidatedAction,
+};
