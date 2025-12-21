@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.8
+
+### Patch Changes
+
+- prevent dotenv from leaking into browser bundle
+
 ## 0.6.7
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.8
+
+### Patch Changes
+
+- prevent dotenv from leaking into browser bundle
+- Updated dependencies
+  - @veloxts/auth@0.6.8
+  - @veloxts/client@0.6.8
+  - @veloxts/core@0.6.8
+  - @veloxts/router@0.6.8
+
 ## 0.6.7
 
 ### Patch Changes

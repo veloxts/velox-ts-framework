@@ -1,5 +1,13 @@
 # @veloxts/testing
 
+## 0.6.8
+
+### Patch Changes
+
+- prevent dotenv from leaking into browser bundle
+- Updated dependencies
+  - @veloxts/core@0.6.8
+
 ## 0.6.7
 
 ### Patch Changes
