@@ -8,8 +8,12 @@
  * Uses Laravel-style `db` export for consistency.
  */
 
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { PrismaClient } from '@prisma/client';
+// Use createRequire for CJS module interop with Node.js v24+
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
+const { PrismaClient } = require('@prisma/client');
 
 declare global {
   // Allow global `var` declarations for hot reload in development

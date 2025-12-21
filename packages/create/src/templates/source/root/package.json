@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "workspaces": ["apps/*"],
   "scripts": {
     "dev": "__RUN_CMD__ --parallel -r dev",
     "build": "__RUN_CMD__ -r build",

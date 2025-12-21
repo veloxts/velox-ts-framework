@@ -9,12 +9,16 @@
  * doesn't always have access to .env variables.
  */
 
+import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+
+// Use createRequire for CJS module interop with Node.js v24+
+const require = createRequire(import.meta.url);
+const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
+const { PrismaClient } = require('@prisma/client');
 
 // Get the project root directory (2 levels up from src/api/)
 const __dirname = dirname(fileURLToPath(import.meta.url));
