@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.4
+
+### Patch Changes
+
+- add @prisma/client-runtime-utils dependency
+- Updated dependencies
+  - @veloxts/cli@0.6.4
+  - @veloxts/router@0.6.4
+  - @veloxts/validation@0.6.4
+
 ## 0.6.3
 
 ### Patch Changes

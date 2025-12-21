@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.4
+
+### Patch Changes
+
+- add @prisma/client-runtime-utils dependency
+
 ## 0.6.3
 
 ### Patch Changes
