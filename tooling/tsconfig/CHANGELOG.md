@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.11
+
+### Patch Changes
+
+- add Vite plugin for Node.js module stubs
+
 ## 0.6.10
 
 ### Patch Changes

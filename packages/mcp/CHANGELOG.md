@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.11
+
+### Patch Changes
+
+- add Vite plugin for Node.js module stubs
+- Updated dependencies
+  - @veloxts/cli@0.6.11
+  - @veloxts/router@0.6.11
+  - @veloxts/validation@0.6.11
+
 ## 0.6.10
 
 ### Patch Changes

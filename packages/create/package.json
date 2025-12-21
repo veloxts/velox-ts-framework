@@ -1,6 +1,6 @@
 {
   "name": "create-velox-app",
-  "version": "0.6.10",
+  "version": "0.6.11",
   "description": "Project scaffolder for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",
