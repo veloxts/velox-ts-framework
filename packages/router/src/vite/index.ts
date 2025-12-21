@@ -115,6 +115,17 @@ export function veloxNodeStubs(): Plugin {
     name: 'velox-node-stubs',
     enforce: 'pre',
 
+    config() {
+      // Provide process.env stub for packages like dotenv that check it
+      return {
+        define: {
+          'process.env': '{}',
+          'process.platform': '"browser"',
+          'process.version': '"v0.0.0"',
+        },
+      };
+    },
+
     resolveId(id) {
       if (id in allStubs) {
         return `\0velox-virtual:${id}`;
