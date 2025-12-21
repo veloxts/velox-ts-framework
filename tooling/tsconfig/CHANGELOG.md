@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.14
+
+### Patch Changes
+
+- stub dotenv as virtual module instead of process shims
+
 ## 0.6.13
 
 ### Patch Changes

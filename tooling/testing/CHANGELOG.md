@@ -1,5 +1,13 @@
 # @veloxts/testing
 
+## 0.6.14
+
+### Patch Changes
+
+- stub dotenv as virtual module instead of process shims
+- Updated dependencies
+  - @veloxts/core@0.6.14
+
 ## 0.6.13
 
 ### Patch Changes
