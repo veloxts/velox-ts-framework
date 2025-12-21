@@ -189,11 +189,15 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   echo ""
 
   # Build the Web App
-  # Note: Auth template skipped because @veloxts/auth contains Node.js-only code
-  # that Vite cannot bundle for browser. This is a known issue to fix separately.
+  # Note: Auth template web build is skipped because the api package imports
+  # @veloxts/auth which contains Node.js-only code (crypto, util.promisify).
+  # The web app should not be importing server-side code, but due to npm
+  # workspaces hoisting, Vite resolves these dependencies.
+  # TODO: Fix template architecture to properly isolate server-only code
   if [ "$template" = "auth" ]; then
     echo "=== Building the Web App ==="
-    echo "⚠ Skipped for auth template (known bundling issue with @veloxts/auth)"
+    echo "⚠ Skipped for auth template (server code leaking into browser bundle)"
+    echo "  Issue: @veloxts/auth uses node:crypto and node:util which can't be bundled"
     echo ""
   else
     echo "=== Building the Web App ==="
