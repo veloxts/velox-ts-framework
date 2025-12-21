@@ -212,12 +212,16 @@ export function veloxNodeStubs(): Plugin {
     enforce: 'pre',
 
     config() {
-      // Provide process.env stub for packages like dotenv that check it
+      // Provide process global stub for packages like dotenv that check it
+      // These satisfy common checks in Node.js packages that leak into browser bundles
       return {
         define: {
           'process.env': '{}',
+          'process.argv': '[]',
           'process.platform': '"browser"',
           'process.version': '"v0.0.0"',
+          'process.stdout': '{}',
+          'process.stderr': '{}',
         },
       };
     },
