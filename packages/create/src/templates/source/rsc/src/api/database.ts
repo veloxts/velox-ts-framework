@@ -13,12 +13,19 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Type imports (erased at runtime, safe for ESM)
+import type { PrismaBetterSqlite3 as PrismaBetterSqlite3Type } from '@prisma/adapter-better-sqlite3';
+import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import dotenv from 'dotenv';
 
-// Use createRequire for CJS module interop with Node.js v24+
+// Runtime imports using createRequire for Node.js v24+ CJS interop
 const require = createRequire(import.meta.url);
-const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
-const { PrismaClient } = require('@prisma/client');
+const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3') as {
+  PrismaBetterSqlite3: typeof PrismaBetterSqlite3Type;
+};
+const { PrismaClient } = require('@prisma/client') as {
+  PrismaClient: typeof PrismaClientType;
+};
 
 // Get the project root directory (2 levels up from src/api/)
 const __dirname = dirname(fileURLToPath(import.meta.url));
