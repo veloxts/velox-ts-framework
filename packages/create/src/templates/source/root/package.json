@@ -14,6 +14,9 @@
     "db:generate": "__RUN_CMD__ -F api db:generate",
     "db:studio": "__RUN_CMD__ -F api db:studio"
   },
+  "dependencies": {
+    "@prisma/client-runtime-utils": "7.2.0"
+  },
   "devDependencies": {
     "@types/node": "25.0.3",
     "typescript": "5.9.3"
