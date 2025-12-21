@@ -4,10 +4,6 @@
  * This file creates typed hooks for accessing your backend procedures.
  * Import `api` in your components for full autocomplete support.
  *
- * NOTE: The AppRouter type is imported from the API at BUILD time only.
- * During development, Vite's hot reload works without needing the full
- * type chain, and TypeScript provides type checking separately.
- *
  * @example
  * ```tsx
  * import { api } from '@/api';
@@ -27,12 +23,13 @@
 import { createVeloxHooks } from '@veloxts/client/react';
 
 /**
- * AppRouter type imported from the API.
+ * AppRouter type imported from the type-only router file.
  *
- * This uses TypeScript's import() type syntax which is erased at runtime.
- * The actual type comes from the API's router.ts file.
+ * The router.types.ts file contains ONLY type imports and declarations,
+ * which are completely erased at compile time. This means Vite never
+ * scans the @veloxts/* packages when building the frontend.
  */
-type AppRouter = import('../../api/src/router.js').AppRouter;
+import type { AppRouter } from '../../api/src/router.types.js';
 
 /**
  * Type-safe API hooks with full autocomplete

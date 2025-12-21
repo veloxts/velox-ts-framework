@@ -189,32 +189,23 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   echo ""
 
   # Build the Web App
-  # Note: Auth template web build is skipped because the api package imports
-  # @veloxts/auth which contains Node.js-only code (crypto, util.promisify).
-  # The web app should not be importing server-side code, but due to npm
-  # workspaces hoisting, Vite resolves these dependencies.
-  # TODO: Fix template architecture to properly isolate server-only code
-  if [ "$template" = "auth" ]; then
-    echo "=== Building the Web App ==="
-    echo "⚠ Skipped for auth template (server code leaking into browser bundle)"
-    echo "  Issue: @veloxts/auth uses node:crypto and node:util which can't be bundled"
-    echo ""
+  # The web app now uses a Vite plugin (nodeBuiltinsPlugin) to stub all node:
+  # built-in modules. This allows the frontend to import types from the API
+  # without pulling in server-side code at runtime.
+  echo "=== Building the Web App ==="
+  cd ../web
+  npm install --legacy-peer-deps
+  # Use npx vite build directly (skips tsc -b which requires generated route tree)
+  # The Vite build handles TypeScript compilation internally
+  npx vite build
+  if [ -d "dist" ]; then
+    echo "✓ Web app built"
   else
-    echo "=== Building the Web App ==="
-    cd ../web
-    npm install --legacy-peer-deps
-    # Use npx vite build directly (skips tsc -b which requires generated route tree)
-    # The Vite build handles TypeScript compilation internally
-    npx vite build
-    if [ -d "dist" ]; then
-      echo "✓ Web app built"
-    else
-      echo "✗ Web app build failed - no dist directory"
-      exit 1
-    fi
-    cd ../api
-    echo ""
+    echo "✗ Web app build failed - no dist directory"
+    exit 1
   fi
+  cd ../api
+  echo ""
 
   # Start server from apps/api (where .env is located)
   echo "=== Testing endpoints ==="
