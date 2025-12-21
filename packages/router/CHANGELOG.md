@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.7
+
+### Patch Changes
+
+- better-sqlite3 versions mismatch fix
+- Updated dependencies
+  - @veloxts/core@0.6.7
+  - @veloxts/validation@0.6.7
+
 ## 0.6.6
 
 ### Patch Changes

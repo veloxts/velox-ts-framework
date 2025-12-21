@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.7
+
+### Patch Changes
+
+- better-sqlite3 versions mismatch fix
+
 ## 0.6.6
 
 ### Patch Changes
