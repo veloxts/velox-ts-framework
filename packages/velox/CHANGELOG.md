@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.12
+
+### Patch Changes
+
+- Fixes the "process is not defined" error from dotenv
+- Updated dependencies
+  - @veloxts/auth@0.6.12
+  - @veloxts/core@0.6.12
+  - @veloxts/orm@0.6.12
+  - @veloxts/router@0.6.12
+  - @veloxts/validation@0.6.12
+
 ## 0.6.11
 
 ### Patch Changes

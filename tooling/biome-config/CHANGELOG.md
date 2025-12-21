@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.12
+
+### Patch Changes
+
+- Fixes the "process is not defined" error from dotenv
+
 ## 0.6.11
 
 ### Patch Changes

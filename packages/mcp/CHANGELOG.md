@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.12
+
+### Patch Changes
+
+- Fixes the "process is not defined" error from dotenv
+- Updated dependencies
+  - @veloxts/cli@0.6.12
+  - @veloxts/router@0.6.12
+  - @veloxts/validation@0.6.12
+
 ## 0.6.11
 
 ### Patch Changes
