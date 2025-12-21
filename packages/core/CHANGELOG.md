@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.5
+
+### Patch Changes
+
+- move @prisma/client-runtime-utils to root package.json
+
 ## 0.6.4
 
 ### Patch Changes

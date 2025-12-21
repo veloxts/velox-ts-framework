@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.5
+
+### Patch Changes
+
+- move @prisma/client-runtime-utils to root package.json
+- Updated dependencies
+  - @veloxts/core@0.6.5
+  - @veloxts/router@0.6.5
+
 ## 0.6.4
 
 ### Patch Changes
