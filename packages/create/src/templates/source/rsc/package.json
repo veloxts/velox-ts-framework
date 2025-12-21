@@ -15,8 +15,9 @@
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "7.2.0",
-    "better-sqlite3": "12.5.0",
     "@prisma/client": "7.2.0",
+    "@prisma/client-runtime-utils": "7.2.0",
+    "better-sqlite3": "12.5.0",
     "@veloxts/core": "__VELOXTS_VERSION__",
     "@veloxts/orm": "__VELOXTS_VERSION__",
     "@veloxts/router": "__VELOXTS_VERSION__",

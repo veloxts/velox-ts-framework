@@ -19,6 +19,7 @@
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "7.2.0",
     "@prisma/client": "7.2.0",
+    "@prisma/client-runtime-utils": "7.2.0",
     "@veloxts/velox": "__VELOXTS_VERSION__",
     "bcrypt": "5.1.1",
     "better-sqlite3": "11.9.1",
