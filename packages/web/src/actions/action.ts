@@ -524,6 +524,36 @@ interface Action {
     procedure: CompiledProcedure<TInput, TOutput, TContext>,
     options?: FromProcedureOptions
   ): ValidatedAction<TInput, TOutput>;
+
+  // ============================================================================
+  // Result Helpers (Laravel-style)
+  // ============================================================================
+
+  /**
+   * Creates a successful action result.
+   *
+   * @example
+   * ```typescript
+   * import { action } from '@veloxts/web';
+   *
+   * return action.ok({ id: user.id, name: user.name });
+   * // => { success: true, data: { id: '...', name: '...' } }
+   * ```
+   */
+  ok<T>(data: T): ActionSuccess<T>;
+
+  /**
+   * Creates an error action result.
+   *
+   * @example
+   * ```typescript
+   * import { action } from '@veloxts/web';
+   *
+   * return action.error('NOT_FOUND', 'User not found');
+   * // => { success: false, error: { code: 'NOT_FOUND', message: 'User not found' } }
+   * ```
+   */
+  error(code: ActionErrorCode, message: string, details?: Record<string, unknown>): ActionError;
 }
 
 /**
@@ -693,6 +723,10 @@ const action: Action = Object.assign(
         }
       };
     },
+
+    // Result helpers (Laravel-style attached to action namespace)
+    ok,
+    error: fail,
   }
 );
 

@@ -81,6 +81,7 @@ export {
   registerAction,
   resetActionRegistry,
   success,
+  success as ok,
 } from './handler.js';
 // Types
 export type {
