@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.13
+
+### Patch Changes
+
+- add process.argv stub for dotenv browser compatibility
+
 ## 0.6.12
 
 ### Patch Changes

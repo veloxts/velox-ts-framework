@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.13
+
+### Patch Changes
+
+- add process.argv stub for dotenv browser compatibility
+- Updated dependencies
+  - @veloxts/auth@0.6.13
+  - @veloxts/client@0.6.13
+  - @veloxts/core@0.6.13
+  - @veloxts/router@0.6.13
+
 ## 0.6.12
 
 ### Patch Changes
