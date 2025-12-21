@@ -4,7 +4,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDatabasePlugin } from '../plugin.js';
+import { databasePlugin } from '../plugin.js';
 import type { DatabaseClient } from '../types.js';
 
 /**
@@ -48,11 +48,11 @@ function createMockServer() {
   };
 }
 
-describe('createDatabasePlugin', () => {
+describe('databasePlugin', () => {
   describe('plugin creation', () => {
     it('should create a valid plugin with client', () => {
       const mockClient = createMockClient();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       expect(plugin).toBeDefined();
       expect(plugin.name).toBe('@veloxts/orm');
@@ -62,25 +62,25 @@ describe('createDatabasePlugin', () => {
 
     it('should allow custom plugin name', () => {
       const mockClient = createMockClient();
-      const plugin = createDatabasePlugin({ client: mockClient, name: 'custom-db' });
+      const plugin = databasePlugin({ client: mockClient, name: 'custom-db' });
 
       expect(plugin.name).toBe('custom-db');
     });
 
     it('should throw error if config is null', () => {
-      expect(() => createDatabasePlugin(null as unknown as { client: DatabaseClient })).toThrow(
+      expect(() => databasePlugin(null as unknown as { client: DatabaseClient })).toThrow(
         'Database plugin configuration is required'
       );
     });
 
     it('should throw error if config is not an object', () => {
       expect(() =>
-        createDatabasePlugin('invalid' as unknown as { client: DatabaseClient })
+        databasePlugin('invalid' as unknown as { client: DatabaseClient })
       ).toThrow('Database plugin configuration is required');
     });
 
     it('should throw error if client is missing', () => {
-      expect(() => createDatabasePlugin({} as { client: DatabaseClient })).toThrow(
+      expect(() => databasePlugin({} as { client: DatabaseClient })).toThrow(
         'Database client is required'
       );
     });
@@ -88,7 +88,7 @@ describe('createDatabasePlugin', () => {
     it('should throw error if client is invalid', () => {
       const invalidClient = { notAClient: true };
       expect(() =>
-        createDatabasePlugin({ client: invalidClient as unknown as DatabaseClient })
+        databasePlugin({ client: invalidClient as unknown as DatabaseClient })
       ).toThrow('Database client must implement $connect and $disconnect methods');
     });
   });
@@ -97,7 +97,7 @@ describe('createDatabasePlugin', () => {
     it('should connect to database on register', async () => {
       const mockClient = createMockClient();
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -107,7 +107,7 @@ describe('createDatabasePlugin', () => {
     it('should add onRequest hook for context injection', async () => {
       const mockClient = createMockClient();
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -117,7 +117,7 @@ describe('createDatabasePlugin', () => {
     it('should add onClose hook for disconnect', async () => {
       const mockClient = createMockClient();
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -127,7 +127,7 @@ describe('createDatabasePlugin', () => {
     it('should log successful registration', async () => {
       const mockClient = createMockClient();
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -141,7 +141,7 @@ describe('createDatabasePlugin', () => {
     it('should inject db into request context', async () => {
       const mockClient = createMockClient();
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -162,7 +162,7 @@ describe('createDatabasePlugin', () => {
     it('should not inject db if context is missing', async () => {
       const mockClient = createMockClient();
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -180,7 +180,7 @@ describe('createDatabasePlugin', () => {
     it('should disconnect on server close', async () => {
       const mockClient = createMockClient();
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -195,7 +195,7 @@ describe('createDatabasePlugin', () => {
         $disconnect: vi.fn().mockRejectedValue(new Error('Disconnect failed')),
       });
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -215,7 +215,7 @@ describe('createDatabasePlugin', () => {
         $disconnect: vi.fn().mockRejectedValue('string error'),
       });
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -238,7 +238,7 @@ describe('createDatabasePlugin', () => {
         $disconnect: vi.fn().mockRejectedValue({ code: 'CUSTOM_ERROR', details: 'Failed' }),
       });
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -255,7 +255,7 @@ describe('createDatabasePlugin', () => {
     it('should log info when database disconnects successfully', async () => {
       const mockClient = createMockClient();
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -274,7 +274,7 @@ describe('createDatabasePlugin', () => {
 
       // Create a new plugin but don't actually register it (connection won't happen)
       // Instead, manually create the hook scenario
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       // Mock connect to fail, so database never becomes connected
       mockClient.$connect = vi.fn().mockRejectedValue(new Error('Connection failed'));
@@ -301,7 +301,7 @@ describe('createDatabasePlugin', () => {
     it('should not attempt disconnect if already disconnected before shutdown', async () => {
       const mockClient = createMockClient();
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       // Register successfully
       await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
@@ -328,7 +328,7 @@ describe('createDatabasePlugin', () => {
         $connect: vi.fn().mockRejectedValue(new Error('Connection refused')),
       });
       const mockServer = createMockServer();
-      const plugin = createDatabasePlugin({ client: mockClient });
+      const plugin = databasePlugin({ client: mockClient });
 
       await expect(
         plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0])

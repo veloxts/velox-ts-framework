@@ -10,7 +10,7 @@
 import { fail, type VeloxApp } from '@veloxts/core';
 
 import { rest } from './rest/index.js';
-import { type AnyRouter, createAppRouter, createTRPC, registerTRPCPlugin } from './trpc/index.js';
+import { type AnyRouter, appRouter, trpc, registerTRPCPlugin } from './trpc/index.js';
 import type { ProcedureCollection } from './types.js';
 
 // ============================================================================
@@ -103,14 +103,14 @@ export async function serve(
   }
 
   // Router is created even when rpc is disabled - needed for AppRouter type export
-  const t = createTRPC();
-  const appRouter = createAppRouter(t, procedures);
+  const t = trpc();
+  const router = appRouter(t, procedures);
 
   // Register tRPC routes if enabled
   if (rpcPrefix !== false) {
     await registerTRPCPlugin(app.server, {
       prefix: rpcPrefix,
-      router: appRouter,
+      router,
     });
   }
 
@@ -119,5 +119,5 @@ export async function serve(
     app.routes(rest(procedures, { prefix: apiPrefix }));
   }
 
-  return appRouter;
+  return router;
 }

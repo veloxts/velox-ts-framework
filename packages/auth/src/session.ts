@@ -208,8 +208,6 @@ export interface SessionStore {
  *
  * For production, use Redis or database-backed storage.
  *
- * @deprecated Use `inMemorySessionStore()` instead for Laravel-style API.
- *
  * @example
  * ```typescript
  * const store = inMemorySessionStore();
@@ -220,7 +218,7 @@ export interface SessionStore {
  * });
  * ```
  */
-export function createInMemorySessionStore(): SessionStore {
+export function inMemorySessionStore(): SessionStore {
   const sessions = new Map<string, StoredSession>();
   const userSessions = new Map<string, Set<string>>();
 
@@ -703,8 +701,6 @@ function validateSessionIdEntropy(sessionId: string): boolean {
 /**
  * Creates a session manager
  *
- * @deprecated Use `sessionManager()` instead for Laravel-style API.
- *
  * @example
  * ```typescript
  * const manager = sessionManager({
@@ -721,7 +717,7 @@ function validateSessionIdEntropy(sessionId: string): boolean {
  * });
  * ```
  */
-export function createSessionManager(config: SessionConfig): SessionManager {
+export function sessionManager(config: SessionConfig): SessionManager {
   // Validate secret
   if (!config.secret || config.secret.length < MIN_SECRET_LENGTH) {
     throw new Error(
@@ -740,7 +736,7 @@ export function createSessionManager(config: SessionConfig): SessionManager {
   }
 
   // Initialize store
-  const store = config.store ?? createInMemorySessionStore();
+  const store = config.store ?? inMemorySessionStore();
 
   // Cookie configuration
   const cookieName = config.cookie?.name ?? DEFAULT_COOKIE_NAME;
@@ -1188,7 +1184,7 @@ export interface SessionMiddlewareOptions {
  * ```
  */
 export function sessionMiddleware(config: SessionConfig) {
-  const manager = createSessionManager(config);
+  const manager = sessionManager(config);
 
   /**
    * Base session middleware
@@ -1468,50 +1464,3 @@ export async function logoutSession(session: Session): Promise<void> {
 export function isSessionAuthenticated(session: Session): boolean {
   return session.check();
 }
-
-// ============================================================================
-// Succinct Aliases (Laravel-style)
-// ============================================================================
-
-/**
- * Creates a session manager (succinct alias)
- *
- * @example
- * ```typescript
- * const manager = sessionManager({
- *   secret: process.env.SESSION_SECRET!,
- *   cookie: {
- *     name: 'myapp.session',
- *     secure: true,
- *     sameSite: 'strict',
- *   },
- *   expiration: {
- *     ttl: 3600, // 1 hour
- *     sliding: true,
- *   },
- * });
- * ```
- */
-export const sessionManager = createSessionManager;
-
-/**
- * In-memory session store for development and testing (succinct alias)
- *
- * WARNING: NOT suitable for production!
- * - Sessions are lost on server restart
- * - Does not work across multiple server instances
- * - No persistence mechanism
- *
- * For production, use Redis or database-backed storage.
- *
- * @example
- * ```typescript
- * const store = inMemorySessionStore();
- *
- * const manager = sessionManager({
- *   store,
- *   secret: process.env.SESSION_SECRET!,
- * });
- * ```
- */
-export const inMemorySessionStore = createInMemorySessionStore;

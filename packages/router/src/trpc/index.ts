@@ -8,8 +8,6 @@ export type { AnyRouter, InferAppRouter, TRPCInstance, TRPCPluginOptions } from 
 export {
   appRouter,
   buildTRPCRouter,
-  createAppRouter,
-  createTRPC,
   createTRPCContextFactory,
   isVeloxTRPCError,
   registerTRPCPlugin,

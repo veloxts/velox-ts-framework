@@ -50,7 +50,7 @@ export interface DatabaseClient {
   /**
    * Establishes connection to the database
    *
-   * Called automatically when using createDatabasePlugin,
+   * Called automatically when using databasePlugin,
    * or can be called manually with createDatabase.
    */
   $connect: () => Promise<void>;
@@ -58,7 +58,7 @@ export interface DatabaseClient {
   /**
    * Disconnects from the database
    *
-   * Called automatically during app shutdown when using createDatabasePlugin,
+   * Called automatically during app shutdown when using databasePlugin,
    * or can be called manually with createDatabase.
    */
   $disconnect: () => Promise<void>;
@@ -113,7 +113,7 @@ export interface OrmPluginConfig<TClient extends DatabaseClient> {
    * @example
    * ```typescript
    * const prisma = new PrismaClient();
-   * const plugin = createDatabasePlugin({ client: prisma });
+   * const plugin = databasePlugin({ client: prisma });
    * ```
    */
   client: TClient;

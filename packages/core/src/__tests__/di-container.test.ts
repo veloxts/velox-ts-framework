@@ -12,7 +12,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   Container,
   container,
-  createContainer,
   Injectable,
   Scope,
   token,
@@ -63,11 +62,6 @@ describe('DI Container', () => {
       const c = new Container({ autoRegister: true });
       const debugInfo = c.getDebugInfo();
       expect(debugInfo.autoRegister).toBe(true);
-    });
-
-    it('should create container using factory function', () => {
-      const c = createContainer();
-      expect(c).toBeInstanceOf(Container);
     });
 
     it('should have global container instance', () => {

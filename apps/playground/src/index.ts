@@ -22,7 +22,7 @@ import path from 'node:path';
 import fastifyStatic from '@fastify/static';
 import { authPlugin } from '@veloxts/auth';
 import { createVeloxApp, VELOX_VERSION } from '@veloxts/core';
-import { createDatabasePlugin } from '@veloxts/orm';
+import { databasePlugin } from '@veloxts/orm';
 import { createRoutesRegistrar, getRouteSummary, registerTRPCPlugin } from '@veloxts/router';
 
 import { authConfig, config } from './config/index.js';
@@ -162,7 +162,7 @@ async function createApp() {
   // Register database plugin
   // Use mock database for testing or real Prisma for development
   const dbClient = USE_MOCK_DB ? createMockPrismaClient() : prisma;
-  await app.use(createDatabasePlugin({ client: dbClient }));
+  await app.use(databasePlugin({ client: dbClient }));
 
   console.log(`[Database] Using ${USE_MOCK_DB ? 'mock in-memory' : 'Prisma SQLite'} database`);
 

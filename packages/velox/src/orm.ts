@@ -4,7 +4,7 @@
  * Use this subpath for better tree-shaking:
  * @example
  * ```typescript
- * import { createDatabasePlugin } from '@veloxts/velox/orm';
+ * import { databasePlugin } from '@veloxts/velox/orm';
  * ```
  */
 export * from '@veloxts/orm';

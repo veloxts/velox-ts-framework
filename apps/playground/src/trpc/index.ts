@@ -5,7 +5,7 @@
  * Provides both the router and type exports for client consumption.
  */
 
-import { type AnyRouter, createAppRouter, createTRPC } from '@veloxts/router';
+import { type AnyRouter, appRouter as createAppRouter, trpc } from '@veloxts/router';
 
 import { healthProcedures, userProcedures } from '../procedures/index.js';
 
@@ -16,7 +16,7 @@ import { healthProcedures, userProcedures } from '../procedures/index.js';
 /**
  * Create tRPC instance with VeloxTS context
  */
-export const t = createTRPC();
+export const t = trpc();
 
 // ============================================================================
 // App Router

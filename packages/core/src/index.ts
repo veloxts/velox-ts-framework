@@ -61,7 +61,6 @@ export {
   asValue,
   Container,
   container,
-  createContainer,
   factory,
   getConstructorTokens,
   getExplicitInjectTokens,

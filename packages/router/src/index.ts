@@ -170,8 +170,6 @@ export {
   // tRPC utilities
   appRouter,
   buildTRPCRouter,
-  createAppRouter,
-  createTRPC,
   createTRPCContextFactory,
   registerTRPCPlugin,
   trpc,

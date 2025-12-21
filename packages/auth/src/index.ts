@@ -168,7 +168,6 @@ export type {
 } from './csrf.js';
 export {
   CsrfError,
-  createCsrfManager,
   csrfManager,
   csrfMiddleware,
 } from './csrf.js';
@@ -198,8 +197,6 @@ export type {
   StoredSession,
 } from './session.js';
 export {
-  createInMemorySessionStore,
-  createSessionManager,
   inMemorySessionStore,
   isSessionAuthenticated,
   loginSession,

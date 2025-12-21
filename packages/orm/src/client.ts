@@ -102,7 +102,7 @@ interface DatabaseState {
  * - Type-safe access to the underlying client
  *
  * The client is NOT automatically connected - call `connect()` explicitly
- * or use `createDatabasePlugin` for automatic lifecycle management.
+ * or use `databasePlugin` for automatic lifecycle management.
  *
  * @template TClient - Type of the Prisma client
  * @param config - Database configuration with client instance

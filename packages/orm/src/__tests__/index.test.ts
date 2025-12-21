@@ -48,9 +48,9 @@ describe('Public API Exports', () => {
       expect(typeof ormPackage.createDatabase).toBe('function');
     });
 
-    it('should export createDatabasePlugin function', () => {
-      expect(ormPackage.createDatabasePlugin).toBeDefined();
-      expect(typeof ormPackage.createDatabasePlugin).toBe('function');
+    it('should export databasePlugin function', () => {
+      expect(ormPackage.databasePlugin).toBeDefined();
+      expect(typeof ormPackage.databasePlugin).toBe('function');
     });
   });
 
@@ -60,7 +60,7 @@ describe('Public API Exports', () => {
         'ORM_VERSION',
         'isDatabaseClient',
         'createDatabase',
-        'createDatabasePlugin',
+        'databasePlugin',
       ];
 
       for (const exportName of expectedExports) {
@@ -91,13 +91,13 @@ describe('Public API Exports', () => {
       expect(db.client).toBe(mockClient);
     });
 
-    it('createDatabasePlugin should accept valid config', () => {
+    it('databasePlugin should accept valid config', () => {
       const mockClient = {
         $connect: async () => {},
         $disconnect: async () => {},
       };
 
-      const plugin = ormPackage.createDatabasePlugin({ client: mockClient });
+      const plugin = ormPackage.databasePlugin({ client: mockClient });
 
       expect(plugin).toBeDefined();
       expect(plugin.name).toBeDefined();

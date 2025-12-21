@@ -9,14 +9,14 @@
  * @example
  * ```typescript
  * // Setup
- * import { createVeloxApp } from '@veloxts/core';
+ * import { veloxApp } from '@veloxts/core';
  * import { PrismaClient } from '@prisma/client';
- * import { createDatabasePlugin } from '@veloxts/orm';
+ * import { databasePlugin } from '@veloxts/orm';
  *
  * const prisma = new PrismaClient();
- * const app = await createVeloxApp({ port: 3030 });
+ * const app = await veloxApp({ port: 3030 });
  *
- * await app.use(createDatabasePlugin({ client: prisma }));
+ * await app.use(databasePlugin({ client: prisma }));
  * await app.start();
  * ```
  *
@@ -97,7 +97,7 @@ export {
    * Create a database wrapper with connection lifecycle management
    *
    * Use this for manual connection management. For automatic lifecycle
-   * management with VeloxApp, use `createDatabasePlugin` instead.
+   * management with VeloxApp, use `databasePlugin` instead.
    *
    * @example
    * ```typescript
@@ -117,8 +117,6 @@ export {
 // ============================================================================
 
 export {
-  // Legacy (deprecated)
-  createDatabasePlugin,
   /**
    * Create a database plugin for VeloxApp integration
    *
@@ -141,6 +139,5 @@ export {
    * await app.start();
    * ```
    */
-  // Succinct API (preferred)
   databasePlugin,
 } from './plugin.js';

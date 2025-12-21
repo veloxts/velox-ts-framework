@@ -319,8 +319,6 @@ function base64urlEncode(data: Buffer): string {
 /**
  * Creates a CSRF token manager
  *
- * @deprecated Use `csrfManager()` instead for Laravel-style API.
- *
  * @example
  * ```typescript
  * const manager = csrfManager({
@@ -335,7 +333,7 @@ function base64urlEncode(data: Buffer): string {
  * manager.validateToken(request); // Throws on failure
  * ```
  */
-export function createCsrfManager(config: CsrfConfig): CsrfManager {
+export function csrfManager(config: CsrfConfig): CsrfManager {
   // Validate secret
   const secret = config.token.secret;
   if (!secret || secret.length < MIN_SECRET_LENGTH) {
@@ -645,7 +643,7 @@ export function createCsrfManager(config: CsrfConfig): CsrfManager {
  * ```
  */
 export function csrfMiddleware(config: CsrfConfig) {
-  const manager = createCsrfManager(config);
+  const manager = csrfManager(config);
 
   /**
    * Middleware that validates CSRF tokens on mutations
@@ -733,25 +731,3 @@ export function csrfMiddleware(config: CsrfConfig) {
   };
 }
 
-// ============================================================================
-// Succinct Aliases (Laravel-style)
-// ============================================================================
-
-/**
- * Creates a CSRF token manager (succinct alias)
- *
- * @example
- * ```typescript
- * const manager = csrfManager({
- *   token: { secret: process.env.CSRF_SECRET! },
- *   cookie: { secure: true, sameSite: 'strict' },
- * });
- *
- * // Generate token
- * const { token } = manager.generateToken(reply);
- *
- * // Validate token
- * manager.validateToken(request); // Throws on failure
- * ```
- */
-export const csrfManager = createCsrfManager;

@@ -5,8 +5,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  createInMemorySessionStore,
-  createSessionManager,
+  inMemorySessionStore,
+  sessionManager,
   isSessionAuthenticated,
   sessionMiddleware,
   type Session,
@@ -48,11 +48,11 @@ describe('Session Management', () => {
     };
   }
 
-  describe('createInMemorySessionStore', () => {
+  describe('inMemorySessionStore', () => {
     let store: SessionStore;
 
     beforeEach(() => {
-      store = createInMemorySessionStore();
+      store = inMemorySessionStore();
     });
 
     it('should create a store with all required methods', () => {
@@ -204,18 +204,18 @@ describe('Session Management', () => {
     });
   });
 
-  describe('createSessionManager', () => {
+  describe('sessionManager', () => {
     describe('constructor', () => {
       it('should throw if secret is too short', () => {
         expect(() =>
-          createSessionManager({
+          sessionManager({
             secret: 'short',
           })
         ).toThrow('Session secret must be at least 32 characters');
       });
 
       it('should create manager with valid config', () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         expect(manager).toBeDefined();
         expect(manager.createSession).toBeDefined();
         expect(manager.loadSession).toBeDefined();
@@ -223,8 +223,8 @@ describe('Session Management', () => {
       });
 
       it('should accept custom store', () => {
-        const customStore = createInMemorySessionStore();
-        const manager = createSessionManager({
+        const customStore = inMemorySessionStore();
+        const manager = sessionManager({
           ...defaultConfig,
           store: customStore,
         });
@@ -234,7 +234,7 @@ describe('Session Management', () => {
 
     describe('createSession', () => {
       it('should create a new session', () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const reply = createMockReply();
 
         const session = manager.createSession(reply as never);
@@ -247,7 +247,7 @@ describe('Session Management', () => {
       });
 
       it('should set session cookie', () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const reply = createMockReply();
 
         manager.createSession(reply as never);
@@ -263,7 +263,7 @@ describe('Session Management', () => {
       });
 
       it('should use custom cookie options', () => {
-        const manager = createSessionManager({
+        const manager = sessionManager({
           ...defaultConfig,
           cookie: {
             name: 'custom.session',
@@ -290,7 +290,7 @@ describe('Session Management', () => {
       });
 
       it('should generate unique session IDs', () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const reply1 = createMockReply();
         const reply2 = createMockReply();
 
@@ -303,7 +303,7 @@ describe('Session Management', () => {
 
     describe('loadSession', () => {
       it('should return null when no cookie', async () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const request = createMockRequest({});
 
         const session = await manager.loadSession(request as never);
@@ -312,7 +312,7 @@ describe('Session Management', () => {
       });
 
       it('should return null for invalid session ID', async () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const request = createMockRequest({
           cookies: { 'velox.session': 'invalid-session-id' },
         });
@@ -323,7 +323,7 @@ describe('Session Management', () => {
       });
 
       it('should load valid session via getOrCreateSession', async () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const reply = createMockReply();
 
         // Create session
@@ -348,7 +348,7 @@ describe('Session Management', () => {
 
     describe('getOrCreateSession', () => {
       it('should create session when none exists', async () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const request = createMockRequest({});
         const reply = createMockReply();
 
@@ -359,7 +359,7 @@ describe('Session Management', () => {
       });
 
       it('should load existing session', async () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const reply = createMockReply();
 
         // Create session first
@@ -382,7 +382,7 @@ describe('Session Management', () => {
 
     describe('destroySession', () => {
       it('should destroy session by ID', async () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const reply = createMockReply();
 
         const session = manager.createSession(reply as never);
@@ -403,7 +403,7 @@ describe('Session Management', () => {
 
     describe('destroyUserSessions', () => {
       it('should destroy all sessions for a user', async () => {
-        const manager = createSessionManager(defaultConfig);
+        const manager = sessionManager(defaultConfig);
         const reply1 = createMockReply();
         const reply2 = createMockReply();
 
@@ -432,12 +432,12 @@ describe('Session Management', () => {
   });
 
   describe('Session', () => {
-    let manager: ReturnType<typeof createSessionManager>;
+    let manager: ReturnType<typeof sessionManager>;
     let session: Session;
     let reply: ReturnType<typeof createMockReply>;
 
     beforeEach(() => {
-      manager = createSessionManager(defaultConfig);
+      manager = sessionManager(defaultConfig);
       reply = createMockReply();
       session = manager.createSession(reply as never);
     });
@@ -613,7 +613,7 @@ describe('Session Management', () => {
 
   describe('isSessionAuthenticated', () => {
     it('should return true for session with userId', () => {
-      const manager = createSessionManager(defaultConfig);
+      const manager = sessionManager(defaultConfig);
       const reply = createMockReply();
       const session = manager.createSession(reply as never);
 
@@ -623,7 +623,7 @@ describe('Session Management', () => {
     });
 
     it('should return false for session without userId', () => {
-      const manager = createSessionManager(defaultConfig);
+      const manager = sessionManager(defaultConfig);
       const reply = createMockReply();
       const session = manager.createSession(reply as never);
 
@@ -633,7 +633,7 @@ describe('Session Management', () => {
 
   describe('security', () => {
     it('should sign session ID with HMAC', () => {
-      const manager = createSessionManager(defaultConfig);
+      const manager = sessionManager(defaultConfig);
       const reply = createMockReply();
 
       manager.createSession(reply as never);
@@ -643,7 +643,7 @@ describe('Session Management', () => {
     });
 
     it('should reject tampered session ID', async () => {
-      const manager = createSessionManager(defaultConfig);
+      const manager = sessionManager(defaultConfig);
       const reply = createMockReply();
 
       const session = manager.createSession(reply as never);
@@ -664,8 +664,8 @@ describe('Session Management', () => {
     });
 
     it('should reject session from different secret', async () => {
-      const manager1 = createSessionManager({ secret: validSecret });
-      const manager2 = createSessionManager({ secret: `${validSecret}-different` });
+      const manager1 = sessionManager({ secret: validSecret });
+      const manager2 = sessionManager({ secret: `${validSecret}-different` });
 
       const reply = createMockReply();
       const session = manager1.createSession(reply as never);
@@ -684,8 +684,8 @@ describe('Session Management', () => {
     it('should handle sliding expiration', async () => {
       vi.useFakeTimers();
 
-      const store = createInMemorySessionStore();
-      const manager = createSessionManager({
+      const store = inMemorySessionStore();
+      const manager = sessionManager({
         ...defaultConfig,
         store,
         expiration: {
@@ -726,8 +726,8 @@ describe('Session Management', () => {
     it('should enforce absolute timeout', async () => {
       vi.useFakeTimers();
 
-      const store = createInMemorySessionStore();
-      const manager = createSessionManager({
+      const store = inMemorySessionStore();
+      const manager = sessionManager({
         ...defaultConfig,
         store,
         expiration: {
@@ -761,7 +761,7 @@ describe('Session Management', () => {
   describe('SameSite=none validation', () => {
     it('should throw when SameSite=none without Secure flag', () => {
       expect(() =>
-        createSessionManager({
+        sessionManager({
           secret: validSecret,
           cookie: {
             sameSite: 'none',
@@ -773,7 +773,7 @@ describe('Session Management', () => {
 
     it('should allow SameSite=none with Secure flag', () => {
       expect(() =>
-        createSessionManager({
+        sessionManager({
           secret: validSecret,
           cookie: {
             sameSite: 'none',

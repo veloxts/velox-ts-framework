@@ -7,7 +7,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createDatabase } from '../client.js';
-import { createDatabasePlugin } from '../plugin.js';
+import { databasePlugin } from '../plugin.js';
 import type { DatabaseClient } from '../types.js';
 
 /**
@@ -55,7 +55,7 @@ describe('Integration: Complete Database Lifecycle', () => {
   it('should handle full app lifecycle with database', async () => {
     const mockClient = createMockClient();
     const mockServer = createMockServer();
-    const plugin = createDatabasePlugin({ client: mockClient });
+    const plugin = databasePlugin({ client: mockClient });
 
     // 1. Register plugin (connects to database)
     await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
@@ -85,8 +85,8 @@ describe('Integration: Complete Database Lifecycle', () => {
     const secondaryClient = createMockClient();
     const mockServer = createMockServer();
 
-    const primaryPlugin = createDatabasePlugin({ client: primaryClient, name: 'primary-db' });
-    const secondaryPlugin = createDatabasePlugin({
+    const primaryPlugin = databasePlugin({ client: primaryClient, name: 'primary-db' });
+    const secondaryPlugin = databasePlugin({
       client: secondaryClient,
       name: 'secondary-db',
     });
@@ -111,7 +111,7 @@ describe('Integration: Complete Database Lifecycle', () => {
   it('should maintain connection across many concurrent requests', async () => {
     const mockClient = createMockClient();
     const mockServer = createMockServer();
-    const plugin = createDatabasePlugin({ client: mockClient });
+    const plugin = databasePlugin({ client: mockClient });
 
     await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -146,7 +146,7 @@ describe('Integration: Database Wrapper and Plugin', () => {
     expect(db.isConnected).toBe(false);
 
     // Create plugin with same client
-    const plugin = createDatabasePlugin({ client: mockClient });
+    const plugin = databasePlugin({ client: mockClient });
     await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
     // Plugin should have connected
@@ -203,7 +203,7 @@ describe('Integration: Error Recovery', () => {
       $disconnect: vi.fn().mockRejectedValue(new Error('Database locked')),
     });
     const mockServer = createMockServer();
-    const plugin = createDatabasePlugin({ client: mockClient });
+    const plugin = databasePlugin({ client: mockClient });
 
     await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
@@ -284,7 +284,7 @@ describe('Integration: Real-world Scenarios', () => {
     const mockServer = createMockServer();
 
     // 1. Create and register plugin
-    const plugin = createDatabasePlugin({ client: mockClient });
+    const plugin = databasePlugin({ client: mockClient });
     await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 
     // 2. Simulate server receiving requests
@@ -345,7 +345,7 @@ describe('Integration: Real-world Scenarios', () => {
   it('should handle context injection with custom properties', async () => {
     const mockClient = createMockClient();
     const mockServer = createMockServer();
-    const plugin = createDatabasePlugin({ client: mockClient });
+    const plugin = databasePlugin({ client: mockClient });
 
     await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
 

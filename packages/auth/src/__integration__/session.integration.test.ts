@@ -21,8 +21,8 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  createInMemorySessionStore,
-  createSessionManager,
+  inMemorySessionStore,
+  sessionManager,
   type FastifyReplyWithCookies,
   isSessionAuthenticated,
   loginSession,
@@ -49,7 +49,7 @@ describe('Session Management Integration', () => {
     await server.register(cookie);
 
     // Create session store
-    store = createInMemorySessionStore();
+    store = inMemorySessionStore();
 
     // Create session middleware
     const session = sessionMiddleware({
@@ -615,9 +615,9 @@ describe('Session Management Integration', () => {
 
   describe('SessionManager Direct', () => {
     it('should create and manage sessions correctly', () => {
-      const manager = createSessionManager({
+      const manager = sessionManager({
         secret: TEST_SECRETS.session,
-        store: createInMemorySessionStore(),
+        store: inMemorySessionStore(),
       });
 
       expect(manager.store).toBeDefined();
@@ -625,7 +625,7 @@ describe('Session Management Integration', () => {
 
     it('should reject weak secrets', () => {
       expect(() =>
-        createSessionManager({
+        sessionManager({
           secret: 'short',
         })
       ).toThrow(/at least 32 characters/);
@@ -633,7 +633,7 @@ describe('Session Management Integration', () => {
 
     it('should reject low-entropy secrets', () => {
       expect(() =>
-        createSessionManager({
+        sessionManager({
           secret: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', // 34 chars but all same
         })
       ).toThrow(/insufficient entropy/);
@@ -665,10 +665,10 @@ describe('Session Management Integration', () => {
 
     it('session.check() should return authentication status', async () => {
       // Use the actual session manager to test the check method
-      // createSessionManager returns the manager directly (not wrapped)
-      const manager = createSessionManager({
+      // sessionManager returns the manager directly (not wrapped)
+      const manager = sessionManager({
         secret: TEST_SECRETS.session,
-        store: createInMemorySessionStore(),
+        store: inMemorySessionStore(),
       });
 
       // Create a fresh session with proper Fastify reply mock

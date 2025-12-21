@@ -55,7 +55,7 @@
  */
 
 export type { ContainerOptions, ResolutionContext } from './container.js';
-export { Container, container, createContainer } from './container.js';
+export { Container, container } from './container.js';
 export type { InjectableOptions } from './decorators.js';
 export {
   getConstructorTokens,

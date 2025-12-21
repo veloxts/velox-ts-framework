@@ -10,16 +10,16 @@ import { z } from 'zod';
 
 import { defineProcedures, procedure } from '../procedure/builder.js';
 import {
+  appRouter,
   buildTRPCRouter,
-  createAppRouter,
-  createTRPC,
   createTRPCContextFactory,
+  trpc,
   veloxErrorToTRPCError,
 } from '../trpc/adapter.js';
 
-describe('createTRPC', () => {
+describe('trpc', () => {
   it('should create tRPC instance', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     expect(t).toBeDefined();
     expect(typeof t.router).toBe('function');
@@ -31,7 +31,7 @@ describe('createTRPC', () => {
       userId: string;
     }
 
-    const t = createTRPC<CustomContext>();
+    const t = trpc<CustomContext>();
 
     expect(t).toBeDefined();
   });
@@ -39,7 +39,7 @@ describe('createTRPC', () => {
 
 describe('buildTRPCRouter', () => {
   it('should build router from procedure collection', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure()
@@ -55,7 +55,7 @@ describe('buildTRPCRouter', () => {
   });
 
   it('should build router with queries', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure()
@@ -69,7 +69,7 @@ describe('buildTRPCRouter', () => {
   });
 
   it('should build router with mutations', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       createUser: procedure()
@@ -83,7 +83,7 @@ describe('buildTRPCRouter', () => {
   });
 
   it('should build router with both queries and mutations', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure().query(async () => ({ id: '1' })),
@@ -96,7 +96,7 @@ describe('buildTRPCRouter', () => {
   });
 
   it('should handle procedures with input and output schemas', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure()
@@ -111,7 +111,7 @@ describe('buildTRPCRouter', () => {
   });
 
   it('should handle procedures with only input schema', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure()
@@ -125,7 +125,7 @@ describe('buildTRPCRouter', () => {
   });
 
   it('should handle procedures with only output schema', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getStats: procedure()
@@ -139,7 +139,7 @@ describe('buildTRPCRouter', () => {
   });
 
   it('should handle procedures without schemas', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       ping: procedure().query(async () => 'pong'),
@@ -151,7 +151,7 @@ describe('buildTRPCRouter', () => {
   });
 
   it('should handle empty procedure collection', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('empty', {});
 
@@ -161,9 +161,9 @@ describe('buildTRPCRouter', () => {
   });
 });
 
-describe('createAppRouter', () => {
+describe('appRouter', () => {
   it('should create namespaced app router', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const users = defineProcedures('users', {
       getUser: procedure().query(async () => ({ id: '1' })),
@@ -173,33 +173,33 @@ describe('createAppRouter', () => {
       getPost: procedure().query(async () => ({ id: '1' })),
     });
 
-    const appRouter = createAppRouter(t, [users, posts]);
+    const router = appRouter(t, [users, posts]);
 
-    expect(appRouter).toBeDefined();
+    expect(router).toBeDefined();
   });
 
   it('should handle single collection', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const users = defineProcedures('users', {
       getUser: procedure().query(async () => ({ id: '1' })),
     });
 
-    const appRouter = createAppRouter(t, [users]);
+    const router = appRouter(t, [users]);
 
-    expect(appRouter).toBeDefined();
+    expect(router).toBeDefined();
   });
 
   it('should handle empty collections array', () => {
-    const t = createTRPC();
+    const t = trpc();
 
-    const appRouter = createAppRouter(t, []);
+    const router = appRouter(t, []);
 
-    expect(appRouter).toBeDefined();
+    expect(router).toBeDefined();
   });
 
   it('should create router with multiple namespaces', () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const users = defineProcedures('users', {
       getUser: procedure().query(async () => ({ id: '1' })),
@@ -215,15 +215,15 @@ describe('createAppRouter', () => {
       getComment: procedure().query(async () => ({ id: '1' })),
     });
 
-    const appRouter = createAppRouter(t, [users, posts, comments]);
+    const router = appRouter(t, [users, posts, comments]);
 
-    expect(appRouter).toBeDefined();
+    expect(router).toBeDefined();
   });
 });
 
 describe('Procedure execution through tRPC', () => {
   it('should execute query procedure', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure()
@@ -240,7 +240,7 @@ describe('Procedure execution through tRPC', () => {
   });
 
   it('should execute mutation procedure', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       createUser: procedure()
@@ -257,7 +257,7 @@ describe('Procedure execution through tRPC', () => {
   });
 
   it('should validate input', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure()
@@ -272,7 +272,7 @@ describe('Procedure execution through tRPC', () => {
   });
 
   it('should validate output', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure()
@@ -290,7 +290,7 @@ describe('Procedure execution through tRPC', () => {
   });
 
   it('should execute middleware', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     let middlewareExecuted = false;
 
@@ -312,7 +312,7 @@ describe('Procedure execution through tRPC', () => {
   });
 
   it('should extend context through middleware', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure()
@@ -334,7 +334,7 @@ describe('Procedure execution through tRPC', () => {
   });
 
   it('should handle async operations', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure().query(async () => {
@@ -352,7 +352,7 @@ describe('Procedure execution through tRPC', () => {
   });
 
   it('should propagate errors', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       getUser: procedure().query(async () => {
@@ -373,7 +373,7 @@ describe('Context handling', () => {
       userId: string;
     }
 
-    const t = createTRPC<CustomContext>();
+    const t = trpc<CustomContext>();
 
     const collection = defineProcedures('users', {
       getMe: procedure().query(async ({ ctx }) => {
@@ -394,7 +394,7 @@ describe('Context handling', () => {
       requestId: string;
     }
 
-    const t = createTRPC<CustomContext>();
+    const t = trpc<CustomContext>();
 
     const collection = defineProcedures('users', {
       getUser: procedure()
@@ -523,7 +523,7 @@ describe('veloxErrorToTRPCError', () => {
 
 describe('Complex scenarios', () => {
   it('should handle nested routers', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const users = defineProcedures('users', {
       getUser: procedure().query(async () => ({ id: '1' })),
@@ -533,8 +533,8 @@ describe('Complex scenarios', () => {
       getPost: procedure().query(async () => ({ id: '1' })),
     });
 
-    const appRouter = createAppRouter(t, [users, posts]);
-    const caller = appRouter.createCaller({} as BaseContext);
+    const router = appRouter(t, [users, posts]);
+    const caller = router.createCaller({} as BaseContext);
 
     const userResult = await caller.users.getUser();
     const postResult = await caller.posts.getPost();
@@ -544,7 +544,7 @@ describe('Complex scenarios', () => {
   });
 
   it('should handle complex input schemas', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       createUser: procedure()
@@ -588,7 +588,7 @@ describe('Complex scenarios', () => {
   });
 
   it('should handle transformation in schemas', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const collection = defineProcedures('users', {
       searchUsers: procedure()
@@ -612,7 +612,7 @@ describe('Complex scenarios', () => {
   });
 
   it('should handle multiple middlewares', async () => {
-    const t = createTRPC();
+    const t = trpc();
 
     const executionOrder: string[] = [];
 

@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  createCsrfManager,
+  csrfManager,
   type CsrfConfig,
   CsrfError,
   type CsrfManager,
@@ -55,18 +55,18 @@ describe('CSRF Protection', () => {
     };
   }
 
-  describe('createCsrfManager', () => {
+  describe('csrfManager', () => {
     describe('constructor', () => {
       it('should throw if secret is too short', () => {
         expect(() =>
-          createCsrfManager({
+          csrfManager({
             token: { secret: 'short' },
           })
         ).toThrow('CSRF secret must be at least 32 characters');
       });
 
       it('should create manager with valid config', () => {
-        const manager = createCsrfManager(defaultConfig);
+        const manager = csrfManager(defaultConfig);
         expect(manager).toBeDefined();
         expect(manager.generateToken).toBeDefined();
         expect(manager.validateToken).toBeDefined();
@@ -77,7 +77,7 @@ describe('CSRF Protection', () => {
       let manager: CsrfManager;
 
       beforeEach(() => {
-        manager = createCsrfManager(defaultConfig);
+        manager = csrfManager(defaultConfig);
       });
 
       it('should generate a valid token', () => {
@@ -115,7 +115,7 @@ describe('CSRF Protection', () => {
       });
 
       it('should use custom cookie options', () => {
-        const customManager = createCsrfManager({
+        const customManager = csrfManager({
           token: { secret: validSecret },
           cookie: {
             name: 'custom-csrf',
@@ -148,7 +148,7 @@ describe('CSRF Protection', () => {
       let manager: CsrfManager;
 
       beforeEach(() => {
-        manager = createCsrfManager(defaultConfig);
+        manager = csrfManager(defaultConfig);
       });
 
       it('should parse valid token', () => {
@@ -180,7 +180,7 @@ describe('CSRF Protection', () => {
       let manager: CsrfManager;
 
       beforeEach(() => {
-        manager = createCsrfManager(defaultConfig);
+        manager = csrfManager(defaultConfig);
       });
 
       it('should verify valid signature', () => {
@@ -228,7 +228,7 @@ describe('CSRF Protection', () => {
       let manager: CsrfManager;
 
       beforeEach(() => {
-        manager = createCsrfManager(defaultConfig);
+        manager = csrfManager(defaultConfig);
       });
 
       it('should extract token from header', () => {
@@ -257,7 +257,7 @@ describe('CSRF Protection', () => {
       });
 
       it('should extract from query when enabled', () => {
-        const customManager = createCsrfManager({
+        const customManager = csrfManager({
           token: { secret: validSecret },
           validation: { queryFieldName: 'csrf' },
         });
@@ -275,7 +275,7 @@ describe('CSRF Protection', () => {
       });
 
       it('should use custom header name', () => {
-        const customManager = createCsrfManager({
+        const customManager = csrfManager({
           token: { secret: validSecret },
           validation: { headerName: 'x-custom-csrf' },
         });
@@ -292,7 +292,7 @@ describe('CSRF Protection', () => {
       let manager: CsrfManager;
 
       beforeEach(() => {
-        manager = createCsrfManager(defaultConfig);
+        manager = csrfManager(defaultConfig);
       });
 
       it('should skip GET requests', () => {
@@ -444,7 +444,7 @@ describe('CSRF Protection', () => {
       });
 
       it('should skip excluded paths (string)', () => {
-        const customManager = createCsrfManager({
+        const customManager = csrfManager({
           token: { secret: validSecret },
           validation: { excludePaths: ['/health', '/webhooks'] },
         });
@@ -458,7 +458,7 @@ describe('CSRF Protection', () => {
       });
 
       it('should skip excluded paths (regex)', () => {
-        const customManager = createCsrfManager({
+        const customManager = csrfManager({
           token: { secret: validSecret },
           validation: { excludePaths: [/^\/api\/webhooks\//] },
         });
@@ -476,7 +476,7 @@ describe('CSRF Protection', () => {
       let manager: CsrfManager;
 
       beforeEach(() => {
-        manager = createCsrfManager({
+        manager = csrfManager({
           token: { secret: validSecret },
           validation: { checkOrigin: true },
         });
@@ -541,7 +541,7 @@ describe('CSRF Protection', () => {
       });
 
       it('should allow configured origins', () => {
-        const customManager = createCsrfManager({
+        const customManager = csrfManager({
           token: { secret: validSecret },
           validation: {
             checkOrigin: true,
@@ -593,7 +593,7 @@ describe('CSRF Protection', () => {
 
     describe('clearCookie', () => {
       it('should clear the CSRF cookie', () => {
-        const manager = createCsrfManager(defaultConfig);
+        const manager = csrfManager(defaultConfig);
         const reply = createMockReply();
 
         manager.clearCookie(reply as never);
@@ -605,7 +605,7 @@ describe('CSRF Protection', () => {
       });
 
       it('should use custom cookie name', () => {
-        const customManager = createCsrfManager({
+        const customManager = csrfManager({
           token: { secret: validSecret },
           cookie: { name: 'custom-csrf', path: '/app', domain: 'example.com' },
         });
@@ -660,7 +660,7 @@ describe('CSRF Protection', () => {
 
   describe('token expiration configuration', () => {
     it('should respect custom expiration', () => {
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret, expiresIn: 300 }, // 5 minutes
       });
 
@@ -673,7 +673,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should allow no expiration', () => {
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret, expiresIn: 0 },
       });
 
@@ -691,7 +691,7 @@ describe('CSRF Protection', () => {
   describe('security validations', () => {
     it('should throw when SameSite=none without Secure flag', () => {
       expect(() =>
-        createCsrfManager({
+        csrfManager({
           token: { secret: validSecret },
           cookie: {
             sameSite: 'none',
@@ -703,7 +703,7 @@ describe('CSRF Protection', () => {
 
     it('should allow SameSite=none with Secure flag', () => {
       expect(() =>
-        createCsrfManager({
+        csrfManager({
           token: { secret: validSecret },
           cookie: {
             sameSite: 'none',
@@ -714,7 +714,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should reject tokens with different lengths in double-submit', () => {
-      const manager = createCsrfManager(defaultConfig);
+      const manager = csrfManager(defaultConfig);
       const reply = createMockReply();
       const { token } = manager.generateToken(reply as never);
 
@@ -736,7 +736,7 @@ describe('CSRF Protection', () => {
 
   describe('origin validation edge cases', () => {
     it('should reject malformed origin headers', () => {
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret },
         validation: { checkOrigin: true },
       });
@@ -768,7 +768,7 @@ describe('CSRF Protection', () => {
       // NOTE: While RFC 3986 says hostnames are case-insensitive,
       // strict matching is the safer default for CSRF protection.
       // Users needing case-insensitive matching can add origins to allowedOrigins.
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret },
         validation: { checkOrigin: true },
       });
@@ -798,7 +798,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should treat subdomain as different origin', () => {
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret },
         validation: { checkOrigin: true },
       });
@@ -827,7 +827,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should handle origin with explicit port number', () => {
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret },
         validation: { checkOrigin: true },
       });
@@ -850,7 +850,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should reject when port differs', () => {
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret },
         validation: { checkOrigin: true },
       });
@@ -879,7 +879,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should reject protocol downgrade attack (http vs https)', () => {
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret },
         validation: { checkOrigin: true },
       });
@@ -912,7 +912,7 @@ describe('CSRF Protection', () => {
     it('should reject expired tokens even if signature is valid', () => {
       vi.useFakeTimers();
 
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret, expiresIn: 60 }, // 1 minute expiry
       });
 
@@ -942,7 +942,7 @@ describe('CSRF Protection', () => {
     it('should accept token just before expiration', () => {
       vi.useFakeTimers();
 
-      const manager = createCsrfManager({
+      const manager = csrfManager({
         token: { secret: validSecret, expiresIn: 60 },
       });
 
@@ -966,10 +966,10 @@ describe('CSRF Protection', () => {
 
   describe('signature security', () => {
     it('should reject token with wrong secret', () => {
-      const manager1 = createCsrfManager({
+      const manager1 = csrfManager({
         token: { secret: validSecret },
       });
-      const manager2 = createCsrfManager({
+      const manager2 = csrfManager({
         token: { secret: `${validSecret}-different` },
       });
 
@@ -981,7 +981,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should reject token with modified expiration time', () => {
-      const manager = createCsrfManager(defaultConfig);
+      const manager = csrfManager(defaultConfig);
       const reply = createMockReply();
       const { token } = manager.generateToken(reply as never);
 
@@ -994,7 +994,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should reject token with empty signature', () => {
-      const manager = createCsrfManager(defaultConfig);
+      const manager = csrfManager(defaultConfig);
 
       expect(manager.verifySignature('value.123.456.')).toBe(false);
     });

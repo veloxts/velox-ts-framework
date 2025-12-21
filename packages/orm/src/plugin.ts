@@ -27,10 +27,10 @@ import { isDatabaseClient } from './types.js';
  * ```typescript
  * // In your app setup
  * import { PrismaClient } from '@prisma/client';
- * import { createDatabasePlugin } from '@veloxts/orm';
+ * import { databasePlugin } from '@veloxts/orm';
  *
  * const prisma = new PrismaClient();
- * await app.use(createDatabasePlugin({ client: prisma }));
+ * await app.use(databasePlugin({ client: prisma }));
  *
  * // In your procedure handlers
  * getUser: procedure()
@@ -109,15 +109,15 @@ interface PluginState<TClient extends DatabaseClient> {
  *
  * @example
  * ```typescript
- * import { createVeloxApp } from '@veloxts/core';
+ * import { veloxApp } from '@veloxts/core';
  * import { PrismaClient } from '@prisma/client';
- * import { createDatabasePlugin } from '@veloxts/orm';
+ * import { databasePlugin } from '@veloxts/orm';
  *
  * const prisma = new PrismaClient();
- * const app = await createVeloxApp({ port: 3030 });
+ * const app = await veloxApp({ port: 3030 });
  *
  * // Register the database plugin
- * await app.use(createDatabasePlugin({ client: prisma }));
+ * await app.use(databasePlugin({ client: prisma }));
  *
  * // Start the app (database connects automatically)
  * await app.start();
@@ -148,7 +148,7 @@ interface PluginState<TClient extends DatabaseClient> {
  * });
  * ```
  */
-export function createDatabasePlugin<TClient extends DatabaseClient>(
+export function databasePlugin<TClient extends DatabaseClient>(
   config: OrmPluginConfig<TClient>
 ) {
   // Validate configuration at plugin creation time
@@ -225,27 +225,3 @@ export function createDatabasePlugin<TClient extends DatabaseClient>(
     },
   });
 }
-
-/**
- * Creates a database plugin for VeloxApp integration (succinct API)
- *
- * This is the preferred, shorter form of `createDatabasePlugin`.
- *
- * @template TClient - Type of the Prisma client
- * @param config - Plugin configuration with Prisma client
- * @returns A VeloxPlugin that can be registered with `app.register()`
- *
- * @example
- * ```typescript
- * import { veloxApp } from '@veloxts/core';
- * import { PrismaClient } from '@prisma/client';
- * import { databasePlugin } from '@veloxts/orm';
- *
- * const prisma = new PrismaClient();
- * const app = await veloxApp({ port: 3030 });
- *
- * await app.register(databasePlugin({ client: prisma }));
- * await app.start();
- * ```
- */
-export const databasePlugin = createDatabasePlugin;
