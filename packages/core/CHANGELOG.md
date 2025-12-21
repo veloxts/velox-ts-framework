@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.9
+
+### Patch Changes
+
+- isolate auth procedures from database imports
+
 ## 0.6.8
 
 ### Patch Changes
