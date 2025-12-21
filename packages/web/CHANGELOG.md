@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.2
+
+### Patch Changes
+
+- add server actions, removed some deprecated and other chore
+- Updated dependencies
+  - @veloxts/auth@0.6.2
+  - @veloxts/client@0.6.2
+  - @veloxts/core@0.6.2
+  - @veloxts/router@0.6.2
+
 ## 0.6.1
 
 ### Patch Changes
