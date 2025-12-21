@@ -23,8 +23,7 @@ import {
   z,
 } from '@veloxts/velox';
 
-import { authConfig, parseUserRoles, tokenStore } from '../config/auth.js';
-import { db } from '../config/database.js';
+import { getJwtSecrets, parseUserRoles, tokenStore } from '../utils/auth.js';
 
 // ============================================================================
 // Rate Limiter
@@ -123,7 +122,16 @@ const LogoutResponse = z.object({
 // JWT Manager
 // ============================================================================
 
-const jwt = jwtManager(authConfig.jwt);
+const { jwtSecret, refreshSecret } = getJwtSecrets();
+
+const jwt = jwtManager({
+  secret: jwtSecret,
+  refreshSecret: refreshSecret,
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d',
+  issuer: 'velox-app',
+  audience: 'velox-app-client',
+});
 
 // Dummy hash for timing attack prevention
 const DUMMY_HASH = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.uy7dPSSXB5G6Uy';
@@ -138,10 +146,10 @@ export const authProcedures = defineProcedures('auth', {
     .use(rateLimiter.register())
     .input(RegisterInput)
     .output(TokenResponse)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const normalizedEmail = input.email.toLowerCase().trim();
 
-      const existing = await db.user.findUnique({
+      const existing = await ctx.db.user.findUnique({
         where: { email: normalizedEmail },
       });
 
@@ -155,7 +163,7 @@ export const authProcedures = defineProcedures('auth', {
 
       const hashedPassword = await hashPassword(input.password);
 
-      const user = await db.user.create({
+      const user = await ctx.db.user.create({
         data: {
           name: input.name.trim(),
           email: normalizedEmail,
@@ -181,10 +189,10 @@ export const authProcedures = defineProcedures('auth', {
     )
     .input(LoginInput)
     .output(TokenResponse)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const normalizedEmail = input.email.toLowerCase().trim();
 
-      const user = await db.user.findUnique({
+      const user = await ctx.db.user.findUnique({
         where: { email: normalizedEmail },
       });
 
@@ -234,7 +242,7 @@ export const authProcedures = defineProcedures('auth', {
           tokenStore.markRefreshTokenUsed(payload.jti, payload.sub);
         }
 
-        const user = await db.user.findUnique({
+        const user = await ctx.db.user.findUnique({
           where: { id: payload.sub },
         });
 
