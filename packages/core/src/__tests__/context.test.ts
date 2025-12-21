@@ -268,7 +268,7 @@ describe('Context - Unit Tests', () => {
       const mockRequest: { context?: unknown } = {};
       const mockReply = { status: () => {} };
 
-      await capturedHook!(mockRequest, mockReply);
+      await capturedHook?.(mockRequest, mockReply);
 
       expect(mockRequest.context).toBeDefined();
       expect((mockRequest.context as { request: unknown }).request).toBe(mockRequest);

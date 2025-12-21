@@ -13,7 +13,7 @@
 
 import type { PageProps } from '@veloxts/web';
 
-export default function AboutPage({ params }: PageProps) {
+export default function AboutPage({ params: _params }: PageProps) {
   return (
     <div className="page about-page">
       <h1>About VeloxTS</h1>

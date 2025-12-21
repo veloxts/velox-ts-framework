@@ -3,7 +3,7 @@
  * Tests for the elegant error creation API
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { ERROR_CATALOG } from '../errors/catalog.js';
 import { fail, isVeloxFailure, VeloxFailure } from '../errors/fail.js';

@@ -212,7 +212,6 @@ export function createLayoutResolver(options: LayoutResolverOptions = {}): Layou
             // Add page layouts after inherited layouts
             finalLayouts = [...inheritedLayouts, ...pageLayouts];
             break;
-          case 'inherit':
           default:
             // Use inherited layouts only
             finalLayouts = inheritedLayouts;

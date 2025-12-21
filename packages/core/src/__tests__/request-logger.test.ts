@@ -108,7 +108,7 @@ describe('Request Logger Plugin', () => {
     it('should set start time on request', async () => {
       const mockRequest = { method: 'GET', url: '/test' };
 
-      await onRequestHook!(mockRequest);
+      await onRequestHook?.(mockRequest);
 
       expect((mockRequest as Record<string, unknown>)._veloxStartTime).toBeDefined();
       expect(typeof (mockRequest as Record<string, unknown>)._veloxStartTime).toBe('number');
@@ -118,8 +118,8 @@ describe('Request Logger Plugin', () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/api/users' };
       const mockReply = { statusCode: 200 };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, mockReply);
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, mockReply);
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       expect(consoleSpy.mock.calls[0][0]).toContain('/api/users');
@@ -132,7 +132,7 @@ describe('Request Logger Plugin', () => {
       const mockReply = { statusCode: 201 };
 
       // Skip onRequest hook to simulate missing start time
-      await onResponseHook!(mockRequest, mockReply);
+      await onResponseHook?.(mockRequest, mockReply);
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       // Should still log, just with 0 duration
@@ -154,8 +154,8 @@ describe('Request Logger Plugin', () => {
     it('should use green for 2xx status codes', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/test' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 200 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 200 });
 
       // Green is \x1b[32m
       expect(consoleSpy.mock.calls[0][0]).toContain('\x1b[32m');
@@ -164,8 +164,8 @@ describe('Request Logger Plugin', () => {
     it('should use green for 201 Created', async () => {
       const mockRequest: Record<string, unknown> = { method: 'POST', url: '/test' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 201 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 201 });
 
       expect(consoleSpy.mock.calls[0][0]).toContain('\x1b[32m');
     });
@@ -173,8 +173,8 @@ describe('Request Logger Plugin', () => {
     it('should use cyan for 3xx status codes', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/redirect' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 301 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 301 });
 
       // Cyan is \x1b[36m
       expect(consoleSpy.mock.calls[0][0]).toContain('\x1b[36m');
@@ -183,8 +183,8 @@ describe('Request Logger Plugin', () => {
     it('should use cyan for 304 Not Modified', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/cached' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 304 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 304 });
 
       expect(consoleSpy.mock.calls[0][0]).toContain('\x1b[36m');
     });
@@ -192,8 +192,8 @@ describe('Request Logger Plugin', () => {
     it('should use yellow for 4xx status codes', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/notfound' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 404 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 404 });
 
       // Yellow is \x1b[33m
       expect(consoleSpy.mock.calls[0][0]).toContain('\x1b[33m');
@@ -202,8 +202,8 @@ describe('Request Logger Plugin', () => {
     it('should use yellow for 400 Bad Request', async () => {
       const mockRequest: Record<string, unknown> = { method: 'POST', url: '/invalid' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 400 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 400 });
 
       expect(consoleSpy.mock.calls[0][0]).toContain('\x1b[33m');
     });
@@ -211,8 +211,8 @@ describe('Request Logger Plugin', () => {
     it('should use red for 5xx status codes', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/error' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 500 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 500 });
 
       // Red is \x1b[31m
       expect(consoleSpy.mock.calls[0][0]).toContain('\x1b[31m');
@@ -221,8 +221,8 @@ describe('Request Logger Plugin', () => {
     it('should use red for 503 Service Unavailable', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/unavailable' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 503 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 503 });
 
       expect(consoleSpy.mock.calls[0][0]).toContain('\x1b[31m');
     });
@@ -230,8 +230,8 @@ describe('Request Logger Plugin', () => {
     it('should use white for 1xx status codes', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/continue' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 100 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 100 });
 
       // White is \x1b[37m
       expect(consoleSpy.mock.calls[0][0]).toContain('\x1b[37m');
@@ -253,8 +253,8 @@ describe('Request Logger Plugin', () => {
     it('should pad GET method', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/test' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 200 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 200 });
 
       // GET padded to 7 chars: "GET    "
       expect(consoleSpy.mock.calls[0][0]).toContain('GET');
@@ -263,8 +263,8 @@ describe('Request Logger Plugin', () => {
     it('should pad POST method', async () => {
       const mockRequest: Record<string, unknown> = { method: 'POST', url: '/test' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 201 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 201 });
 
       expect(consoleSpy.mock.calls[0][0]).toContain('POST');
     });
@@ -272,8 +272,8 @@ describe('Request Logger Plugin', () => {
     it('should pad DELETE method', async () => {
       const mockRequest: Record<string, unknown> = { method: 'DELETE', url: '/test' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 204 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 204 });
 
       expect(consoleSpy.mock.calls[0][0]).toContain('DELETE');
     });
@@ -281,8 +281,8 @@ describe('Request Logger Plugin', () => {
     it('should handle OPTIONS method (max length)', async () => {
       const mockRequest: Record<string, unknown> = { method: 'OPTIONS', url: '/test' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 200 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 200 });
 
       expect(consoleSpy.mock.calls[0][0]).toContain('OPTIONS');
     });
@@ -303,9 +303,9 @@ describe('Request Logger Plugin', () => {
     it('should format milliseconds for fast requests', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/fast' };
 
-      await onRequestHook!(mockRequest);
+      await onRequestHook?.(mockRequest);
       // Simulate fast request
-      await onResponseHook!(mockRequest, { statusCode: 200 });
+      await onResponseHook?.(mockRequest, { statusCode: 200 });
 
       // Should contain "ms" suffix
       expect(consoleSpy.mock.calls[0][0]).toMatch(/\d+ms/);
@@ -316,7 +316,7 @@ describe('Request Logger Plugin', () => {
 
       // Set start time to 2 seconds ago
       mockRequest._veloxStartTime = performance.now() - 2000;
-      await onResponseHook!(mockRequest, { statusCode: 200 });
+      await onResponseHook?.(mockRequest, { statusCode: 200 });
 
       // Should contain "s" suffix for seconds
       expect(consoleSpy.mock.calls[0][0]).toMatch(/\d+\.\d{2}s/);
@@ -342,10 +342,10 @@ describe('Request Logger Plugin', () => {
 
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/test' };
 
-      await onRequestHook!(mockRequest);
+      await onRequestHook?.(mockRequest);
 
       // Should not throw - logging errors are swallowed
-      await expect(onResponseHook!(mockRequest, { statusCode: 200 })).resolves.not.toThrow();
+      await expect(onResponseHook?.(mockRequest, { statusCode: 200 })).resolves.not.toThrow();
     });
 
     it('should not break request handling when logging fails', async () => {
@@ -356,8 +356,8 @@ describe('Request Logger Plugin', () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/test' };
       const mockReply = { statusCode: 200 };
 
-      await onRequestHook!(mockRequest);
-      const result = await onResponseHook!(mockRequest, mockReply);
+      await onRequestHook?.(mockRequest);
+      const result = await onResponseHook?.(mockRequest, mockReply);
 
       // Should complete without throwing
       expect(result).toBeUndefined();
@@ -379,8 +379,8 @@ describe('Request Logger Plugin', () => {
     it('should include timestamp in log output', async () => {
       const mockRequest: Record<string, unknown> = { method: 'GET', url: '/test' };
 
-      await onRequestHook!(mockRequest);
-      await onResponseHook!(mockRequest, { statusCode: 200 });
+      await onRequestHook?.(mockRequest);
+      await onResponseHook?.(mockRequest, { statusCode: 200 });
 
       // Timestamp format: HH:MM:SS
       expect(consoleSpy.mock.calls[0][0]).toMatch(/\d{2}:\d{2}:\d{2}/);

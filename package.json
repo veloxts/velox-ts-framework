@@ -22,7 +22,7 @@
     "release": "turbo build && changeset publish",
     "ci:build": "turbo run build --color --no-daemon",
     "ci:test": "turbo run test --color --no-daemon && turbo run test:types",
-    "ci:lint": "turbo run lint --color --no-daemon",
+    "ci:lint": "biome check .",
     "ci:type-check": "turbo run type-check --color --no-daemon",
     "benchmark": "pnpm --filter @veloxts/benchmarks bench",
     "bench:throughput": "pnpm --filter @veloxts/benchmarks bench:throughput",

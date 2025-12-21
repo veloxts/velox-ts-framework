@@ -628,7 +628,7 @@ describe('DI Container', () => {
 
       // Simulate request lifecycle
       const mockRequest = {};
-      await onRequestHook!(mockRequest);
+      await onRequestHook?.(mockRequest);
 
       // Resolve within request context
       const instance1 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest as never });
@@ -638,7 +638,7 @@ describe('DI Container', () => {
       expect(instance1).toBe(instance2);
 
       // Cleanup
-      await onResponseHook!(mockRequest);
+      await onResponseHook?.(mockRequest);
     });
 
     it('should create new instance for different requests', async () => {
@@ -658,15 +658,15 @@ describe('DI Container', () => {
 
       // First request
       const mockRequest1 = {};
-      await onRequestHook!(mockRequest1);
+      await onRequestHook?.(mockRequest1);
       const instance1 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest1 as never });
-      await onResponseHook!(mockRequest1);
+      await onResponseHook?.(mockRequest1);
 
       // Second request
       const mockRequest2 = {};
-      await onRequestHook!(mockRequest2);
+      await onRequestHook?.(mockRequest2);
       const instance2 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest2 as never });
-      await onResponseHook!(mockRequest2);
+      await onResponseHook?.(mockRequest2);
 
       // Different instances for different requests
       expect(instance1).not.toBe(instance2);
@@ -705,7 +705,7 @@ describe('DI Container', () => {
       setupFastifyMock(testContainer);
 
       const mockRequest = {};
-      await onRequestHook!(mockRequest);
+      await onRequestHook?.(mockRequest);
 
       const instance1 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest as never });
       const instance2 = testContainer.resolve(REQUEST_TOKEN, { request: mockRequest as never });
@@ -714,7 +714,7 @@ describe('DI Container', () => {
       expect(callCount).toBe(1);
       expect(instance1).toBe(instance2);
 
-      await onResponseHook!(mockRequest);
+      await onResponseHook?.(mockRequest);
     });
   });
 
@@ -831,7 +831,7 @@ describe('DI Container', () => {
       testContainer.attachToFastify(mockServer as never);
 
       const mockRequest = { url: '/test' };
-      await onRequestHook!(mockRequest);
+      await onRequestHook?.(mockRequest);
 
       // Use Container.createContext to create context
       const context = Container.createContext(mockRequest as never);
@@ -886,7 +886,7 @@ describe('DI Container', () => {
       setupFastifyMock(testContainer);
 
       const mockRequest = {};
-      await onRequestHook!(mockRequest);
+      await onRequestHook?.(mockRequest);
 
       // First resolution creates instance
       const instance1 = await testContainer.resolveAsync(REQUEST_TOKEN, {
@@ -900,7 +900,7 @@ describe('DI Container', () => {
       expect(instance1).toBe(instance2);
       expect(callCount).toBe(1);
 
-      await onResponseHook!(mockRequest);
+      await onResponseHook?.(mockRequest);
     });
 
     it('should throw when resolving async request-scoped outside request', async () => {

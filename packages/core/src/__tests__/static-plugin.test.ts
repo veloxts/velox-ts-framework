@@ -12,7 +12,7 @@ vi.mock('@fastify/static', async () => {
   };
 });
 
-import { type CacheControl, registerStatic, type StaticOptions } from '../plugins/static.js';
+import { registerStatic } from '../plugins/static.js';
 
 describe('Static File Plugin', () => {
   let mockServer: ReturnType<typeof createMockServer>;
@@ -315,7 +315,7 @@ describe('Static File Plugin', () => {
           sendFile: vi.fn(),
         };
 
-        await capturedNotFoundHandler!(mockRequest, mockReply);
+        await capturedNotFoundHandler?.(mockRequest, mockReply);
 
         expect(mockReply.status).toHaveBeenCalledWith(404);
         expect(mockReply.send).toHaveBeenCalledWith({
@@ -339,7 +339,7 @@ describe('Static File Plugin', () => {
           sendFile: vi.fn(),
         };
 
-        await capturedNotFoundHandler!(mockRequest, mockReply);
+        await capturedNotFoundHandler?.(mockRequest, mockReply);
 
         expect(mockReply.status).toHaveBeenCalledWith(404);
         expect(mockReply.send).toHaveBeenCalledWith({
@@ -359,7 +359,7 @@ describe('Static File Plugin', () => {
           sendFile: vi.fn(),
         };
 
-        await capturedNotFoundHandler!(mockRequest, mockReply);
+        await capturedNotFoundHandler?.(mockRequest, mockReply);
 
         expect(mockReply.status).toHaveBeenCalledWith(404);
         expect(mockReply.send).toHaveBeenCalledWith({
@@ -379,7 +379,7 @@ describe('Static File Plugin', () => {
           sendFile: vi.fn().mockResolvedValue(undefined),
         };
 
-        await capturedNotFoundHandler!(mockRequest, mockReply);
+        await capturedNotFoundHandler?.(mockRequest, mockReply);
 
         expect(mockReply.sendFile).toHaveBeenCalledWith(
           'index.html',
@@ -401,7 +401,7 @@ describe('Static File Plugin', () => {
           sendFile: vi.fn().mockResolvedValue(undefined),
         };
 
-        await capturedNotFoundHandler!(mockRequest, mockReply);
+        await capturedNotFoundHandler?.(mockRequest, mockReply);
 
         expect(mockReply.sendFile).toHaveBeenCalledWith('app.html', expect.any(String));
       });

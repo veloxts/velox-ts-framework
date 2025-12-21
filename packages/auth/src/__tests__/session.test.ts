@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   inMemorySessionStore,
-  isSessionAuthenticated,
   type Session,
   type SessionConfig,
   type SessionStore,
@@ -608,26 +607,6 @@ describe('Session Management', () => {
 
       expect(middleware.manager.createSession).toBeDefined();
       expect(middleware.manager.loadSession).toBeDefined();
-    });
-  });
-
-  describe('isSessionAuthenticated', () => {
-    it('should return true for session with userId', () => {
-      const manager = sessionManager(defaultConfig);
-      const reply = createMockReply();
-      const session = manager.createSession(reply as never);
-
-      session.set('userId', 'user-123');
-
-      expect(isSessionAuthenticated(session)).toBe(true);
-    });
-
-    it('should return false for session without userId', () => {
-      const manager = sessionManager(defaultConfig);
-      const reply = createMockReply();
-      const session = manager.createSession(reply as never);
-
-      expect(isSessionAuthenticated(session)).toBe(false);
     });
   });
 

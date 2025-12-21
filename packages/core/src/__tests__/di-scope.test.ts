@@ -182,7 +182,7 @@ describe('DI Scope', () => {
         it('should return undefined when token not in cache', async () => {
           const token = Symbol('test');
           const request = {};
-          await onRequestHook!(request);
+          await onRequestHook?.(request);
 
           const result = scopeManager.getRequestScoped(token, request as never);
           expect(result).toBeUndefined();
@@ -192,7 +192,7 @@ describe('DI Scope', () => {
           const token = Symbol('test');
           const instance = { value: 42 };
           const request = {};
-          await onRequestHook!(request);
+          await onRequestHook?.(request);
 
           scopeManager.setRequestScoped(token, instance, request as never);
           const result = scopeManager.getRequestScoped(token, request as never);
@@ -214,7 +214,7 @@ describe('DI Scope', () => {
           const token = Symbol('test');
           const instance = { value: 42 };
           const request = {};
-          await onRequestHook!(request);
+          await onRequestHook?.(request);
 
           scopeManager.setRequestScoped(token, instance, request as never);
           expect(scopeManager.getRequestScoped(token, request as never)).toBe(instance);
@@ -232,7 +232,7 @@ describe('DI Scope', () => {
         it('should return false when token not in cache', async () => {
           const token = Symbol('test');
           const request = {};
-          await onRequestHook!(request);
+          await onRequestHook?.(request);
 
           expect(scopeManager.hasRequestScoped(token, request as never)).toBe(false);
         });
@@ -240,7 +240,7 @@ describe('DI Scope', () => {
         it('should return true when token is in cache', async () => {
           const token = Symbol('test');
           const request = {};
-          await onRequestHook!(request);
+          await onRequestHook?.(request);
           scopeManager.setRequestScoped(token, { value: 42 }, request as never);
 
           expect(scopeManager.hasRequestScoped(token, request as never)).toBe(true);
@@ -260,7 +260,7 @@ describe('DI Scope', () => {
         it('should throw when token not in cache', async () => {
           const token = Symbol('test');
           const request = {};
-          await onRequestHook!(request);
+          await onRequestHook?.(request);
 
           expect(() => scopeManager.getRequestScopedOrThrow(token, request as never)).toThrow(
             'Request-scoped instance not found for token'
@@ -271,7 +271,7 @@ describe('DI Scope', () => {
           const token = Symbol('test');
           const instance = { value: 42 };
           const request = {};
-          await onRequestHook!(request);
+          await onRequestHook?.(request);
           scopeManager.setRequestScoped(token, instance, request as never);
 
           const result = scopeManager.getRequestScopedOrThrow(token, request as never);
@@ -296,7 +296,7 @@ describe('DI Scope', () => {
 
         it('should return request when valid', async () => {
           const request = {};
-          await onRequestHook!(request);
+          await onRequestHook?.(request);
 
           const result = scopeManager.ensureRequestScope(request as never);
           expect(result).toBe(request);
@@ -307,12 +307,12 @@ describe('DI Scope', () => {
         it('should clear cache on response', async () => {
           const token = Symbol('test');
           const request = {};
-          await onRequestHook!(request);
+          await onRequestHook?.(request);
           scopeManager.setRequestScoped(token, { value: 42 }, request as never);
 
           expect(scopeManager.hasRequestScoped(token, request as never)).toBe(true);
 
-          await onResponseHook!(request);
+          await onResponseHook?.(request);
 
           expect(scopeManager.hasRequestScoped(token, request as never)).toBe(false);
         });
@@ -320,7 +320,7 @@ describe('DI Scope', () => {
         it('should handle onResponse when cache not present', async () => {
           const request = {};
           // Should not throw
-          await expect(onResponseHook!(request)).resolves.not.toThrow();
+          await expect(onResponseHook?.(request)).resolves.not.toThrow();
         });
       });
     });

@@ -10,7 +10,7 @@ import { hydrateRoot } from '@veloxts/web';
 
 const rootElement = document.getElementById('root');
 
-if (rootElement && rootElement.firstElementChild) {
+if (rootElement?.firstElementChild) {
   // Hydrate the server-rendered React tree
   // This attaches event handlers and makes the app interactive
   hydrateRoot(rootElement, rootElement.firstElementChild as unknown as React.ReactNode, {

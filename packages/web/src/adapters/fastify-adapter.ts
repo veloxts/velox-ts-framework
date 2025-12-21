@@ -371,14 +371,13 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
   const cache = getGlobalCache();
 
   // Get or create cache entry for this handler
-  if (!cache.has(cacheKey)) {
-    cache.set(cacheKey, {
-      instance: null,
-      promise: null,
-    });
-  }
-
-  const singleton = cache.get(cacheKey)!;
+  const singleton = (() => {
+    const existing = cache.get(cacheKey);
+    if (existing) return existing;
+    const entry: AppCache = { instance: null, promise: null };
+    cache.set(cacheKey, entry);
+    return entry;
+  })();
 
   async function getApp(): Promise<FastifyInstance> {
     // If already resolved, return it

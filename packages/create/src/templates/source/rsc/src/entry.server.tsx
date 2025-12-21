@@ -119,7 +119,11 @@ function wrapWithLayouts(
   params: Record<string, string>
 ): ReactElement {
   return layouts.reduceRight(
-    (children, Layout) => <Layout params={params}>{children}</Layout>,
+    (children, Layout) => (
+      <Layout key={Layout.name || Layout.displayName || 'layout'} params={params}>
+        {children}
+      </Layout>
+    ),
     pageElement
   );
 }
