@@ -1,5 +1,13 @@
 # @veloxts/validation
 
+## 0.6.6
+
+### Patch Changes
+
+- ensure the web app never imports server-side code paths
+- Updated dependencies
+  - @veloxts/core@0.6.6
+
 ## 0.6.5
 
 ### Patch Changes

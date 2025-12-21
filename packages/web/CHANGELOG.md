@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.6
+
+### Patch Changes
+
+- ensure the web app never imports server-side code paths
+- Updated dependencies
+  - @veloxts/auth@0.6.6
+  - @veloxts/client@0.6.6
+  - @veloxts/core@0.6.6
+  - @veloxts/router@0.6.6
+
 ## 0.6.5
 
 ### Patch Changes
