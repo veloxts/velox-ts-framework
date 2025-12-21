@@ -98,6 +98,102 @@ export function veloxNodeStubs(): Plugin {
       export const platform = () => "browser";
       export default {};
     `,
+    'node:buffer': `
+      export const Buffer = {
+        from: () => new Uint8Array(0),
+        alloc: (size) => new Uint8Array(size),
+        isBuffer: () => false,
+        concat: () => new Uint8Array(0),
+      };
+      export default { Buffer };
+    `,
+    'node:events': `
+      export class EventEmitter {
+        on() { return this; }
+        off() { return this; }
+        emit() { return false; }
+        once() { return this; }
+        addListener() { return this; }
+        removeListener() { return this; }
+        removeAllListeners() { return this; }
+      }
+      export default EventEmitter;
+    `,
+    'node:stream': `
+      export class Readable {}
+      export class Writable {}
+      export class Transform {}
+      export class Duplex {}
+      export class PassThrough {}
+      export default { Readable, Writable, Transform, Duplex, PassThrough };
+    `,
+    'node:http': `
+      export const createServer = () => ({});
+      export const request = () => ({});
+      export const get = () => ({});
+      export const Agent = class {};
+      export const STATUS_CODES = {};
+      export default { createServer, request, get, Agent, STATUS_CODES };
+    `,
+    'node:https': `
+      export const createServer = () => ({});
+      export const request = () => ({});
+      export const get = () => ({});
+      export const Agent = class {};
+      export default { createServer, request, get, Agent };
+    `,
+    'node:net': `
+      export const createServer = () => ({});
+      export const createConnection = () => ({});
+      export const connect = () => ({});
+      export class Socket {}
+      export default { createServer, createConnection, connect, Socket };
+    `,
+    'node:async_hooks': `
+      export const createHook = () => ({ enable: () => {}, disable: () => {} });
+      export const executionAsyncId = () => 0;
+      export const triggerAsyncId = () => 0;
+      export class AsyncResource {}
+      export class AsyncLocalStorage { getStore() { return undefined; } run(store, fn) { return fn(); } }
+      export default { createHook, executionAsyncId, triggerAsyncId, AsyncResource, AsyncLocalStorage };
+    `,
+    'node:assert': `
+      const assert = (value) => { if (!value) throw new Error('Assertion failed'); };
+      assert.ok = assert;
+      assert.equal = () => {};
+      assert.strictEqual = () => {};
+      assert.deepEqual = () => {};
+      assert.deepStrictEqual = () => {};
+      assert.notEqual = () => {};
+      assert.throws = () => {};
+      export default assert;
+      export { assert };
+    `,
+    'node:diagnostics_channel': `
+      export const channel = () => ({ subscribe: () => {}, unsubscribe: () => {}, publish: () => {} });
+      export const hasSubscribers = () => false;
+      export const subscribe = () => {};
+      export const unsubscribe = () => {};
+      export class Channel { subscribe() {} unsubscribe() {} publish() {} hasSubscribers = false; }
+      export default { channel, hasSubscribers, subscribe, unsubscribe, Channel };
+    `,
+    'node:http2': `
+      export const createServer = () => ({});
+      export const createSecureServer = () => ({});
+      export const connect = () => ({});
+      export const constants = {};
+      export default { createServer, createSecureServer, connect, constants };
+    `,
+    'node:dns': `
+      export const lookup = () => {};
+      export const resolve = () => {};
+      export const promises = { lookup: async () => ({}), resolve: async () => [] };
+      export default { lookup, resolve, promises };
+    `,
+    'node:string_decoder': `
+      export class StringDecoder { write() { return ''; } end() { return ''; } }
+      export default { StringDecoder };
+    `,
   };
 
   // Create non-prefixed aliases (for packages like dotenv, bcrypt)
