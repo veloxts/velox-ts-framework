@@ -522,6 +522,59 @@ export interface Session {
    * Reload session data from store
    */
   reload(): Promise<void>;
+
+  // ============================================================================
+  // Authentication Methods (Laravel-style fluent API)
+  // ============================================================================
+
+  /**
+   * Log in a user to the session
+   *
+   * Regenerates the session ID to prevent session fixation attacks,
+   * then stores the user's ID and email in the session.
+   *
+   * @example
+   * ```typescript
+   * const login = procedure()
+   *   .input(LoginSchema)
+   *   .mutation(async ({ input, ctx }) => {
+   *     const user = await verifyCredentials(input.email, input.password);
+   *     await ctx.session.login(user);
+   *     return { success: true };
+   *   });
+   * ```
+   */
+  login(user: User): Promise<void>;
+
+  /**
+   * Log out the current user by destroying the session
+   *
+   * @example
+   * ```typescript
+   * const logout = procedure()
+   *   .use(session.requireAuth())
+   *   .mutation(async ({ ctx }) => {
+   *     await ctx.session.logout();
+   *     return { success: true };
+   *   });
+   * ```
+   */
+  logout(): Promise<void>;
+
+  /**
+   * Check if the session is authenticated (has a logged-in user)
+   *
+   * @returns true if a user is logged in, false otherwise
+   *
+   * @example
+   * ```typescript
+   * if (ctx.session.check()) {
+   *   // User is authenticated
+   *   console.log('User ID:', ctx.session.get('userId'));
+   * }
+   * ```
+   */
+  check(): boolean;
 }
 
 /**
@@ -906,6 +959,28 @@ export function createSessionManager(config: SessionConfig): SessionManager {
         currentData = { ...stored.data };
         currentExpiresAt = stored.expiresAt;
         modified = false;
+      },
+
+      // Authentication Methods (Laravel-style fluent API)
+
+      async login(user: User): Promise<void> {
+        // Regenerate session ID to prevent session fixation
+        await session.regenerate();
+
+        // Store user info in session
+        session.set('userId', user.id);
+        session.set('userEmail', user.email);
+
+        // Save immediately
+        await session.save();
+      },
+
+      async logout(): Promise<void> {
+        await session.destroy();
+      },
+
+      check(): boolean {
+        return !!session.get('userId');
       },
     };
 
@@ -1337,58 +1412,61 @@ export function sessionMiddleware(config: SessionConfig) {
 }
 
 // ============================================================================
-// Session Helper Functions
+// Session Helper Functions (Deprecated - use Session methods instead)
 // ============================================================================
 
 /**
  * Login helper - sets user in session and regenerates ID
  *
+ * @deprecated Use `session.login(user)` instead for a more fluent API.
+ *
  * @example
  * ```typescript
- * const login = procedure()
- *   .use(session.middleware())
- *   .input(LoginSchema)
- *   .mutation(async ({ input, ctx }) => {
- *     const user = await verifyCredentials(input.email, input.password);
- *     await loginSession(ctx.session, user);
- *     return { success: true };
- *   });
+ * // Old way (deprecated)
+ * await loginSession(ctx.session, user);
+ *
+ * // New way (preferred)
+ * await ctx.session.login(user);
  * ```
  */
 export async function loginSession(session: Session, user: User): Promise<void> {
-  // Regenerate session ID to prevent session fixation
-  await session.regenerate();
-
-  // Store user info in session
-  session.set('userId', user.id);
-  session.set('userEmail', user.email);
-
-  // Save immediately
-  await session.save();
+  await session.login(user);
 }
 
 /**
  * Logout helper - destroys session
  *
+ * @deprecated Use `session.logout()` instead for a more fluent API.
+ *
  * @example
  * ```typescript
- * const logout = procedure()
- *   .use(session.requireAuth())
- *   .mutation(async ({ ctx }) => {
- *     await logoutSession(ctx.session);
- *     return { success: true };
- *   });
+ * // Old way (deprecated)
+ * await logoutSession(ctx.session);
+ *
+ * // New way (preferred)
+ * await ctx.session.logout();
  * ```
  */
 export async function logoutSession(session: Session): Promise<void> {
-  await session.destroy();
+  await session.logout();
 }
 
 /**
  * Check if session is authenticated
+ *
+ * @deprecated Use `session.check()` instead for a more fluent API.
+ *
+ * @example
+ * ```typescript
+ * // Old way (deprecated)
+ * if (isSessionAuthenticated(ctx.session)) { ... }
+ *
+ * // New way (preferred)
+ * if (ctx.session.check()) { ... }
+ * ```
  */
 export function isSessionAuthenticated(session: Session): boolean {
-  return !!session.get('userId');
+  return session.check();
 }
 
 // ============================================================================

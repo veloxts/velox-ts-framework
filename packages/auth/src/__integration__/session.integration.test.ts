@@ -17,12 +17,13 @@ import cookie from '@fastify/cookie';
 import { defineProcedures, type ProcedureCollection, procedure, rest } from '@veloxts/router';
 import { createTestServer, TEST_SECRETS } from '@veloxts/testing';
 import { z } from '@veloxts/validation';
-import type { FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { FastifyInstance, FastifyReply } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createInMemorySessionStore,
   createSessionManager,
+  type FastifyReplyWithCookies,
   isSessionAuthenticated,
   loginSession,
   logoutSession,
@@ -644,19 +645,54 @@ describe('Session Management Integration', () => {
   // ==========================================================================
 
   describe('Helper Functions', () => {
-    it('isSessionAuthenticated should check userId', async () => {
+    it('isSessionAuthenticated should check userId (deprecated helper)', async () => {
       // Create a mock session object for testing
+      // Note: isSessionAuthenticated now delegates to session.check()
       const mockSession = {
         get: (key: string) => (key === 'userId' ? 'test-user-id' : undefined),
+        check: () => true,
       } as unknown as Session;
 
       expect(isSessionAuthenticated(mockSession)).toBe(true);
 
       const unauthSession = {
         get: () => undefined,
+        check: () => false,
       } as unknown as Session;
 
       expect(isSessionAuthenticated(unauthSession)).toBe(false);
+    });
+
+    it('session.check() should return authentication status', async () => {
+      // Use the actual session manager to test the check method
+      // createSessionManager returns the manager directly (not wrapped)
+      const manager = createSessionManager({
+        secret: TEST_SECRETS.session,
+        store: createInMemorySessionStore(),
+      });
+
+      // Create a fresh session with proper Fastify reply mock
+      const reply = {
+        cookie: vi.fn(),
+        clearCookie: vi.fn(),
+      } as unknown as FastifyReplyWithCookies;
+
+      const session = manager.createSession(reply);
+
+      // New session should not be authenticated
+      expect(session.check()).toBe(false);
+
+      // Set userId to simulate login
+      session.set('userId', 'user-123');
+
+      // Now should be authenticated
+      expect(session.check()).toBe(true);
+
+      // Clear userId
+      session.delete('userId');
+
+      // Should be unauthenticated again
+      expect(session.check()).toBe(false);
     });
   });
 });

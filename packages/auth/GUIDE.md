@@ -458,8 +458,7 @@ const getHomePage = procedure
 ### Login and Logout
 
 ```typescript
-import { loginSession, logoutSession } from '@veloxts/auth';
-import { hashPassword, verifyPassword } from '@veloxts/auth';
+import { verifyPassword } from '@veloxts/auth';
 
 export const authProcedures = defineProcedures('auth', {
   // Login procedure
@@ -480,7 +479,7 @@ export const authProcedures = defineProcedures('auth', {
       }
 
       // Login - regenerates session ID to prevent fixation attacks
-      await loginSession(ctx.session, user);
+      await ctx.session.login(user);
 
       return { success: true, user };
     }),
@@ -489,9 +488,17 @@ export const authProcedures = defineProcedures('auth', {
   logout: procedure
     .use(session.requireAuth())
     .mutation(async ({ ctx }) => {
-      await logoutSession(ctx.session);
+      await ctx.session.logout();
       return { success: true };
     }),
+
+  // Check if authenticated
+  check: procedure
+    .use(session.middleware())
+    .query(({ ctx }) => ({
+      authenticated: ctx.session.check(),
+      userId: ctx.session.get('userId'),
+    })),
 
   // Logout from all devices
   logoutAll: procedure
@@ -641,14 +648,14 @@ const session = sessionMiddleware({
 **1. Always regenerate session ID after login**
 
 ```typescript
-// loginSession() does this automatically
-await loginSession(ctx.session, user);
+// session.login() does this automatically
+await ctx.session.login(user);
 ```
 
 **2. Destroy sessions on logout**
 
 ```typescript
-await logoutSession(ctx.session);
+await ctx.session.logout();
 ```
 
 **3. Use strong, random secrets**
@@ -694,7 +701,7 @@ The session implementation includes several security protections by default:
 - **HMAC-SHA256 signing** - All session IDs are cryptographically signed to prevent tampering
 - **Timing-safe comparison** - Session ID verification uses constant-time comparison to prevent timing attacks
 - **Entropy validation** - Session IDs are validated for sufficient randomness (32 bytes, 256 bits)
-- **Session fixation protection** - `loginSession()` automatically regenerates session IDs
+- **Session fixation protection** - `session.login()` automatically regenerates session IDs
 - **SameSite enforcement** - `SameSite=none` requires `Secure` flag per RFC 6265bis
 
 ### When to Use Sessions vs JWT
