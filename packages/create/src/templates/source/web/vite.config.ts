@@ -11,10 +11,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Define process.env for browser compatibility
+  // Some dependencies (like dotenv config check) reference process.env
+  // even when not actually used at runtime
+  define: {
+    'process.env': {},
+  },
   // Exclude native Node.js modules from dependency optimization
-  // These are server-only dependencies from the api package
   optimizeDeps: {
-    exclude: ['bcrypt', '@mapbox/node-pre-gyp'],
+    exclude: ['bcrypt', '@mapbox/node-pre-gyp', 'dotenv'],
   },
   server: {
     port: __WEB_PORT__,

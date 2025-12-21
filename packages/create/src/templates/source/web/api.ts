@@ -22,7 +22,7 @@
 
 import { createVeloxHooks } from '@veloxts/client/react';
 
-import type { AppRouter } from '../../api/src/index.js';
+import type { AppRouter } from '../../api/src/router.js';
 
 /**
  * Type-safe API hooks with full autocomplete

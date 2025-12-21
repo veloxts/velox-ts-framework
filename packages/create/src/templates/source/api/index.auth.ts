@@ -4,24 +4,18 @@
 
 import 'dotenv/config';
 
-import { authPlugin, databasePlugin, extractRoutes, rest, veloxApp } from '@veloxts/velox';
+import { authPlugin, databasePlugin, rest, veloxApp } from '@veloxts/velox';
 
 import { config } from './config/app.js';
 import { authConfig } from './config/auth.js';
 import { db } from './config/database.js';
-import { authProcedures } from './procedures/auth.js';
-import { healthProcedures } from './procedures/health.js';
-import { userProcedures } from './procedures/users.js';
+// Import router definition (type-only safe for frontend imports)
+import { collections } from './router.js';
 
-// Procedure collections for routing
-const collections = [healthProcedures, authProcedures, userProcedures];
-
-// Router type for frontend type safety
-const router = { auth: authProcedures, health: healthProcedures, users: userProcedures };
-export type AppRouter = typeof router;
-
-// Route mappings for frontend client - imported directly, no manual duplication needed
-export const routes = extractRoutes(collections);
+// Re-export AppRouter and routes for backward compatibility
+// Frontend should import from ./router.js directly for type safety
+export type { AppRouter } from './router.js';
+export { routes } from './router.js';
 
 const app = await veloxApp({
   port: config.port,

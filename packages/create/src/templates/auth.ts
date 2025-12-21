@@ -61,6 +61,10 @@ function generateIndexTs(): string {
   return compileTemplate('api/index.auth.ts', AUTH_CONFIG);
 }
 
+function generateRouterTs(): string {
+  return compileTemplate('api/router.auth.ts', AUTH_CONFIG);
+}
+
 function generateConfigDatabase(): string {
   return compileTemplate('api/config/database.ts', AUTH_CONFIG);
 }
@@ -95,6 +99,7 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/prisma/schema.prisma', content: generatePrismaSchema() },
 
     // API Source files
+    { path: 'apps/api/src/router.ts', content: generateRouterTs() },
     { path: 'apps/api/src/index.ts', content: generateIndexTs() },
     { path: 'apps/api/src/config/app.ts', content: generateConfigApp(config) },
     { path: 'apps/api/src/config/auth.ts', content: generateAuthConfig() },

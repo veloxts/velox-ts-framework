@@ -14,31 +14,12 @@ import { databasePlugin, serve, veloxApp } from '@veloxts/velox';
 
 import { config } from './config/app.js';
 import { db } from './config/database.js';
-import { healthProcedures } from './procedures/health.js';
-import { userProcedures } from './procedures/users.js';
+// Import router definition (type-only safe for frontend imports)
+import { collections } from './router.js';
 
-// ============================================================================
-// Type Exports for Frontend
-// ============================================================================
-
-/**
- * AppRouter type for frontend type safety
- *
- * Constructed from procedure collections to preserve full type information.
- * This enables type-safe API calls with full autocomplete.
- *
- * @example
- * ```typescript
- * import type { AppRouter } from '../../api/src';
- * import { createVeloxHooks } from '@veloxts/client/react';
- *
- * export const api = createVeloxHooks<AppRouter>();
- * ```
- */
-export type AppRouter = {
-  health: typeof healthProcedures;
-  users: typeof userProcedures;
-};
+// Re-export AppRouter for backward compatibility
+// Frontend should import from ./router.js directly for type safety
+export type { AppRouter } from './router.js';
 
 // ============================================================================
 // Application Bootstrap
@@ -62,7 +43,7 @@ await app.register(databasePlugin({ client: db }));
  * - REST: /api/users, /api/health
  * - tRPC: /trpc/users.getUser, /trpc/health.getHealth
  */
-await serve(app, [healthProcedures, userProcedures], {
+await serve(app, collections, {
   api: config.apiPrefix,
   rpc: '/trpc',
 });

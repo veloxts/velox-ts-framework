@@ -8,12 +8,13 @@ import { databasePlugin, rest, veloxApp } from '@veloxts/velox';
 
 import { config } from './config/app.js';
 import { db } from './config/database.js';
-import { healthProcedures } from './procedures/health.js';
-import { userProcedures } from './procedures/users.js';
+// Import router definition (type-only safe for frontend imports)
+import { collections } from './router.js';
 
-// Router type for frontend type safety
-const router = { health: healthProcedures, users: userProcedures };
-export type AppRouter = typeof router;
+// Re-export AppRouter and routes for backward compatibility
+// Frontend should import from ./router.js directly for type safety
+export type { AppRouter } from './router.js';
+export { routes } from './router.js';
 
 const app = await veloxApp({
   port: config.port,
@@ -24,7 +25,7 @@ const app = await veloxApp({
 await app.register(databasePlugin({ client: db }));
 
 app.routes(
-  rest([healthProcedures, userProcedures], {
+  rest(collections, {
     prefix: config.apiPrefix,
   })
 );
