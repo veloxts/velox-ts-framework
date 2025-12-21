@@ -2,22 +2,50 @@ import path from 'node:path';
 
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
-// Stub for Node.js built-in modules (for browser compatibility)
-const nodeBuiltinStub = 'export default {}';
+/**
+ * Plugin to stub Node.js built-in modules for browser compatibility.
+ * This handles imports from node_modules that use node: protocol.
+ */
+function nodeBuiltinsPlugin(): Plugin {
+  const nodeBuiltins = [
+    'node:crypto',
+    'node:module',
+    'node:util',
+    'node:fs',
+    'node:fs/promises',
+    'node:path',
+    'node:url',
+    'node:buffer',
+    'node:stream',
+    'node:events',
+  ];
+
+  return {
+    name: 'stub-node-builtins',
+    enforce: 'pre',
+    resolveId(id) {
+      if (nodeBuiltins.includes(id)) {
+        return `\0virtual:${id}`;
+      }
+      return null;
+    },
+    load(id) {
+      if (id.startsWith('\0virtual:node:')) {
+        // Return empty stub module
+        return 'export default {}; export const createRequire = () => () => ({});';
+      }
+      return null;
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [tanstackRouter(), react()],
+  plugins: [nodeBuiltinsPlugin(), tanstackRouter(), react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      // Stub Node.js built-ins that get pulled in via type imports
-      'node:crypto': `data:text/javascript,${nodeBuiltinStub}`,
-      'node:module': `data:text/javascript,${nodeBuiltinStub}`,
-      'node:util': `data:text/javascript,${nodeBuiltinStub}`,
-      'node:fs': `data:text/javascript,${nodeBuiltinStub}`,
-      'node:path': `data:text/javascript,${nodeBuiltinStub}`,
     },
   },
   // Define process.env for browser compatibility
@@ -35,23 +63,16 @@ export default defineConfig({
       '@veloxts/router',
       '@veloxts/orm',
       '@veloxts/core',
+      '@veloxts/validation',
       '@prisma/client',
       '@prisma/adapter-better-sqlite3',
       'better-sqlite3',
     ],
   },
-  // Mark Node.js modules as external for SSR compatibility
-  ssr: {
-    noExternal: ['@veloxts/client'],
-  },
   build: {
     rollupOptions: {
       external: [
-        'node:crypto',
-        'node:module',
-        'node:util',
-        'node:fs',
-        'node:path',
+        /^node:/,
       ],
     },
   },
