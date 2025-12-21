@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.3
+
+### Patch Changes
+
+- Add workspaces field to root package.json template + Fix Prisma ESM/CJS import for Node.js v24
+- Updated dependencies
+  - @veloxts/auth@0.6.3
+  - @veloxts/client@0.6.3
+  - @veloxts/core@0.6.3
+  - @veloxts/router@0.6.3
+
 ## 0.6.2
 
 ### Patch Changes
