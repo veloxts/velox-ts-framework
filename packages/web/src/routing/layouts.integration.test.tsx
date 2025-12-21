@@ -6,7 +6,6 @@
  */
 
 import type { ReactNode } from 'react';
-
 import { describe, expect, it } from 'vitest';
 
 import type { LayoutComponent } from './layouts.js';

@@ -532,7 +532,9 @@ export function getServiceInstructions(entityName: string, options: ServiceOptio
     lines.push('  2. Inject into procedures or other services');
   } else {
     lines.push('  1. Import the service in your procedures');
-    lines.push(`     import { ${entityName}Service } from '@/services/${entityName.toLowerCase()}';`);
+    lines.push(
+      `     import { ${entityName}Service } from '@/services/${entityName.toLowerCase()}';`
+    );
   }
 
   if (options.crud) {

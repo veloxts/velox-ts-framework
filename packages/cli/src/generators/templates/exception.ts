@@ -687,7 +687,9 @@ export function getExceptionInstructions(entityName: string, options: ExceptionO
   const lines = [`Your ${entityName} exception has been created.`, '', 'Next steps:'];
 
   lines.push('  1. Import and throw in your services/procedures:');
-  lines.push(`     import { ${entityName}Exception } from '@/exceptions/${entityName.toLowerCase()}';`);
+  lines.push(
+    `     import { ${entityName}Exception } from '@/exceptions/${entityName.toLowerCase()}';`
+  );
   lines.push(`     throw new ${entityName}Exception('Something went wrong');`);
 
   if (options.http) {

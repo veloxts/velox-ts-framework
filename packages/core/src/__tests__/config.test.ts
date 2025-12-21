@@ -96,15 +96,11 @@ describe('VeloxApp - Configuration', () => {
   });
 
   it('should throw error for invalid port', async () => {
-    await expect(veloxApp({ port: 999999, logger: false })).rejects.toThrow(
-      'Invalid port number'
-    );
+    await expect(veloxApp({ port: 999999, logger: false })).rejects.toThrow('Invalid port number');
   });
 
   it('should throw error for negative port', async () => {
-    await expect(veloxApp({ port: -1, logger: false })).rejects.toThrow(
-      'Invalid port number'
-    );
+    await expect(veloxApp({ port: -1, logger: false })).rejects.toThrow('Invalid port number');
   });
 
   it('should throw error for empty host', async () => {

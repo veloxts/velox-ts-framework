@@ -147,7 +147,13 @@ export interface GeneratorOutput {
 /**
  * Generator category for grouping in help
  */
-export type GeneratorCategory = 'resource' | 'database' | 'test' | 'composite' | 'infrastructure' | 'auth';
+export type GeneratorCategory =
+  | 'resource'
+  | 'database'
+  | 'test'
+  | 'composite'
+  | 'infrastructure'
+  | 'auth';
 
 /**
  * Generator metadata for CLI registration

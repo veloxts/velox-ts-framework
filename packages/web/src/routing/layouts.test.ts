@@ -457,12 +457,8 @@ describe('wrapWithLayouts', () => {
       props: { children: 'Page' },
       key: null,
     } as React.ReactElement;
-    const Layout = ({
-      children,
-    }: {
-      children: React.ReactNode;
-      params?: Record<string, string>;
-    }) => children;
+    const Layout = ({ children }: { children: React.ReactNode; params?: Record<string, string> }) =>
+      children;
 
     const result = wrapWithLayouts(pageElement, [Layout], undefined);
 
@@ -475,12 +471,8 @@ describe('wrapWithLayouts', () => {
       props: { children: 'Page' },
       key: null,
     } as React.ReactElement;
-    const Layout = ({
-      children,
-    }: {
-      children: React.ReactNode;
-      params?: Record<string, string>;
-    }) => children;
+    const Layout = ({ children }: { children: React.ReactNode; params?: Record<string, string> }) =>
+      children;
 
     const result = wrapWithLayouts(pageElement, [Layout], {});
 

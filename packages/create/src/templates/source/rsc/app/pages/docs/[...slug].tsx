@@ -21,7 +21,7 @@ const docsTree: Record<string, { title: string; content: string }> = {
     title: 'Getting Started',
     content: 'Welcome to VeloxTS! This guide will help you get up and running quickly.',
   },
-  'installation': {
+  installation: {
     title: 'Installation',
     content: 'Install VeloxTS using your preferred package manager: pnpm, npm, or yarn.',
   },
@@ -131,20 +131,32 @@ export default async function DocsPage({ params }: PageProps) {
       <aside className="docs-sidebar">
         <h3>Getting Started</h3>
         <ul>
-          <li><a href="/docs/getting-started">Getting Started</a></li>
-          <li><a href="/docs/installation">Installation</a></li>
+          <li>
+            <a href="/docs/getting-started">Getting Started</a>
+          </li>
+          <li>
+            <a href="/docs/installation">Installation</a>
+          </li>
         </ul>
 
         <h3>API Reference</h3>
         <ul>
-          <li><a href="/docs/api/reference">Overview</a></li>
-          <li><a href="/docs/api/reference/types">Types</a></li>
+          <li>
+            <a href="/docs/api/reference">Overview</a>
+          </li>
+          <li>
+            <a href="/docs/api/reference/types">Types</a>
+          </li>
         </ul>
 
         <h3>Guides</h3>
         <ul>
-          <li><a href="/docs/guides/routing">Routing</a></li>
-          <li><a href="/docs/guides/layouts">Layouts</a></li>
+          <li>
+            <a href="/docs/guides/routing">Routing</a>
+          </li>
+          <li>
+            <a href="/docs/guides/layouts">Layouts</a>
+          </li>
         </ul>
       </aside>
 

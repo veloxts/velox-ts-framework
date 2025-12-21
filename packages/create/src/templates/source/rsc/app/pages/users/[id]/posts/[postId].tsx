@@ -57,17 +57,15 @@ export default async function PostDetailPage({ params }: PageProps) {
         </header>
 
         <section className="post-content">
-          {post.content ? (
-            <p>{post.content}</p>
-          ) : (
-            <p className="empty-content">No content</p>
-          )}
+          {post.content ? <p>{post.content}</p> : <p className="empty-content">No content</p>}
         </section>
 
         <footer className="post-footer">
           <dl>
             <dt>Post ID</dt>
-            <dd><code>{post.id}</code></dd>
+            <dd>
+              <code>{post.id}</code>
+            </dd>
 
             <dt>Author Email</dt>
             <dd>{post.user.email}</dd>

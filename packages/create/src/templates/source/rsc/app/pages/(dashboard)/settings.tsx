@@ -61,14 +61,12 @@ export default async function SettingsPage({ searchParams }: PageProps) {
             <form className="settings-form">
               <div className="form-group">
                 <label>
-                  <input type="checkbox" defaultChecked />
-                  {' '}Email notifications
+                  <input type="checkbox" defaultChecked /> Email notifications
                 </label>
               </div>
               <div className="form-group">
                 <label>
-                  <input type="checkbox" />
-                  {' '}Push notifications
+                  <input type="checkbox" /> Push notifications
                 </label>
               </div>
               <button type="submit">Save Changes</button>
@@ -82,14 +80,12 @@ export default async function SettingsPage({ searchParams }: PageProps) {
             <form className="settings-form">
               <div className="form-group">
                 <label>
-                  <input type="checkbox" defaultChecked />
-                  {' '}Two-factor authentication
+                  <input type="checkbox" defaultChecked /> Two-factor authentication
                 </label>
               </div>
               <div className="form-group">
                 <label>
-                  <input type="checkbox" defaultChecked />
-                  {' '}Session timeout after 30 minutes
+                  <input type="checkbox" defaultChecked /> Session timeout after 30 minutes
                 </label>
               </div>
               <button type="submit">Save Changes</button>
@@ -100,9 +96,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
 
       <footer className="page-footer">
         <p>
-          <small>
-            Route group: (dashboard) | Layout: DashboardLayout
-          </small>
+          <small>Route group: (dashboard) | Layout: DashboardLayout</small>
         </p>
       </footer>
     </div>

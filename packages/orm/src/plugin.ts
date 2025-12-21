@@ -148,9 +148,7 @@ interface PluginState<TClient extends DatabaseClient> {
  * });
  * ```
  */
-export function databasePlugin<TClient extends DatabaseClient>(
-  config: OrmPluginConfig<TClient>
-) {
+export function databasePlugin<TClient extends DatabaseClient>(config: OrmPluginConfig<TClient>) {
   // Validate configuration at plugin creation time
   if (!config || typeof config !== 'object') {
     throw new ConfigurationError('Database plugin configuration is required');

@@ -6,13 +6,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   inMemorySessionStore,
-  sessionManager,
   isSessionAuthenticated,
-  sessionMiddleware,
   type Session,
   type SessionConfig,
   type SessionStore,
   type StoredSession,
+  sessionManager,
+  sessionMiddleware,
 } from '../session.js';
 
 describe('Session Management', () => {

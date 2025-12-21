@@ -16,7 +16,9 @@ export default function HomePage() {
       <section className="stats">
         <div className="stat-card">
           <span className="stat-label">Users in Database</span>
-          <p>Use the API at <code>/api/users</code> to manage users.</p>
+          <p>
+            Use the API at <code>/api/users</code> to manage users.
+          </p>
         </div>
       </section>
 

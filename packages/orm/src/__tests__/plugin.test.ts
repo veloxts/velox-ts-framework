@@ -74,9 +74,9 @@ describe('databasePlugin', () => {
     });
 
     it('should throw error if config is not an object', () => {
-      expect(() =>
-        databasePlugin('invalid' as unknown as { client: DatabaseClient })
-      ).toThrow('Database plugin configuration is required');
+      expect(() => databasePlugin('invalid' as unknown as { client: DatabaseClient })).toThrow(
+        'Database plugin configuration is required'
+      );
     });
 
     it('should throw error if client is missing', () => {
@@ -87,9 +87,9 @@ describe('databasePlugin', () => {
 
     it('should throw error if client is invalid', () => {
       const invalidClient = { notAClient: true };
-      expect(() =>
-        databasePlugin({ client: invalidClient as unknown as DatabaseClient })
-      ).toThrow('Database client must implement $connect and $disconnect methods');
+      expect(() => databasePlugin({ client: invalidClient as unknown as DatabaseClient })).toThrow(
+        'Database client must implement $connect and $disconnect methods'
+      );
     });
   });
 

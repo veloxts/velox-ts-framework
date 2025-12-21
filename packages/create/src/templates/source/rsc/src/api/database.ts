@@ -9,11 +9,12 @@
  * doesn't always have access to .env variables.
  */
 
-import dotenv from 'dotenv';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
 
 // Get the project root directory (2 levels up from src/api/)
 const __dirname = dirname(fileURLToPath(import.meta.url));

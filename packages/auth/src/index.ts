@@ -198,9 +198,6 @@ export type {
 } from './session.js';
 export {
   inMemorySessionStore,
-  isSessionAuthenticated,
-  loginSession,
-  logoutSession,
   sessionManager,
   sessionMiddleware,
 } from './session.js';

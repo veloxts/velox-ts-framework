@@ -46,9 +46,10 @@ describe('Request Logger Plugin', () => {
       delete process.env.VELOX_REQUEST_LOGGING;
 
       // Get the underlying plugin function
-      const pluginFn = requestLogger as unknown as {
-        (server: unknown, opts: unknown): Promise<void>;
-      };
+      const pluginFn = requestLogger as unknown as (
+        server: unknown,
+        opts: unknown
+      ) => Promise<void>;
 
       await pluginFn(mockServer, {});
 
@@ -58,9 +59,10 @@ describe('Request Logger Plugin', () => {
     it('should skip registration when VELOX_REQUEST_LOGGING is false', async () => {
       process.env.VELOX_REQUEST_LOGGING = 'false';
 
-      const pluginFn = requestLogger as unknown as {
-        (server: unknown, opts: unknown): Promise<void>;
-      };
+      const pluginFn = requestLogger as unknown as (
+        server: unknown,
+        opts: unknown
+      ) => Promise<void>;
 
       await pluginFn(mockServer, {});
 
@@ -70,9 +72,10 @@ describe('Request Logger Plugin', () => {
     it('should register hooks when VELOX_REQUEST_LOGGING is true', async () => {
       process.env.VELOX_REQUEST_LOGGING = 'true';
 
-      const pluginFn = requestLogger as unknown as {
-        (server: unknown, opts: unknown): Promise<void>;
-      };
+      const pluginFn = requestLogger as unknown as (
+        server: unknown,
+        opts: unknown
+      ) => Promise<void>;
 
       await pluginFn(mockServer, {});
 
@@ -94,9 +97,10 @@ describe('Request Logger Plugin', () => {
     beforeEach(async () => {
       process.env.VELOX_REQUEST_LOGGING = 'true';
 
-      const pluginFn = requestLogger as unknown as {
-        (server: unknown, opts: unknown): Promise<void>;
-      };
+      const pluginFn = requestLogger as unknown as (
+        server: unknown,
+        opts: unknown
+      ) => Promise<void>;
 
       await pluginFn(mockServer, {});
     });
@@ -139,9 +143,10 @@ describe('Request Logger Plugin', () => {
     beforeEach(async () => {
       process.env.VELOX_REQUEST_LOGGING = 'true';
 
-      const pluginFn = requestLogger as unknown as {
-        (server: unknown, opts: unknown): Promise<void>;
-      };
+      const pluginFn = requestLogger as unknown as (
+        server: unknown,
+        opts: unknown
+      ) => Promise<void>;
 
       await pluginFn(mockServer, {});
     });
@@ -237,9 +242,10 @@ describe('Request Logger Plugin', () => {
     beforeEach(async () => {
       process.env.VELOX_REQUEST_LOGGING = 'true';
 
-      const pluginFn = requestLogger as unknown as {
-        (server: unknown, opts: unknown): Promise<void>;
-      };
+      const pluginFn = requestLogger as unknown as (
+        server: unknown,
+        opts: unknown
+      ) => Promise<void>;
 
       await pluginFn(mockServer, {});
     });
@@ -286,9 +292,10 @@ describe('Request Logger Plugin', () => {
     beforeEach(async () => {
       process.env.VELOX_REQUEST_LOGGING = 'true';
 
-      const pluginFn = requestLogger as unknown as {
-        (server: unknown, opts: unknown): Promise<void>;
-      };
+      const pluginFn = requestLogger as unknown as (
+        server: unknown,
+        opts: unknown
+      ) => Promise<void>;
 
       await pluginFn(mockServer, {});
     });
@@ -320,9 +327,10 @@ describe('Request Logger Plugin', () => {
     beforeEach(async () => {
       process.env.VELOX_REQUEST_LOGGING = 'true';
 
-      const pluginFn = requestLogger as unknown as {
-        (server: unknown, opts: unknown): Promise<void>;
-      };
+      const pluginFn = requestLogger as unknown as (
+        server: unknown,
+        opts: unknown
+      ) => Promise<void>;
 
       await pluginFn(mockServer, {});
     });
@@ -337,9 +345,7 @@ describe('Request Logger Plugin', () => {
       await onRequestHook!(mockRequest);
 
       // Should not throw - logging errors are swallowed
-      await expect(
-        onResponseHook!(mockRequest, { statusCode: 200 })
-      ).resolves.not.toThrow();
+      await expect(onResponseHook!(mockRequest, { statusCode: 200 })).resolves.not.toThrow();
     });
 
     it('should not break request handling when logging fails', async () => {
@@ -362,9 +368,10 @@ describe('Request Logger Plugin', () => {
     beforeEach(async () => {
       process.env.VELOX_REQUEST_LOGGING = 'true';
 
-      const pluginFn = requestLogger as unknown as {
-        (server: unknown, opts: unknown): Promise<void>;
-      };
+      const pluginFn = requestLogger as unknown as (
+        server: unknown,
+        opts: unknown
+      ) => Promise<void>;
 
       await pluginFn(mockServer, {});
     });

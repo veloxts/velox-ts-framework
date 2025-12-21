@@ -219,7 +219,10 @@ export function classifyError(
     }
   } else {
     // Custom patterns path: need to build and process patterns
-    const effectivePatterns = patterns ?? [...(additionalPatterns ?? []), ...DEFAULT_ERROR_PATTERNS];
+    const effectivePatterns = patterns ?? [
+      ...(additionalPatterns ?? []),
+      ...DEFAULT_ERROR_PATTERNS,
+    ];
 
     for (const pattern of effectivePatterns) {
       for (const substring of pattern.patterns) {

@@ -10,11 +10,7 @@
  */
 
 import type { BaseContext } from '@veloxts/core';
-import type {
-  CompiledProcedure,
-  InferProcedureInput,
-  InferProcedureOutput,
-} from '@veloxts/router';
+import type { CompiledProcedure, InferProcedureInput, InferProcedureOutput } from '@veloxts/router';
 
 import { toActionError } from './error-classifier.js';
 import type { ActionContext, ActionResult, AuthenticatedActionContext } from './types.js';
@@ -103,7 +99,7 @@ function createMockFastifyRequest(actionCtx: ActionContext): MockFastifyRequest 
 
   // Parse URL for query params
   let url = '/';
-  let queryParams: Record<string, string> = {};
+  const queryParams: Record<string, string> = {};
 
   try {
     const parsedUrl = new URL(actionCtx.request.url);
@@ -158,10 +154,7 @@ function createMockFastifyReply(): MockFastifyReply {
  *
  * @internal
  */
-function validateContextExtensions(
-  ctx: BaseContext,
-  requiredKeys: readonly string[]
-): void {
+function validateContextExtensions(ctx: BaseContext, requiredKeys: readonly string[]): void {
   if (process.env.NODE_ENV === 'production') {
     return; // Skip validation in production for performance
   }
@@ -399,16 +392,14 @@ async function executeMiddlewareChain<TInput, TOutput, TContext extends BaseCont
 /**
  * Infers the input type from a compiled procedure
  */
-export type InferProcedureInputType<T> = T extends CompiledProcedure<infer I, unknown, BaseContext>
-  ? I
-  : never;
+export type InferProcedureInputType<T> =
+  T extends CompiledProcedure<infer I, unknown, BaseContext> ? I : never;
 
 /**
  * Infers the output type from a compiled procedure
  */
-export type InferProcedureOutputType<T> = T extends CompiledProcedure<unknown, infer O, BaseContext>
-  ? O
-  : never;
+export type InferProcedureOutputType<T> =
+  T extends CompiledProcedure<unknown, infer O, BaseContext> ? O : never;
 
 /**
  * Re-export router inference types for convenience

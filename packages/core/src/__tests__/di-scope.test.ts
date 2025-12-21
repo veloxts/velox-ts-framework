@@ -252,9 +252,9 @@ describe('DI Scope', () => {
           const token = Symbol('test');
           const request = {};
 
-          expect(() =>
-            scopeManager.getRequestScopedOrThrow(token, request as never)
-          ).toThrow('Request-scoped instance not found for token');
+          expect(() => scopeManager.getRequestScopedOrThrow(token, request as never)).toThrow(
+            'Request-scoped instance not found for token'
+          );
         });
 
         it('should throw when token not in cache', async () => {
@@ -262,9 +262,9 @@ describe('DI Scope', () => {
           const request = {};
           await onRequestHook!(request);
 
-          expect(() =>
-            scopeManager.getRequestScopedOrThrow(token, request as never)
-          ).toThrow('Request-scoped instance not found for token');
+          expect(() => scopeManager.getRequestScopedOrThrow(token, request as never)).toThrow(
+            'Request-scoped instance not found for token'
+          );
         });
 
         it('should return cached instance', async () => {

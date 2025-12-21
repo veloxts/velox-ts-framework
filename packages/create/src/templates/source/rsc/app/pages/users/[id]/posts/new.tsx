@@ -43,36 +43,20 @@ export default async function NewPostPage({ params }: PageProps) {
         <p>Create a new post for {user.name}</p>
       </header>
 
-      <form
-        className="post-form"
-        action={`/api/users/${userId}/posts`}
-        method="POST"
-      >
+      <form className="post-form" action={`/api/users/${userId}/posts`} method="POST">
         <div className="form-group">
           <label htmlFor="title">Title</label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            required
-            placeholder="Enter post title"
-          />
+          <input type="text" id="title" name="title" required placeholder="Enter post title" />
         </div>
 
         <div className="form-group">
           <label htmlFor="content">Content</label>
-          <textarea
-            id="content"
-            name="content"
-            rows={6}
-            placeholder="Write your post content..."
-          />
+          <textarea id="content" name="content" rows={6} placeholder="Write your post content..." />
         </div>
 
         <div className="form-group">
           <label>
-            <input type="checkbox" name="published" value="true" />
-            {' '}Publish immediately
+            <input type="checkbox" name="published" value="true" /> Publish immediately
           </label>
         </div>
 
@@ -85,8 +69,8 @@ export default async function NewPostPage({ params }: PageProps) {
       <footer className="page-footer">
         <p>
           <small>
-            Note: This page demonstrates static route precedence.
-            The path /users/:id/posts/new matches before /users/:id/posts/:postId
+            Note: This page demonstrates static route precedence. The path /users/:id/posts/new
+            matches before /users/:id/posts/:postId
           </small>
         </p>
       </footer>

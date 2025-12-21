@@ -21,8 +21,8 @@ export default function AboutPage({ params }: PageProps) {
       <section className="about-section">
         <h2>What is VeloxTS?</h2>
         <p>
-          VeloxTS is a Laravel-inspired TypeScript full-stack web framework designed for
-          exceptional developer experience and type safety.
+          VeloxTS is a Laravel-inspired TypeScript full-stack web framework designed for exceptional
+          developer experience and type safety.
         </p>
       </section>
 

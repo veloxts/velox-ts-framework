@@ -16,9 +16,9 @@
 
 import { BaseGenerator } from '../base.js';
 import {
-  type ServiceOptions,
   getServiceInstructions,
   getServicePath,
+  type ServiceOptions,
   serviceTemplate,
 } from '../templates/service.js';
 import type {

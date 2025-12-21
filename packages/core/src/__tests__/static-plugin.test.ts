@@ -12,7 +12,7 @@ vi.mock('@fastify/static', async () => {
   };
 });
 
-import { registerStatic, type CacheControl, type StaticOptions } from '../plugins/static.js';
+import { type CacheControl, registerStatic, type StaticOptions } from '../plugins/static.js';
 
 describe('Static File Plugin', () => {
   let mockServer: ReturnType<typeof createMockServer>;
@@ -92,10 +92,16 @@ describe('Static File Plugin', () => {
         await registerStatic(mockServer as never, './public');
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         expect(headers['Cache-Control']).toBe('public, max-age=86400');
       });
@@ -106,10 +112,16 @@ describe('Static File Plugin', () => {
         });
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         expect(headers['Cache-Control']).toBe('public, max-age=30');
       });
@@ -120,10 +132,16 @@ describe('Static File Plugin', () => {
         });
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         expect(headers['Cache-Control']).toBe('public, max-age=300');
       });
@@ -134,10 +152,16 @@ describe('Static File Plugin', () => {
         });
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         expect(headers['Cache-Control']).toBe('public, max-age=7200');
       });
@@ -148,10 +172,16 @@ describe('Static File Plugin', () => {
         });
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         expect(headers['Cache-Control']).toBe('public, max-age=604800');
       });
@@ -162,10 +192,16 @@ describe('Static File Plugin', () => {
         });
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         expect(headers['Cache-Control']).toBe('public, max-age=1209600');
       });
@@ -176,10 +212,16 @@ describe('Static File Plugin', () => {
         });
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         expect(headers['Cache-Control']).toBe('public, max-age=31536000');
       });
@@ -190,10 +232,16 @@ describe('Static File Plugin', () => {
         });
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         expect(headers['Cache-Control']).toBe('public, max-age=3600');
       });
@@ -204,10 +252,16 @@ describe('Static File Plugin', () => {
         });
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         expect(headers['Cache-Control']).toBe('public, max-age=31536000, immutable');
       });
@@ -218,10 +272,16 @@ describe('Static File Plugin', () => {
         });
 
         const opts = capturedOptions as Record<string, unknown>;
-        const setHeaders = opts.setHeaders as (res: { setHeader: (k: string, v: string) => void }) => void;
+        const setHeaders = opts.setHeaders as (res: {
+          setHeader: (k: string, v: string) => void;
+        }) => void;
 
         const headers: Record<string, string> = {};
-        setHeaders({ setHeader: (k, v) => { headers[k] = v; } });
+        setHeaders({
+          setHeader: (k, v) => {
+            headers[k] = v;
+          },
+        });
 
         // Default is 1 day
         expect(headers['Cache-Control']).toBe('public, max-age=86400');
@@ -321,7 +381,10 @@ describe('Static File Plugin', () => {
 
         await capturedNotFoundHandler!(mockRequest, mockReply);
 
-        expect(mockReply.sendFile).toHaveBeenCalledWith('index.html', expect.stringContaining('/dist'));
+        expect(mockReply.sendFile).toHaveBeenCalledWith(
+          'index.html',
+          expect.stringContaining('/dist')
+        );
         expect(mockReply.status).not.toHaveBeenCalled();
       });
 

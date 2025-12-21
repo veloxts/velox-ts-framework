@@ -304,13 +304,13 @@ import {
   sessionMiddleware,
   loginSession,
   logoutSession,
-  createInMemorySessionStore
+  inMemorySessionStore
 } from '@veloxts/auth';
 
 // Create session middleware
 const session = sessionMiddleware({
   secret: process.env.SESSION_SECRET!,  // 32+ chars, 16+ unique
-  store: createInMemorySessionStore(),  // Use Redis in production
+  store: inMemorySessionStore(),  // Use Redis in production
   cookie: {
     name: 'session',
     secure: true,

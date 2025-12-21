@@ -9,13 +9,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  Container,
-  container,
-  Injectable,
-  Scope,
-  token,
-} from '../di/index.js';
+import { Container, container, Injectable, Scope, token } from '../di/index.js';
 import { VeloxError } from '../errors.js';
 
 // Simple test services (no dependencies)
@@ -745,9 +739,7 @@ describe('DI Container', () => {
 
     it('should handle async factory with missing dependency', async () => {
       const DEP_TOKEN = token<{ value: number }>('ASYNC_DEP');
-      const SERVICE_TOKEN = token<{ dep: { value: number } | undefined }>(
-        'SERVICE_WITH_ASYNC_DEP'
-      );
+      const SERVICE_TOKEN = token<{ dep: { value: number } | undefined }>('SERVICE_WITH_ASYNC_DEP');
 
       // DEP_TOKEN is NOT registered - use resolveOptional in factory
       testContainer.register({
@@ -764,9 +756,7 @@ describe('DI Container', () => {
 
     it('should resolve async factory with available dependency', async () => {
       const DEP_TOKEN = token<{ value: number }>('ASYNC_DEP_AVAILABLE');
-      const SERVICE_TOKEN = token<{ dep: { value: number } }>(
-        'SERVICE_WITH_AVAILABLE_DEP'
-      );
+      const SERVICE_TOKEN = token<{ dep: { value: number } }>('SERVICE_WITH_AVAILABLE_DEP');
 
       // Register the dependency
       testContainer.register({

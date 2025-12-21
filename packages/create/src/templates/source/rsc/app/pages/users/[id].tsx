@@ -44,7 +44,9 @@ export default async function UserDetailPage({ params }: PageProps) {
           <dd>{user.email}</dd>
 
           <dt>ID</dt>
-          <dd><code>{user.id}</code></dd>
+          <dd>
+            <code>{user.id}</code>
+          </dd>
 
           <dt>Created</dt>
           <dd>{user.createdAt.toISOString()}</dd>

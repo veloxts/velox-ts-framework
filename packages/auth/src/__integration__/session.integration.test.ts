@@ -17,18 +17,15 @@ import cookie from '@fastify/cookie';
 import { defineProcedures, type ProcedureCollection, procedure, rest } from '@veloxts/router';
 import { createTestServer, TEST_SECRETS } from '@veloxts/testing';
 import { z } from '@veloxts/validation';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  inMemorySessionStore,
-  sessionManager,
   type FastifyReplyWithCookies,
-  isSessionAuthenticated,
-  loginSession,
-  logoutSession,
+  inMemorySessionStore,
   type Session,
   type SessionStore,
+  sessionManager,
   sessionMiddleware,
 } from '../session.js';
 import type { User } from '../types.js';
@@ -127,8 +124,7 @@ describe('Session Management Integration', () => {
           if (!user) {
             return { success: false, error: 'User not found' };
           }
-          const sess = ctx.session as Session;
-          await loginSession(sess, user);
+          await ctx.session.login(user);
           return { success: true, userId: user.id };
         }),
 
@@ -137,8 +133,7 @@ describe('Session Management Integration', () => {
         .input(z.object({ id: z.string() }))
         .use(session.middleware())
         .mutation(async ({ ctx }) => {
-          const sess = ctx.session as Session;
-          await logoutSession(sess);
+          await ctx.session.logout();
           return { success: true };
         }),
     });
@@ -645,24 +640,6 @@ describe('Session Management Integration', () => {
   // ==========================================================================
 
   describe('Helper Functions', () => {
-    it('isSessionAuthenticated should check userId (deprecated helper)', async () => {
-      // Create a mock session object for testing
-      // Note: isSessionAuthenticated now delegates to session.check()
-      const mockSession = {
-        get: (key: string) => (key === 'userId' ? 'test-user-id' : undefined),
-        check: () => true,
-      } as unknown as Session;
-
-      expect(isSessionAuthenticated(mockSession)).toBe(true);
-
-      const unauthSession = {
-        get: () => undefined,
-        check: () => false,
-      } as unknown as Session;
-
-      expect(isSessionAuthenticated(unauthSession)).toBe(false);
-    });
-
     it('session.check() should return authentication status', async () => {
       // Use the actual session manager to test the check method
       // sessionManager returns the manager directly (not wrapped)

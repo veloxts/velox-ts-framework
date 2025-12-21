@@ -282,23 +282,21 @@ GET    /api/users/search   (searchUsers)
 For type-safe internal API calls from your frontend:
 
 ```typescript
-import { createAppRouter, registerTRPCPlugin } from '@veloxts/router';
+import { trpc, appRouter, registerTRPCPlugin } from '@veloxts/router';
 import { userProcedures, postProcedures } from './procedures';
 
-// Create tRPC router
-const appRouter = createAppRouter({
-  users: userProcedures,
-  posts: postProcedures,
-});
+// Create tRPC instance and router
+const t = trpc();
+const router = appRouter(t, [userProcedures, postProcedures]);
 
 // Register tRPC plugin
 await registerTRPCPlugin(app.server, {
-  router: appRouter,
+  router,
   prefix: '/trpc',
 });
 
 // Export type for frontend
-export type AppRouter = typeof appRouter;
+export type AppRouter = typeof router;
 ```
 
 Frontend usage:

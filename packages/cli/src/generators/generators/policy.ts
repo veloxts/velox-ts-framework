@@ -15,9 +15,9 @@
 
 import { BaseGenerator } from '../base.js';
 import {
-  type PolicyOptions,
   getPolicyInstructions,
   getPolicyPath,
+  type PolicyOptions,
   policyTemplate,
 } from '../templates/policy.js';
 import type {

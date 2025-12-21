@@ -10,7 +10,12 @@ import { defineProcedures, procedure } from '@veloxts/router';
 import { z } from 'zod';
 
 import { db } from '../database.js';
-import { CreatePostSchema, PostSchema, PostWithUserSchema, UpdatePostSchema } from '../schemas/post.js';
+import {
+  CreatePostSchema,
+  PostSchema,
+  PostWithUserSchema,
+  UpdatePostSchema,
+} from '../schemas/post.js';
 
 export const postProcedures = defineProcedures('posts', {
   /**

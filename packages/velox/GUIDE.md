@@ -58,7 +58,7 @@ import { veloxApp, procedure, z } from '@veloxts/velox';
 import { veloxApp } from '@veloxts/velox/core';
 import { procedure, defineProcedures } from '@veloxts/velox/router';
 import { z } from '@veloxts/velox/validation';
-import { createDatabasePlugin } from '@veloxts/velox/orm';
+import { databasePlugin } from '@veloxts/velox/orm';
 ```
 
 #### 3. Direct Package Imports (Best Tree-Shaking)
@@ -67,7 +67,7 @@ import { createDatabasePlugin } from '@veloxts/velox/orm';
 import { veloxApp } from '@veloxts/core';
 import { procedure, defineProcedures } from '@veloxts/router';
 import { z } from '@veloxts/validation';
-import { createDatabasePlugin } from '@veloxts/orm';
+import { databasePlugin } from '@veloxts/orm';
 ```
 
 ## Included Packages

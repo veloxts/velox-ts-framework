@@ -5,8 +5,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fail, isVeloxFailure, VeloxFailure } from '../errors/fail.js';
 import { ERROR_CATALOG } from '../errors/catalog.js';
+import { fail, isVeloxFailure, VeloxFailure } from '../errors/fail.js';
 
 describe('VeloxFailure Class', () => {
   describe('constructor', () => {
@@ -103,17 +103,13 @@ describe('VeloxFailure Class', () => {
     });
 
     it('should preserve unreplaced variables', () => {
-      const error = fail('VELOX-1001')
-        .because('Has ${missing} variable')
-        .with({});
+      const error = fail('VELOX-1001').because('Has ${missing} variable').with({});
 
       expect(error.message).toBe('Has ${missing} variable');
     });
 
     it('should handle undefined variable values', () => {
-      const error = fail('VELOX-1001')
-        .because('Value is ${val}')
-        .with({ val: undefined });
+      const error = fail('VELOX-1001').because('Value is ${val}').with({ val: undefined });
 
       expect(error.message).toBe('Value is ${val}');
     });
@@ -510,17 +506,13 @@ describe('Edge cases', () => {
   });
 
   it('should handle multiple because() calls (last wins)', () => {
-    const error = fail('VELOX-1001')
-      .because('First message')
-      .because('Second message');
+    const error = fail('VELOX-1001').because('First message').because('Second message');
 
     expect(error.message).toBe('Second message');
   });
 
   it('should handle multiple suggest() calls (last wins)', () => {
-    const error = fail('VELOX-1001')
-      .suggest('First suggestion')
-      .suggest('Second suggestion');
+    const error = fail('VELOX-1001').suggest('First suggestion').suggest('Second suggestion');
 
     expect(error.suggestion).toBe('Second suggestion');
   });
@@ -534,17 +526,13 @@ describe('Edge cases', () => {
   });
 
   it('should handle numeric zero in interpolation', () => {
-    const error = fail('VELOX-1001')
-      .because('Count: ${count}')
-      .with({ count: 0 });
+    const error = fail('VELOX-1001').because('Count: ${count}').with({ count: 0 });
 
     expect(error.message).toBe('Count: 0');
   });
 
   it('should handle boolean false in interpolation', () => {
-    const error = fail('VELOX-1001')
-      .because('Enabled: ${enabled}')
-      .with({ enabled: false });
+    const error = fail('VELOX-1001').because('Enabled: ${enabled}').with({ enabled: false });
 
     expect(error.message).toBe('Enabled: false');
   });

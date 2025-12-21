@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { hashPassword, passwordHasher, PasswordHasher, verifyPassword } from '../hash.js';
+import { hashPassword, PasswordHasher, passwordHasher, verifyPassword } from '../hash.js';
 
 describe('Password Hashing', () => {
   describe('PasswordHasher (scrypt fallback)', () => {

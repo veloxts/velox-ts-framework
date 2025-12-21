@@ -1,6 +1,6 @@
 # VeloxTS Framework
 
-> **Pre-Alpha (v0.5.x)** - APIs are stabilizing but may still change. Use with caution in production.
+> **Pre-Alpha (v0.6.x)** - APIs are stabilizing but may still change. Use with caution in production.
 
 A TypeScript-first full-stack web framework with end-to-end type safety and zero code generation.
 
@@ -160,7 +160,7 @@ pnpm lint
 
 ## Current Status
 
-**v0.5.x** - Pre-release with stable core features.
+**v0.6.x** - Pre-release with stable core features.
 
 The framework provides a solid foundation for building type-safe APIs:
 
@@ -175,10 +175,10 @@ The framework provides a solid foundation for building type-safe APIs:
 | Guards & Authorization | ✅ Available |
 | Rate Limiting | ✅ Available |
 | Development CLI with HMR | ✅ Available |
-| Project scaffolder | ✅ Available (default + auth templates) |
+| Project scaffolder | ✅ Available (default, auth, trpc templates) |
 | MCP Server (AI integration) | ✅ Available |
-| CLI code generators | 🚧 Planned for v1.0 |
-| Database seeding | 🚧 Planned for v1.0 |
+| CLI code generators | ✅ 16 generators available |
+| Database seeding | ✅ Seeder generator available |
 
 ### What Works Well
 
@@ -189,11 +189,12 @@ The framework provides a solid foundation for building type-safe APIs:
 - Guard-based authorization with composable rules
 - Hot Module Replacement in development
 - Clean plugin system for extensibility
+- 16 code generators (`velox make <type>`) for rapid development
+- AI-native development with MCP server integration
 
 ### Current Limitations
 
-- CLI code generators not yet available
-- Database seeding system not yet available
+- React Server Components not yet available (planned for v0.7)
 - Small ecosystem (early adopter stage)
 
 ## Contributing

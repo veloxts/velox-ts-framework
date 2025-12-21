@@ -6,31 +6,30 @@
  * Supports dynamic routes with [param] and [...catchAll] patterns.
  */
 
-import type { ComponentType, ReactElement, ReactNode } from 'react';
-
-import { renderToPipeableStream } from 'react-dom/server';
 import { PassThrough } from 'node:stream';
 
-// Static imports for page components (using .tsx extension for Vite)
-import HomePage from '../app/pages/index.tsx';
-import UsersPage from '../app/pages/users.tsx';
-import UserDetailPage from '../app/pages/users/[id].tsx';
-import UserPostsPage from '../app/pages/users/[id]/posts/index.tsx';
-import PostDetailPage from '../app/pages/users/[id]/posts/[postId].tsx';
-import NewPostPage from '../app/pages/users/[id]/posts/new.tsx';
-import AboutPage from '../app/pages/(marketing)/about.tsx';
-import SettingsPage from '../app/pages/(dashboard)/settings.tsx';
-import ProfilePage from '../app/pages/(dashboard)/profile.tsx';
-import PrintPage from '../app/pages/print.tsx';
-import DocsPage from '../app/pages/docs/[...slug].tsx';
-import NotFoundPage from '../app/pages/_not-found.tsx';
+import type { ComponentType, ReactElement, ReactNode } from 'react';
+import { renderToPipeableStream } from 'react-dom/server';
 
-// Static imports for layout components
-import RootLayout from '../app/layouts/root.tsx';
+import DashboardLayout from '../app/layouts/dashboard.tsx';
 import MarketingLayout from '../app/layouts/marketing.tsx';
 import MinimalLayout from '../app/layouts/minimal.tsx';
-import DashboardLayout from '../app/layouts/dashboard.tsx';
+// Static imports for layout components
+import RootLayout from '../app/layouts/root.tsx';
+import NotFoundPage from '../app/pages/_not-found.tsx';
+import ProfilePage from '../app/pages/(dashboard)/profile.tsx';
+import SettingsPage from '../app/pages/(dashboard)/settings.tsx';
+import AboutPage from '../app/pages/(marketing)/about.tsx';
+import DocsPage from '../app/pages/docs/[...slug].tsx';
+// Static imports for page components (using .tsx extension for Vite)
+import HomePage from '../app/pages/index.tsx';
+import PrintPage from '../app/pages/print.tsx';
 import UsersLayout from '../app/pages/users/_layout.tsx';
+import PostDetailPage from '../app/pages/users/[id]/posts/[postId].tsx';
+import UserPostsPage from '../app/pages/users/[id]/posts/index.tsx';
+import NewPostPage from '../app/pages/users/[id]/posts/new.tsx';
+import UserDetailPage from '../app/pages/users/[id].tsx';
+import UsersPage from '../app/pages/users.tsx';
 
 // Page props type
 interface PageProps {
@@ -75,7 +74,7 @@ function compileRoute(pattern: string): { regex: RegExp; paramNames: string[] } 
   const paramNames: string[] = [];
 
   // Process pattern replacements BEFORE escaping to preserve [...] and [] syntax
-  let regexStr = pattern
+  const regexStr = pattern
     // Handle catch-all [...param] first (before escaping dots)
     .replace(/\[\.\.\.(\w+)\]/g, (_, name) => {
       paramNames.push(name);
@@ -153,7 +152,10 @@ const routes: RouteDefinition[] = [
   defineRoute('/print', PrintPage, [MinimalLayout]),
 ];
 
-console.log('[SSR] Available routes:', routes.map(r => r.pattern));
+console.log(
+  '[SSR] Available routes:',
+  routes.map((r) => r.pattern)
+);
 
 // H3 event type for Vinxi
 interface H3Event {
@@ -244,7 +246,9 @@ export default async function ssrHandler(event: H3Event): Promise<void> {
         console.error('[SSR] 404 Shell error:', error);
         res.statusCode = 404;
         res.setHeader('Content-Type', 'text/html');
-        res.end(`<!DOCTYPE html><html><body><h1>404 - Page Not Found</h1><p>Path: ${pathname}</p></body></html>`);
+        res.end(
+          `<!DOCTYPE html><html><body><h1>404 - Page Not Found</h1><p>Path: ${pathname}</p></body></html>`
+        );
       },
     });
     return;
@@ -289,6 +293,8 @@ export default async function ssrHandler(event: H3Event): Promise<void> {
     console.error('[SSR] Handler error:', error);
     res.statusCode = 500;
     res.setHeader('Content-Type', 'text/html');
-    res.end(`<h1>Server Error</h1><pre>${error instanceof Error ? error.stack : String(error)}</pre>`);
+    res.end(
+      `<h1>Server Error</h1><pre>${error instanceof Error ? error.stack : String(error)}</pre>`
+    );
   }
 }

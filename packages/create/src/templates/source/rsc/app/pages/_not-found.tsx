@@ -111,23 +111,37 @@ export default async function NotFoundPage(_props: PageProps) {
       <h1>Page Not Found</h1>
 
       <p>
-        The page you're looking for doesn't exist or has been moved.
-        Check the URL or navigate using the links below.
+        The page you're looking for doesn't exist or has been moved. Check the URL or navigate using
+        the links below.
       </p>
 
       <div className="action-links">
-        <a href="/" className="primary">Go Home</a>
-        <a href="/users" className="secondary">View Users</a>
+        <a href="/" className="primary">
+          Go Home
+        </a>
+        <a href="/users" className="secondary">
+          View Users
+        </a>
       </div>
 
       <div className="suggestions">
         <h3>Popular Pages</h3>
         <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/users">Users</a></li>
-          <li><a href="/settings">Settings</a></li>
-          <li><a href="/profile">Profile</a></li>
-          <li><a href="/docs/getting-started">Documentation</a></li>
+          <li>
+            <a href="/">Home</a>
+          </li>
+          <li>
+            <a href="/users">Users</a>
+          </li>
+          <li>
+            <a href="/settings">Settings</a>
+          </li>
+          <li>
+            <a href="/profile">Profile</a>
+          </li>
+          <li>
+            <a href="/docs/getting-started">Documentation</a>
+          </li>
         </ul>
       </div>
     </div>

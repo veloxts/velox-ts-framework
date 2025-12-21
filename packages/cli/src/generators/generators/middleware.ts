@@ -16,9 +16,9 @@
 
 import { BaseGenerator } from '../base.js';
 import {
-  type MiddlewareOptions,
   getMiddlewareInstructions,
   getMiddlewarePath,
+  type MiddlewareOptions,
   middlewareTemplate,
 } from '../templates/middleware.js';
 import type {

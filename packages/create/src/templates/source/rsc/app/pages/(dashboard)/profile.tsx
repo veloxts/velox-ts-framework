@@ -29,9 +29,7 @@ export default async function ProfilePage(_props: PageProps) {
 
       <section className="profile-card">
         <div className="profile-avatar">
-          <span className="avatar-placeholder">
-            {mockUser.name.charAt(0).toUpperCase()}
-          </span>
+          <span className="avatar-placeholder">{mockUser.name.charAt(0).toUpperCase()}</span>
         </div>
 
         <div className="profile-info">
@@ -65,9 +63,7 @@ export default async function ProfilePage(_props: PageProps) {
 
       <footer className="page-footer">
         <p>
-          <small>
-            Route group: (dashboard) | Layout: DashboardLayout
-          </small>
+          <small>Route group: (dashboard) | Layout: DashboardLayout</small>
         </p>
       </footer>
     </div>

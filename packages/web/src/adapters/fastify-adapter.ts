@@ -39,8 +39,7 @@ interface NodeRequest {
  */
 interface H3Event {
   node: {
-    req: NodeRequest & {
-    };
+    req: NodeRequest & {};
     res: {
       statusCode?: number;
       setHeader: (name: string, value: string | string[]) => void;
@@ -461,7 +460,7 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
       const url = req.url || '/';
 
       // Strip the base path to get the relative URL for Fastify
-      let path = url;
+      const path = url;
       const queryIndex = path.indexOf('?');
       const pathname = queryIndex >= 0 ? path.slice(0, queryIndex) : path;
       const search = queryIndex >= 0 ? path.slice(queryIndex) : '';

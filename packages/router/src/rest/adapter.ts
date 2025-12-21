@@ -424,7 +424,8 @@ export function getRouteSummary(
  * - As a Fastify plugin: `server.register(rest([...]), { prefix: '/api' })`
  * - As a direct callable: `app.routes(rest([...]))` for VeloxApp
  */
-export type RestPlugin = FastifyPluginAsync<RestAdapterOptions> & ((server: FastifyInstance) => void);
+export type RestPlugin = FastifyPluginAsync<RestAdapterOptions> &
+  ((server: FastifyInstance) => void);
 
 /**
  * Creates a Fastify plugin for REST endpoints from procedure collections.

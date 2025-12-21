@@ -10,12 +10,7 @@
  * @module @veloxts/web/templates/entry.server
  */
 
-import {
-  createFileRouter,
-  createSsrRouter,
-  renderToStream,
-  type FileRouter,
-} from '../index.js';
+import { createFileRouter, createSsrRouter, type FileRouter, renderToStream } from '../index.js';
 
 /**
  * Lazy-initialized file router.

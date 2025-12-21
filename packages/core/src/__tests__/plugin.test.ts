@@ -189,8 +189,8 @@ describe('VeloxApp - Plugin Registration', () => {
     // Neither a VeloxPlugin nor a FastifyPluginAsync
     const invalidPlugin = { invalid: true };
 
-    await expect(
-      app.register(invalidPlugin as unknown as VeloxPlugin)
-    ).rejects.toThrow('Invalid plugin: must be a VeloxPlugin object or FastifyPluginAsync function');
+    await expect(app.register(invalidPlugin as unknown as VeloxPlugin)).rejects.toThrow(
+      'Invalid plugin: must be a VeloxPlugin object or FastifyPluginAsync function'
+    );
   });
 });

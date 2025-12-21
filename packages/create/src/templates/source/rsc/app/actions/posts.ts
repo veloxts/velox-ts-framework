@@ -54,10 +54,9 @@ import { postProcedures } from '@/api/procedures/posts';
  *
  * The procedure's REST endpoint is: POST /api/users/:userId/posts
  */
-export const createPost = action.fromProcedure(
-  postProcedures.procedures.createPost,
-  { parseFormData: true }
-);
+export const createPost = action.fromProcedure(postProcedures.procedures.createPost, {
+  parseFormData: true,
+});
 
 /**
  * Gets a specific post.
@@ -75,10 +74,9 @@ export const getPost = action.fromProcedure(postProcedures.procedures.getPost);
  * - userId and id must exist
  * - Only title and content can be updated
  */
-export const updatePost = action.fromProcedure(
-  postProcedures.procedures.updatePost,
-  { parseFormData: true }
-);
+export const updatePost = action.fromProcedure(postProcedures.procedures.updatePost, {
+  parseFormData: true,
+});
 
 /**
  * Deletes a post.

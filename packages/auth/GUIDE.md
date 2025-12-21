@@ -349,7 +349,7 @@ Cookie-based session management with secure defaults and pluggable storage backe
 ### Quick Start
 
 ```typescript
-import { sessionMiddleware, createInMemorySessionStore } from '@veloxts/auth';
+import { sessionMiddleware, inMemorySessionStore } from '@veloxts/auth';
 import { defineProcedures, procedure } from '@veloxts/router';
 
 // Create session middleware
@@ -390,15 +390,15 @@ export const userProcedures = defineProcedures('users', {
 ### Configuration Options
 
 ```typescript
-import { createSessionManager, createInMemorySessionStore } from '@veloxts/auth';
+import { sessionManager, inMemorySessionStore } from '@veloxts/auth';
 
-const sessionManager = createSessionManager({
+const manager = sessionManager({
   // Required: Cryptographically secure secret (min 32 chars)
   // Generate with: openssl rand -base64 32
   secret: process.env.SESSION_SECRET!,
 
   // Optional: Storage backend (default: InMemorySessionStore)
-  store: createInMemorySessionStore(),
+  store: inMemorySessionStore(),
 
   // Optional: Cookie configuration
   cookie: {

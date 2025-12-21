@@ -22,5 +22,7 @@ if (rootElement && rootElement.firstElementChild) {
     },
   });
 } else {
-  console.error('[VeloxTS] Root element or content not found. Ensure #root exists with server-rendered content.');
+  console.error(
+    '[VeloxTS] Root element or content not found. Ensure #root exists with server-rendered content.'
+  );
 }

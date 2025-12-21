@@ -226,7 +226,14 @@ export function getGeneratorsByCategory(
  * Format generator list for help output
  */
 export function formatGeneratorList(): string {
-  const categories: GeneratorCategory[] = ['resource', 'database', 'test', 'infrastructure', 'auth', 'composite'];
+  const categories: GeneratorCategory[] = [
+    'resource',
+    'database',
+    'test',
+    'infrastructure',
+    'auth',
+    'composite',
+  ];
   const categoryLabels: Record<GeneratorCategory, string> = {
     resource: 'Resource Generators',
     database: 'Database Generators',

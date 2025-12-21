@@ -730,4 +730,3 @@ export function csrfMiddleware(config: CsrfConfig) {
     clearCookie: (reply: FastifyReplyWithCookies) => manager.clearCookie(reply),
   };
 }
-

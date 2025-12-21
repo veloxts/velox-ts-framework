@@ -15,7 +15,6 @@ export type {
   UseActionState,
 } from './use-action.js';
 export { useAction } from './use-action.js';
-
 export type {
   InferFormActionOutput,
   UseFormActionOptions,

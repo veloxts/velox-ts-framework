@@ -63,7 +63,7 @@ npx prisma generate
 
 ```typescript
 import { veloxApp } from '@veloxts/core';
-import { createDatabasePlugin } from '@veloxts/orm';
+import { databasePlugin } from '@veloxts/orm';
 import { PrismaClient } from '@prisma/client';
 
 // Create Prisma client
@@ -76,7 +76,7 @@ const app = await veloxApp({
 });
 
 // Register database plugin
-await app.register(createDatabasePlugin({ client: prisma }));
+await app.register(databasePlugin({ client: prisma }));
 
 // Start server
 await app.start();
@@ -85,7 +85,7 @@ console.log(`Server running on ${app.address}`);
 
 ## Core API
 
-### `createDatabasePlugin(config)`
+### `databasePlugin(config)`
 
 Creates a VeloxTS plugin that integrates Prisma with automatic lifecycle management.
 
@@ -102,14 +102,14 @@ interface OrmPluginConfig {
 **Example:**
 
 ```typescript
-import { createDatabasePlugin } from '@veloxts/orm';
+import { databasePlugin } from '@veloxts/orm';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient({
   log: ['query', 'error', 'warn'],
 });
 
-const dbPlugin = createDatabasePlugin({
+const dbPlugin = databasePlugin({
   client: prisma,
   connect: true,      // Connect when app starts
   disconnect: true,   // Disconnect on graceful shutdown
@@ -496,7 +496,7 @@ const prisma = new PrismaClient({
   errorFormat: 'minimal',
 });
 
-const dbPlugin = createDatabasePlugin({
+const dbPlugin = databasePlugin({
   client: prisma,
   connect: true,
   disconnect: true,

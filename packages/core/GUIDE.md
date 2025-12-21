@@ -521,7 +521,7 @@ app.server.get('/custom', async (request, reply) => {
 
 ```typescript
 import { veloxApp } from '@veloxts/core';
-import { createDatabasePlugin } from '@veloxts/orm';
+import { databasePlugin } from '@veloxts/orm';
 import { registerRestRoutes } from '@veloxts/router';
 import { PrismaClient } from '@prisma/client';
 import { userProcedures } from './procedures/users';
@@ -534,7 +534,7 @@ const app = await veloxApp({
 });
 
 // Register database plugin
-await app.register(createDatabasePlugin({ client: prisma }));
+await app.register(databasePlugin({ client: prisma }));
 
 // Register API routes
 await registerRestRoutes(app.server, {
@@ -1124,7 +1124,7 @@ await app.start();
 #### Testing with Child Containers
 
 ```typescript
-import { createContainer, asClass } from '@veloxts/core';
+import { Container } from '@veloxts/core';
 
 // Create a child container for testing
 const testContainer = app.container.createChild();
@@ -1153,7 +1153,7 @@ Enable auto-registration to automatically register `@Injectable` classes:
 
 ```typescript
 const app = await veloxApp();
-const autoContainer = createContainer({ autoRegister: true });
+const autoContainer = new Container({ autoRegister: true });
 
 @Injectable()
 class AutoService {}
@@ -1189,7 +1189,7 @@ const service = app.container.resolve(ServiceA);
 Create parent-child container hierarchies:
 
 ```typescript
-const parentContainer = createContainer();
+const parentContainer = new Container();
 parentContainer.register({
   provide: ConfigService,
   useClass: ConfigService

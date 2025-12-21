@@ -178,10 +178,7 @@ function normalizeHeaders(headers: Record<string, string | string[] | undefined>
 /**
  * Sends a Web Response through h3's response object
  */
-async function sendResponse(
-  res: H3Event['node']['res'],
-  response: Response
-): Promise<void> {
+async function sendResponse(res: H3Event['node']['res'], response: Response): Promise<void> {
   // Set status code
   res.statusCode = response.status;
 

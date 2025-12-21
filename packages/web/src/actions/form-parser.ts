@@ -93,10 +93,7 @@ function coerceValue(value: string): unknown {
 /**
  * Processes a FormData value with coercion options.
  */
-function processValue(
-  value: FormDataEntryValue,
-  options: FormParseOptions
-): unknown {
+function processValue(value: FormDataEntryValue, options: FormParseOptions): unknown {
   const { coerce = true, files = 'ignore' } = options;
 
   // Handle File

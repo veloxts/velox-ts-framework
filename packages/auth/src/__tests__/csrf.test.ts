@@ -5,10 +5,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  csrfManager,
   type CsrfConfig,
   CsrfError,
   type CsrfManager,
+  csrfManager,
   csrfMiddleware,
 } from '../csrf.js';
 
