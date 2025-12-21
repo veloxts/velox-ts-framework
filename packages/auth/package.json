@@ -17,6 +17,18 @@
     "./adapters/better-auth": {
       "types": "./dist/adapters/better-auth.d.ts",
       "import": "./dist/adapters/better-auth.js"
+    },
+    "./guards": {
+      "types": "./dist/guards.d.ts",
+      "import": "./dist/guards.js"
+    },
+    "./session": {
+      "types": "./dist/session.d.ts",
+      "import": "./dist/session.js"
+    },
+    "./csrf": {
+      "types": "./dist/csrf.d.ts",
+      "import": "./dist/csrf.js"
     }
   },
   "files": [
