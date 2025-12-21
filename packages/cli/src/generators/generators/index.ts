@@ -6,15 +6,20 @@
 
 import { registerGenerator } from '../registry.js';
 import { createActionGenerator } from './action.js';
+import { createExceptionGenerator } from './exception.js';
 import { createFactoryGenerator } from './factory.js';
+import { createGuardGenerator } from './guard.js';
 import { createLayoutGenerator } from './layout.js';
+import { createMiddlewareGenerator } from './middleware.js';
 import { createMigrationGenerator } from './migration.js';
 import { createModelGenerator } from './model.js';
 import { createPageGenerator } from './page.js';
+import { createPolicyGenerator } from './policy.js';
 import { createProcedureGenerator } from './procedure.js';
 import { createResourceGenerator } from './resource.js';
 import { createSchemaGenerator } from './schema.js';
 import { createSeederGenerator } from './seeder.js';
+import { createServiceGenerator } from './service.js';
 import { createTestGenerator } from './test.js';
 
 // ============================================================================
@@ -22,15 +27,20 @@ import { createTestGenerator } from './test.js';
 // ============================================================================
 
 export { ActionGenerator, createActionGenerator } from './action.js';
+export { createExceptionGenerator, ExceptionGenerator } from './exception.js';
 export { createFactoryGenerator, FactoryGenerator } from './factory.js';
+export { createGuardGenerator, GuardGenerator } from './guard.js';
 export { createLayoutGenerator, LayoutGenerator } from './layout.js';
+export { createMiddlewareGenerator, MiddlewareGenerator } from './middleware.js';
 export { createMigrationGenerator, MigrationGenerator } from './migration.js';
 export { createModelGenerator, ModelGenerator } from './model.js';
 export { createPageGenerator, PageGenerator } from './page.js';
+export { createPolicyGenerator, PolicyGenerator } from './policy.js';
 export { createProcedureGenerator, ProcedureGenerator } from './procedure.js';
 export { createResourceGenerator, ResourceGenerator } from './resource.js';
 export { createSchemaGenerator, SchemaGenerator } from './schema.js';
 export { createSeederGenerator, SeederGenerator } from './seeder.js';
+export { createServiceGenerator, ServiceGenerator } from './service.js';
 export { createTestGenerator, TestGenerator } from './test.js';
 
 // ============================================================================
@@ -70,4 +80,13 @@ export function registerBuiltinGenerators(): void {
   registerGenerator(createPageGenerator());
   registerGenerator(createLayoutGenerator());
   registerGenerator(createActionGenerator());
+
+  // Register infrastructure generators
+  registerGenerator(createMiddlewareGenerator());
+  registerGenerator(createServiceGenerator());
+  registerGenerator(createExceptionGenerator());
+
+  // Register auth generators
+  registerGenerator(createGuardGenerator());
+  registerGenerator(createPolicyGenerator());
 }
