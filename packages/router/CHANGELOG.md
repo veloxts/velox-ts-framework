@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.10
+
+### Patch Changes
+
+- use import() type syntax for AppRouter
+- Updated dependencies
+  - @veloxts/core@0.6.10
+  - @veloxts/validation@0.6.10
+
 ## 0.6.9
 
 ### Patch Changes
