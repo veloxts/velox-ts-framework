@@ -110,11 +110,6 @@ export function parse<T>(
 }
 
 /**
- * @deprecated Use `parse` instead. This alias will be removed in v1.0.
- */
-export const validate = parse;
-
-/**
  * Safely parses data without throwing
  *
  * Follows Zod's naming convention for consistency with the ecosystem.
@@ -166,11 +161,6 @@ export function safeParse<T>(
   };
 }
 
-/**
- * @deprecated Use `safeParse` instead. This alias will be removed in v1.0.
- */
-export const safeValidate = safeParse;
-
 // ============================================================================
 // Schema Validators
 // ============================================================================
@@ -203,15 +193,6 @@ export function createValidator<TOutput, TInput = unknown>(
       return safeParse(schema, data);
     },
 
-    // Deprecated aliases
-    validate(data: unknown): TOutput {
-      return parse(schema, data);
-    },
-
-    safeValidate(data: unknown): SafeParseResult<TOutput> {
-      return safeParse(schema, data);
-    },
-
     schema,
   };
 }
@@ -224,10 +205,6 @@ export interface Validator<T> {
   parse(data: unknown): T;
   /** Safely parses data without throwing */
   safeParse(data: unknown): SafeParseResult<T>;
-  /** @deprecated Use `parse` instead */
-  validate(data: unknown): T;
-  /** @deprecated Use `safeParse` instead */
-  safeValidate(data: unknown): SafeParseResult<T>;
   /** The underlying Zod schema */
   schema: AnyZodSchema;
 }
@@ -284,11 +261,6 @@ export function parseAll<T extends Record<string, [AnyZodSchema, unknown]>>(
   };
 }
 
-/**
- * @deprecated Use `parseAll` instead. This alias will be removed in v1.0.
- */
-export const validateAll = parseAll;
-
 // ============================================================================
 // Type Guards
 // ============================================================================
@@ -342,5 +314,5 @@ export function assertSchema<T>(
   value: unknown,
   errorMessage?: string
 ): asserts value is T {
-  validate(schema, value, errorMessage);
+  parse(schema, value, errorMessage);
 }

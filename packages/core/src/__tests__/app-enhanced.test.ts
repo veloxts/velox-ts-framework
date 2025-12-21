@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
-import { createVeloxApp } from '../app.js';
+import { veloxApp } from '../app.js';
 import { VeloxError } from '../errors.js';
 import { definePlugin } from '../plugin.js';
 
@@ -22,7 +22,7 @@ describe('VeloxApp - Enhanced Features', () => {
 
   describe('routes() method', () => {
     it('should register routes via routes() method', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       app.routes((server) => {
         server.get('/test-route', async () => ({ success: true }));
@@ -40,7 +40,7 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should register multiple routes', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       app.routes((server) => {
         server.get('/route1', async () => ({ route: 1 }));
@@ -62,7 +62,7 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should support method chaining', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const result = app.routes((server) => {
         server.get('/chained', async () => ({ chained: true }));
@@ -81,7 +81,7 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should allow calling routes() multiple times', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       app.routes((server) => {
         server.get('/first', async () => ({ first: true }));
@@ -101,7 +101,7 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should provide access to Fastify server instance', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       app.routes((server) => {
         // Should be able to use Fastify server features
@@ -118,11 +118,11 @@ describe('VeloxApp - Enhanced Features', () => {
 
   describe('onShutdown() method', () => {
     it('should execute shutdown handler when stopping', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       let handlerExecuted = false;
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         handlerExecuted = true;
       });
 
@@ -133,19 +133,19 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should execute multiple shutdown handlers', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const executed: number[] = [];
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         executed.push(1);
       });
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         executed.push(2);
       });
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         executed.push(3);
       });
 
@@ -156,15 +156,15 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should execute handlers in order', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const order: string[] = [];
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         order.push('first');
       });
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         order.push('second');
       });
 
@@ -175,11 +175,11 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should handle async shutdown handlers', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const events: string[] = [];
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         events.push('start-cleanup');
         await new Promise((resolve) => setTimeout(resolve, 10));
         events.push('end-cleanup');
@@ -195,20 +195,20 @@ describe('VeloxApp - Enhanced Features', () => {
       // Suppress expected console.error from lifecycle manager
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const executed: number[] = [];
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         executed.push(1);
       });
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         executed.push(2);
         throw new Error('Handler failed');
       });
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         executed.push(3);
       });
 
@@ -227,7 +227,7 @@ describe('VeloxApp - Enhanced Features', () => {
 
   describe('Error handler edge cases', () => {
     it('should handle errors with custom statusCode property', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const plugin = definePlugin({
         name: 'custom-status-test',
@@ -241,7 +241,7 @@ describe('VeloxApp - Enhanced Features', () => {
         },
       });
 
-      await app.use(plugin);
+      await app.register(plugin);
       await app.start();
 
       const response = await app.server.inject({
@@ -257,7 +257,7 @@ describe('VeloxApp - Enhanced Features', () => {
       // Suppress expected console.error from error handler fallback
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const plugin = definePlugin({
         name: 'error-handler-error-test',
@@ -276,7 +276,7 @@ describe('VeloxApp - Enhanced Features', () => {
         },
       });
 
-      await app.use(plugin);
+      await app.register(plugin);
       await app.start();
 
       const response = await app.server.inject({
@@ -295,7 +295,7 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should only log 5xx errors, not 4xx errors', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const plugin = definePlugin({
         name: 'log-test',
@@ -311,7 +311,7 @@ describe('VeloxApp - Enhanced Features', () => {
         },
       });
 
-      await app.use(plugin);
+      await app.register(plugin);
       await app.start();
 
       // Both should return appropriate status codes
@@ -332,7 +332,7 @@ describe('VeloxApp - Enhanced Features', () => {
 
   describe('Server access and configuration', () => {
     it('should provide access to underlying Fastify server', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       expect(app.server).toBeDefined();
       expect(typeof app.server.get).toBe('function');
@@ -341,7 +341,7 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should provide readonly config access', async () => {
-      app = await createVeloxApp({ port: 5000, host: '127.0.0.1', logger: false });
+      app = await veloxApp({ port: 5000, host: '127.0.0.1', logger: false });
 
       expect(app.config).toBeDefined();
       expect(app.config.port).toBe(5000);
@@ -350,7 +350,7 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should freeze config object', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       expect(Object.isFrozen(app.config)).toBe(true);
     });
@@ -358,7 +358,7 @@ describe('VeloxApp - Enhanced Features', () => {
 
   describe('Plugin registration edge cases', () => {
     it('should throw error if plugin registration fails', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const failingPlugin = definePlugin({
         name: 'failing-plugin',
@@ -368,13 +368,13 @@ describe('VeloxApp - Enhanced Features', () => {
         },
       });
 
-      await expect(app.use(failingPlugin)).rejects.toThrow(
+      await expect(app.register(failingPlugin)).rejects.toThrow(
         'Failed to register plugin "failing-plugin"'
       );
     });
 
     it('should include original error message in plugin registration error', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const failingPlugin = definePlugin({
         name: 'specific-error',
@@ -384,13 +384,13 @@ describe('VeloxApp - Enhanced Features', () => {
         },
       });
 
-      await expect(app.use(failingPlugin)).rejects.toThrow('Database connection failed');
+      await expect(app.register(failingPlugin)).rejects.toThrow('Database connection failed');
     });
   });
 
   describe('App initialization', () => {
     it('should initialize successfully with empty config', async () => {
-      app = await createVeloxApp();
+      app = await veloxApp();
 
       expect(app).toBeDefined();
       expect(app.isRunning).toBe(false);
@@ -398,8 +398,8 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should call initialize() during creation', async () => {
-      // The createVeloxApp function should call initialize()
-      app = await createVeloxApp({ port: 0, logger: false });
+      // The veloxApp function should call initialize()
+      app = await veloxApp({ port: 0, logger: false });
 
       expect(app).toBeDefined();
       // If initialize() wasn't called, app would not be created properly
@@ -408,7 +408,7 @@ describe('VeloxApp - Enhanced Features', () => {
 
   describe('Integration scenarios', () => {
     it('should support full app lifecycle with plugins and routes', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       let shutdownExecuted = false;
 
@@ -421,7 +421,7 @@ describe('VeloxApp - Enhanced Features', () => {
         },
       });
 
-      await app.use(plugin);
+      await app.register(plugin);
 
       // Register routes
       app.routes((server) => {
@@ -429,7 +429,7 @@ describe('VeloxApp - Enhanced Features', () => {
       });
 
       // Add shutdown handler
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         shutdownExecuted = true;
       });
 
@@ -458,7 +458,7 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should handle multiple plugins with dependencies', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       const basePlugin = definePlugin({
         name: 'base-plugin',
@@ -480,8 +480,8 @@ describe('VeloxApp - Enhanced Features', () => {
         },
       });
 
-      await app.use(basePlugin);
-      await app.use(dependentPlugin);
+      await app.register(basePlugin);
+      await app.register(dependentPlugin);
       await app.start();
 
       const response = await app.server.inject({

@@ -208,11 +208,13 @@ export interface SessionStore {
  *
  * For production, use Redis or database-backed storage.
  *
+ * @deprecated Use `inMemorySessionStore()` instead for Laravel-style API.
+ *
  * @example
  * ```typescript
- * const store = createInMemorySessionStore();
+ * const store = inMemorySessionStore();
  *
- * const sessionManager = createSessionManager({
+ * const manager = sessionManager({
  *   store,
  *   secret: process.env.SESSION_SECRET!,
  * });
@@ -648,9 +650,11 @@ function validateSessionIdEntropy(sessionId: string): boolean {
 /**
  * Creates a session manager
  *
+ * @deprecated Use `sessionManager()` instead for Laravel-style API.
+ *
  * @example
  * ```typescript
- * const sessionManager = createSessionManager({
+ * const manager = sessionManager({
  *   secret: process.env.SESSION_SECRET!,
  *   cookie: {
  *     name: 'myapp.session',
@@ -1387,9 +1391,49 @@ export function isSessionAuthenticated(session: Session): boolean {
   return !!session.get('userId');
 }
 
+// ============================================================================
+// Succinct Aliases (Laravel-style)
+// ============================================================================
+
 /**
- * Creates session middleware for procedures
+ * Creates a session manager (succinct alias)
  *
- * @deprecated Use `sessionMiddleware()` instead. Will be removed in v0.9.
+ * @example
+ * ```typescript
+ * const manager = sessionManager({
+ *   secret: process.env.SESSION_SECRET!,
+ *   cookie: {
+ *     name: 'myapp.session',
+ *     secure: true,
+ *     sameSite: 'strict',
+ *   },
+ *   expiration: {
+ *     ttl: 3600, // 1 hour
+ *     sliding: true,
+ *   },
+ * });
+ * ```
  */
-export const createSessionMiddleware = sessionMiddleware;
+export const sessionManager = createSessionManager;
+
+/**
+ * In-memory session store for development and testing (succinct alias)
+ *
+ * WARNING: NOT suitable for production!
+ * - Sessions are lost on server restart
+ * - Does not work across multiple server instances
+ * - No persistence mechanism
+ *
+ * For production, use Redis or database-backed storage.
+ *
+ * @example
+ * ```typescript
+ * const store = inMemorySessionStore();
+ *
+ * const manager = sessionManager({
+ *   store,
+ *   secret: process.env.SESSION_SECRET!,
+ * });
+ * ```
+ */
+export const inMemorySessionStore = createInMemorySessionStore;

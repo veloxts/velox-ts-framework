@@ -4,7 +4,7 @@
  */
 
 import type { BaseContext } from '@veloxts/core';
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
@@ -244,10 +244,10 @@ describe('getRouteSummary', () => {
 });
 
 describe('registerRestRoutes - Integration', () => {
-  let app: Awaited<ReturnType<typeof createVeloxApp>>;
+  let app: Awaited<ReturnType<typeof veloxApp>>;
 
   beforeEach(async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
   });
 
   afterEach(async () => {
@@ -644,10 +644,10 @@ describe('registerRestRoutes - Integration', () => {
 });
 
 describe('Input gathering', () => {
-  let app: Awaited<ReturnType<typeof createVeloxApp>>;
+  let app: Awaited<ReturnType<typeof veloxApp>>;
 
   beforeEach(async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
   });
 
   afterEach(async () => {
@@ -848,10 +848,10 @@ describe('Input gathering', () => {
 });
 
 describe('rest() - Fastify plugin pattern', () => {
-  let app: Awaited<ReturnType<typeof createVeloxApp>>;
+  let app: Awaited<ReturnType<typeof veloxApp>>;
 
   beforeEach(async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
   });
 
   afterEach(async () => {

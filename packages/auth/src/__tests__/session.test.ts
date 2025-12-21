@@ -7,8 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createInMemorySessionStore,
   createSessionManager,
-  createSessionMiddleware,
   isSessionAuthenticated,
+  sessionMiddleware,
   type Session,
   type SessionConfig,
   type SessionStore,
@@ -593,9 +593,9 @@ describe('Session Management', () => {
     });
   });
 
-  describe('createSessionMiddleware', () => {
+  describe('sessionMiddleware', () => {
     it('should create middleware with required methods', () => {
-      const middleware = createSessionMiddleware(defaultConfig);
+      const middleware = sessionMiddleware(defaultConfig);
 
       expect(middleware.middleware).toBeDefined();
       expect(middleware.requireAuth).toBeDefined();
@@ -604,7 +604,7 @@ describe('Session Management', () => {
     });
 
     it('should expose manager instance', () => {
-      const middleware = createSessionMiddleware(defaultConfig);
+      const middleware = sessionMiddleware(defaultConfig);
 
       expect(middleware.manager.createSession).toBeDefined();
       expect(middleware.manager.loadSession).toBeDefined();

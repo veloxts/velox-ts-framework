@@ -598,18 +598,19 @@ export class JwtManager {
 }
 
 /**
- * Creates a new JWT manager instance (succinct API)
+ * Creates a new JWT manager instance
+ *
+ * @example
+ * ```typescript
+ * const jwt = jwtManager({
+ *   secret: process.env.JWT_SECRET!,
+ *   expiresIn: '15m',
+ * });
+ * ```
  */
 export function jwtManager(config: JwtConfig): JwtManager {
   return new JwtManager(config);
 }
-
-/**
- * Creates a new JWT manager instance
- *
- * @deprecated Use `jwtManager()` instead. Will be removed in v0.9.
- */
-export const createJwtManager = jwtManager;
 
 // ============================================================================
 // Token Revocation Store (Critical Fix #4)

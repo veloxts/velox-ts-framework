@@ -12,9 +12,9 @@ import {
   createTypeGuard,
   createValidator,
   formatZodErrors,
-  safeValidate,
-  validate,
-  validateAll,
+  parse,
+  parseAll,
+  safeParse,
   zodErrorToValidationError,
 } from '../middleware.js';
 import { wrapSchema } from '../types.js';
@@ -124,12 +124,12 @@ describe('Error Transformation', () => {
 });
 
 describe('Validation Functions', () => {
-  describe('validate', () => {
+  describe('parse', () => {
     it('should validate with Zod schema', () => {
       const schema = z.object({ name: z.string(), age: z.number() });
       const input = { name: 'John', age: 30 };
 
-      const result = validate(schema, input);
+      const result = parse(schema, input);
 
       expect(result).toEqual(input);
     });
@@ -138,7 +138,7 @@ describe('Validation Functions', () => {
       const schema = wrapSchema(z.object({ name: z.string() }));
       const input = { name: 'John' };
 
-      const result = validate(schema, input);
+      const result = parse(schema, input);
 
       expect(result).toEqual(input);
     });
@@ -147,7 +147,7 @@ describe('Validation Functions', () => {
       const schema = z.object({ email: z.string().email() });
       const input = { email: 'invalid' };
 
-      expect(() => validate(schema, input)).toThrow(ValidationError);
+      expect(() => parse(schema, input)).toThrow(ValidationError);
     });
 
     it('should use custom error message', () => {
@@ -155,7 +155,7 @@ describe('Validation Functions', () => {
       const input = 123;
 
       try {
-        validate(schema, input, 'Custom error');
+        parse(schema, input, 'Custom error');
       } catch (error) {
         if (error instanceof ValidationError) {
           expect(error.message).toBe('Custom error');
@@ -168,7 +168,7 @@ describe('Validation Functions', () => {
       const input = 'invalid-email';
 
       try {
-        validate(schema, input, 'Custom wrapped schema error');
+        parse(schema, input, 'Custom wrapped schema error');
       } catch (error) {
         if (error instanceof ValidationError) {
           expect(error.message).toBe('Custom wrapped schema error');
@@ -182,7 +182,7 @@ describe('Validation Functions', () => {
         .transform((val) => val.toUpperCase())
         .pipe(z.string());
 
-      const result = validate(schema, 'hello');
+      const result = parse(schema, 'hello');
 
       expect(result).toBe('HELLO');
     });
@@ -190,18 +190,18 @@ describe('Validation Functions', () => {
     it('should throw error for invalid schema', () => {
       const invalidSchema = { not: 'a schema' };
 
-      expect(() => validate(invalidSchema as z.ZodTypeAny, {})).toThrow(
+      expect(() => parse(invalidSchema as z.ZodTypeAny, {})).toThrow(
         'Invalid schema provided to parse()'
       );
     });
   });
 
-  describe('safeValidate', () => {
+  describe('safeParse', () => {
     it('should return success result for valid input', () => {
       const schema = z.object({ name: z.string() });
       const input = { name: 'John' };
 
-      const result = safeValidate(schema, input);
+      const result = safeParse(schema, input);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -213,7 +213,7 @@ describe('Validation Functions', () => {
       const schema = z.object({ email: z.string().email() });
       const input = { email: 'invalid' };
 
-      const result = safeValidate(schema, input);
+      const result = safeParse(schema, input);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -228,7 +228,7 @@ describe('Validation Functions', () => {
       const schema = wrapSchema(z.string().min(5));
       const input = 'hi';
 
-      const result = safeValidate(schema, input);
+      const result = safeParse(schema, input);
 
       expect(result.success).toBe(false);
     });
@@ -236,7 +236,7 @@ describe('Validation Functions', () => {
     it('should return error for invalid schema', () => {
       const invalidSchema = { not: 'a schema' };
 
-      const result = safeValidate(invalidSchema as z.ZodTypeAny, {});
+      const result = safeParse(invalidSchema as z.ZodTypeAny, {});
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -256,22 +256,12 @@ describe('Schema Validators', () => {
 
       const userValidator = createValidator(UserSchema);
 
-      expect(typeof userValidator.validate).toBe('function');
-      expect(typeof userValidator.safeValidate).toBe('function');
       expect(typeof userValidator.parse).toBe('function');
       expect(typeof userValidator.safeParse).toBe('function');
       expect(userValidator.schema).toBe(UserSchema);
     });
 
-    it('should validate successfully', () => {
-      const validator = createValidator(z.string().email());
-
-      const result = validator.validate('test@example.com');
-
-      expect(result).toBe('test@example.com');
-    });
-
-    it('should parse successfully (new method)', () => {
+    it('should parse successfully', () => {
       const validator = createValidator(z.string().email());
 
       const result = validator.parse('test@example.com');
@@ -279,30 +269,13 @@ describe('Schema Validators', () => {
       expect(result).toBe('test@example.com');
     });
 
-    it('should throw on validation failure', () => {
-      const validator = createValidator(z.string().email());
-
-      expect(() => validator.validate('invalid')).toThrow(ValidationError);
-    });
-
-    it('should throw on parse failure (new method)', () => {
+    it('should throw on parse failure', () => {
       const validator = createValidator(z.string().email());
 
       expect(() => validator.parse('invalid')).toThrow(ValidationError);
     });
 
-    it('should safe validate successfully', () => {
-      const validator = createValidator(z.number().positive());
-
-      const result = validator.safeValidate(42);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toBe(42);
-      }
-    });
-
-    it('should safe parse successfully (new method)', () => {
+    it('should safe parse successfully', () => {
       const validator = createValidator(z.number().positive());
 
       const result = validator.safeParse(42);
@@ -313,15 +286,7 @@ describe('Schema Validators', () => {
       }
     });
 
-    it('should safe validate with error', () => {
-      const validator = createValidator(z.number().positive());
-
-      const result = validator.safeValidate(-5);
-
-      expect(result.success).toBe(false);
-    });
-
-    it('should safe parse with error (new method)', () => {
+    it('should safe parse with error', () => {
       const validator = createValidator(z.number().positive());
 
       const result = validator.safeParse(-5);
@@ -332,13 +297,13 @@ describe('Schema Validators', () => {
 });
 
 describe('Request Validation Helpers', () => {
-  describe('validateAll', () => {
+  describe('parseAll', () => {
     it('should validate multiple sources', () => {
       const BodySchema = z.object({ name: z.string() });
       const QuerySchema = z.object({ page: z.number() });
       const ParamsSchema = z.object({ id: z.string() });
 
-      const result = validateAll({
+      const result = parseAll({
         body: [BodySchema, { name: 'John' }],
         query: [QuerySchema, { page: 1 }],
         params: [ParamsSchema, { id: '123' }],
@@ -354,7 +319,7 @@ describe('Request Validation Helpers', () => {
       const QuerySchema = z.object({ page: z.number().positive() });
 
       try {
-        validateAll({
+        parseAll({
           body: [BodySchema, { email: 'invalid' }],
           query: [QuerySchema, { page: -1 }],
         });
@@ -372,7 +337,7 @@ describe('Request Validation Helpers', () => {
       const Schema2 = z.object({ invalid: z.number() });
 
       try {
-        validateAll({
+        parseAll({
           first: [Schema1, { valid: 'ok' }],
           second: [Schema2, { invalid: 'not-a-number' }],
         });
@@ -393,7 +358,7 @@ describe('Request Validation Helpers', () => {
       });
 
       try {
-        validateAll({
+        parseAll({
           data: [schema, { nested: { field: 123 } }],
         });
         expect.fail('Should have thrown');
@@ -409,7 +374,7 @@ describe('Request Validation Helpers', () => {
       const schema = z.string().refine((val) => val.length > 5, { message: 'Too short', path: [] });
 
       try {
-        validateAll({
+        parseAll({
           input: [schema, 'hi'],
         });
         expect.fail('Should have thrown');
@@ -427,7 +392,7 @@ describe('Request Validation Helpers', () => {
       });
 
       try {
-        validateAll({
+        parseAll({
           data: [schema, { value: 'a' }],
         });
         expect.fail('Should have thrown');
@@ -522,7 +487,7 @@ describe('Edge Cases and Error Handling', () => {
       }),
     });
 
-    const result = safeValidate(schema, {
+    const result = safeParse(schema, {
       user: {
         profile: {
           email: 'invalid',
@@ -541,7 +506,7 @@ describe('Edge Cases and Error Handling', () => {
       items: z.array(z.object({ id: z.string().uuid() })),
     });
 
-    const result = safeValidate(schema, {
+    const result = safeParse(schema, {
       items: [{ id: 'valid-uuid' }, { id: 'invalid' }],
     });
 
@@ -551,9 +516,9 @@ describe('Edge Cases and Error Handling', () => {
   it('should handle union type errors', () => {
     const schema = z.union([z.string(), z.number()]);
 
-    const validString = safeValidate(schema, 'hello');
-    const validNumber = safeValidate(schema, 42);
-    const invalid = safeValidate(schema, true);
+    const validString = safeParse(schema, 'hello');
+    const validNumber = safeParse(schema, 42);
+    const invalid = safeParse(schema, true);
 
     expect(validString.success).toBe(true);
     expect(validNumber.success).toBe(true);
@@ -571,7 +536,7 @@ describe('Edge Cases and Error Handling', () => {
         path: ['confirmPassword'],
       });
 
-    const result = safeValidate(schema, {
+    const result = safeParse(schema, {
       password: 'secret',
       confirmPassword: 'different',
     });
@@ -589,7 +554,7 @@ describe('Edge Cases and Error Handling', () => {
       active: z.coerce.boolean(),
     });
 
-    const result = validate(schema, {
+    const result = parse(schema, {
       count: '42',
       active: 'true',
     });
@@ -604,10 +569,10 @@ describe('Edge Cases and Error Handling', () => {
       optional: z.string().optional(),
     });
 
-    const result1 = validate(schema, { required: 'value' });
+    const result1 = parse(schema, { required: 'value' });
     expect(result1).toEqual({ required: 'value' });
 
-    const result2 = validate(schema, { required: 'value', optional: 'also' });
+    const result2 = parse(schema, { required: 'value', optional: 'also' });
     expect(result2).toEqual({ required: 'value', optional: 'also' });
   });
 });

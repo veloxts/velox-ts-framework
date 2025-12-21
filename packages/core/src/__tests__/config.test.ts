@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
-import { createVeloxApp } from '../app.js';
+import { veloxApp } from '../app.js';
 
 describe('VeloxApp - Configuration', () => {
   let app: VeloxApp | null = null;
@@ -19,7 +19,7 @@ describe('VeloxApp - Configuration', () => {
   });
 
   it('should use default configuration', async () => {
-    app = await createVeloxApp();
+    app = await veloxApp();
 
     expect(app.config.port).toBe(3030);
     expect(app.config.host).toBe('0.0.0.0');
@@ -27,25 +27,25 @@ describe('VeloxApp - Configuration', () => {
   });
 
   it('should accept custom port', async () => {
-    app = await createVeloxApp({ port: 4000, logger: false });
+    app = await veloxApp({ port: 4000, logger: false });
 
     expect(app.config.port).toBe(4000);
   });
 
   it('should accept custom host', async () => {
-    app = await createVeloxApp({ host: '127.0.0.1', logger: false });
+    app = await veloxApp({ host: '127.0.0.1', logger: false });
 
     expect(app.config.host).toBe('127.0.0.1');
   });
 
   it('should accept logger as boolean', async () => {
-    app = await createVeloxApp({ logger: false });
+    app = await veloxApp({ logger: false });
 
     expect(app.config.logger).toBe(false);
   });
 
   it('should accept logger as object', async () => {
-    app = await createVeloxApp({
+    app = await veloxApp({
       logger: {
         level: 'info',
       },
@@ -56,7 +56,7 @@ describe('VeloxApp - Configuration', () => {
   });
 
   it('should accept custom Fastify options', async () => {
-    app = await createVeloxApp({
+    app = await veloxApp({
       port: 0,
       logger: false,
       fastify: {
@@ -70,7 +70,7 @@ describe('VeloxApp - Configuration', () => {
   });
 
   it('should merge custom config with defaults', async () => {
-    app = await createVeloxApp({
+    app = await veloxApp({
       port: 5000,
       logger: false,
     });
@@ -85,7 +85,7 @@ describe('VeloxApp - Configuration', () => {
   });
 
   it('should provide readonly config accessor', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     // Config is accessible via readonly getter
     expect(app.config).toBeDefined();
@@ -96,19 +96,19 @@ describe('VeloxApp - Configuration', () => {
   });
 
   it('should throw error for invalid port', async () => {
-    await expect(createVeloxApp({ port: 999999, logger: false })).rejects.toThrow(
+    await expect(veloxApp({ port: 999999, logger: false })).rejects.toThrow(
       'Invalid port number'
     );
   });
 
   it('should throw error for negative port', async () => {
-    await expect(createVeloxApp({ port: -1, logger: false })).rejects.toThrow(
+    await expect(veloxApp({ port: -1, logger: false })).rejects.toThrow(
       'Invalid port number'
     );
   });
 
   it('should throw error for empty host', async () => {
-    await expect(createVeloxApp({ host: '', port: 0, logger: false })).rejects.toThrow(
+    await expect(veloxApp({ host: '', port: 0, logger: false })).rejects.toThrow(
       'Host must be a non-empty string'
     );
   });

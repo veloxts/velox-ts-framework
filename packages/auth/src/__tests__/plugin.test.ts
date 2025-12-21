@@ -19,7 +19,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { JwtManager } from '../jwt.js';
-import { AUTH_VERSION, authPlugin, createAuthPlugin, defaultAuthPlugin } from '../plugin.js';
+import { AUTH_VERSION, authPlugin, defaultAuthPlugin } from '../plugin.js';
 import type { User } from '../types.js';
 
 // ============================================================================
@@ -647,23 +647,6 @@ describe('Auth Plugin', () => {
       await server.ready();
 
       expect(mockLog.info).not.toHaveBeenCalled();
-    });
-  });
-
-  // ==========================================================================
-  // createAuthPlugin (deprecated)
-  // ==========================================================================
-
-  describe('createAuthPlugin (deprecated)', () => {
-    it('should be an alias for authPlugin', () => {
-      expect(createAuthPlugin).toBe(authPlugin);
-    });
-
-    it('should create a valid plugin', () => {
-      const plugin = createAuthPlugin(createTestAuthConfig());
-
-      expect(plugin).toBeDefined();
-      expect(plugin.name).toBe('@veloxts/auth');
     });
   });
 

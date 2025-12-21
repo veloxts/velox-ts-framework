@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
-import { createVeloxApp } from '../app.js';
+import { veloxApp } from '../app.js';
 
 describe('VeloxApp - Edge Cases', () => {
   let app: VeloxApp | null = null;
@@ -20,7 +20,7 @@ describe('VeloxApp - Edge Cases', () => {
 
   describe('Error during server stop', () => {
     it('should throw VeloxError if server.close() fails', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       await app.start();
 
@@ -40,11 +40,11 @@ describe('VeloxApp - Edge Cases', () => {
 
   describe('Graceful shutdown lifecycle', () => {
     it('should handle stop() being called directly', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       let shutdownCalled = false;
 
-      app.onShutdown(async () => {
+      app.beforeShutdown(async () => {
         shutdownCalled = true;
       });
 
@@ -56,7 +56,7 @@ describe('VeloxApp - Edge Cases', () => {
     });
 
     it('should clean up signal handlers after stop', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       await app.start();
 
@@ -74,7 +74,7 @@ describe('VeloxApp - Edge Cases', () => {
 
   describe('Server state validation', () => {
     it('should maintain consistent state through lifecycle', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       // Initial state
       expect(app.isRunning).toBe(false);
@@ -100,7 +100,7 @@ describe('VeloxApp - Edge Cases', () => {
 
   describe('Config validation edge cases', () => {
     it('should accept port 0 (random port)', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       expect(app.config.port).toBe(0);
 
@@ -112,13 +112,13 @@ describe('VeloxApp - Edge Cases', () => {
     it('should accept port 65535 (max valid port)', async () => {
       // We can't actually bind to 65535 without privileges,
       // but we can validate the config accepts it
-      app = await createVeloxApp({ port: 65535, logger: false });
+      app = await veloxApp({ port: 65535, logger: false });
 
       expect(app.config.port).toBe(65535);
     });
 
     it('should accept minimum port 0', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       expect(app.config.port).toBe(0);
     });
@@ -126,7 +126,7 @@ describe('VeloxApp - Edge Cases', () => {
 
   describe('Plugin options edge cases', () => {
     it('should pass undefined options when none provided', async () => {
-      app = await createVeloxApp({ port: 0, logger: false });
+      app = await veloxApp({ port: 0, logger: false });
 
       let receivedOptions: unknown = 'not-set';
 
@@ -139,7 +139,7 @@ describe('VeloxApp - Edge Cases', () => {
       };
 
       // Call use() without options argument
-      await app.use(plugin);
+      await app.register(plugin);
 
       // Should receive empty object (Fastify behavior)
       expect(receivedOptions).toEqual({});
@@ -148,7 +148,7 @@ describe('VeloxApp - Edge Cases', () => {
 
   describe('Fastify options passthrough', () => {
     it('should pass custom Fastify options to underlying server', async () => {
-      app = await createVeloxApp({
+      app = await veloxApp({
         port: 0,
         logger: false,
         fastify: {
@@ -164,7 +164,7 @@ describe('VeloxApp - Edge Cases', () => {
     });
 
     it('should handle empty Fastify options', async () => {
-      app = await createVeloxApp({
+      app = await veloxApp({
         port: 0,
         logger: false,
         fastify: {},

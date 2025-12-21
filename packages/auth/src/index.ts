@@ -50,15 +50,11 @@ export { AuthError } from './types.js';
 export type { TokenStore } from './jwt.js';
 export {
   createInMemoryTokenStore,
-  // Legacy (deprecated)
-  createJwtManager,
   generateTokenId,
   isValidTimespan,
   JwtManager,
-  // Succinct API
   jwtManager,
   parseTimeToSeconds,
-  // Security validation
   validateTokenExpiration,
 } from './jwt.js';
 
@@ -67,11 +63,8 @@ export {
 // ============================================================================
 
 export {
-  // Legacy (deprecated)
-  createPasswordHasher,
   hashPassword,
   PasswordHasher,
-  // Succinct API
   passwordHasher,
   verifyPassword,
 } from './hash.js';
@@ -127,12 +120,8 @@ export {
 // ============================================================================
 
 export {
-  // Succinct API
   authMiddleware,
   clearRateLimitStore,
-  // Legacy (deprecated)
-  createAuthMiddleware,
-  createRateLimitMiddleware,
   rateLimitMiddleware,
 } from './middleware.js';
 
@@ -157,10 +146,7 @@ export {
 
 export type { AuthPluginOptions, AuthService } from './plugin.js';
 export {
-  // Succinct API
   authPlugin,
-  // Legacy (deprecated)
-  createAuthPlugin,
   defaultAuthPlugin,
 } from './plugin.js';
 
@@ -183,9 +169,7 @@ export type {
 export {
   CsrfError,
   createCsrfManager,
-  // Legacy (deprecated)
-  createCsrfMiddleware,
-  // Succinct API
+  csrfManager,
   csrfMiddleware,
 } from './csrf.js';
 
@@ -214,17 +198,13 @@ export type {
   StoredSession,
 } from './session.js';
 export {
-  // Store implementations
   createInMemorySessionStore,
-  // Session manager
   createSessionManager,
-  // Legacy (deprecated)
-  createSessionMiddleware,
-  // Helper functions
+  inMemorySessionStore,
   isSessionAuthenticated,
   loginSession,
   logoutSession,
-  // Succinct API
+  sessionManager,
   sessionMiddleware,
 } from './session.js';
 
@@ -294,11 +274,8 @@ export type {
 export {
   checkPasswordBreach,
   checkPasswordStrength,
-  // Legacy (deprecated)
-  createPasswordPolicy,
   isCommonPassword,
   PasswordPolicy,
   PasswordStrength,
-  // Succinct API
   passwordPolicy,
 } from './password-policy.js';

@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { createPasswordHasher, hashPassword, PasswordHasher, verifyPassword } from '../hash.js';
+import { hashPassword, passwordHasher, PasswordHasher, verifyPassword } from '../hash.js';
 
 describe('Password Hashing', () => {
   describe('PasswordHasher (scrypt fallback)', () => {
@@ -122,14 +122,14 @@ describe('Password Hashing', () => {
     });
   });
 
-  describe('createPasswordHasher factory', () => {
+  describe('passwordHasher factory', () => {
     it('should create a hasher with config', () => {
-      const hasher = createPasswordHasher({ algorithm: 'bcrypt', bcryptRounds: 10 });
+      const hasher = passwordHasher({ algorithm: 'bcrypt', bcryptRounds: 10 });
       expect(hasher).toBeInstanceOf(PasswordHasher);
     });
 
     it('should create a hasher with defaults', () => {
-      const hasher = createPasswordHasher();
+      const hasher = passwordHasher();
       expect(hasher).toBeInstanceOf(PasswordHasher);
     });
   });

@@ -109,15 +109,10 @@ export type {
   TokenType,
 } from './tokens.js';
 export {
-  // Legacy (deprecated) - keep for backwards compatibility
-  createStringToken,
-  createSymbolToken,
-  // Utilities
   getTokenName,
   isClassToken,
   isStringToken,
   isSymbolToken,
-  // Succinct API (preferred)
   token,
   validateToken,
 } from './tokens.js';

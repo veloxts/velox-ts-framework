@@ -10,7 +10,7 @@
  * - createH3ApiHandler handles the Fastify app lifecycle and initialization
  */
 
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
 import { rest } from '@veloxts/router';
 import { createH3ApiHandler } from '@veloxts/web';
@@ -33,7 +33,7 @@ export type AppRouter = typeof router;
  */
 export default createH3ApiHandler({
   app: async () => {
-    const app = await createVeloxApp();
+    const app = await veloxApp();
 
     // Register database plugin
     await app.register(databasePlugin({ client: db }));

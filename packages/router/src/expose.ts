@@ -121,18 +121,3 @@ export async function serve(
 
   return appRouter;
 }
-
-// ============================================================================
-// Backward Compatibility
-// ============================================================================
-
-/** @deprecated Use `serve()` instead */
-export const expose = serve;
-
-/** @deprecated Use `ServeOptions` instead */
-export type ExposeOptions = ServeOptions;
-
-/** @deprecated Use `ServeOptions` instead */
-export type ExposeResult<TRouter extends AnyRouter = AnyRouter> = {
-  router: TRouter;
-};

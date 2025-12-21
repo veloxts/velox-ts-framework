@@ -886,12 +886,18 @@ export const container = new Container();
 /**
  * Creates a new DI container
  *
+ * @deprecated Use the `container` singleton or `new Container(options)` directly.
+ *
  * @param options - Container configuration options
  * @returns New container instance
  *
  * @example
  * ```typescript
- * const appContainer = createContainer({ autoRegister: true });
+ * // Preferred: Use the singleton
+ * import { container } from '@veloxts/core';
+ *
+ * // Or create new instance directly
+ * const appContainer = new Container({ autoRegister: true });
  * ```
  */
 export function createContainer(options?: ContainerOptions): Container {

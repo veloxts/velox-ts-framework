@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
-import { createVeloxApp } from '../app.js';
+import { veloxApp } from '../app.js';
 import { createContext, isContext, setupTestContext } from '../context.js';
 import { definePlugin } from '../plugin.js';
 
@@ -21,7 +21,7 @@ describe('VeloxApp - Context Availability', () => {
   });
 
   it('should have context available in request handlers', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     let contextReceived = false;
 
@@ -40,7 +40,7 @@ describe('VeloxApp - Context Availability', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     const response = await app.server.inject({
@@ -57,7 +57,7 @@ describe('VeloxApp - Context Availability', () => {
   });
 
   it('should provide request object via context', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin = definePlugin({
       name: 'request-test',
@@ -72,7 +72,7 @@ describe('VeloxApp - Context Availability', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     const response = await app.server.inject({
@@ -86,7 +86,7 @@ describe('VeloxApp - Context Availability', () => {
   });
 
   it('should provide reply object via context', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin = definePlugin({
       name: 'reply-test',
@@ -100,7 +100,7 @@ describe('VeloxApp - Context Availability', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     const response = await app.server.inject({
@@ -113,7 +113,7 @@ describe('VeloxApp - Context Availability', () => {
   });
 
   it('should have context isolated per request', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const contextIds: string[] = [];
 
@@ -130,7 +130,7 @@ describe('VeloxApp - Context Availability', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     // Make multiple requests

@@ -319,18 +319,20 @@ function base64urlEncode(data: Buffer): string {
 /**
  * Creates a CSRF token manager
  *
+ * @deprecated Use `csrfManager()` instead for Laravel-style API.
+ *
  * @example
  * ```typescript
- * const csrfManager = createCsrfManager({
+ * const manager = csrfManager({
  *   token: { secret: process.env.CSRF_SECRET! },
  *   cookie: { secure: true, sameSite: 'strict' },
  * });
  *
  * // Generate token
- * const { token } = csrfManager.generateToken(reply);
+ * const { token } = manager.generateToken(reply);
  *
  * // Validate token
- * csrfManager.validateToken(request); // Throws on failure
+ * manager.validateToken(request); // Throws on failure
  * ```
  */
 export function createCsrfManager(config: CsrfConfig): CsrfManager {
@@ -731,9 +733,25 @@ export function csrfMiddleware(config: CsrfConfig) {
   };
 }
 
+// ============================================================================
+// Succinct Aliases (Laravel-style)
+// ============================================================================
+
 /**
- * Creates CSRF protection middleware for procedures
+ * Creates a CSRF token manager (succinct alias)
  *
- * @deprecated Use `csrfMiddleware()` instead. Will be removed in v0.9.
+ * @example
+ * ```typescript
+ * const manager = csrfManager({
+ *   token: { secret: process.env.CSRF_SECRET! },
+ *   cookie: { secure: true, sameSite: 'strict' },
+ * });
+ *
+ * // Generate token
+ * const { token } = manager.generateToken(reply);
+ *
+ * // Validate token
+ * manager.validateToken(request); // Throws on failure
+ * ```
  */
-export const createCsrfMiddleware = csrfMiddleware;
+export const csrfManager = createCsrfManager;

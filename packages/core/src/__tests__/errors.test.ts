@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
-import { createVeloxApp } from '../app.js';
+import { veloxApp } from '../app.js';
 import { NotFoundError, ValidationError, VeloxError } from '../errors.js';
 import { definePlugin } from '../plugin.js';
 
@@ -21,7 +21,7 @@ describe('VeloxApp - Error Handling', () => {
   });
 
   it('should handle VeloxError with custom status code', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin = definePlugin({
       name: 'error-test',
@@ -33,7 +33,7 @@ describe('VeloxApp - Error Handling', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     const response = await app.server.inject({
@@ -51,7 +51,7 @@ describe('VeloxApp - Error Handling', () => {
   });
 
   it('should handle ValidationError with field details', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin = definePlugin({
       name: 'validation-test',
@@ -66,7 +66,7 @@ describe('VeloxApp - Error Handling', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     const response = await app.server.inject({
@@ -85,7 +85,7 @@ describe('VeloxApp - Error Handling', () => {
   });
 
   it('should handle NotFoundError with resource info', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin = definePlugin({
       name: 'notfound-test',
@@ -97,7 +97,7 @@ describe('VeloxApp - Error Handling', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     const response = await app.server.inject({
@@ -114,7 +114,7 @@ describe('VeloxApp - Error Handling', () => {
   });
 
   it('should handle generic Error instances', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin = definePlugin({
       name: 'generic-error-test',
@@ -126,7 +126,7 @@ describe('VeloxApp - Error Handling', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     const response = await app.server.inject({
@@ -142,7 +142,7 @@ describe('VeloxApp - Error Handling', () => {
   });
 
   it('should handle non-Error throws', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin = definePlugin({
       name: 'string-error-test',
@@ -154,7 +154,7 @@ describe('VeloxApp - Error Handling', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     const response = await app.server.inject({
@@ -169,7 +169,7 @@ describe('VeloxApp - Error Handling', () => {
   });
 
   it('should serialize errors consistently', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin = definePlugin({
       name: 'consistency-test',
@@ -189,7 +189,7 @@ describe('VeloxApp - Error Handling', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     const responses = await Promise.all([

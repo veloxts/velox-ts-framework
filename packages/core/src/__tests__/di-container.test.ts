@@ -13,10 +13,9 @@ import {
   Container,
   container,
   createContainer,
-  createStringToken,
-  createSymbolToken,
   Injectable,
   Scope,
+  token,
 } from '../di/index.js';
 import { VeloxError } from '../errors.js';
 
@@ -44,8 +43,8 @@ interface DatabaseClient {
   query(sql: string): string[];
 }
 
-const DATABASE = createStringToken<DatabaseClient>('DATABASE');
-const LOGGER = createSymbolToken<LoggerService>('LOGGER');
+const DATABASE = token<DatabaseClient>('DATABASE');
+const LOGGER = token.symbol<LoggerService>('LOGGER');
 
 describe('DI Container', () => {
   let testContainer: Container;
@@ -97,7 +96,7 @@ describe('DI Container', () => {
 
     it('should register value provider', () => {
       const config = { port: 8080 };
-      const CONFIG = createStringToken<{ port: number }>('CONFIG');
+      const CONFIG = token<{ port: number }>('CONFIG');
 
       testContainer.register({
         provide: CONFIG,
@@ -113,7 +112,7 @@ describe('DI Container', () => {
         useClass: ConfigService,
       });
 
-      const CONFIG_ALIAS = createStringToken<ConfigService>('CONFIG_ALIAS');
+      const CONFIG_ALIAS = token<ConfigService>('CONFIG_ALIAS');
       testContainer.register({
         provide: CONFIG_ALIAS,
         useExisting: ConfigService,
@@ -225,7 +224,7 @@ describe('DI Container', () => {
         logger: LoggerService;
       }
 
-      const USER_SERVICE = createStringToken<UserService>('USER_SERVICE');
+      const USER_SERVICE = token<UserService>('USER_SERVICE');
       testContainer.register({
         provide: USER_SERVICE,
         useFactory: (config: ConfigService, logger: LoggerService) => ({
@@ -243,7 +242,7 @@ describe('DI Container', () => {
 
   describe('Resolution - Value Providers', () => {
     it('should resolve value provider', () => {
-      const CONFIG = createStringToken<{ port: number }>('CONFIG');
+      const CONFIG = token<{ port: number }>('CONFIG');
       const config = { port: 8080 };
 
       testContainer.register({
@@ -256,7 +255,7 @@ describe('DI Container', () => {
     });
 
     it('should always return same value instance', () => {
-      const CONFIG = createStringToken<{ port: number }>('CONFIG');
+      const CONFIG = token<{ port: number }>('CONFIG');
       const config = { port: 8080 };
 
       testContainer.register({
@@ -328,8 +327,8 @@ describe('DI Container', () => {
 
   describe('Circular Dependency Detection', () => {
     it('should detect circular dependencies in factory providers', () => {
-      const SERVICE_A = createStringToken<{ b: unknown }>('SERVICE_A');
-      const SERVICE_B = createStringToken<{ a: unknown }>('SERVICE_B');
+      const SERVICE_A = token<{ b: unknown }>('SERVICE_A');
+      const SERVICE_B = token<{ a: unknown }>('SERVICE_B');
 
       testContainer.register({
         provide: SERVICE_A,
@@ -391,7 +390,7 @@ describe('DI Container', () => {
         readonly name = 'child';
       }
 
-      const CONFIG = createStringToken<{ name: string }>('CONFIG');
+      const CONFIG = token<{ name: string }>('CONFIG');
 
       const parent = new Container();
       parent.register({ provide: CONFIG, useValue: new ParentConfig() });
@@ -567,14 +566,14 @@ describe('DI Container', () => {
     });
 
     it('should work with string tokens', () => {
-      const TOKEN = createStringToken<number>('MY_NUMBER');
+      const TOKEN = token<number>('MY_NUMBER');
       testContainer.register({ provide: TOKEN, useValue: 42 });
       const value = testContainer.resolve(TOKEN);
       expect(value).toBe(42);
     });
 
     it('should work with symbol tokens', () => {
-      const TOKEN = createSymbolToken<string>('MY_STRING');
+      const TOKEN = token.symbol<string>('MY_STRING');
       testContainer.register({ provide: TOKEN, useValue: 'hello' });
       const value = testContainer.resolve(TOKEN);
       expect(value).toBe('hello');
@@ -630,7 +629,7 @@ describe('DI Container', () => {
         readonly id = Math.random();
       }
 
-      const REQUEST_TOKEN = createStringToken<RequestScopedService>('REQUEST_SERVICE');
+      const REQUEST_TOKEN = token<RequestScopedService>('REQUEST_SERVICE');
       testContainer.register({
         provide: REQUEST_TOKEN,
         useClass: RequestScopedService,
@@ -660,7 +659,7 @@ describe('DI Container', () => {
         readonly id = Math.random();
       }
 
-      const REQUEST_TOKEN = createStringToken<RequestScopedService>('REQUEST_SERVICE_2');
+      const REQUEST_TOKEN = token<RequestScopedService>('REQUEST_SERVICE_2');
       testContainer.register({
         provide: REQUEST_TOKEN,
         useClass: RequestScopedService,
@@ -687,7 +686,7 @@ describe('DI Container', () => {
     });
 
     it('should throw when resolving request-scoped outside request', () => {
-      const REQUEST_TOKEN = createStringToken<object>('REQUEST_SERVICE_3');
+      const REQUEST_TOKEN = token<object>('REQUEST_SERVICE_3');
       testContainer.register({
         provide: REQUEST_TOKEN,
         useFactory: () => ({ value: 'test' }),
@@ -704,7 +703,7 @@ describe('DI Container', () => {
 
     it('should resolve request-scoped factory provider', async () => {
       let callCount = 0;
-      const REQUEST_TOKEN = createStringToken<{ count: number }>('REQUEST_FACTORY');
+      const REQUEST_TOKEN = token<{ count: number }>('REQUEST_FACTORY');
 
       testContainer.register({
         provide: REQUEST_TOKEN,
@@ -733,8 +732,8 @@ describe('DI Container', () => {
 
   describe('Async Resolution with Optional Dependencies', () => {
     it('should resolve async factory with optional dependency returning undefined', async () => {
-      const OPTIONAL_DEP = createStringToken<{ value: string }>('OPTIONAL_DEP');
-      const SERVICE = createStringToken<{ dep: { value: string } | undefined }>('SERVICE_WITH_OPTIONAL');
+      const OPTIONAL_DEP = token<{ value: string }>('OPTIONAL_DEP');
+      const SERVICE = token<{ dep: { value: string } | undefined }>('SERVICE_WITH_OPTIONAL');
 
       // OPTIONAL_DEP is NOT registered
 
@@ -751,8 +750,8 @@ describe('DI Container', () => {
     });
 
     it('should handle async factory with missing dependency', async () => {
-      const DEP_TOKEN = createStringToken<{ value: number }>('ASYNC_DEP');
-      const SERVICE_TOKEN = createStringToken<{ dep: { value: number } | undefined }>(
+      const DEP_TOKEN = token<{ value: number }>('ASYNC_DEP');
+      const SERVICE_TOKEN = token<{ dep: { value: number } | undefined }>(
         'SERVICE_WITH_ASYNC_DEP'
       );
 
@@ -770,8 +769,8 @@ describe('DI Container', () => {
     });
 
     it('should resolve async factory with available dependency', async () => {
-      const DEP_TOKEN = createStringToken<{ value: number }>('ASYNC_DEP_AVAILABLE');
-      const SERVICE_TOKEN = createStringToken<{ dep: { value: number } }>(
+      const DEP_TOKEN = token<{ value: number }>('ASYNC_DEP_AVAILABLE');
+      const SERVICE_TOKEN = token<{ dep: { value: number } }>(
         'SERVICE_WITH_AVAILABLE_DEP'
       );
 
@@ -793,9 +792,9 @@ describe('DI Container', () => {
     });
 
     it('should handle async factory with multiple dependencies', async () => {
-      const DEP_A = createStringToken<{ a: string }>('DEP_A');
-      const DEP_B = createStringToken<{ b: number }>('DEP_B');
-      const COMBINED = createStringToken<{ a: string; b: number }>('COMBINED');
+      const DEP_A = token<{ a: string }>('DEP_A');
+      const DEP_B = token<{ b: number }>('DEP_B');
+      const COMBINED = token<{ a: string; b: number }>('COMBINED');
 
       testContainer.register({
         provide: DEP_A,
@@ -830,7 +829,7 @@ describe('DI Container', () => {
     });
 
     it('should create context that works with request-scoped resolution', async () => {
-      const REQUEST_TOKEN = createStringToken<object>('CONTEXT_TEST_SERVICE');
+      const REQUEST_TOKEN = token<object>('CONTEXT_TEST_SERVICE');
 
       testContainer.register({
         provide: REQUEST_TOKEN,
@@ -888,7 +887,7 @@ describe('DI Container', () => {
     }
 
     it('should resolve async request-scoped service', async () => {
-      const REQUEST_TOKEN = createStringToken<{ id: number }>('ASYNC_REQUEST_SERVICE');
+      const REQUEST_TOKEN = token<{ id: number }>('ASYNC_REQUEST_SERVICE');
       let callCount = 0;
 
       testContainer.register({
@@ -921,7 +920,7 @@ describe('DI Container', () => {
     });
 
     it('should throw when resolving async request-scoped outside request', async () => {
-      const REQUEST_TOKEN = createStringToken<object>('ASYNC_REQUEST_SERVICE_2');
+      const REQUEST_TOKEN = token<object>('ASYNC_REQUEST_SERVICE_2');
 
       testContainer.register({
         provide: REQUEST_TOKEN,
@@ -939,8 +938,8 @@ describe('DI Container', () => {
 
   describe('Async useExisting Provider', () => {
     it('should resolve async existing/alias provider', async () => {
-      const ORIGINAL = createStringToken<{ value: string }>('ORIGINAL_ASYNC');
-      const ALIAS = createStringToken<{ value: string }>('ALIAS_ASYNC');
+      const ORIGINAL = token<{ value: string }>('ORIGINAL_ASYNC');
+      const ALIAS = token<{ value: string }>('ALIAS_ASYNC');
 
       testContainer.register({
         provide: ORIGINAL,

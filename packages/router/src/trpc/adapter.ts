@@ -45,11 +45,13 @@ export type TRPCInstance<_TContext extends BaseContext = BaseContext> = typeof b
  * This initializes tRPC with the BaseContext type, allowing procedures
  * to access request context and plugin-provided features.
  *
+ * @deprecated Use `trpc()` instead for Laravel-style API.
+ *
  * @returns tRPC instance with context
  *
  * @example
  * ```typescript
- * const t = createTRPC();
+ * const t = trpc();
  *
  * const router = t.router({
  *   hello: t.procedure.query(() => 'Hello World'),
@@ -243,24 +245,26 @@ async function executeWithMiddleware(
  *
  * Each collection becomes a nested router under its namespace.
  *
+ * @deprecated Use `appRouter()` instead for Laravel-style API.
+ *
  * @param t - tRPC instance
  * @param collections - Array of procedure collections
  * @returns Merged app router
  *
  * @example
  * ```typescript
- * const t = createTRPC();
- * const appRouter = createAppRouter(t, [
+ * const t = trpc();
+ * const router = appRouter(t, [
  *   userProcedures,    // namespace: 'users'
  *   postProcedures,    // namespace: 'posts'
  * ]);
  *
  * // Usage:
- * // appRouter.users.getUser({ id: '123' })
- * // appRouter.posts.listPosts({ page: 1 })
+ * // router.users.getUser({ id: '123' })
+ * // router.posts.listPosts({ page: 1 })
  *
  * // Export type for client
- * export type AppRouter = typeof appRouter;
+ * export type AppRouter = typeof router;
  * ```
  */
 export function createAppRouter(
@@ -432,3 +436,53 @@ export async function registerTRPCPlugin(
     },
   });
 }
+
+// ============================================================================
+// Succinct Aliases (Laravel-style)
+// ============================================================================
+
+/**
+ * Create a tRPC instance with VeloxTS context (succinct alias)
+ *
+ * This initializes tRPC with the BaseContext type, allowing procedures
+ * to access request context and plugin-provided features.
+ *
+ * @returns tRPC instance with context
+ *
+ * @example
+ * ```typescript
+ * const t = trpc();
+ *
+ * const router = t.router({
+ *   hello: t.procedure.query(() => 'Hello World'),
+ * });
+ * ```
+ */
+export const trpc = createTRPC;
+
+/**
+ * Create a namespaced app router from multiple procedure collections (succinct alias)
+ *
+ * Each collection becomes a nested router under its namespace.
+ *
+ * @param t - tRPC instance
+ * @param collections - Array of procedure collections
+ * @returns Merged app router
+ *
+ * @example
+ * ```typescript
+ * const t = trpc();
+ * const router = appRouter(t, [
+ *   userProcedures,    // namespace: 'users'
+ *   postProcedures,    // namespace: 'posts'
+ * ]);
+ *
+ * // Usage:
+ * // router.users.getUser({ id: '123' })
+ * // router.posts.listPosts({ page: 1 })
+ *
+ * // Export type for client
+ * export type AppRouter = typeof router;
+ * ```
+ */
+export const appRouter = createAppRouter;

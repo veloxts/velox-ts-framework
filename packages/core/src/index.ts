@@ -29,8 +29,7 @@ const packageJson = require('../package.json') as { version: string };
 export const VELOX_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 export type { StartOptions } from './app.js';
-// App creation and types
-export { createVeloxApp, VeloxApp, velox, veloxApp } from './app.js';
+export { VeloxApp, velox, veloxApp } from './app.js';
 // Context system
 export type { BaseContext } from './context.js';
 export { createContext, isContext, setupTestContext } from './context.js';
@@ -56,18 +55,13 @@ export type {
 } from './di/index.js';
 // Dependency Injection
 export {
-  // Provider helpers (legacy)
   asClass,
   asExisting,
   asFactory,
   asValue,
-  // Container
   Container,
   container,
   createContainer,
-  // Tokens (legacy - deprecated)
-  createStringToken,
-  createSymbolToken,
   factory,
   getConstructorTokens,
   getExplicitInjectTokens,
@@ -75,28 +69,22 @@ export {
   getOptionalParams,
   getTokenName,
   Inject,
-  // Decorators
   Injectable,
-  // Provider type guards
   isClassProvider,
   isClassToken,
   isExistingProvider,
   isFactoryProvider,
-  // Decorator utilities
   isInjectable,
   isStringToken,
   isSymbolToken,
   isValueProvider,
   makeInjectable,
   Optional,
-  // Scope
   Scope,
   ScopeManager,
   scoped,
   setInjectTokens,
-  // Provider helpers (succinct API)
   singleton,
-  // Tokens (succinct API)
   token,
   transient,
   validateProvider,

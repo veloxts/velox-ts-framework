@@ -5,15 +5,10 @@
  */
 
 export type { RestAdapterOptions, RestPlugin, RestRoute } from './adapter.js';
-// REST adapter - public API
 export {
-  // Legacy API (deprecated)
-  createRoutesRegistrar,
-  // Internal utilities
   generateRestRoutes,
   getRouteSummary,
   registerRestRoutes,
-  // Succinct API (preferred)
   rest,
 } from './adapter.js';
 // Naming convention utilities - internal, exported for advanced use cases

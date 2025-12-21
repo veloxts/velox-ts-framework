@@ -224,13 +224,6 @@ export function authMiddleware(config: AuthConfig) {
   };
 }
 
-/**
- * Creates an authentication middleware for procedures
- *
- * @deprecated Use `authMiddleware()` instead. Will be removed in v0.9.
- */
-export const createAuthMiddleware = authMiddleware;
-
 // ============================================================================
 // Error Helpers
 // ============================================================================
@@ -308,13 +301,6 @@ export function rateLimitMiddleware<TInput, TContext extends BaseContext, TOutpu
     return next();
   };
 }
-
-/**
- * Creates a rate limiting middleware
- *
- * @deprecated Use `rateLimitMiddleware()` instead. Will be removed in v0.9.
- */
-export const createRateLimitMiddleware = rateLimitMiddleware;
 
 /**
  * Clears rate limit store (useful for testing)

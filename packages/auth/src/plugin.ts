@@ -11,7 +11,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import { PasswordHasher } from './hash.js';
 import { JwtManager } from './jwt.js';
-import { createAuthMiddleware } from './middleware.js';
+import { authMiddleware } from './middleware.js';
 import type { AuthConfig, AuthContext, TokenPair, User } from './types.js';
 
 // Read version from package.json dynamically
@@ -73,7 +73,7 @@ export interface AuthService {
   /**
    * Gets the auth middleware factory
    */
-  middleware: ReturnType<typeof createAuthMiddleware>;
+  middleware: ReturnType<typeof authMiddleware>;
 }
 
 // ============================================================================
@@ -152,7 +152,7 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
       // Create instances
       const jwt = new JwtManager(config.jwt);
       const hasher = new PasswordHasher(config.hash);
-      const authMiddleware = createAuthMiddleware(config);
+      const authMw = authMiddleware(config);
 
       // Create auth service
       const authService: AuthService = {
@@ -182,7 +182,7 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
           return jwt.refreshTokens(refreshToken);
         },
 
-        middleware: authMiddleware,
+        middleware: authMw,
       };
 
       // Decorate server with auth service
@@ -253,13 +253,6 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
     },
   };
 }
-
-/**
- * Creates the VeloxTS auth plugin
- *
- * @deprecated Use `authPlugin()` instead. Will be removed in v0.9.
- */
-export const createAuthPlugin = authPlugin;
 
 /**
  * Default auth plugin with minimal configuration

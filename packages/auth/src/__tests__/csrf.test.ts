@@ -5,11 +5,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  createCsrfManager,
   type CsrfConfig,
   CsrfError,
   type CsrfManager,
-  createCsrfManager,
-  createCsrfMiddleware,
+  csrfMiddleware,
 } from '../csrf.js';
 
 describe('CSRF Protection', () => {
@@ -621,9 +621,9 @@ describe('CSRF Protection', () => {
     });
   });
 
-  describe('createCsrfMiddleware', () => {
+  describe('csrfMiddleware', () => {
     it('should create middleware with protect and provide methods', () => {
-      const csrf = createCsrfMiddleware(defaultConfig);
+      const csrf = csrfMiddleware(defaultConfig);
 
       expect(csrf.protect).toBeDefined();
       expect(csrf.provide).toBeDefined();
@@ -634,7 +634,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should expose manager instance', () => {
-      const csrf = createCsrfMiddleware(defaultConfig);
+      const csrf = csrfMiddleware(defaultConfig);
 
       expect(csrf.manager.generateToken).toBeDefined();
       expect(csrf.manager.validateToken).toBeDefined();

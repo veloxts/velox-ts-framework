@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
-import { createVeloxApp } from '../app.js';
+import { veloxApp } from '../app.js';
 
 describe('VeloxApp - Server Lifecycle', () => {
   let app: VeloxApp | null = null;
@@ -20,7 +20,7 @@ describe('VeloxApp - Server Lifecycle', () => {
   });
 
   it('should create an app instance', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     expect(app).toBeDefined();
     expect(app.isRunning).toBe(false);
@@ -28,7 +28,7 @@ describe('VeloxApp - Server Lifecycle', () => {
   });
 
   it('should start the server', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     await app.start();
 
@@ -38,7 +38,7 @@ describe('VeloxApp - Server Lifecycle', () => {
   });
 
   it('should stop the server', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     await app.start();
     expect(app.isRunning).toBe(true);
@@ -49,7 +49,7 @@ describe('VeloxApp - Server Lifecycle', () => {
   });
 
   it('should throw error when starting already running server', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     await app.start();
 
@@ -57,13 +57,13 @@ describe('VeloxApp - Server Lifecycle', () => {
   });
 
   it('should throw error when stopping non-running server', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     await expect(app.stop()).rejects.toThrow('Server is not running');
   });
 
   it('should prevent restarting after stop (Fastify limitation)', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     await app.start();
     expect(app.isRunning).toBe(true);

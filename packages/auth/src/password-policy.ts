@@ -650,13 +650,6 @@ export function passwordPolicy(config?: PasswordPolicyConfig): PasswordPolicy {
 }
 
 /**
- * Creates a password policy validator
- *
- * @deprecated Use `passwordPolicy()` instead. Will be removed in v0.9.
- */
-export const createPasswordPolicy = passwordPolicy;
-
-/**
  * Quick password strength check (no policy validation)
  *
  * @example

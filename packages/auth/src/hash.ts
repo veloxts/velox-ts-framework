@@ -225,18 +225,17 @@ export class PasswordHasher {
 }
 
 /**
- * Creates a new password hasher instance (succinct API)
+ * Creates a new password hasher instance
+ *
+ * @example
+ * ```typescript
+ * const hasher = passwordHasher({ rounds: 12 });
+ * const hash = await hasher.hash('password123');
+ * ```
  */
 export function passwordHasher(config?: HashConfig): PasswordHasher {
   return new PasswordHasher(config);
 }
-
-/**
- * Creates a new password hasher instance
- *
- * @deprecated Use `passwordHasher()` instead. Will be removed in v0.9.
- */
-export const createPasswordHasher = passwordHasher;
 
 /**
  * Default password hasher instance (bcrypt, 12 rounds)

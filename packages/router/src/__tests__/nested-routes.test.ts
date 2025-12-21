@@ -3,7 +3,7 @@
  * Tests for nested resource routes (e.g., /posts/:postId/comments/:id)
  */
 
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
@@ -253,10 +253,10 @@ describe('generateRestRoutes with parent', () => {
 });
 
 describe('Nested routes - Integration', () => {
-  let app: Awaited<ReturnType<typeof createVeloxApp>>;
+  let app: Awaited<ReturnType<typeof veloxApp>>;
 
   beforeEach(async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
   });
 
   afterEach(async () => {

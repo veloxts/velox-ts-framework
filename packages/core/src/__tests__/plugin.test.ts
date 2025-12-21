@@ -7,7 +7,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { VeloxApp } from '../app.js';
-import { createVeloxApp } from '../app.js';
+import { veloxApp } from '../app.js';
 import type { VeloxPlugin } from '../plugin.js';
 import { definePlugin } from '../plugin.js';
 
@@ -22,7 +22,7 @@ describe('VeloxApp - Plugin Registration', () => {
   });
 
   it('should register a plugin before start', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin = definePlugin({
       name: 'test-plugin',
@@ -32,7 +32,7 @@ describe('VeloxApp - Plugin Registration', () => {
       },
     });
 
-    await app.use(plugin);
+    await app.register(plugin);
     await app.start();
 
     // Test route exists using Fastify inject
@@ -46,7 +46,7 @@ describe('VeloxApp - Plugin Registration', () => {
   });
 
   it('should register multiple plugins', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const plugin1 = definePlugin({
       name: 'plugin-1',
@@ -64,8 +64,8 @@ describe('VeloxApp - Plugin Registration', () => {
       },
     });
 
-    await app.use(plugin1);
-    await app.use(plugin2);
+    await app.register(plugin1);
+    await app.register(plugin2);
     await app.start();
 
     const response1 = await app.server.inject({
@@ -83,7 +83,7 @@ describe('VeloxApp - Plugin Registration', () => {
   });
 
   it('should pass options to plugin', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     interface TestPluginOptions {
       message: string;
@@ -97,7 +97,7 @@ describe('VeloxApp - Plugin Registration', () => {
       },
     });
 
-    await app.use(plugin, { message: 'Hello from plugin' });
+    await app.register(plugin, { message: 'Hello from plugin' });
     await app.start();
 
     const response = await app.server.inject({
@@ -109,7 +109,7 @@ describe('VeloxApp - Plugin Registration', () => {
   });
 
   it('should throw error for plugin without name', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const invalidPlugin = {
       name: '',
@@ -117,13 +117,13 @@ describe('VeloxApp - Plugin Registration', () => {
       async register() {},
     };
 
-    await expect(app.use(invalidPlugin as unknown as VeloxPlugin)).rejects.toThrow(
+    await expect(app.register(invalidPlugin as unknown as VeloxPlugin)).rejects.toThrow(
       'Plugin must have a non-empty name'
     );
   });
 
   it('should throw error for plugin without version', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const invalidPlugin = {
       name: 'test',
@@ -131,13 +131,13 @@ describe('VeloxApp - Plugin Registration', () => {
       async register() {},
     };
 
-    await expect(app.use(invalidPlugin as unknown as VeloxPlugin)).rejects.toThrow(
+    await expect(app.register(invalidPlugin as unknown as VeloxPlugin)).rejects.toThrow(
       'Plugin "test" must have a version'
     );
   });
 
   it('should throw error when VeloxPlugin registration fails', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const failingPlugin = definePlugin({
       name: 'failing-plugin',
@@ -147,19 +147,19 @@ describe('VeloxApp - Plugin Registration', () => {
       },
     });
 
-    await expect(app.use(failingPlugin)).rejects.toThrow(
+    await expect(app.register(failingPlugin)).rejects.toThrow(
       'Failed to register plugin "failing-plugin": Registration failed!'
     );
   });
 
   it('should register FastifyPluginAsync directly', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const fastifyPlugin: FastifyPluginAsync = async (server) => {
       server.get('/fastify-route', async () => ({ fastify: true }));
     };
 
-    await app.use(fastifyPlugin);
+    await app.register(fastifyPlugin);
     await app.start();
 
     const response = await app.server.inject({
@@ -172,25 +172,25 @@ describe('VeloxApp - Plugin Registration', () => {
   });
 
   it('should throw error when FastifyPluginAsync registration fails', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     const failingFastifyPlugin: FastifyPluginAsync = async () => {
       throw new Error('Fastify plugin error!');
     };
 
-    await expect(app.use(failingFastifyPlugin)).rejects.toThrow(
+    await expect(app.register(failingFastifyPlugin)).rejects.toThrow(
       'Failed to register Fastify plugin: Fastify plugin error!'
     );
   });
 
   it('should throw error for invalid plugin type', async () => {
-    app = await createVeloxApp({ port: 0, logger: false });
+    app = await veloxApp({ port: 0, logger: false });
 
     // Neither a VeloxPlugin nor a FastifyPluginAsync
     const invalidPlugin = { invalid: true };
 
     await expect(
-      app.use(invalidPlugin as unknown as VeloxPlugin)
+      app.register(invalidPlugin as unknown as VeloxPlugin)
     ).rejects.toThrow('Invalid plugin: must be a VeloxPlugin object or FastifyPluginAsync function');
   });
 });

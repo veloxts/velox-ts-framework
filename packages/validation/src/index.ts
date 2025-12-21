@@ -69,8 +69,6 @@ export { isSchema, isZodSchema, wrapSchema } from './types.js';
 // ============================================================================
 
 export type { Validator } from './middleware.js';
-// Primary API - parse functions (Zod naming convention)
-// Deprecated aliases for backwards compatibility
 export {
   assertSchema,
   createTypeGuard,
@@ -79,9 +77,6 @@ export {
   parse,
   parseAll,
   safeParse,
-  safeValidate,
-  validate,
-  validateAll,
   zodErrorToValidationError,
 } from './middleware.js';
 

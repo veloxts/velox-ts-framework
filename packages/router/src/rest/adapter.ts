@@ -420,58 +420,11 @@ export function getRouteSummary(
 }
 
 /**
- * Creates a route registrar function for use with VeloxApp.routes()
- *
- * This is a convenience helper that returns a function suitable for
- * passing to app.routes(), enabling a cleaner API.
- *
- * @param collections - Procedure collections to register
- * @param options - Registration options
- * @returns A function that registers routes on a Fastify instance
- *
- * @deprecated Use `rest()` instead. This alias will be removed in v0.9.
- *
- * @example
- * ```typescript
- * import { veloxApp } from '@veloxts/core';
- * import { rest, defineProcedures, procedure } from '@veloxts/router';
- *
- * const users = defineProcedures('users', {
- *   listUsers: procedure().query(async () => []),
- * });
- *
- * const app = await veloxApp();
- *
- * app.routes(rest([users], { prefix: '/api' }));
- *
- * await app.start();
- * ```
+ * A callable Fastify plugin type that supports dual-mode registration:
+ * - As a Fastify plugin: `server.register(rest([...]), { prefix: '/api' })`
+ * - As a direct callable: `app.routes(rest([...]))` for VeloxApp
  */
-export function createRoutesRegistrar(
-  collections: ProcedureCollection[],
-  options: RestAdapterOptions = {}
-): (server: FastifyInstance) => void {
-  return (server: FastifyInstance) => {
-    registerRestRoutes(server, collections, options);
-  };
-}
-
-/**
- * Legacy callable signature for backward compatibility.
- * @deprecated Use `server.register(rest([...]), { prefix: '/api' })` instead.
- */
-type LegacyRestCallable = (server: FastifyInstance) => void;
-
-/**
- * A callable Fastify plugin type that can be used both as:
- * - A Fastify plugin: `server.register(rest([...]), { prefix: '/api' })`
- * - A direct callable: `rest([...])(server)` or `app.routes(rest([...]))`
- *
- * This type represents a function that is both:
- * 1. A FastifyPluginAsync (for server.register())
- * 2. A callable that returns void (for legacy app.routes() usage)
- */
-export type RestPlugin = FastifyPluginAsync<RestAdapterOptions> & LegacyRestCallable;
+export type RestPlugin = FastifyPluginAsync<RestAdapterOptions> & ((server: FastifyInstance) => void);
 
 /**
  * Creates a Fastify plugin for REST endpoints from procedure collections.

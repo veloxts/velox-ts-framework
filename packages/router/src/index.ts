@@ -143,12 +143,8 @@ export type {
   RouteMap,
 } from './rest/index.js';
 export {
-  // Internal utilities
   buildNestedRestPath,
   buildRestPath,
-  // Legacy API (deprecated)
-  createRoutesRegistrar,
-  // Route extraction for frontend clients
   extractRoutes,
   followsNamingConvention,
   generateRestRoutes,
@@ -156,7 +152,6 @@ export {
   inferResourceName,
   parseNamingConvention,
   registerRestRoutes,
-  // Succinct API (preferred)
   rest,
 } from './rest/index.js';
 
@@ -173,11 +168,13 @@ export type {
 } from './trpc/index.js';
 export {
   // tRPC utilities
+  appRouter,
   buildTRPCRouter,
   createAppRouter,
   createTRPC,
   createTRPCContextFactory,
   registerTRPCPlugin,
+  trpc,
   veloxErrorToTRPCError,
 } from './trpc/index.js';
 
@@ -204,6 +201,5 @@ export {
 // Unified API Registration
 // ============================================================================
 
-// Backward compatibility (deprecated)
-export type { ExposeOptions, ExposeResult, ServeOptions } from './expose.js';
-export { expose, serve } from './expose.js';
+export type { ServeOptions } from './expose.js';
+export { serve } from './expose.js';

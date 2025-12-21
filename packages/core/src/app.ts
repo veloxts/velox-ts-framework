@@ -380,21 +380,6 @@ export class VeloxApp {
   }
 
   /**
-   * Registers a plugin with the application
-   *
-   * @deprecated Use `register()` instead. This alias will be removed in v0.9.
-   * @template Options - Type of options the plugin accepts
-   * @param plugin - Plugin to register
-   * @param options - Options to pass to the plugin
-   */
-  async use<Options extends PluginOptions>(
-    plugin: VeloxPlugin<Options> | FastifyPluginAsync<Options>,
-    options?: Options
-  ): Promise<void> {
-    return this.register(plugin, options);
-  }
-
-  /**
    * Registers routes with the application
    *
    * This is a convenience method that passes the Fastify server
@@ -576,16 +561,6 @@ export class VeloxApp {
   beforeShutdown(handler: ShutdownHandler): void {
     this._lifecycle.addShutdownHandler(handler);
   }
-
-  /**
-   * Adds a shutdown handler
-   *
-   * @deprecated Use `beforeShutdown()` instead. This alias will be removed in v0.9.
-   * @param handler - Async function to call during shutdown
-   */
-  onShutdown(handler: ShutdownHandler): void {
-    this.beforeShutdown(handler);
-  }
 }
 
 /**
@@ -630,15 +605,6 @@ export async function veloxApp(config: VeloxAppConfig = {}): Promise<VeloxApp> {
   await app.initialize();
   return app;
 }
-
-/**
- * Creates a new VeloxTS application instance
- *
- * @deprecated Use `veloxApp()` instead. This alias will be removed in v0.9.
- * @param config - Application configuration
- * @returns Promise resolving to VeloxApp instance
- */
-export const createVeloxApp = veloxApp;
 
 /**
  * Short alias for veloxApp() - Laravel-style simplicity.

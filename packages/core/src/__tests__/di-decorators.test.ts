@@ -10,8 +10,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  createStringToken,
-  createSymbolToken,
   getConstructorTokens,
   getExplicitInjectTokens,
   getInjectableScope,
@@ -23,12 +21,13 @@ import {
   Optional,
   Scope,
   setInjectTokens,
+  token,
 } from '../di/index.js';
 
 // Test tokens
-const DATABASE = createStringToken<DatabaseClient>('DATABASE');
-const LOGGER = createSymbolToken<Logger>('LOGGER');
-const CONFIG = createStringToken<ConfigService>('CONFIG');
+const DATABASE = token<DatabaseClient>('DATABASE');
+const LOGGER = token.symbol<Logger>('LOGGER');
+const CONFIG = token<ConfigService>('CONFIG');
 
 // Test interfaces and implementations
 interface DatabaseClient {
