@@ -49,11 +49,29 @@ import type { Plugin } from 'vite';
  * ```
  */
 export function veloxNodeStubs(): Plugin {
-  // Stub implementations for Node.js built-ins
+  // Stub implementations for Node.js built-ins and problematic npm packages
   // These are minimal stubs that satisfy module resolution
-  // They never execute in the browser
+  // They never execute in the browser - they only exist to satisfy Vite's bundle analysis
   const stubs: Record<string, string> = {
-    // Prefixed versions (node:*)
+    // =========================================================================
+    // NPM packages that should never be bundled for browser
+    // These packages use Node.js APIs and must be replaced with no-ops
+    // =========================================================================
+    dotenv: `
+      export const config = () => ({ parsed: {} });
+      export const configDotenv = () => ({ parsed: {} });
+      export const parse = () => ({});
+      export const populate = () => {};
+      export default { config, configDotenv, parse, populate };
+    `,
+    'dotenv/config': `
+      // Side-effect import stub - does nothing in browser
+      export {};
+    `,
+
+    // =========================================================================
+    // Node.js built-in modules (prefixed versions: node:*)
+    // =========================================================================
     'node:util': `
       export const promisify = (fn) => fn;
       export const deprecate = (fn) => fn;
@@ -212,16 +230,22 @@ export function veloxNodeStubs(): Plugin {
     enforce: 'pre',
 
     config() {
-      // Provide process global stub for packages like dotenv that check it
-      // These satisfy common checks in Node.js packages that leak into browser bundles
+      // Note: We previously used Vite's `define` option for process.* properties,
+      // but this approach fails for function calls like process.cwd() because
+      // `define` only accepts literals or entity names, not function expressions.
+      //
+      // Instead, we now:
+      // 1. Stub the `dotenv` package entirely (see stubs above)
+      // 2. Provide minimal process.env stub since Vite handles most process.env access
+      //
+      // If other packages need process.cwd() etc., they should be added to the
+      // virtual module stubs list above (preferred) rather than trying to shim process.
       return {
         define: {
+          // Only keep process.env - Vite's built-in handling works for most cases
+          // Other process.* properties should be handled by stubbing the packages
+          // that use them (like dotenv) rather than trying to shim the global
           'process.env': '{}',
-          'process.argv': '[]',
-          'process.platform': '"browser"',
-          'process.version': '"v0.0.0"',
-          'process.stdout': '{}',
-          'process.stderr': '{}',
         },
       };
     },
