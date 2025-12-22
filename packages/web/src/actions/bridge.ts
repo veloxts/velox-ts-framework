@@ -221,11 +221,49 @@ export interface TrpcBridge<TRouter> {
   ): CallableAction<TInput, TOutput>;
 
   /**
+   * Short alias for createAction.
+   *
+   * @example
+   * ```typescript
+   * export const getUser = bridge.action('users.get');
+   * ```
+   */
+  action<
+    TPath extends ExtractProcedurePaths<TRouter> extends never
+      ? string
+      : ExtractProcedurePaths<TRouter>,
+    TInput = ExtractProcedureInput<TRouter, TPath>,
+    TOutput = ExtractProcedureOutput<TRouter, TPath>,
+  >(
+    procedurePath: TPath,
+    options?: TrpcActionOptions<TInput, TOutput>
+  ): CallableAction<TInput, TOutput>;
+
+  /**
    * Create a protected server action (requires authentication).
    *
    * Same as createAction but with requireAuth: true.
    */
   createProtectedAction<
+    TPath extends ExtractProcedurePaths<TRouter> extends never
+      ? string
+      : ExtractProcedurePaths<TRouter>,
+    TInput = ExtractProcedureInput<TRouter, TPath>,
+    TOutput = ExtractProcedureOutput<TRouter, TPath>,
+  >(
+    procedurePath: TPath,
+    options?: Omit<TrpcActionOptions<TInput, TOutput>, 'requireAuth'>
+  ): CallableAction<TInput, TOutput>;
+
+  /**
+   * Short alias for createProtectedAction.
+   *
+   * @example
+   * ```typescript
+   * export const updateUser = bridge.protected('users.update');
+   * ```
+   */
+  protected<
     TPath extends ExtractProcedurePaths<TRouter> extends never
       ? string
       : ExtractProcedurePaths<TRouter>,
@@ -363,6 +401,12 @@ class TrpcBridgeImpl<TRouter> implements TrpcBridge<TRouter> {
   ): CallableAction<TInput, TOutput> {
     return this.createAction(procedurePath, { ...options, requireAuth: true });
   }
+
+  // Short alias for createAction
+  action = this.createAction.bind(this);
+
+  // Short alias for createProtectedAction
+  protected = this.createProtectedAction.bind(this);
 
   async call<TOutput = unknown>(
     procedurePath: string,
