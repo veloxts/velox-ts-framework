@@ -79,7 +79,7 @@ jobs:
           retention-days: 1
 
   # Job 3: Smoke test scaffolder (only after build succeeds)
-  # Runs all 3 templates in parallel using matrix strategy
+  # Runs all 4 templates in parallel using matrix strategy
   smoke-test:
     name: Smoke Test (${{ matrix.template }})
     runs-on: ubuntu-latest
