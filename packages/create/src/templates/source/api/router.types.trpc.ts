@@ -1,56 +1,73 @@
 /**
  * Router Types - Browser-Safe Type Definitions
  *
- * CRITICAL: This file imports ONLY from schemas/ directory.
- * Never import from procedures/ or @veloxts/* packages.
+ * BROWSER-SAFE: This file imports ONLY from schemas/ and zod.
+ * Never import from procedures/ or @veloxts/* packages here.
  *
- * This breaks the import chain that would otherwise pull server code
- * into the browser bundle.
+ * Uses inline contract definitions for automatic type inference from Zod schemas.
+ * This provides "Great DX" - one line per procedure instead of verbose type definitions.
  */
 
-import type { z } from 'zod';
+import { z } from 'zod';
 
-import type * as HealthSchemas from './schemas/health.js';
-import type * as UserSchemas from './schemas/user.js';
+import * as HealthSchemas from './schemas/health.js';
+import * as UserSchemas from './schemas/user.js';
 
 // ============================================================================
-// Type Helpers
+// Contract Helper (Browser-Safe)
 // ============================================================================
 
-type Procedure<TInput, TOutput> = {
-  input: TInput;
-  output: TOutput;
+/**
+ * Type-safe contract definition helper.
+ * Provides autocomplete and type inference without importing @veloxts/router.
+ */
+type ContractEntry = {
+  input?: z.ZodType;
+  output?: z.ZodType;
 };
 
+const defineContract = <T extends Record<string, ContractEntry>>(contracts: T): T => contracts;
+
 // ============================================================================
-// AppRouter Type Definition
+// Health Contracts
 // ============================================================================
 
+export const healthContracts = defineContract({
+  getHealth: { output: HealthSchemas.HealthResponse },
+});
+
+// ============================================================================
+// User Contracts
+// ============================================================================
+
+export const userContracts = defineContract({
+  getUser: { input: UserSchemas.GetUserInput, output: UserSchemas.UserSchema },
+  listUsers: { input: UserSchemas.ListUsersInput, output: UserSchemas.ListUsersResponse },
+  createUser: { input: UserSchemas.CreateUserInput, output: UserSchemas.UserSchema },
+  updateUser: {
+    input: UserSchemas.UpdateUserInput.extend({ id: z.string().uuid() }),
+    output: UserSchemas.UserSchema,
+  },
+  patchUser: {
+    input: UserSchemas.UpdateUserInput.extend({ id: z.string().uuid() }),
+    output: UserSchemas.UserSchema,
+  },
+  deleteUser: {
+    input: z.object({ id: z.string().uuid() }),
+    output: z.object({ success: z.boolean() }),
+  },
+});
+
+// ============================================================================
+// AppRouter Type - Automatic Inference
+// ============================================================================
+
+/**
+ * The complete router type, inferred from contracts.
+ *
+ * This replaces manual type definitions with automatic inference from Zod schemas.
+ */
 export type AppRouter = {
-  health: {
-    getHealth: Procedure<undefined, z.infer<typeof HealthSchemas.HealthResponse>>;
-  };
-  users: {
-    getUser: Procedure<
-      z.infer<typeof UserSchemas.GetUserInput>,
-      z.infer<typeof UserSchemas.UserSchema>
-    >;
-    listUsers: Procedure<
-      z.infer<typeof UserSchemas.ListUsersInput>,
-      z.infer<typeof UserSchemas.ListUsersResponse>
-    >;
-    createUser: Procedure<
-      z.infer<typeof UserSchemas.CreateUserInput>,
-      z.infer<typeof UserSchemas.UserSchema>
-    >;
-    updateUser: Procedure<
-      z.infer<typeof UserSchemas.UpdateUserInput> & { id: string },
-      z.infer<typeof UserSchemas.UserSchema>
-    >;
-    patchUser: Procedure<
-      z.infer<typeof UserSchemas.UpdateUserInput> & { id: string },
-      z.infer<typeof UserSchemas.UserSchema>
-    >;
-    deleteUser: Procedure<{ id: string }, { success: boolean }>;
-  };
+  health: typeof healthContracts;
+  users: typeof userContracts;
 };
