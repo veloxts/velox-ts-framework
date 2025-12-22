@@ -53,6 +53,66 @@ const NODE_STUBS: Record<string, string> = {
   `,
 
   // =========================================================================
+  // Fastify ecosystem - server-only packages that should never run in browser
+  // These packages are pulled in via typeof import() chains from @veloxts/velox
+  // =========================================================================
+  fastify: `
+    const fastify = () => ({
+      register: () => Promise.resolve(),
+      get: () => {},
+      post: () => {},
+      put: () => {},
+      delete: () => {},
+      patch: () => {},
+      listen: () => Promise.resolve(),
+      ready: () => Promise.resolve(),
+      close: () => Promise.resolve(),
+    });
+    fastify.fastify = fastify;
+    export default fastify;
+    export { fastify };
+  `,
+  avvio: `
+    export default function avvio() { return { use: () => {}, ready: () => Promise.resolve(), close: () => Promise.resolve() }; }
+  `,
+  'fast-json-stringify': `
+    export default function build() { return () => '{}'; }
+  `,
+  'find-my-way': `
+    export default function Router() { return { on: () => {}, lookup: () => {}, find: () => null }; }
+  `,
+  '@fastify/error': `
+    export default function createError() { return class extends Error {}; }
+  `,
+  'light-my-request': `
+    export const inject = () => Promise.resolve({});
+    export default { inject };
+  `,
+  pino: `
+    const logger = { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, trace: () => {}, fatal: () => {}, child: () => logger };
+    export default () => logger;
+    export const pino = () => logger;
+  `,
+  'pino-pretty': `
+    export default () => ({ write: () => {} });
+  `,
+  'abstract-logging': `
+    export default { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, trace: () => {}, fatal: () => {} };
+  `,
+  'sonic-boom': `
+    export default class SonicBoom { write() {} end() {} destroy() {} }
+  `,
+  'thread-stream': `
+    export default class ThreadStream { write() {} end() {} destroy() {} }
+  `,
+  'process-warning': `
+    export default function processWarning() { return { create: () => () => {}, emit: () => {} }; }
+  `,
+  rfdc: `
+    export default function rfdc() { return (obj) => JSON.parse(JSON.stringify(obj)); }
+  `,
+
+  // =========================================================================
   // Node.js built-in modules (prefixed versions: node:*)
   // =========================================================================
   'node:util': `
@@ -62,7 +122,9 @@ const NODE_STUBS: Record<string, string> = {
     export const format = (...args) => args.join(' ');
     export const inherits = () => {};
     export const isDeepStrictEqual = () => false;
-    export default { promisify, deprecate, inspect, format, inherits, isDeepStrictEqual };
+    export const debuglog = () => () => {};
+    export const types = { isPromise: () => false, isAsyncFunction: () => false };
+    export default { promisify, deprecate, inspect, format, inherits, isDeepStrictEqual, debuglog, types };
   `,
   'node:crypto': `
     export const randomBytes = (size) => new Uint8Array(size || 0);
@@ -370,14 +432,20 @@ function createEsbuildNodeStubsPlugin(): EsbuildPlugin {
       const nodeBuiltinFilter =
         /^(node:)?(util|crypto|module|fs|path|url|os|buffer|events|stream|http|https|net|async_hooks|assert|diagnostics_channel|http2|dns|string_decoder|zlib|querystring|child_process|worker_threads|tty|readline|perf_hooks|process)(\/.*)?$/;
 
-      // Match dotenv which executes at import time and crashes in browser
-      const dotenvFilter = /^dotenv(\/.*)?$/;
+      // Match packages that should never run in browser
+      // - dotenv: executes at import time, crashes on process.argv
+      // - Fastify ecosystem: server-only, crashes on Node.js APIs
+      const serverPackagesFilter = /^(dotenv|fastify|avvio|fast-json-stringify|find-my-way|@fastify\/error|light-my-request|pino|pino-pretty|abstract-logging|sonic-boom|thread-stream|process-warning|rfdc)(\/.*)?$/;
 
-      build.onResolve({ filter: dotenvFilter }, (args) => {
-        return {
-          path: args.path,
-          namespace: 'velox-node-stubs',
-        };
+      build.onResolve({ filter: serverPackagesFilter }, (args) => {
+        // Check if we have a stub for this package
+        if (args.path in allStubs) {
+          return {
+            path: args.path,
+            namespace: 'velox-node-stubs',
+          };
+        }
+        return null;
       });
 
       build.onResolve({ filter: nodeBuiltinFilter }, (args) => {
