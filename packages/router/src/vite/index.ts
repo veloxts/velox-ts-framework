@@ -27,103 +27,25 @@ import type { Plugin, UserConfig } from 'vite';
 // ============================================================================
 
 /**
- * Stub implementations for Node.js built-ins and problematic npm packages.
- * These are minimal stubs that satisfy module resolution.
- * They never execute in the browser - they only exist to satisfy Vite's bundle analysis.
+ * Stub implementations for Node.js built-in modules.
+ *
+ * These minimal stubs satisfy module resolution during Vite's bundle analysis.
+ * They never execute in the browser - the actual code paths using these modules
+ * are server-only and tree-shaken away.
+ *
+ * Note: Only Node.js built-ins need stubs here. NPM packages (fastify, pino, etc.)
+ * are handled by Vite's pre-bundling which automatically converts CJS to ESM.
  */
 const NODE_STUBS: Record<string, string> = {
   // =========================================================================
-  // NPM packages that should never be bundled for browser
-  // These packages use Node.js APIs and must be replaced with no-ops
-  // =========================================================================
-  dotenv: `
-    export const config = () => ({ parsed: {} });
-    export const configDotenv = () => ({ parsed: {} });
-    export const parse = () => ({});
-    export const populate = () => {};
-    export default { config, configDotenv, parse, populate };
-  `,
-  'dotenv/config': `
-    // Side-effect import stub - does nothing in browser
-    export {};
-  `,
-
-  // =========================================================================
-  // CommonJS packages that need ESM stubs
-  // These are server-only packages pulled in via typeof import() chains
-  // =========================================================================
-  'fastify-plugin': `
-    const fp = (fn, opts) => {
-      if (typeof fn !== 'function') return fn;
-      fn[Symbol.for('skip-override')] = opts?.encapsulate !== false;
-      fn[Symbol.for('fastify.display-name')] = opts?.name;
-      return fn;
-    };
-    fp.default = fp;
-    export default fp;
-    export { fp };
-  `,
-  fastify: `
-    class Fastify {
-      constructor() {}
-      register() { return this; }
-      use() { return this; }
-      get() { return this; }
-      post() { return this; }
-      put() { return this; }
-      delete() { return this; }
-      patch() { return this; }
-      listen() { return Promise.resolve(); }
-      ready() { return Promise.resolve(); }
-      close() { return Promise.resolve(); }
-      addHook() { return this; }
-      decorate() { return this; }
-      decorateRequest() { return this; }
-      decorateReply() { return this; }
-    }
-    const fastify = (opts) => new Fastify();
-    fastify.default = fastify;
-    fastify.fastify = fastify;
-    export default fastify;
-    export { fastify };
-  `,
-  '@fastify/cookie': `
-    const plugin = (fastify, opts, done) => { if (done) done(); };
-    plugin[Symbol.for('skip-override')] = true;
-    export default plugin;
-  `,
-  '@fastify/cors': `
-    const plugin = (fastify, opts, done) => { if (done) done(); };
-    plugin[Symbol.for('skip-override')] = true;
-    export default plugin;
-  `,
-  '@fastify/formbody': `
-    const plugin = (fastify, opts, done) => { if (done) done(); };
-    plugin[Symbol.for('skip-override')] = true;
-    export default plugin;
-  `,
-  '@fastify/static': `
-    const plugin = (fastify, opts, done) => { if (done) done(); };
-    plugin[Symbol.for('skip-override')] = true;
-    export default plugin;
-  `,
-  pino: `
-    const pino = () => ({
-      info: () => {},
-      error: () => {},
-      warn: () => {},
-      debug: () => {},
-      trace: () => {},
-      fatal: () => {},
-      child: () => pino(),
-    });
-    pino.default = pino;
-    export default pino;
-    export { pino };
-  `,
-
-  // =========================================================================
   // Node.js built-in modules (prefixed versions: node:*)
+  //
+  // Only Node.js built-ins need stubs. NPM packages like fastify, pino, etc.
+  // are handled by Vite's pre-bundling which converts CJS to ESM.
+  //
+  // We previously had stubs for dotenv, fastify, pino, etc. but these caused
+  // a whack-a-mole problem where each new CJS package needed its own stub.
+  // The correct solution is to let Vite pre-bundle these packages normally.
   // =========================================================================
   'node:util': `
     export const promisify = (fn) => fn;
@@ -435,13 +357,9 @@ function createEsbuildNodeStubsPlugin(): EsbuildPlugin {
         return null;
       });
 
-      // Also handle dotenv
-      build.onResolve({ filter: /^dotenv(\/config)?$/ }, (args) => {
-        return {
-          path: args.path,
-          namespace: 'velox-node-stubs',
-        };
-      });
+      // Note: We no longer stub npm packages like dotenv, fastify, pino, etc.
+      // These are now properly handled by Vite's pre-bundling (CJS -> ESM conversion)
+      // since we removed the optimizeDeps.exclude for @veloxts/* packages.
 
       build.onLoad({ filter: /.*/, namespace: 'velox-node-stubs' }, (args) => {
         // Try with node: prefix first, then without
@@ -470,17 +388,25 @@ function createEsbuildNodeStubsPlugin(): EsbuildPlugin {
  * **How it works:**
  *
  * 1. **Pre-bundling phase (esbuild):** Configures `optimizeDeps.esbuildOptions.plugins`
- *    to intercept Node.js imports during dependency optimization.
+ *    to intercept Node.js built-in imports during dependency optimization.
+ *    This also allows @veloxts/* packages to be pre-bundled normally, which
+ *    converts their CommonJS dependencies (fastify-plugin, pino, etc.) to ESM.
  *
  * 2. **Application code (Vite/Rollup):** Uses `resolveId` and `load` hooks to
  *    provide virtual modules for any Node.js imports in application code.
  *
- * 3. **Safety net:** Excludes `@veloxts/*` packages from pre-bundling to ensure
- *    our plugin hooks can intercept all Node.js imports.
+ * 3. **Resolve aliases:** Configures `resolve.alias` to intercept Node.js builtins
+ *    before Vite's normal resolution, ensuring stubs are used consistently.
  *
  * **Important:** These stubs never execute in the browser - they only exist to
  * satisfy Vite/Rollup's bundle analysis. The actual code paths using these
  * modules are server-only.
+ *
+ * **Note:** We intentionally allow Vite to pre-bundle @veloxts/* packages.
+ * This is critical because it allows Vite to convert CommonJS dependencies
+ * to ESM format. Previously, excluding @veloxts/* from pre-bundling caused
+ * a "whack-a-mole" problem where each CJS package (dotenv, fastify-plugin,
+ * picocolors, etc.) needed manual ESM stubs.
  *
  * @returns Vite plugin configuration
  *
@@ -534,20 +460,17 @@ export function veloxNodeStubs(): Plugin {
 
         // Configure dependency optimization (pre-bundling)
         optimizeDeps: {
-          // Exclude @veloxts/* packages from pre-bundling so our plugin can
-          // intercept their Node.js imports. This is a safety net.
-          exclude: [
-            '@veloxts/velox',
-            '@veloxts/auth',
-            '@veloxts/router',
-            '@veloxts/core',
-            '@veloxts/orm',
-            '@veloxts/validation',
-            '@veloxts/client',
-          ],
-
-          // Add esbuild plugin for any dependencies that DO get pre-bundled
-          // This handles transitive dependencies that might import Node.js modules
+          // IMPORTANT: Do NOT exclude @veloxts/* packages from pre-bundling!
+          //
+          // Why? Pre-bundling serves two critical purposes:
+          // 1. Converts CommonJS dependencies to ESM (picocolors, fastify-plugin, etc.)
+          // 2. Allows our esbuild plugin to stub Node.js built-ins
+          //
+          // If we exclude @veloxts/*, their CJS dependencies are served as-is,
+          // causing "does not provide an export named 'default'" errors.
+          //
+          // The esbuild plugin handles Node.js built-ins during pre-bundling,
+          // while resolve.alias handles them during Vite's resolution phase.
           esbuildOptions: {
             plugins: [createEsbuildNodeStubsPlugin()],
           },
