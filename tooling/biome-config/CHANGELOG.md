@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.27
+
+### Patch Changes
+
+- chore: add GUIDE, LICENSE and CHANGELOG.md to npm files
+
 ## 0.6.26
 
 ### Patch Changes

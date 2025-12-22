@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.27
+
+### Patch Changes
+
+- chore: add GUIDE, LICENSE and CHANGELOG.md to npm files
+- Updated dependencies
+  - @veloxts/cli@0.6.27
+  - @veloxts/router@0.6.27
+  - @veloxts/validation@0.6.27
+
 ## 0.6.26
 
 ### Patch Changes

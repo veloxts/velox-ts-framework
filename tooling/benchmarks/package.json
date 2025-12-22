@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/benchmarks",
-  "version": "0.6.26",
+  "version": "0.6.27",
   "description": "Performance benchmarks for VeloxTS framework",
   "type": "module",
   "private": true,

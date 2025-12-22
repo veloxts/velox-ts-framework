@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.27
+
+### Patch Changes
+
+- chore: add GUIDE, LICENSE and CHANGELOG.md to npm files
+- Updated dependencies
+  - @veloxts/core@0.6.27
+  - @veloxts/router@0.6.27
+
 ## 0.6.26
 
 ### Patch Changes
