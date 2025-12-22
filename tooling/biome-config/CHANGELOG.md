@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.17
+
+### Patch Changes
+
+- remove optimizeDeps.exclude to fix CJS/ESM interop
+
 ## 0.6.16
 
 ### Patch Changes

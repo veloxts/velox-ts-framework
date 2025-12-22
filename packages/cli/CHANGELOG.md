@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.17
+
+### Patch Changes
+
+- remove optimizeDeps.exclude to fix CJS/ESM interop
+- Updated dependencies
+  - @veloxts/auth@0.6.17
+  - @veloxts/core@0.6.17
+  - @veloxts/orm@0.6.17
+  - @veloxts/router@0.6.17
+  - @veloxts/validation@0.6.17
+
 ## 0.6.16
 
 ### Patch Changes

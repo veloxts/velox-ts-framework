@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/orm",
-  "version": "0.6.16",
+  "version": "0.6.17",
   "description": "Prisma wrapper with enhanced DX for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",
