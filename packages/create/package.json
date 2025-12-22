@@ -17,7 +17,8 @@
   "files": [
     "dist",
     "src/templates/source",
-    "README.md"
+    "README.md",
+    "GUIDE.md"
   ],
   "scripts": {
     "build": "tsc",

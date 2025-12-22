@@ -62,7 +62,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "GUIDE.md"
   ],
   "keywords": [
     "velox",

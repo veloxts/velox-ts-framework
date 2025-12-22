@@ -30,7 +30,8 @@
   "files": [
     "dist",
     "templates",
-    "README.md"
+    "README.md",
+    "GUIDE.md"
   ],
   "scripts": {
     "build": "tsc",
