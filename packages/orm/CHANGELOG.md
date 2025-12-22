@@ -1,5 +1,13 @@
 # @veloxts/orm
 
+## 0.6.20
+
+### Patch Changes
+
+- add Fastify ecosystem stubs and debuglog to util
+- Updated dependencies
+  - @veloxts/core@0.6.20
+
 ## 0.6.19
 
 ### Patch Changes

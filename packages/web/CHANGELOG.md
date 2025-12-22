@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.20
+
+### Patch Changes
+
+- add Fastify ecosystem stubs and debuglog to util
+- Updated dependencies
+  - @veloxts/auth@0.6.20
+  - @veloxts/client@0.6.20
+  - @veloxts/core@0.6.20
+  - @veloxts/router@0.6.20
+
 ## 0.6.19
 
 ### Patch Changes
