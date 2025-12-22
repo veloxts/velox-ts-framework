@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.21
+
+### Patch Changes
+
+- separate schemas from procedures for browser-safe import
+- Updated dependencies
+  - @veloxts/cli@0.6.21
+  - @veloxts/router@0.6.21
+  - @veloxts/validation@0.6.21
+
 ## 0.6.20
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.21
+
+### Patch Changes
+
+- separate schemas from procedures for browser-safe import
+
 ## 0.6.20
 
 ### Patch Changes
