@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.16
+
+### Patch Changes
+
+- add stubs for Fastify ecosystem packages
+- Updated dependencies
+  - @veloxts/cli@0.6.16
+  - @veloxts/router@0.6.16
+  - @veloxts/validation@0.6.16
+
 ## 0.6.15
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.16
+
+### Patch Changes
+
+- add stubs for Fastify ecosystem packages
+
 ## 0.6.15
 
 ### Patch Changes
