@@ -379,6 +379,25 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       exit 1
     fi
 
+    echo ""
+    echo "--- Testing @veloxts/client integration ---"
+    # This test validates that the client can resolve routes correctly
+    # It would catch issues like the path.matchAll error
+    # Note: We're in apps/api directory at this point, so use relative path
+    ROUTES_FILE="src/routes.ts"
+    if [ -f "$ROUTES_FILE" ]; then
+      # Use tsx to run the TypeScript routes file
+      if npx tsx "$SCRIPT_DIR/scripts/test-client.mjs" "$(pwd)/$ROUTES_FILE" "http://localhost:$test_port/api"; then
+        echo "✓ @veloxts/client integration test passed"
+      else
+        echo "✗ @veloxts/client integration test FAILED"
+        kill $SERVER_PID 2>/dev/null || true
+        exit 1
+      fi
+    else
+      echo "⚠ Skipping client test: $ROUTES_FILE not found (pwd: $(pwd))"
+    fi
+
   elif [ "$template" = "trpc" ]; then
     # tRPC hybrid template - test both tRPC and REST endpoints
     echo ""
