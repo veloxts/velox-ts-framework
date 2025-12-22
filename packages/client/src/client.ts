@@ -13,6 +13,7 @@ import type {
   ClientFromRouter,
   HttpMethod,
   ProcedureCall,
+  RouteEntry,
   RouteMap,
 } from './types.js';
 
@@ -80,6 +81,41 @@ function inferMethodFromName(procedureName: string): HttpMethod {
 // }
 
 /**
+ * Type guard for RouteEntry objects
+ *
+ * @internal
+ */
+function isRouteEntry(value: unknown): value is RouteEntry {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'method' in value &&
+    'path' in value &&
+    typeof (value as RouteEntry).path === 'string'
+  );
+}
+
+/**
+ * Resolves a route mapping to method and path
+ *
+ * Supports two formats:
+ * - Object: { method: 'POST', path: '/auth/register' }
+ * - String (legacy): '/auth/register'
+ *
+ * @internal
+ */
+function resolveRouteOverride(
+  override: RouteEntry | string,
+  procedureName: string
+): { method: HttpMethod; path: string } {
+  if (isRouteEntry(override)) {
+    return { method: override.method, path: override.path };
+  }
+  // Legacy string format - infer method from procedure name
+  return { method: inferMethodFromName(procedureName), path: override };
+}
+
+/**
  * Builds REST path from namespace and procedure name
  *
  * First checks for explicit route mapping, then falls back to
@@ -89,7 +125,7 @@ function inferMethodFromName(procedureName: string): HttpMethod {
  * - namespace='users', name='getUser' -> '/users/:id'
  * - namespace='users', name='listUsers' -> '/users'
  * - namespace='posts', name='createPost' -> '/posts'
- * - namespace='auth', name='createAccount', routes={auth:{createAccount:'/auth/register'}} -> '/auth/register'
+ * - namespace='auth', name='createAccount', routes={auth:{createAccount:{method:'POST',path:'/auth/register'}}} -> '/auth/register'
  *
  * @internal
  */
@@ -97,7 +133,8 @@ function buildRestPath(namespace: string, procedureName: string, routes?: RouteM
   // Check for explicit route mapping first
   const override = routes?.[namespace]?.[procedureName];
   if (override) {
-    return override;
+    const resolved = resolveRouteOverride(override, procedureName);
+    return resolved.path;
   }
 
   // Fall back to naming convention
@@ -212,6 +249,30 @@ function extractPathParams(path: string): Set<string> {
 // ============================================================================
 
 /**
+ * Resolves both method and path for a procedure call
+ *
+ * Uses explicit route mapping if available, otherwise falls back to naming convention.
+ *
+ * @internal
+ */
+function resolveMethodAndPath(
+  namespace: string,
+  procedureName: string,
+  routes?: RouteMap
+): { method: HttpMethod; path: string } {
+  // Check for explicit route mapping first
+  const override = routes?.[namespace]?.[procedureName];
+  if (override) {
+    return resolveRouteOverride(override, procedureName);
+  }
+
+  // Fall back to naming convention inference
+  const method = inferMethodFromName(procedureName);
+  const path = buildRestPath(namespace, procedureName, routes);
+  return { method, path };
+}
+
+/**
  * Builds the full URL and request options for a procedure call
  *
  * @internal
@@ -221,8 +282,7 @@ function buildRequest(
   baseUrl: string,
   config: ClientConfig
 ): { url: string; options: RequestInit } {
-  const method = inferMethodFromName(call.procedureName);
-  const path = buildRestPath(call.namespace, call.procedureName, config.routes);
+  const { method, path } = resolveMethodAndPath(call.namespace, call.procedureName, config.routes);
 
   // Prepare headers - support both static object and dynamic function
   const customHeaders =

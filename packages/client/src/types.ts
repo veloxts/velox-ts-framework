@@ -133,23 +133,35 @@ export type ClientFromRouter<TRouter> = {
 // ============================================================================
 
 /**
- * Maps procedure names to their REST endpoint paths.
+ * A single route entry with method and path
+ */
+export interface RouteEntry {
+  method: HttpMethod;
+  path: string;
+}
+
+/**
+ * Maps procedure names to their REST endpoint configuration.
  *
  * Use when backend procedures have `.rest()` overrides that differ
  * from the default naming convention paths.
+ *
+ * Supports two formats:
+ * - Object format: `{ method: 'POST', path: '/auth/register' }`
+ * - String format (legacy): `'/auth/register'` (method inferred from name)
  *
  * @example
  * ```typescript
  * const routes: RouteMap = {
  *   auth: {
- *     createAccount: '/auth/register',
- *     createSession: '/auth/login',
- *     getMe: '/auth/me',
+ *     createAccount: { method: 'POST', path: '/auth/register' },
+ *     createSession: { method: 'POST', path: '/auth/login' },
+ *     getMe: { method: 'GET', path: '/auth/me' },
  *   },
  * };
  * ```
  */
-export type RouteMap = Record<string, Record<string, string>>;
+export type RouteMap = Record<string, Record<string, RouteEntry | string>>;
 
 /**
  * Configuration for creating a client instance
