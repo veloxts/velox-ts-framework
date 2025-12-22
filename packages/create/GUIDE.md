@@ -19,6 +19,7 @@ Your app will be running at `http://localhost:3030`
 npx create-velox-app my-app              # Default REST API
 npx create-velox-app my-app --auth       # With authentication
 npx create-velox-app my-app --trpc       # tRPC-only setup
+npx create-velox-app my-app --rsc        # Full-stack setup with React Server Components
 ```
 
 ## Project Structure
