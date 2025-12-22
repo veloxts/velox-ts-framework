@@ -1,7 +1,7 @@
 import path from 'node:path';
 
-import { veloxNodeStubs } from '@veloxts/router/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
+import { veloxNodeStubs } from '@veloxts/router/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
