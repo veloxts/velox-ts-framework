@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.19
+
+### Patch Changes
+
+- restore dotenv stub for browser compatibility
+- Updated dependencies
+  - @veloxts/auth@0.6.19
+  - @veloxts/client@0.6.19
+  - @veloxts/core@0.6.19
+  - @veloxts/router@0.6.19
+
 ## 0.6.18
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @veloxts/orm
 
+## 0.6.19
+
+### Patch Changes
+
+- restore dotenv stub for browser compatibility
+- Updated dependencies
+  - @veloxts/core@0.6.19
+
 ## 0.6.18
 
 ### Patch Changes

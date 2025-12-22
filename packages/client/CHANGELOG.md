@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.6.19
+
+### Patch Changes
+
+- restore dotenv stub for browser compatibility
+
 ## 0.6.18
 
 ### Patch Changes
