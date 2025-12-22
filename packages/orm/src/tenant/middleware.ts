@@ -5,7 +5,12 @@
  */
 
 import type { DatabaseClient } from '../types.js';
-import { getTenantStatusError, TenantIdMissingError, TenantNotFoundError } from './errors.js';
+import {
+  getTenantStatusError,
+  TenantAccessDeniedError,
+  TenantIdMissingError,
+  TenantNotFoundError,
+} from './errors.js';
 import type {
   Tenant,
   TenantClientPool,
@@ -56,6 +61,7 @@ export function createTenantMiddleware<TClient extends DatabaseClient>(
     publicClient,
     getTenantId = defaultGetTenantId,
     allowNoTenant = false,
+    verifyTenantAccess,
   } = config;
 
   return async ({ ctx, next }) => {
@@ -83,6 +89,16 @@ export function createTenantMiddleware<TClient extends DatabaseClient>(
     const statusError = getTenantStatusError(tenantId, tenant.status);
     if (statusError) {
       throw statusError;
+    }
+
+    // SECURITY: Verify user has access to this tenant
+    // This prevents tenant isolation bypass where a user could
+    // manipulate JWT claims to access another tenant's data
+    if (verifyTenantAccess) {
+      const hasAccess = await verifyTenantAccess(ctx, tenant);
+      if (!hasAccess) {
+        throw new TenantAccessDeniedError(tenantId, ctx.user?.id);
+      }
     }
 
     // Get tenant-scoped database client

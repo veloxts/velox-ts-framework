@@ -5,10 +5,17 @@
  * - Creating tenant schemas
  * - Running Prisma migrations per schema
  * - Listing and deleting schemas
+ *
+ * SECURITY:
+ * - All SQL queries use parameterized queries via pg library
+ * - Prisma migrations use execFile (no shell) with validated paths
+ * - Input validation prevents injection attacks
  */
 
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+
+import pg from 'pg';
 
 import {
   InvalidSlugError,
@@ -24,7 +31,8 @@ import type {
   TenantSchemaManagerConfig,
 } from '../types.js';
 
-const execAsync = promisify(exec);
+const { Client } = pg;
+const execFileAsync = promisify(execFile);
 
 /**
  * Default configuration
@@ -57,6 +65,64 @@ const RESERVED_SCHEMAS = new Set([
 ]);
 
 /**
+ * Validate database URL format and check for injection patterns
+ */
+function validateDatabaseUrl(url: string): void {
+  try {
+    const parsed = new URL(url);
+
+    // Only allow postgresql:// protocol
+    if (parsed.protocol !== 'postgresql:' && parsed.protocol !== 'postgres:') {
+      throw new Error('Invalid database protocol');
+    }
+
+    // Check for shell metacharacters
+    const DANGEROUS_CHARS = /[;|&$`<>(){}[\]!]/;
+    if (DANGEROUS_CHARS.test(url)) {
+      throw new Error('Database URL contains dangerous characters');
+    }
+  } catch {
+    throw new Error('Invalid database URL format');
+  }
+}
+
+/**
+ * Validate Prisma schema path to prevent path traversal
+ */
+function validatePrismaSchemaPath(path: string): void {
+  // Check for path traversal
+  if (path.includes('..') || path.includes('\0')) {
+    throw new Error('Invalid Prisma schema path: path traversal detected');
+  }
+
+  // Check for shell metacharacters
+  const DANGEROUS_CHARS = /[;|&$`<>(){}[\]!'"]/;
+  if (DANGEROUS_CHARS.test(path)) {
+    throw new Error('Invalid Prisma schema path: dangerous characters detected');
+  }
+
+  // Must end with .prisma
+  if (!path.endsWith('.prisma')) {
+    throw new Error('Invalid Prisma schema path: must end with .prisma');
+  }
+}
+
+/**
+ * Sanitize error messages to prevent credential leakage
+ */
+function sanitizeError(error: Error): Error {
+  let message = error.message;
+
+  // Remove connection strings
+  message = message.replace(/postgresql:\/\/[^@]+@[^\s"']+/gi, 'postgresql://***:***@***/***');
+
+  // Remove passwords
+  message = message.replace(/password[=:]\s*['"]?[^'"\s]+/gi, 'password=***');
+
+  return new Error(message);
+}
+
+/**
  * Create a tenant schema manager
  *
  * @example
@@ -75,8 +141,41 @@ const RESERVED_SCHEMAS = new Set([
  * ```
  */
 export function createTenantSchemaManager(config: TenantSchemaManagerConfig): ITenantSchemaManager {
+  // Validate configuration
+  validateDatabaseUrl(config.databaseUrl);
+
   const schemaPrefix = config.schemaPrefix ?? DEFAULTS.schemaPrefix;
   const prismaSchemaPath = config.prismaSchemaPath ?? DEFAULTS.prismaSchemaPath;
+
+  validatePrismaSchemaPath(prismaSchemaPath);
+
+  /**
+   * Create a PostgreSQL client connection
+   */
+  async function createClient(): Promise<pg.Client> {
+    const client = new Client({ connectionString: config.databaseUrl });
+    await client.connect();
+    return client;
+  }
+
+  /**
+   * Execute a parameterized SQL query safely
+   */
+  async function executeSql<T extends pg.QueryResultRow = pg.QueryResultRow>(
+    sql: string,
+    params: unknown[] = []
+  ): Promise<T[]> {
+    const client = await createClient();
+
+    try {
+      const result = await client.query<T>(sql, params);
+      return result.rows;
+    } catch (error) {
+      throw sanitizeError(error instanceof Error ? error : new Error(String(error)));
+    } finally {
+      await client.end();
+    }
+  }
 
   /**
    * Sanitize a slug to create a valid schema name
@@ -95,7 +194,7 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
   }
 
   /**
-   * Validate a slug
+   * Validate a slug with strict security checks
    */
   function validateSlug(slug: string): void {
     if (!slug || slug.trim().length === 0) {
@@ -106,9 +205,28 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
       throw new InvalidSlugError(slug, 'slug cannot exceed 50 characters');
     }
 
-    // Check for path traversal or injection attempts
-    if (slug.includes('..') || slug.includes('/') || slug.includes('\\')) {
-      throw new InvalidSlugError(slug, 'slug contains invalid characters');
+    // Strict whitelist validation
+    const VALID_SLUG_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+    if (!VALID_SLUG_REGEX.test(slug)) {
+      throw new InvalidSlugError(
+        slug,
+        'slug must contain only lowercase letters, numbers, and hyphens'
+      );
+    }
+
+    // Check for dangerous patterns
+    const DANGEROUS_PATTERNS = [
+      /[;|&$`<>]/, // Shell metacharacters
+      /['"`]/, // SQL quotes
+      /\0/, // Null bytes
+      /\.\./, // Path traversal
+      /[\\/]/, // Path separators
+    ];
+
+    for (const pattern of DANGEROUS_PATTERNS) {
+      if (pattern.test(slug)) {
+        throw new InvalidSlugError(slug, 'slug contains forbidden characters');
+      }
     }
 
     const schemaName = slugToSchemaName(slug);
@@ -144,22 +262,14 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
     if (RESERVED_SCHEMAS.has(schemaName.toLowerCase())) {
       throw new Error(`Cannot use reserved schema name: ${schemaName}`);
     }
-  }
 
-  /**
-   * Execute a SQL query using psql
-   */
-  async function executeSql(sql: string): Promise<string> {
-    // Escape single quotes in SQL
-    const escapedSql = sql.replace(/'/g, "'\\''");
+    // Additional security checks
+    const DANGEROUS_PATTERNS = [/[;|&$`<>]/, /['"`]/, /\0/, /\.\./, /[\\/]/];
 
-    try {
-      const { stdout } = await execAsync(`psql "${config.databaseUrl}" -c '${escapedSql}' -t -A`, {
-        timeout: 30000,
-      });
-      return stdout.trim();
-    } catch (error) {
-      throw error instanceof Error ? error : new Error(String(error));
+    for (const pattern of DANGEROUS_PATTERNS) {
+      if (pattern.test(schemaName)) {
+        throw new Error(`Schema name contains forbidden characters: ${schemaName}`);
+      }
     }
   }
 
@@ -172,13 +282,15 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
       const schemaName = slugToSchemaName(slug);
 
       try {
-        // Check if schema already exists
+        // Check if schema already exists using parameterized query
         const exists = await this.schemaExists(schemaName);
         if (exists) {
           return { schemaName, created: false };
         }
 
-        // Create the schema
+        // Create the schema using parameterized identifier
+        // Note: Schema names cannot be parameterized directly, but we've validated it
+        // is safe (alphanumeric only) above
         await executeSql(`CREATE SCHEMA "${schemaName}"`);
 
         return { schemaName, created: true };
@@ -192,6 +304,8 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
 
     /**
      * Run Prisma migrations on a tenant schema
+     *
+     * SECURITY: Uses execFile (not exec) to prevent command injection
      */
     async migrateSchema(schemaName: string): Promise<SchemaMigrateResult> {
       validateSchemaName(schemaName);
@@ -202,10 +316,15 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
         url.searchParams.set('schema', schemaName);
         const schemaUrl = url.toString();
 
-        // Run prisma migrate deploy
-        const { stdout } = await execAsync(
-          `DATABASE_URL="${schemaUrl}" npx prisma migrate deploy --schema="${prismaSchemaPath}"`,
-          { timeout: 120000 } // 2 minute timeout for migrations
+        // Run prisma migrate deploy using execFile (no shell interpretation)
+        // This prevents command injection via the schemaUrl or prismaSchemaPath
+        const { stdout } = await execFileAsync(
+          'npx',
+          ['prisma', 'migrate', 'deploy', `--schema=${prismaSchemaPath}`],
+          {
+            env: { ...process.env, DATABASE_URL: schemaUrl },
+            timeout: 120000, // 2 minute timeout for migrations
+          }
         );
 
         // Parse migration count from output
@@ -216,7 +335,7 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
       } catch (error) {
         throw new SchemaMigrateError(
           schemaName,
-          error instanceof Error ? error : new Error(String(error))
+          sanitizeError(error instanceof Error ? error : new Error(String(error)))
         );
       }
     },
@@ -239,6 +358,7 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
         }
 
         // CASCADE drops all objects in the schema
+        // Schema name is validated above to be safe
         await executeSql(`DROP SCHEMA "${schemaName}" CASCADE`);
       } catch (error) {
         if (error instanceof SchemaNotFoundError) {
@@ -256,19 +376,16 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
      */
     async listSchemas(): Promise<string[]> {
       try {
-        const result = await executeSql(`
-          SELECT schema_name
-          FROM information_schema.schemata
-          WHERE schema_name LIKE '${schemaPrefix}%'
-          ORDER BY schema_name
-        `);
+        // Use parameterized query with LIKE pattern
+        const result = await executeSql<{ schema_name: string }>(
+          `SELECT schema_name
+           FROM information_schema.schemata
+           WHERE schema_name LIKE $1
+           ORDER BY schema_name`,
+          [`${schemaPrefix}%`]
+        );
 
-        if (!result) return [];
-
-        return result
-          .split('\n')
-          .map((s) => s.trim())
-          .filter(Boolean);
+        return result.map((row) => row.schema_name);
       } catch (error) {
         console.error('[TenantSchemaManager] Failed to list schemas:', error);
         return [];
@@ -282,14 +399,16 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
       validateSchemaName(schemaName);
 
       try {
-        const result = await executeSql(`
-          SELECT EXISTS(
+        // Use parameterized query
+        const result = await executeSql<{ exists: boolean }>(
+          `SELECT EXISTS(
             SELECT 1 FROM information_schema.schemata
-            WHERE schema_name = '${schemaName}'
-          )
-        `);
+            WHERE schema_name = $1
+          ) as exists`,
+          [schemaName]
+        );
 
-        return result === 't' || result === 'true' || result === '1';
+        return result[0]?.exists ?? false;
       } catch (error) {
         console.error('[TenantSchemaManager] Failed to check schema existence:', error);
         return false;

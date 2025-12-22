@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createTenant,
   createTenantClientPool,
+  TenantAccessDeniedError,
   TenantIdMissingError,
   TenantNotFoundError,
   TenantSuspendedError,
@@ -353,6 +354,136 @@ describe('tenant/integration', () => {
       }
 
       expect(clientPool.getStats().activeClients).toBe(0);
+    });
+  });
+
+  describe('tenant access verification (security)', () => {
+    // Mock tenant memberships - user-123 is only in tenant-acme
+    const tenantMemberships: Record<string, string[]> = {
+      'user-123': ['tenant-acme'],
+      'user-456': ['tenant-beta'],
+      'admin-user': ['tenant-acme', 'tenant-beta'],
+    };
+
+    it('should allow access when verifyTenantAccess returns true', async () => {
+      const securedTenant = createTenant<MockUserClient>({
+        loadTenant: async (tenantId) => tenantsDb[tenantId] ?? null,
+        clientPool,
+        verifyTenantAccess: (ctx, tenant) => {
+          const userId = ctx.user?.id as string;
+          const userTenants = tenantMemberships[userId] || [];
+          return userTenants.includes(tenant.id);
+        },
+      });
+
+      const middleware = securedTenant.middleware();
+      let handlerCalled = false;
+
+      await middleware({
+        ctx: {
+          user: { id: 'user-123' },
+          auth: { token: { tenantId: 'tenant-acme' } },
+        },
+        next: async () => {
+          handlerCalled = true;
+        },
+      });
+
+      expect(handlerCalled).toBe(true);
+    });
+
+    it('should deny access when verifyTenantAccess returns false', async () => {
+      const securedTenant = createTenant<MockUserClient>({
+        loadTenant: async (tenantId) => tenantsDb[tenantId] ?? null,
+        clientPool,
+        verifyTenantAccess: (ctx, tenant) => {
+          const userId = ctx.user?.id as string;
+          const userTenants = tenantMemberships[userId] || [];
+          return userTenants.includes(tenant.id);
+        },
+      });
+
+      const middleware = securedTenant.middleware();
+
+      // user-123 tries to access tenant-beta (not a member)
+      await expect(
+        middleware({
+          ctx: {
+            user: { id: 'user-123' },
+            auth: { token: { tenantId: 'tenant-beta' } },
+          },
+          next: async () => {},
+        })
+      ).rejects.toThrow(TenantAccessDeniedError);
+    });
+
+    it('should include userId in TenantAccessDeniedError', async () => {
+      const securedTenant = createTenant<MockUserClient>({
+        loadTenant: async (tenantId) => tenantsDb[tenantId] ?? null,
+        clientPool,
+        verifyTenantAccess: () => false, // Always deny
+      });
+
+      const middleware = securedTenant.middleware();
+
+      try {
+        await middleware({
+          ctx: {
+            user: { id: 'malicious-user' },
+            auth: { token: { tenantId: 'tenant-acme' } },
+          },
+          next: async () => {},
+        });
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(TenantAccessDeniedError);
+        expect((error as TenantAccessDeniedError).userId).toBe('malicious-user');
+        expect((error as TenantAccessDeniedError).tenantId).toBe('tenant-acme');
+      }
+    });
+
+    it('should support async verifyTenantAccess', async () => {
+      const securedTenant = createTenant<MockUserClient>({
+        loadTenant: async (tenantId) => tenantsDb[tenantId] ?? null,
+        clientPool,
+        verifyTenantAccess: async (ctx, tenant) => {
+          // Simulate async database lookup
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          const userId = ctx.user?.id as string;
+          const userTenants = tenantMemberships[userId] || [];
+          return userTenants.includes(tenant.id);
+        },
+      });
+
+      const middleware = securedTenant.middleware();
+      let capturedTenant: Tenant | undefined;
+
+      await middleware({
+        ctx: {
+          user: { id: 'admin-user' },
+          auth: { token: { tenantId: 'tenant-beta' } },
+        },
+        next: async ({ ctx }) => {
+          capturedTenant = (ctx as { tenant?: Tenant }).tenant;
+        },
+      });
+
+      expect(capturedTenant?.id).toBe('tenant-beta');
+    });
+
+    it('should allow access without verifyTenantAccess (backward compatible)', async () => {
+      // When no verifyTenantAccess is provided, should work as before
+      const middleware = tenant.middleware();
+      let handlerCalled = false;
+
+      await middleware({
+        ctx: { auth: { token: { tenantId: 'tenant-acme' } } },
+        next: async () => {
+          handlerCalled = true;
+        },
+      });
+
+      expect(handlerCalled).toBe(true);
     });
   });
 

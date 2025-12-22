@@ -139,6 +139,33 @@ export interface TenantMiddlewareConfig<TClient extends DatabaseClient> {
    * @default false
    */
   allowNoTenant?: boolean;
+
+  /**
+   * SECURITY: Verify user has access to the requested tenant
+   *
+   * This callback is called AFTER the tenant is loaded but BEFORE
+   * granting access. Use it to verify the user actually belongs
+   * to the tenant they're trying to access.
+   *
+   * This prevents tenant isolation bypass attacks where a user
+   * might manipulate JWT claims to access another tenant's data.
+   *
+   * @param ctx - The request context containing user info
+   * @param tenant - The loaded tenant entity
+   * @returns true if access is allowed, false to deny
+   *
+   * @example
+   * ```typescript
+   * verifyTenantAccess: async (ctx, tenant) => {
+   *   // Check user's tenant memberships in database
+   *   const membership = await publicDb.tenantMember.findFirst({
+   *     where: { userId: ctx.user?.id, tenantId: tenant.id }
+   *   });
+   *   return membership !== null;
+   * }
+   * ```
+   */
+  verifyTenantAccess?: (ctx: TenantContextInput, tenant: Tenant) => Promise<boolean> | boolean;
 }
 
 /**

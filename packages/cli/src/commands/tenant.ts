@@ -8,6 +8,8 @@
  * - tenant:status - Show tenant status
  * - tenant:suspend - Suspend a tenant
  * - tenant:activate - Activate a suspended tenant
+ *
+ * SECURITY: All SQL queries use parameterized queries to prevent SQL injection
  */
 
 import * as p from '@clack/prompts';
@@ -18,9 +20,12 @@ import {
   TenantError,
 } from '@veloxts/orm/tenant';
 import { Command } from 'commander';
+import pg from 'pg';
 import pc from 'picocolors';
 
 import { error, info, step, success, warning } from '../utils/output.js';
+
+const { Client } = pg;
 
 // ============================================================================
 // Types
@@ -56,12 +61,108 @@ interface TenantActivateOptions {
   json: boolean;
 }
 
+interface TenantRow {
+  id: string;
+  slug: string;
+  name: string;
+  schema_name: string;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
 // ============================================================================
-// Utility Functions
+// Security: Input Validation
 // ============================================================================
 
 /**
- * Get database URL from environment
+ * Valid tenant statuses
+ */
+const VALID_STATUSES = new Set(['active', 'suspended', 'pending', 'migrating']);
+
+/**
+ * Validate tenant name to prevent SQL injection
+ * Names must be alphanumeric with spaces, hyphens, and underscores
+ */
+function validateName(name: string): void {
+  if (!name || name.trim().length === 0) {
+    throw new Error('Name cannot be empty');
+  }
+
+  if (name.length > 100) {
+    throw new Error('Name cannot exceed 100 characters');
+  }
+
+  // Strict whitelist: only allow safe characters
+  const SAFE_NAME_REGEX = /^[a-zA-Z0-9\s\-_.']+$/;
+  if (!SAFE_NAME_REGEX.test(name)) {
+    throw new Error(
+      'Name contains invalid characters. Only letters, numbers, spaces, hyphens, underscores, periods, and apostrophes are allowed.'
+    );
+  }
+}
+
+/**
+ * Validate status filter option
+ */
+function validateStatus(status: string): void {
+  if (!VALID_STATUSES.has(status)) {
+    throw new Error(`Invalid status: ${status}. Must be one of: ${[...VALID_STATUSES].join(', ')}`);
+  }
+}
+
+/**
+ * Validate slug format (additional security check)
+ */
+function validateSlugInput(slug: string): void {
+  if (!slug || slug.trim().length === 0) {
+    throw new Error('Slug cannot be empty');
+  }
+
+  if (slug.length > 50) {
+    throw new Error('Slug cannot exceed 50 characters');
+  }
+
+  // Strict whitelist: only lowercase letters, numbers, and hyphens
+  const SAFE_SLUG_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+  if (!SAFE_SLUG_REGEX.test(slug)) {
+    throw new Error(
+      'Slug must contain only lowercase letters, numbers, and hyphens, and must start and end with alphanumeric characters.'
+    );
+  }
+}
+
+// ============================================================================
+// Security: Database URL Validation
+// ============================================================================
+
+/**
+ * Validate and sanitize DATABASE_URL
+ */
+function validateDatabaseUrl(url: string): void {
+  try {
+    const parsed = new URL(url);
+
+    // Only allow postgresql:// protocol
+    if (parsed.protocol !== 'postgresql:' && parsed.protocol !== 'postgres:') {
+      throw new Error('Invalid database protocol. Only postgresql:// is allowed.');
+    }
+
+    // Check for shell metacharacters that could indicate injection
+    const DANGEROUS_CHARS = /[;|&$`<>(){}[\]!]/;
+    if (DANGEROUS_CHARS.test(url)) {
+      throw new Error('Database URL contains potentially dangerous characters.');
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('Invalid database')) {
+      throw err;
+    }
+    throw new Error('Invalid DATABASE_URL format');
+  }
+}
+
+/**
+ * Get database URL from environment with validation
  */
 function getDatabaseUrl(): string {
   const url = process.env.DATABASE_URL;
@@ -71,28 +172,57 @@ function getDatabaseUrl(): string {
         'Please set it in your .env file or export it in your shell.'
     );
   }
+  validateDatabaseUrl(url);
   return url;
 }
 
-/**
- * Execute raw SQL query via psql
- */
-async function executeQuery(sql: string, databaseUrl: string): Promise<string> {
-  const { exec } = await import('node:child_process');
-  const { promisify } = await import('node:util');
-  const execAsync = promisify(exec);
+// ============================================================================
+// Secure Database Operations
+// ============================================================================
 
-  const escapedSql = sql.replace(/'/g, "'\\''");
+/**
+ * Create a PostgreSQL client connection
+ */
+async function createDbClient(databaseUrl: string): Promise<pg.Client> {
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  return client;
+}
+
+/**
+ * Execute a parameterized SQL query safely
+ * Uses pg library with parameterized queries to prevent SQL injection
+ */
+async function executeQuery<T extends pg.QueryResultRow = TenantRow>(
+  databaseUrl: string,
+  sql: string,
+  params: unknown[] = []
+): Promise<T[]> {
+  const client = await createDbClient(databaseUrl);
 
   try {
-    const { stdout } = await execAsync(`psql "${databaseUrl}" -c '${escapedSql}' -t -A`, {
-      timeout: 30000,
-    });
-    return stdout.trim();
-  } catch (err) {
-    throw err instanceof Error ? err : new Error(String(err));
+    const result = await client.query<T>(sql, params);
+    return result.rows;
+  } finally {
+    await client.end();
   }
 }
+
+/**
+ * Execute a single-row query
+ */
+async function executeQuerySingle<T extends pg.QueryResultRow = TenantRow>(
+  databaseUrl: string,
+  sql: string,
+  params: unknown[] = []
+): Promise<T | null> {
+  const rows = await executeQuery<T>(databaseUrl, sql, params);
+  return rows[0] ?? null;
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
 
 /**
  * Format date for display
@@ -120,6 +250,22 @@ function formatStatus(status: string): string {
   }
 }
 
+/**
+ * Sanitize error messages to prevent credential leakage
+ */
+function sanitizeErrorMessage(message: string): string {
+  // Remove connection strings
+  let sanitized = message.replace(
+    /postgresql:\/\/[^@]+@[^\s"']+/gi,
+    'postgresql://***:***@***/***'
+  );
+
+  // Remove passwords
+  sanitized = sanitized.replace(/password[=:]\s*['"]?[^'"\s]+/gi, 'password=***');
+
+  return sanitized;
+}
+
 // ============================================================================
 // tenant:create
 // ============================================================================
@@ -133,10 +279,14 @@ function createTenantCreateCommand(): Command {
     .option('--json', 'Output as JSON', false)
     .action(async (slug: string, options: TenantCreateOptions) => {
       try {
+        // Validate inputs
+        validateSlugInput(slug);
+        const name = options.name ?? slug;
+        validateName(name);
+
         const databaseUrl = getDatabaseUrl();
         const schemaManager = createTenantSchemaManager({ databaseUrl });
         const schemaName = slugToSchemaName(slug);
-        const name = options.name ?? slug;
 
         if (options.json && !options.dryRun) {
           // Silent mode for JSON output
@@ -166,12 +316,12 @@ function createTenantCreateCommand(): Command {
 
           s.message('Creating tenant record...');
 
-          // Insert tenant record
-          const now = new Date().toISOString();
+          // Insert tenant record using parameterized query
           await executeQuery(
+            databaseUrl,
             `INSERT INTO tenants (id, slug, name, schema_name, status, created_at, updated_at)
-             VALUES (gen_random_uuid(), '${slug}', '${name}', '${schemaName}', 'active', '${now}', '${now}')`,
-            databaseUrl
+             VALUES (gen_random_uuid(), $1, $2, $3, 'active', NOW(), NOW())`,
+            [slug, name, schemaName]
           );
 
           s.stop('Tenant created successfully');
@@ -205,7 +355,7 @@ function createTenantCreateCommand(): Command {
         } else if (err instanceof TenantError) {
           error(`Tenant error: ${err.message}`);
         } else {
-          error(err instanceof Error ? err.message : String(err));
+          error(sanitizeErrorMessage(err instanceof Error ? err.message : String(err)));
         }
         process.exit(1);
       }
@@ -225,15 +375,24 @@ function createTenantListCommand(): Command {
       try {
         const databaseUrl = getDatabaseUrl();
 
-        let query = 'SELECT slug, name, schema_name, status, created_at FROM tenants';
+        // Build query with optional parameterized status filter
+        let sql: string;
+        let params: unknown[];
+
         if (options.status) {
-          query += ` WHERE status = '${options.status}'`;
+          validateStatus(options.status);
+          sql =
+            'SELECT slug, name, schema_name, status, created_at FROM tenants WHERE status = $1 ORDER BY created_at DESC';
+          params = [options.status];
+        } else {
+          sql =
+            'SELECT slug, name, schema_name, status, created_at FROM tenants ORDER BY created_at DESC';
+          params = [];
         }
-        query += ' ORDER BY created_at DESC';
 
-        const result = await executeQuery(query, databaseUrl);
+        const tenants = await executeQuery(databaseUrl, sql, params);
 
-        if (!result) {
+        if (tenants.length === 0) {
           if (options.json) {
             console.log(JSON.stringify({ tenants: [] }, null, 2));
           } else {
@@ -242,13 +401,22 @@ function createTenantListCommand(): Command {
           return;
         }
 
-        const tenants = result.split('\n').map((line) => {
-          const [slug, name, schemaName, status, createdAt] = line.split('|');
-          return { slug, name, schemaName, status, createdAt };
-        });
-
         if (options.json) {
-          console.log(JSON.stringify({ tenants }, null, 2));
+          console.log(
+            JSON.stringify(
+              {
+                tenants: tenants.map((t) => ({
+                  slug: t.slug,
+                  name: t.name,
+                  schemaName: t.schema_name,
+                  status: t.status,
+                  createdAt: t.created_at,
+                })),
+              },
+              null,
+              2
+            )
+          );
         } else {
           console.log('');
           console.log(
@@ -267,9 +435,9 @@ function createTenantListCommand(): Command {
 
           for (const t of tenants) {
             const slug = t.slug.padEnd(19);
-            const schema = t.schemaName.padEnd(18);
+            const schema = t.schema_name.padEnd(18);
             const status = formatStatus(t.status).padEnd(20); // Extra padding for color codes
-            const created = formatDate(t.createdAt);
+            const created = formatDate(t.created_at);
             console.log(`│ ${slug} │ ${schema} │ ${status} │ ${created} │`);
           }
 
@@ -282,7 +450,7 @@ function createTenantListCommand(): Command {
           info(`Total: ${tenants.length} tenant(s)`);
         }
       } catch (err) {
-        error(err instanceof Error ? err.message : String(err));
+        error(sanitizeErrorMessage(err instanceof Error ? err.message : String(err)));
         process.exit(1);
       }
     });
@@ -304,15 +472,26 @@ function createTenantMigrateCommand(): Command {
         const databaseUrl = getDatabaseUrl();
         const schemaManager = createTenantSchemaManager({ databaseUrl });
 
-        // Get tenants to migrate
-        let query = "SELECT slug, schema_name FROM tenants WHERE status = 'active'";
+        // Get tenants to migrate using parameterized queries
+        let sql: string;
+        let params: unknown[];
+
         if (slug) {
-          query = `SELECT slug, schema_name FROM tenants WHERE slug = '${slug}'`;
+          validateSlugInput(slug);
+          sql = 'SELECT slug, schema_name FROM tenants WHERE slug = $1';
+          params = [slug];
+        } else {
+          sql = "SELECT slug, schema_name FROM tenants WHERE status = 'active'";
+          params = [];
         }
 
-        const result = await executeQuery(query, databaseUrl);
+        const tenants = await executeQuery<{ slug: string; schema_name: string }>(
+          databaseUrl,
+          sql,
+          params
+        );
 
-        if (!result) {
+        if (tenants.length === 0) {
           if (slug) {
             error(`Tenant not found: ${slug}`);
           } else {
@@ -321,15 +500,10 @@ function createTenantMigrateCommand(): Command {
           return;
         }
 
-        const tenants = result.split('\n').map((line) => {
-          const [tenantSlug, schemaName] = line.split('|');
-          return { slug: tenantSlug, schemaName };
-        });
-
         if (options.dryRun) {
           info('Would migrate the following tenants:');
           for (const t of tenants) {
-            step(`${t.slug} (${t.schemaName})`);
+            step(`${t.slug} (${t.schema_name})`);
           }
           return;
         }
@@ -341,36 +515,36 @@ function createTenantMigrateCommand(): Command {
           s.start(`Migrating ${t.slug}...`);
 
           try {
-            // Update status to migrating
-            await executeQuery(
-              `UPDATE tenants SET status = 'migrating' WHERE slug = '${t.slug}'`,
-              databaseUrl
-            );
+            // Update status to migrating using parameterized query
+            await executeQuery(databaseUrl, 'UPDATE tenants SET status = $1 WHERE slug = $2', [
+              'migrating',
+              t.slug,
+            ]);
 
-            const migrateResult = await schemaManager.migrateSchema(t.schemaName);
+            const migrateResult = await schemaManager.migrateSchema(t.schema_name);
 
             // Update status back to active
-            await executeQuery(
-              `UPDATE tenants SET status = 'active' WHERE slug = '${t.slug}'`,
-              databaseUrl
-            );
+            await executeQuery(databaseUrl, 'UPDATE tenants SET status = $1 WHERE slug = $2', [
+              'active',
+              t.slug,
+            ]);
 
             results.push({
               slug: t.slug,
-              schemaName: t.schemaName,
+              schemaName: t.schema_name,
               migrationsApplied: migrateResult.migrationsApplied,
             });
 
             s.stop(`Migrated ${t.slug}: ${migrateResult.migrationsApplied} migration(s) applied`);
           } catch (err) {
             s.stop(`Failed to migrate ${t.slug}`);
-            error(err instanceof Error ? err.message : String(err));
+            error(sanitizeErrorMessage(err instanceof Error ? err.message : String(err)));
 
             // Restore status
-            await executeQuery(
-              `UPDATE tenants SET status = 'active' WHERE slug = '${t.slug}'`,
-              databaseUrl
-            );
+            await executeQuery(databaseUrl, 'UPDATE tenants SET status = $1 WHERE slug = $2', [
+              'active',
+              t.slug,
+            ]);
           }
         }
 
@@ -381,7 +555,7 @@ function createTenantMigrateCommand(): Command {
           success(`Migrated ${results.length} tenant(s)`);
         }
       } catch (err) {
-        error(err instanceof Error ? err.message : String(err));
+        error(sanitizeErrorMessage(err instanceof Error ? err.message : String(err)));
         process.exit(1);
       }
     });
@@ -398,54 +572,56 @@ function createTenantStatusCommand(): Command {
     .option('--json', 'Output as JSON', false)
     .action(async (slug: string, options: TenantStatusOptions) => {
       try {
+        validateSlugInput(slug);
         const databaseUrl = getDatabaseUrl();
 
-        const result = await executeQuery(
+        // Use parameterized query
+        const tenant = await executeQuerySingle(
+          databaseUrl,
           `SELECT id, slug, name, schema_name, status, created_at, updated_at
-           FROM tenants WHERE slug = '${slug}'`,
-          databaseUrl
+           FROM tenants WHERE slug = $1`,
+          [slug]
         );
 
-        if (!result) {
+        if (!tenant) {
           error(`Tenant not found: ${slug}`);
           process.exit(1);
         }
 
-        const [id, tenantSlug, name, schemaName, status, createdAt, updatedAt] = result.split('|');
-
-        // Check if schema exists
-        const schemaExists = await executeQuery(
-          `SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = '${schemaName}')`,
-          databaseUrl
+        // Check if schema exists using parameterized query
+        const schemaCheck = await executeQuerySingle<{ exists: boolean }>(
+          databaseUrl,
+          'SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = $1) as exists',
+          [tenant.schema_name]
         );
 
-        const tenant = {
-          id,
-          slug: tenantSlug,
-          name,
-          schemaName,
-          status,
-          schemaExists: schemaExists === 't' || schemaExists === 'true',
-          createdAt,
-          updatedAt,
+        const tenantInfo = {
+          id: tenant.id,
+          slug: tenant.slug,
+          name: tenant.name,
+          schemaName: tenant.schema_name,
+          status: tenant.status,
+          schemaExists: schemaCheck?.exists ?? false,
+          createdAt: tenant.created_at,
+          updatedAt: tenant.updated_at,
         };
 
         if (options.json) {
-          console.log(JSON.stringify(tenant, null, 2));
+          console.log(JSON.stringify(tenantInfo, null, 2));
         } else {
           console.log('');
-          console.log(`${pc.bold('Tenant:')} ${name} (${tenantSlug})`);
-          console.log(`${pc.bold('Status:')} ${formatStatus(status)}`);
-          console.log(`${pc.bold('Schema:')} ${schemaName}`);
+          console.log(`${pc.bold('Tenant:')} ${tenant.name} (${tenant.slug})`);
+          console.log(`${pc.bold('Status:')} ${formatStatus(tenant.status)}`);
+          console.log(`${pc.bold('Schema:')} ${tenant.schema_name}`);
           console.log(
-            `${pc.bold('Schema exists:')} ${tenant.schemaExists ? pc.green('yes') : pc.red('no')}`
+            `${pc.bold('Schema exists:')} ${tenantInfo.schemaExists ? pc.green('yes') : pc.red('no')}`
           );
-          console.log(`${pc.bold('Created:')} ${formatDate(createdAt)}`);
-          console.log(`${pc.bold('Updated:')} ${formatDate(updatedAt)}`);
+          console.log(`${pc.bold('Created:')} ${formatDate(tenant.created_at)}`);
+          console.log(`${pc.bold('Updated:')} ${formatDate(tenant.updated_at)}`);
           console.log('');
         }
       } catch (err) {
-        error(err instanceof Error ? err.message : String(err));
+        error(sanitizeErrorMessage(err instanceof Error ? err.message : String(err)));
         process.exit(1);
       }
     });
@@ -463,12 +639,14 @@ function createTenantSuspendCommand(): Command {
     .option('--json', 'Output as JSON', false)
     .action(async (slug: string, options: TenantSuspendOptions) => {
       try {
+        validateSlugInput(slug);
         const databaseUrl = getDatabaseUrl();
 
-        // Check tenant exists
-        const existing = await executeQuery(
-          `SELECT status FROM tenants WHERE slug = '${slug}'`,
-          databaseUrl
+        // Check tenant exists using parameterized query
+        const existing = await executeQuerySingle<{ status: string }>(
+          databaseUrl,
+          'SELECT status FROM tenants WHERE slug = $1',
+          [slug]
         );
 
         if (!existing) {
@@ -476,7 +654,7 @@ function createTenantSuspendCommand(): Command {
           process.exit(1);
         }
 
-        if (existing === 'suspended') {
+        if (existing.status === 'suspended') {
           warning(`Tenant ${slug} is already suspended`);
           return;
         }
@@ -493,10 +671,11 @@ function createTenantSuspendCommand(): Command {
           }
         }
 
-        // Suspend
+        // Suspend using parameterized query
         await executeQuery(
-          `UPDATE tenants SET status = 'suspended', updated_at = '${new Date().toISOString()}' WHERE slug = '${slug}'`,
-          databaseUrl
+          databaseUrl,
+          'UPDATE tenants SET status = $1, updated_at = NOW() WHERE slug = $2',
+          ['suspended', slug]
         );
 
         if (options.json) {
@@ -505,7 +684,7 @@ function createTenantSuspendCommand(): Command {
           success(`Suspended tenant ${pc.cyan(slug)}`);
         }
       } catch (err) {
-        error(err instanceof Error ? err.message : String(err));
+        error(sanitizeErrorMessage(err instanceof Error ? err.message : String(err)));
         process.exit(1);
       }
     });
@@ -522,12 +701,14 @@ function createTenantActivateCommand(): Command {
     .option('--json', 'Output as JSON', false)
     .action(async (slug: string, options: TenantActivateOptions) => {
       try {
+        validateSlugInput(slug);
         const databaseUrl = getDatabaseUrl();
 
-        // Check tenant exists
-        const existing = await executeQuery(
-          `SELECT status FROM tenants WHERE slug = '${slug}'`,
-          databaseUrl
+        // Check tenant exists using parameterized query
+        const existing = await executeQuerySingle<{ status: string }>(
+          databaseUrl,
+          'SELECT status FROM tenants WHERE slug = $1',
+          [slug]
         );
 
         if (!existing) {
@@ -535,15 +716,16 @@ function createTenantActivateCommand(): Command {
           process.exit(1);
         }
 
-        if (existing === 'active') {
+        if (existing.status === 'active') {
           warning(`Tenant ${slug} is already active`);
           return;
         }
 
-        // Activate
+        // Activate using parameterized query
         await executeQuery(
-          `UPDATE tenants SET status = 'active', updated_at = '${new Date().toISOString()}' WHERE slug = '${slug}'`,
-          databaseUrl
+          databaseUrl,
+          'UPDATE tenants SET status = $1, updated_at = NOW() WHERE slug = $2',
+          ['active', slug]
         );
 
         if (options.json) {
@@ -552,7 +734,7 @@ function createTenantActivateCommand(): Command {
           success(`Activated tenant ${pc.cyan(slug)}`);
         }
       } catch (err) {
-        error(err instanceof Error ? err.message : String(err));
+        error(sanitizeErrorMessage(err instanceof Error ? err.message : String(err)));
         process.exit(1);
       }
     });

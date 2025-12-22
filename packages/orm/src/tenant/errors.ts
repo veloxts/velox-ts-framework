@@ -41,6 +41,7 @@ export type TenantErrorCode =
   | 'TENANT_PENDING'
   | 'TENANT_MIGRATING'
   | 'TENANT_ID_MISSING'
+  | 'TENANT_ACCESS_DENIED'
   | 'SCHEMA_CREATE_FAILED'
   | 'SCHEMA_DELETE_FAILED'
   | 'SCHEMA_MIGRATE_FAILED'
@@ -100,6 +101,23 @@ export class TenantIdMissingError extends TenantError {
   constructor() {
     super('Tenant ID is required but was not found in request context', 'TENANT_ID_MISSING');
     this.name = 'TenantIdMissingError';
+  }
+}
+
+/**
+ * User does not have access to the requested tenant
+ *
+ * SECURITY: This error is thrown when tenant access verification fails.
+ * It prevents tenant isolation bypass attacks where a user might try
+ * to access a tenant they don't belong to by manipulating JWT claims.
+ */
+export class TenantAccessDeniedError extends TenantError {
+  public readonly userId?: string;
+
+  constructor(tenantId: string, userId?: string) {
+    super(`Access denied to tenant: ${tenantId}`, 'TENANT_ACCESS_DENIED', { tenantId });
+    this.name = 'TenantAccessDeniedError';
+    this.userId = userId;
   }
 }
 

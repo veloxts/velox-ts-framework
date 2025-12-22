@@ -103,6 +103,8 @@ export {
   SchemaDeleteError,
   SchemaMigrateError,
   SchemaNotFoundError,
+  // Authorization error
+  TenantAccessDeniedError,
   // Base error
   TenantError,
   type TenantErrorCode,
