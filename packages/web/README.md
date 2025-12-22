@@ -1,5 +1,7 @@
 # @veloxts/web
 
+> **Early Preview (v0.6.x)** - APIs are stabilizing but may still change. Use with caution in production.
+
 React Server Components integration for the VeloxTS framework using [Vinxi](https://vinxi.vercel.app/).
 
 ## Overview

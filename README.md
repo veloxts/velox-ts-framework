@@ -1,8 +1,8 @@
-# VeloxTS Framework
+# Velox TS Framework
 
-> **Pre-Alpha (v0.6.x)** - APIs are stabilizing but may still change. Use with caution in production.
+> **Early Preview (v0.6.x)** - APIs are stabilizing but may still change. Use with caution in production.
 
-A TypeScript-first full-stack web framework with end-to-end type safety and zero code generation.
+Full-stack TypeScript framework with end-to-end type safety—no code generation required. Convention-driven APIs that generate both tRPC and REST from a single source.
 
 ## Key Features
 
