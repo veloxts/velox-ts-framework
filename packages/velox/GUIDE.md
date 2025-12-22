@@ -7,11 +7,13 @@ Complete VeloxTS Framework - batteries included for type-safe, full-stack TypeSc
 ```bash
 npx create-velox-app my-app
 cd my-app
-npm run db:migrate
+npm run db:push
 npm run dev
 ```
 
-Or use directly:
+Your API is running at `http://localhost:3030`.
+
+## Basic Usage
 
 ```typescript
 import { veloxApp, procedure, defineProcedures, z } from '@veloxts/velox';
