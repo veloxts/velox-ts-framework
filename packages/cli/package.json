@@ -17,7 +17,9 @@
   "files": [
     "dist",
     "README.md",
-    "GUIDE.md"
+    "GUIDE.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc",

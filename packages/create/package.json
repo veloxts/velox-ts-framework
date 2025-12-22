@@ -18,7 +18,9 @@
     "dist",
     "src/templates/source",
     "README.md",
-    "GUIDE.md"
+    "GUIDE.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc",
