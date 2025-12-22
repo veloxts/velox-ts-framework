@@ -104,7 +104,7 @@ export interface BridgeConfig {
    * Base URL for tRPC endpoint
    * @default '/trpc'
    */
-  trpcBase: string;
+  base: string;
 
   /**
    * Headers to forward from action context to tRPC
@@ -118,7 +118,7 @@ export interface BridgeConfig {
 }
 
 const defaultConfig: BridgeConfig = {
-  trpcBase: '/trpc',
+  base: '/trpc',
   forwardHeaders: ['authorization', 'cookie', 'x-request-id'],
   fetch: globalThis.fetch,
 };
@@ -134,6 +134,12 @@ const defaultConfig: BridgeConfig = {
  * import { createTrpcBridge } from '@veloxts/web';
  * import type { AppRouter } from './trpc/router';
  *
+ * // Preferred: use 'base' for conciseness
+ * const bridge = createTrpcBridge<AppRouter>({
+ *   base: '/trpc',
+ * });
+ *
+ * // Also supported: 'trpcBase' (deprecated alias)
  * const bridge = createTrpcBridge<AppRouter>({
  *   trpcBase: '/trpc',
  * });
@@ -150,12 +156,25 @@ export function createTrpcBridge<TRouter>(
 ): TrpcBridge<TRouter> {
   const config: BridgeConfig = {
     ...defaultConfig,
-    ...options,
+    base: options?.base ?? options?.trpcBase ?? defaultConfig.base,
+    forwardHeaders: options?.forwardHeaders ?? defaultConfig.forwardHeaders,
     fetch: options?.fetch ?? defaultConfig.fetch,
   };
 
   return new TrpcBridgeImpl<TRouter>(config);
 }
+
+/**
+ * Short alias for createTrpcBridge
+ *
+ * Laravel-inspired concise syntax.
+ *
+ * @example
+ * ```typescript
+ * const bridge = trpcBridge<AppRouter>({ base: '/trpc' });
+ * ```
+ */
+export const trpcBridge = createTrpcBridge;
 
 /**
  * tRPC Bridge interface with type-safe procedure path validation.
@@ -418,7 +437,7 @@ class TrpcBridgeImpl<TRouter> implements TrpcBridge<TRouter> {
     const baseUrl =
       typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3030';
 
-    const url = new URL(`${this.config.trpcBase}/${procedurePath}`, baseUrl);
+    const url = new URL(`${this.config.base}/${procedurePath}`, baseUrl);
 
     // For queries, encode input in URL
     if (!this.isMutationProcedure(procedurePath) && input !== undefined) {

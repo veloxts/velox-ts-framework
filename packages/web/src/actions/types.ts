@@ -219,8 +219,15 @@ export interface ActionRegistry {
  */
 export interface TrpcBridgeOptions {
   /**
+   * Base URL for the tRPC endpoint (short alias)
+   * @default '/trpc'
+   */
+  base?: string;
+
+  /**
    * Base URL for the tRPC endpoint
    * @default '/trpc'
+   * @deprecated Use `base` instead for conciseness
    */
   trpcBase?: string;
 
