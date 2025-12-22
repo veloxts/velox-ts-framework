@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.24
+
+### Patch Changes
+
+- clarify installation paths and package contents
+- Updated dependencies
+  - @veloxts/core@0.6.24
+  - @veloxts/validation@0.6.24
+
 ## 0.6.23
 
 ### Patch Changes

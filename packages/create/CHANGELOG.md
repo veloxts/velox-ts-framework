@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.24
+
+### Patch Changes
+
+- clarify installation paths and package contents
+
 ## 0.6.23
 
 ### Patch Changes

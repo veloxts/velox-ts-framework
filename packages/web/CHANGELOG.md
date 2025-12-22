@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.24
+
+### Patch Changes
+
+- clarify installation paths and package contents
+- Updated dependencies
+  - @veloxts/auth@0.6.24
+  - @veloxts/client@0.6.24
+  - @veloxts/core@0.6.24
+  - @veloxts/router@0.6.24
+
 ## 0.6.23
 
 ### Patch Changes
