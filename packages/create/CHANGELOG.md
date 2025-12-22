@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.22
+
+### Patch Changes
+
+- support {method, path} route entry format
+
 ## 0.6.21
 
 ### Patch Changes

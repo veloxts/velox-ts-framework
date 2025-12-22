@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.22
+
+### Patch Changes
+
+- support {method, path} route entry format
+- Updated dependencies
+  - @veloxts/auth@0.6.22
+  - @veloxts/core@0.6.22
+  - @veloxts/orm@0.6.22
+  - @veloxts/router@0.6.22
+  - @veloxts/validation@0.6.22
+
 ## 0.6.21
 
 ### Patch Changes
