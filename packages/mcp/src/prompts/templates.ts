@@ -79,10 +79,10 @@ export const CREATE_PROCEDURE: PromptTemplate = {
 
 2. **Create the procedure** in \`src/procedures/{entities}.ts\`:
    \`\`\`typescript
-   import { defineProcedures, procedure, z } from '@veloxts/velox';
+   import { procedure, procedures, z } from '@veloxts/velox';
    import { {Entity}Schema, Create{Entity}Schema } from '../schemas/{entity}.js';
 
-   export const {entity}Procedures = defineProcedures('{entities}', {
+   export const {entity}Procedures = procedures('{entities}', {
      get{Entity}: procedure()
        .input(z.object({ id: z.string().uuid() }))
        .output({Entity}Schema)
@@ -267,7 +267,7 @@ const deletePost = procedure()
 
 ### 4. Auth Endpoints
 \`\`\`typescript
-export const authProcedures = defineProcedures('auth', {
+export const authProcedures = procedures('auth', {
   register: procedure()
     .input(RegisterSchema)
     .output(UserSchema)

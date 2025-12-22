@@ -400,7 +400,7 @@ function generateProcedures(ctx: TemplateContext<ModelOptions>): string {
  * CRUD operations for ${entity.humanReadablePlural}.
  */
 
-import { defineProcedures, procedure${paginationImport}, z } from '@veloxts/velox';
+import { procedure, procedures${paginationImport}, z } from '@veloxts/velox';
 
 import {
   ${entity.pascal}Schema,
@@ -430,7 +430,7 @@ function toResponse(item: Db${entity.pascal}) {
 // Procedures
 // ============================================================================
 
-export const ${entity.camel}Procedures = defineProcedures('${entity.plural}', {
+export const ${entity.camel}Procedures = procedures('${entity.plural}', {
   /**
    * Get a single ${entity.humanReadable} by ID
    * GET /${entity.plural}/:id

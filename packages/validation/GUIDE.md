@@ -163,7 +163,7 @@ type UserOutput = InferOutput<typeof UserSchema>;
 Validation integrates seamlessly with VeloxTS procedures:
 
 ```typescript
-import { procedure, defineProcedures } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z, emailSchema, nonEmptyStringSchema } from '@veloxts/validation';
 
 const CreateUserInput = z.object({
@@ -172,7 +172,7 @@ const CreateUserInput = z.object({
   age: z.number().int().min(18).optional(),
 });
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   createUser: procedure()
     .input(CreateUserInput)
     .output(UserSchema)

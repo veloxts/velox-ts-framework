@@ -31,9 +31,9 @@ function generateSimpleProcedure(ctx: TemplateContext<ProcedureOptions>): string
  * ${entity.pascal} Procedures
  */
 
-import { defineProcedures, procedure, z } from '@veloxts/velox';
+import { procedure, procedures, z } from '@veloxts/velox';
 
-export const ${entity.camel}Procedures = defineProcedures('${entity.plural}', {
+export const ${entity.camel}Procedures = procedures('${entity.plural}', {
   /**
    * Get a single ${entity.humanReadable} by ID
    * GET /${entity.plural}/:id
@@ -104,7 +104,7 @@ function generateCrudProcedures(ctx: TemplateContext<ProcedureOptions>): string 
  * CRUD operations for ${entity.humanReadablePlural}.
  */
 
-import { defineProcedures, procedure${paginationImport}, z } from '@veloxts/velox';
+import { procedure, procedures${paginationImport}, z } from '@veloxts/velox';
 
 // ============================================================================
 // Schemas
@@ -158,7 +158,7 @@ function toResponse(db${entity.pascal}: Db${entity.pascal}) {
 // Procedures
 // ============================================================================
 
-export const ${entity.camel}Procedures = defineProcedures('${entity.plural}', {
+export const ${entity.camel}Procedures = procedures('${entity.plural}', {
   /**
    * Get a single ${entity.humanReadable} by ID
    * GET /${entity.plural}/:id

@@ -43,7 +43,7 @@ const db = new PrismaClient({ adapter });
 ## Using in Procedures
 
 ```typescript
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {

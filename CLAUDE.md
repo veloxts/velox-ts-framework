@@ -218,7 +218,7 @@ Build order follows these layers:
 The core abstraction is the **procedure** - a fluent builder pattern for defining type-safe API endpoints:
 
 ```typescript
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   getUser: procedure
     .input(z.object({ id: z.string().uuid() }))
     .output(UserSchema)

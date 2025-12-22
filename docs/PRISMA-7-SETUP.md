@@ -721,10 +721,10 @@ await app.start();
 
 **src/routes/users.ts**:
 ```typescript
-import { defineProcedures, procedure } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   listUsers: procedure
     .query(async ({ ctx }) => {
       // ctx.db is fully typed as PrismaClient

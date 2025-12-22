@@ -5,10 +5,10 @@ Procedure-based routing with hybrid tRPC and REST adapters.
 ## Quick Start
 
 ```typescript
-import { procedure, defineProcedures } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from '@veloxts/validation';
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .output(UserSchema)

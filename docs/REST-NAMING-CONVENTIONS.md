@@ -81,9 +81,9 @@ VeloxTS recognizes the following naming patterns. Pattern matching is **case-sen
 ### Complete CRUD Example
 
 ```typescript
-import { defineProcedures, procedure, z } from '@veloxts/velox';
+import { procedure, procedures, z } from '@veloxts/velox';
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   // GET /users/:id - Retrieve single user
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
@@ -337,7 +337,7 @@ For nested resources, use the `.parent()` method combined with naming convention
 
 ```typescript
 // POST /posts/:postId/comments
-export const commentProcedures = defineProcedures('comments', {
+export const commentProcedures = procedures('comments', {
   createComment: procedure()
     .parent('posts')  // Automatically infers postId parameter
     .input(z.object({ postId: z.string(), content: z.string() }))
@@ -552,7 +552,7 @@ fetchUser: procedure()
 #### Disable All Warnings
 
 ```typescript
-export const legacyProcedures = defineProcedures('legacy', {
+export const legacyProcedures = procedures('legacy', {
   customAction: procedure()
     .mutation(async ({ ctx }) => { ... }),
 }, {
@@ -565,7 +565,7 @@ export const legacyProcedures = defineProcedures('legacy', {
 Useful for CI/CD to enforce naming conventions:
 
 ```typescript
-export const apiProcedures = defineProcedures('api', {
+export const apiProcedures = procedures('api', {
   getUser: procedure().query(async ({ ctx }) => { ... }),
 }, {
   warnings: 'strict'  // Throw errors instead of warnings
@@ -575,7 +575,7 @@ export const apiProcedures = defineProcedures('api', {
 #### Exclude Specific Procedures
 
 ```typescript
-export const mixedProcedures = defineProcedures('users', {
+export const mixedProcedures = procedures('users', {
   getUser: procedure().query(async ({ ctx }) => { ... }),
   customAction: procedure().mutation(async ({ ctx }) => { ... }),  // Won't warn
 }, {
@@ -588,7 +588,7 @@ export const mixedProcedures = defineProcedures('users', {
 #### Advanced Configuration
 
 ```typescript
-export const procedures = defineProcedures('users', procs, {
+export const userProcs = procedures('users', procs, {
   warnings: {
     strict: true,           // Treat warnings as errors
     except: ['legacy'],     // Exclude specific procedures
@@ -613,7 +613,7 @@ Warnings are suppressed in these cases:
 
 ```typescript
 // BAD: Mixing conventions
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   getUser: procedure().query(...),     // ✓ Standard
   fetchUsers: procedure().query(...),  // ✗ Non-standard (use listUsers)
   addUser: procedure().mutation(...),  // ✓ Standard
@@ -623,7 +623,7 @@ export const userProcedures = defineProcedures('users', {
 
 ```typescript
 // GOOD: Consistent naming
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   getUser: procedure().query(...),
   listUsers: procedure().query(...),
   createUser: procedure().mutation(...),

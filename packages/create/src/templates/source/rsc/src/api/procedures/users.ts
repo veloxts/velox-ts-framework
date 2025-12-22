@@ -5,13 +5,13 @@
  * Uses direct db import for proper PrismaClient typing.
  */
 
-import { defineProcedures, procedure } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 
 import { db } from '../database.js';
 import { CreateUserSchema, UpdateUserSchema, UserSchema } from '../schemas/user.js';
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   /**
    * List all users
    * GET /api/users

@@ -235,7 +235,7 @@ describe('GuardError', () => {
 ```typescript
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createVeloxApp } from '@veloxts/core';
-import { procedure, defineProcedures } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 import {
   createAuthRateLimiter,
@@ -267,7 +267,7 @@ describe('Auth Rate Limiting', () => {
         .input(z.object({ email: z.string().email() }))
         .mutation(async ({ input }) => ({ success: true }));
 
-      const procedures = defineProcedures('auth', {
+      const authProcedures = procedures('auth', {
         login: loginProcedure,
       });
 
@@ -296,7 +296,7 @@ describe('Auth Rate Limiting', () => {
         .input(z.object({ email: z.string().email() }))
         .mutation(async ({ input }) => ({ success: true }));
 
-      const procedures = defineProcedures('auth', {
+      const authProcedures = procedures('auth', {
         login: loginProcedure,
       });
 
@@ -337,7 +337,7 @@ describe('Auth Rate Limiting', () => {
         .input(z.object({ email: z.string().email() }))
         .mutation(async ({ input }) => ({ success: true }));
 
-      const procedures = defineProcedures('auth', {
+      const authProcedures = procedures('auth', {
         login: loginProcedure,
       });
 
@@ -390,7 +390,7 @@ describe('Auth Rate Limiting', () => {
         .input(z.object({ email: z.string().email() }))
         .mutation(async ({ input }) => ({ success: true }));
 
-      const procedures = defineProcedures('auth', {
+      const authProcedures = procedures('auth', {
         login: loginProcedure,
       });
 
@@ -441,7 +441,7 @@ describe('Auth Rate Limiting', () => {
         .input(z.object({ email: z.string().email() }))
         .mutation(async ({ input }) => ({ success: true }));
 
-      const procedures = defineProcedures('auth', {
+      const authProcedures = procedures('auth', {
         resetPassword: resetProcedure,
       });
 
@@ -481,7 +481,7 @@ describe('Auth Rate Limiting', () => {
           throw new Error('Invalid credentials');
         });
 
-      const procedures = defineProcedures('auth', {
+      const authProcedures = procedures('auth', {
         login: loginProcedure,
       });
 
@@ -520,7 +520,7 @@ describe('Auth Rate Limiting', () => {
         .input(z.object({ email: z.string().email() }))
         .mutation(async ({ input }) => ({ success: true }));
 
-      const procedures = defineProcedures('auth', {
+      const authProcedures = procedures('auth', {
         login: loginProcedure,
       });
 
@@ -574,7 +574,7 @@ describe('Auth Rate Limiting', () => {
         .input(z.object({ email: z.string() }))
         .mutation(async ({ input }) => ({ success: true }));
 
-      const procedures = defineProcedures('auth', {
+      const authProcedures = procedures('auth', {
         action: procedure1,
       });
 
@@ -624,7 +624,7 @@ describe('Auth Rate Limiting', () => {
         .input(z.object({ email: z.string() }))
         .mutation(async ({ input }) => ({ success: true }));
 
-      const procedures = defineProcedures('test', {
+      const testProcedures = procedures('test', {
         action: testProcedure,
       });
 
@@ -788,7 +788,7 @@ describe('Auth Plugin', () => {
 
       await app.register(authPlugin, { jwt });
 
-      const procedures = defineProcedures('test', {
+      const testProcedures = procedures('test', {
         checkAuth: procedure.query(async ({ ctx }) => {
           // Context should have auth-related properties
           return {

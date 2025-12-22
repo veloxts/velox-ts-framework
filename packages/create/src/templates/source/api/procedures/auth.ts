@@ -15,10 +15,10 @@ import {
   AuthError,
   authenticated,
   createAuthRateLimiter,
-  defineProcedures,
   hashPassword,
   jwtManager,
   procedure,
+  procedures,
   verifyPassword,
 } from '@veloxts/velox';
 
@@ -104,7 +104,7 @@ const DUMMY_HASH = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.uy7dPSSXB5G6Uy
 // Auth Procedures
 // ============================================================================
 
-export const authProcedures = defineProcedures('auth', {
+export const authProcedures = procedures('auth', {
   createAccount: procedure()
     .rest({ method: 'POST', path: '/auth/register' })
     .use(rateLimiter.register())

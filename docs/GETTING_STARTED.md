@@ -182,11 +182,11 @@ Schemas define:
 Open `src/procedures/users.ts`:
 
 ```typescript
-import { defineProcedures, procedure } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 import { UserSchema, CreateUserInput } from '../schemas/user';
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   // GET /users/:id
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
@@ -237,7 +237,7 @@ export const userProcedures = defineProcedures('users', {
 
 **Key Concepts:**
 
-1. **`defineProcedures('users', { ... })`** - Groups related procedures under a namespace
+1. **`procedures('users', { ... })`** - Groups related procedures under a namespace
 2. **`procedure()`** - Fluent builder for defining endpoints
 3. **`.input(schema)`** - Validates incoming data
 4. **`.output(schema)`** - Validates outgoing data
@@ -426,7 +426,7 @@ One of VeloxTS's most powerful features is automatic type inference from backend
 In your procedures, types flow automatically:
 
 ```typescript
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .output(UserSchema.nullable())
@@ -723,11 +723,11 @@ export type Post = z.infer<typeof PostSchema>;
 4. **Create procedures** (`src/procedures/posts.ts`):
 
 ```typescript
-import { defineProcedures, procedure } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 import { PostSchema, CreatePostInput } from '../schemas/post';
 
-export const postProcedures = defineProcedures('posts', {
+export const postProcedures = procedures('posts', {
   // GET /posts/:id
   getPost: procedure()
     .input(z.object({ id: z.string().uuid() }))

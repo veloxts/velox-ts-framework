@@ -53,9 +53,9 @@ CRITICAL - Never violate these rules:
 ### Procedure Pattern
 
 ```typescript
-import { defineProcedures, procedure, z } from '@veloxts/velox';
+import { procedure, procedures, z } from '@veloxts/velox';
 
-export const entityProcedures = defineProcedures('entities', {
+export const entityProcedures = procedures('entities', {
   getEntity: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .output(EntitySchema)
@@ -144,7 +144,7 @@ __RUN_CMD__ db:studio                # Open Prisma Studio
 
 ```typescript
 // VeloxTS imports (use umbrella package)
-import { defineProcedures, procedure, z } from '@veloxts/velox';
+import { procedure, procedures, z } from '@veloxts/velox';
 /* @if auth */
 import { authenticated, hasRole } from '@veloxts/auth';
 /* @endif auth */

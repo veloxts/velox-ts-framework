@@ -826,10 +826,10 @@ VeloxTS templates include a `/api/health` endpoint by default:
 
 ```typescript
 // src/procedures/health.ts
-import { defineProcedures, procedure } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 
-export const healthProcedures = defineProcedures('health', {
+export const healthProcedures = procedures('health', {
   check: procedure()
     .output(
       z.object({

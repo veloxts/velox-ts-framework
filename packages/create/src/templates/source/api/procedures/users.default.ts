@@ -8,10 +8,10 @@
  */
 
 import {
-  defineProcedures,
   NotFoundError,
   paginationInputSchema,
   procedure,
+  procedures,
   z,
 } from '@veloxts/velox';
 
@@ -22,7 +22,7 @@ import {
   UserSchema,
 } from '../schemas/user.js';
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .output(UserSchema)

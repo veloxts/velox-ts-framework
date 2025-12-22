@@ -4,11 +4,11 @@
  * API endpoints for application health monitoring.
  */
 
-import { defineProcedures, procedure } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 
 import { db } from '../database.js';
 
-export const healthProcedures = defineProcedures('health', {
+export const healthProcedures = procedures('health', {
   /**
    * Basic health check
    * GET /api/health

@@ -16,11 +16,11 @@ Your API is running at `http://localhost:3030`.
 ## Basic Usage
 
 ```typescript
-import { veloxApp, procedure, defineProcedures, z } from '@veloxts/velox';
+import { veloxApp, procedure, procedures, z } from '@veloxts/velox';
 
 const app = await veloxApp({ port: 3030 });
 
-const greetProcedures = defineProcedures('greet', {
+const greetProcedures = procedures('greet', {
   sayHello: procedure()
     .input(z.object({ name: z.string() }))
     .query(({ input }) => `Hello, ${input.name}!`),

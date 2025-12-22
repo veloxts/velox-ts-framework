@@ -6,7 +6,7 @@
  * Routes: /api/users/:userId/posts/*
  */
 
-import { defineProcedures, procedure } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 
 import { db } from '../database.js';
@@ -17,7 +17,7 @@ import {
   UpdatePostSchema,
 } from '../schemas/post.js';
 
-export const postProcedures = defineProcedures('posts', {
+export const postProcedures = procedures('posts', {
   /**
    * List all posts for a user
    * GET /api/users/:userId/posts

@@ -45,9 +45,9 @@ apps/
 
 ```typescript
 // apps/api/src/procedures/posts.ts
-import { defineProcedures, procedure, z } from '@veloxts/velox';
+import { procedure, procedures, z } from '@veloxts/velox';
 
-export const postProcedures = defineProcedures('posts', {
+export const postProcedures = procedures('posts', {
   // GET /api/posts/:id
   getPost: procedure()
     .input(z.object({ id: z.string().uuid() }))

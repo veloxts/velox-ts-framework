@@ -11,12 +11,12 @@
 import {
   AuthError,
   authenticated,
-  defineProcedures,
   GuardError,
   hasRole,
   NotFoundError,
   paginationInputSchema,
   procedure,
+  procedures,
   z,
 } from '@veloxts/velox';
 
@@ -31,7 +31,7 @@ import {
 // User Procedures
 // ============================================================================
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .output(UserSchema)

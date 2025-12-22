@@ -56,10 +56,10 @@ Your API is now running at `http://localhost:3030`.
 ## Example: Defining Procedures
 
 ```typescript
-import { procedure, defineProcedures } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   // GET /api/users/:id
   getUser: procedure
     .input(z.object({ id: z.string().uuid() }))
