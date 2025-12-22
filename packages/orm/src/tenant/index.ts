@@ -66,6 +66,8 @@ export type {
   TenantClientPoolConfig,
   TenantContext,
   TenantContextInput,
+  // Prisma-specific client interface
+  TenantDatabaseClient,
   // Middleware
   TenantMiddlewareConfig,
   TenantPoolStats,
@@ -101,6 +103,7 @@ export {
   // Schema errors
   SchemaCreateError,
   SchemaDeleteError,
+  SchemaListError,
   SchemaMigrateError,
   SchemaNotFoundError,
   // Authorization error

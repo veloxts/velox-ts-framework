@@ -248,14 +248,65 @@ export interface SchemaMigrateResult {
 // ============================================================================
 
 /**
+ * Extended database client interface for tenant operations
+ *
+ * This interface defines the Prisma-specific methods needed by the provisioner.
+ * It allows type-safe access to tenant CRUD operations without unsafe inline casting.
+ *
+ * @example
+ * ```typescript
+ * // Your Prisma client already satisfies this interface if you have a 'tenant' model
+ * const provisioner = createTenantProvisioner({
+ *   schemaManager,
+ *   publicClient: prismaClient as TenantDatabaseClient,
+ *   clientPool,
+ * });
+ * ```
+ */
+export interface TenantDatabaseClient extends DatabaseClient {
+  /**
+   * Prisma model delegate for tenant operations (optional)
+   * If not available, falls back to raw queries
+   */
+  tenant?: {
+    findUnique: (args: { where: { id?: string; slug?: string } }) => Promise<Tenant | null>;
+    findMany: (args?: { where?: { status?: TenantStatus } }) => Promise<Tenant[]>;
+    create: (args: {
+      data: { slug: string; name: string; schemaName: string; status: TenantStatus };
+    }) => Promise<Tenant>;
+    update: (args: {
+      where: { id: string };
+      data: { status?: TenantStatus; updatedAt?: Date };
+    }) => Promise<Tenant>;
+    delete: (args: { where: { id: string } }) => Promise<Tenant>;
+  };
+
+  /**
+   * Prisma raw query execution (fallback when model delegate unavailable)
+   */
+  $queryRaw?: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T[]>;
+
+  /**
+   * Prisma raw execute for INSERT/UPDATE/DELETE
+   */
+  $executeRaw?: (query: TemplateStringsArray, ...values: unknown[]) => Promise<number>;
+}
+
+/**
  * Configuration for tenant provisioner
  */
 export interface TenantProvisionerConfig<TClient extends DatabaseClient> {
   /** Schema manager for DDL operations */
   schemaManager: TenantSchemaManager;
 
-  /** Public schema client for creating tenant records */
-  publicClient: TClient;
+  /**
+   * Public schema client for creating tenant records
+   *
+   * Must implement TenantDatabaseClient interface with either:
+   * - `tenant` model delegate (Prisma with tenant model)
+   * - `$queryRaw` and `$executeRaw` methods (raw query fallback)
+   */
+  publicClient: TClient & Partial<TenantDatabaseClient>;
 
   /** Client pool for testing new tenant connections */
   clientPool: TenantClientPool<TClient>;
@@ -304,9 +355,26 @@ export interface TenantClientPool<TClient extends DatabaseClient> {
   releaseClient(schemaName: string): void;
 
   /**
+   * Check if a client exists in the pool without creating it
+   * Useful for health checks
+   */
+  hasClient(schemaName: string): boolean;
+
+  /**
    * Disconnect all clients and clear the pool
+   *
+   * IMPORTANT: This also stops the cleanup timer.
+   * Always call this method during application shutdown.
    */
   disconnectAll(): Promise<void>;
+
+  /**
+   * Stop the cleanup timer without disconnecting clients
+   *
+   * Use this when you need to stop the timer but keep clients connected.
+   * For full cleanup, use `disconnectAll()` instead.
+   */
+  close(): void;
 
   /**
    * Get current pool statistics

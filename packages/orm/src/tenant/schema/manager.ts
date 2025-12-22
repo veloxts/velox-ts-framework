@@ -16,11 +16,13 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import pg from 'pg';
+import format from 'pg-format';
 
 import {
   InvalidSlugError,
   SchemaCreateError,
   SchemaDeleteError,
+  SchemaListError,
   SchemaMigrateError,
   SchemaNotFoundError,
 } from '../errors.js';
@@ -288,10 +290,10 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
           return { schemaName, created: false };
         }
 
-        // Create the schema using parameterized identifier
-        // Note: Schema names cannot be parameterized directly, but we've validated it
-        // is safe (alphanumeric only) above
-        await executeSql(`CREATE SCHEMA "${schemaName}"`);
+        // Create the schema using pg-format for safe identifier quoting
+        // %I is the identifier placeholder that properly escapes schema names
+        const createSchemaSql = format('CREATE SCHEMA %I', schemaName);
+        await executeSql(createSchemaSql);
 
         return { schemaName, created: true };
       } catch (error) {
@@ -358,8 +360,9 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
         }
 
         // CASCADE drops all objects in the schema
-        // Schema name is validated above to be safe
-        await executeSql(`DROP SCHEMA "${schemaName}" CASCADE`);
+        // Using pg-format for safe identifier quoting
+        const dropSchemaSql = format('DROP SCHEMA %I CASCADE', schemaName);
+        await executeSql(dropSchemaSql);
       } catch (error) {
         if (error instanceof SchemaNotFoundError) {
           throw error;
@@ -373,6 +376,8 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
 
     /**
      * List all tenant schemas
+     *
+     * @throws {SchemaListError} When database query fails
      */
     async listSchemas(): Promise<string[]> {
       try {
@@ -387,32 +392,28 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
 
         return result.map((row) => row.schema_name);
       } catch (error) {
-        console.error('[TenantSchemaManager] Failed to list schemas:', error);
-        return [];
+        throw new SchemaListError(error instanceof Error ? error : new Error(String(error)));
       }
     },
 
     /**
      * Check if a schema exists
+     *
+     * @throws {Error} When database query fails (schema name validation errors, connection issues)
      */
     async schemaExists(schemaName: string): Promise<boolean> {
       validateSchemaName(schemaName);
 
-      try {
-        // Use parameterized query
-        const result = await executeSql<{ exists: boolean }>(
-          `SELECT EXISTS(
-            SELECT 1 FROM information_schema.schemata
-            WHERE schema_name = $1
-          ) as exists`,
-          [schemaName]
-        );
+      // Use parameterized query - errors propagate to caller
+      const result = await executeSql<{ exists: boolean }>(
+        `SELECT EXISTS(
+          SELECT 1 FROM information_schema.schemata
+          WHERE schema_name = $1
+        ) as exists`,
+        [schemaName]
+      );
 
-        return result[0]?.exists ?? false;
-      } catch (error) {
-        console.error('[TenantSchemaManager] Failed to check schema existence:', error);
-        return false;
-      }
+      return result[0]?.exists ?? false;
     },
   };
 }

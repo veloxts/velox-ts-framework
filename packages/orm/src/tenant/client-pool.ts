@@ -220,7 +220,28 @@ export function createTenantClientPool<TClient extends DatabaseClient>(
     },
 
     /**
+     * Check if a client exists in the pool without creating it
+     * Useful for health checks
+     */
+    hasClient(schemaName: string): boolean {
+      return clients.has(schemaName);
+    },
+
+    /**
+     * Stop the cleanup timer without disconnecting clients
+     *
+     * Use this when you need to stop the timer but keep clients connected.
+     * For full cleanup, use `disconnectAll()` instead.
+     */
+    close(): void {
+      stopCleanupTimer();
+    },
+
+    /**
      * Disconnect all clients and clear the pool
+     *
+     * IMPORTANT: This also stops the cleanup timer.
+     * Always call this method during application shutdown.
      */
     async disconnectAll(): Promise<void> {
       stopCleanupTimer();

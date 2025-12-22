@@ -19,11 +19,34 @@ import type {
   TenantProvisioner as ITenantProvisioner,
   SchemaMigrateResult,
   Tenant,
+  TenantDatabaseClient,
   TenantProvisionerConfig,
   TenantProvisionInput,
   TenantProvisionResult,
+  TenantStatus,
 } from '../types.js';
 import { slugToSchemaName } from './manager.js';
+
+/**
+ * Type guard to check if client has tenant model delegate
+ */
+function hasTenantModel(client: Partial<TenantDatabaseClient>): client is TenantDatabaseClient & {
+  tenant: NonNullable<TenantDatabaseClient['tenant']>;
+} {
+  return client.tenant !== undefined && typeof client.tenant.findUnique === 'function';
+}
+
+/**
+ * Type guard to check if client has raw query methods
+ */
+function hasRawQueryMethods(
+  client: Partial<TenantDatabaseClient>
+): client is TenantDatabaseClient & {
+  $queryRaw: NonNullable<TenantDatabaseClient['$queryRaw']>;
+  $executeRaw: NonNullable<TenantDatabaseClient['$executeRaw']>;
+} {
+  return typeof client.$queryRaw === 'function' && typeof client.$executeRaw === 'function';
+}
 
 /**
  * Create a tenant provisioner
@@ -79,21 +102,13 @@ export function createTenantProvisioner<TClient extends DatabaseClient>(
    * Check if a tenant with this slug already exists
    */
   async function tenantExists(slug: string): Promise<boolean> {
-    // Use raw query to check existence
-    // This assumes the public schema has a 'tenants' table
-    const db = publicClient as DatabaseClient & {
-      tenant?: { findUnique: (args: { where: { slug: string } }) => Promise<unknown> };
-      $queryRaw?: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T[]>;
-    };
-
-    if (db.tenant?.findUnique) {
-      const existing = await db.tenant.findUnique({ where: { slug } });
+    if (hasTenantModel(publicClient)) {
+      const existing = await publicClient.tenant.findUnique({ where: { slug } });
       return existing !== null;
     }
 
-    // Fallback: try raw query
-    if (db.$queryRaw) {
-      const result = await db.$queryRaw<{ exists: boolean }>`
+    if (hasRawQueryMethods(publicClient)) {
+      const result = await publicClient.$queryRaw<{ exists: boolean }>`
         SELECT EXISTS(SELECT 1 FROM tenants WHERE slug = ${slug}) as exists
       `;
       return result[0]?.exists ?? false;
@@ -109,25 +124,10 @@ export function createTenantProvisioner<TClient extends DatabaseClient>(
     input: TenantProvisionInput,
     schemaName: string
   ): Promise<Tenant> {
-    const db = publicClient as DatabaseClient & {
-      tenant?: {
-        create: (args: {
-          data: {
-            slug: string;
-            name: string;
-            schemaName: string;
-            status: string;
-          };
-        }) => Promise<Tenant>;
-      };
-      $executeRaw?: (query: TemplateStringsArray, ...values: unknown[]) => Promise<number>;
-      $queryRaw?: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T[]>;
-    };
-
     const now = new Date();
 
-    if (db.tenant?.create) {
-      return db.tenant.create({
+    if (hasTenantModel(publicClient)) {
+      return publicClient.tenant.create({
         data: {
           slug: input.slug,
           name: input.name,
@@ -137,11 +137,10 @@ export function createTenantProvisioner<TClient extends DatabaseClient>(
       });
     }
 
-    // Fallback: raw query
-    if (db.$executeRaw && db.$queryRaw) {
+    if (hasRawQueryMethods(publicClient)) {
       const id = crypto.randomUUID();
 
-      await db.$executeRaw`
+      await publicClient.$executeRaw`
         INSERT INTO tenants (id, slug, name, schema_name, status, created_at, updated_at)
         VALUES (${id}, ${input.slug}, ${input.name}, ${schemaName}, 'pending', ${now}, ${now})
       `;
@@ -163,27 +162,17 @@ export function createTenantProvisioner<TClient extends DatabaseClient>(
   /**
    * Update tenant status
    */
-  async function updateTenantStatus(
-    tenantId: string,
-    status: 'active' | 'suspended' | 'pending' | 'migrating'
-  ): Promise<void> {
-    const db = publicClient as DatabaseClient & {
-      tenant?: {
-        update: (args: { where: { id: string }; data: { status: string } }) => Promise<unknown>;
-      };
-      $executeRaw?: (query: TemplateStringsArray, ...values: unknown[]) => Promise<number>;
-    };
-
-    if (db.tenant?.update) {
-      await db.tenant.update({
+  async function updateTenantStatus(tenantId: string, status: TenantStatus): Promise<void> {
+    if (hasTenantModel(publicClient)) {
+      await publicClient.tenant.update({
         where: { id: tenantId },
         data: { status },
       });
       return;
     }
 
-    if (db.$executeRaw) {
-      await db.$executeRaw`
+    if (hasRawQueryMethods(publicClient)) {
+      await publicClient.$executeRaw`
         UPDATE tenants SET status = ${status}, updated_at = ${new Date()} WHERE id = ${tenantId}
       `;
       return;
@@ -196,20 +185,13 @@ export function createTenantProvisioner<TClient extends DatabaseClient>(
    * Delete tenant record
    */
   async function deleteTenantRecord(tenantId: string): Promise<void> {
-    const db = publicClient as DatabaseClient & {
-      tenant?: {
-        delete: (args: { where: { id: string } }) => Promise<unknown>;
-      };
-      $executeRaw?: (query: TemplateStringsArray, ...values: unknown[]) => Promise<number>;
-    };
-
-    if (db.tenant?.delete) {
-      await db.tenant.delete({ where: { id: tenantId } });
+    if (hasTenantModel(publicClient)) {
+      await publicClient.tenant.delete({ where: { id: tenantId } });
       return;
     }
 
-    if (db.$executeRaw) {
-      await db.$executeRaw`DELETE FROM tenants WHERE id = ${tenantId}`;
+    if (hasRawQueryMethods(publicClient)) {
+      await publicClient.$executeRaw`DELETE FROM tenants WHERE id = ${tenantId}`;
       return;
     }
 
@@ -220,19 +202,12 @@ export function createTenantProvisioner<TClient extends DatabaseClient>(
    * Get tenant by ID
    */
   async function getTenant(tenantId: string): Promise<Tenant | null> {
-    const db = publicClient as DatabaseClient & {
-      tenant?: {
-        findUnique: (args: { where: { id: string } }) => Promise<Tenant | null>;
-      };
-      $queryRaw?: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T[]>;
-    };
-
-    if (db.tenant?.findUnique) {
-      return db.tenant.findUnique({ where: { id: tenantId } });
+    if (hasTenantModel(publicClient)) {
+      return publicClient.tenant.findUnique({ where: { id: tenantId } });
     }
 
-    if (db.$queryRaw) {
-      const result = await db.$queryRaw<Tenant>`
+    if (hasRawQueryMethods(publicClient)) {
+      const result = await publicClient.$queryRaw<Tenant>`
         SELECT * FROM tenants WHERE id = ${tenantId} LIMIT 1
       `;
       return result[0] ?? null;
@@ -245,19 +220,12 @@ export function createTenantProvisioner<TClient extends DatabaseClient>(
    * Get all tenants
    */
   async function getAllTenants(): Promise<Tenant[]> {
-    const db = publicClient as DatabaseClient & {
-      tenant?: {
-        findMany: () => Promise<Tenant[]>;
-      };
-      $queryRaw?: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T[]>;
-    };
-
-    if (db.tenant?.findMany) {
-      return db.tenant.findMany();
+    if (hasTenantModel(publicClient)) {
+      return publicClient.tenant.findMany();
     }
 
-    if (db.$queryRaw) {
-      return db.$queryRaw<Tenant>`SELECT * FROM tenants`;
+    if (hasRawQueryMethods(publicClient)) {
+      return publicClient.$queryRaw<Tenant>`SELECT * FROM tenants`;
     }
 
     return [];

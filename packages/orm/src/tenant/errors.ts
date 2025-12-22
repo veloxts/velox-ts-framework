@@ -46,6 +46,7 @@ export type TenantErrorCode =
   | 'SCHEMA_DELETE_FAILED'
   | 'SCHEMA_MIGRATE_FAILED'
   | 'SCHEMA_NOT_FOUND'
+  | 'SCHEMA_LIST_FAILED'
   | 'SCHEMA_ALREADY_EXISTS'
   | 'CLIENT_POOL_EXHAUSTED'
   | 'CLIENT_CREATE_FAILED'
@@ -161,6 +162,16 @@ export class SchemaNotFoundError extends TenantError {
   constructor(schemaName: string) {
     super(`Schema not found: ${schemaName}`, 'SCHEMA_NOT_FOUND', { schemaName });
     this.name = 'SchemaNotFoundError';
+  }
+}
+
+/**
+ * Schema list operation failed
+ */
+export class SchemaListError extends TenantError {
+  constructor(cause?: Error) {
+    super('Failed to list schemas', 'SCHEMA_LIST_FAILED', { cause });
+    this.name = 'SchemaListError';
   }
 }
 
