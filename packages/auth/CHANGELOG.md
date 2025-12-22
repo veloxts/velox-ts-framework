@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.15
+
+### Patch Changes
+
+- implement three-layer Node.js stubbing for Vite
+- Updated dependencies
+  - @veloxts/core@0.6.15
+  - @veloxts/router@0.6.15
+
 ## 0.6.14
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.15
+
+### Patch Changes
+
+- implement three-layer Node.js stubbing for Vite
+
 ## 0.6.14
 
 ### Patch Changes
