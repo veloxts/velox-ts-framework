@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.23
+
+### Patch Changes
+
+- add defineContract for improved type inference DX
+
 ## 0.6.22
 
 ### Patch Changes

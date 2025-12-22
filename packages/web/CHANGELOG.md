@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.23
+
+### Patch Changes
+
+- add defineContract for improved type inference DX
+- Updated dependencies
+  - @veloxts/auth@0.6.23
+  - @veloxts/client@0.6.23
+  - @veloxts/core@0.6.23
+  - @veloxts/router@0.6.23
+
 ## 0.6.22
 
 ### Patch Changes
