@@ -20,9 +20,16 @@ import {
   jwtManager,
   procedure,
   verifyPassword,
-  z,
 } from '@veloxts/velox';
 
+import {
+  LoginInput,
+  LogoutResponse,
+  RefreshInput,
+  RegisterInput,
+  TokenResponse,
+  UserResponse,
+} from '../schemas/auth.js';
 import { getJwtSecrets, parseUserRoles, tokenStore } from '../utils/auth.js';
 
 // ============================================================================
@@ -49,7 +56,7 @@ const rateLimiter = createAuthRateLimiter({
 });
 
 // ============================================================================
-// Password Blacklist
+// Password Blacklist (runtime-only, not in type chain)
 // ============================================================================
 
 const COMMON_PASSWORDS = new Set([
@@ -63,59 +70,16 @@ const COMMON_PASSWORDS = new Set([
   'admin123',
 ]);
 
-// ============================================================================
-// Schemas
-// ============================================================================
-
-const PasswordSchema = z
-  .string()
-  .min(12, 'Password must be at least 12 characters')
-  .max(128, 'Password must not exceed 128 characters')
-  .refine((pwd) => /[a-z]/.test(pwd), 'Password must contain at least one lowercase letter')
-  .refine((pwd) => /[A-Z]/.test(pwd), 'Password must contain at least one uppercase letter')
-  .refine((pwd) => /[0-9]/.test(pwd), 'Password must contain at least one number')
-  .refine(
-    (pwd) => !COMMON_PASSWORDS.has(pwd.toLowerCase()),
-    'Password is too common. Please choose a stronger password.'
-  );
-
-const EmailSchema = z
-  .string()
-  .email('Invalid email address')
-  .transform((email) => email.toLowerCase().trim());
-
-const RegisterInput = z.object({
-  name: z.string().min(2).max(100).trim(),
-  email: EmailSchema,
-  password: PasswordSchema,
-});
-
-const LoginInput = z.object({
-  email: EmailSchema,
-  password: z.string().min(1),
-});
-
-const RefreshInput = z.object({
-  refreshToken: z.string(),
-});
-
-const TokenResponse = z.object({
-  accessToken: z.string(),
-  refreshToken: z.string(),
-  expiresIn: z.number(),
-  tokenType: z.literal('Bearer'),
-});
-
-const UserResponse = z.object({
-  id: z.string(),
-  name: z.string(),
-  email: z.string(),
-  roles: z.array(z.string()),
-});
-
-const LogoutResponse = z.object({
-  success: z.boolean(),
-  message: z.string(),
+// Enhanced password validation with common password check
+const EnhancedRegisterInput = RegisterInput.extend({
+  password: RegisterInput.shape.password
+    .refine((pwd) => /[a-z]/.test(pwd), 'Password must contain at least one lowercase letter')
+    .refine((pwd) => /[A-Z]/.test(pwd), 'Password must contain at least one uppercase letter')
+    .refine((pwd) => /[0-9]/.test(pwd), 'Password must contain at least one number')
+    .refine(
+      (pwd) => !COMMON_PASSWORDS.has(pwd.toLowerCase()),
+      'Password is too common. Please choose a stronger password.'
+    ),
 });
 
 // ============================================================================
@@ -144,7 +108,7 @@ export const authProcedures = defineProcedures('auth', {
   createAccount: procedure()
     .rest({ method: 'POST', path: '/auth/register' })
     .use(rateLimiter.register())
-    .input(RegisterInput)
+    .input(EnhancedRegisterInput)
     .output(TokenResponse)
     .mutation(async ({ input, ctx }) => {
       const normalizedEmail = input.email.toLowerCase().trim();
@@ -217,7 +181,7 @@ export const authProcedures = defineProcedures('auth', {
     .use(rateLimiter.refresh())
     .input(RefreshInput)
     .output(TokenResponse)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const payload = jwt.verifyToken(input.refreshToken);
 

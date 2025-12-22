@@ -73,6 +73,14 @@ function generateUserSchema(): string {
   return compileTemplate('api/schemas/user.ts', DEFAULT_CONFIG);
 }
 
+function generateHealthSchema(): string {
+  return compileTemplate('api/schemas/health.ts', DEFAULT_CONFIG);
+}
+
+function generateRoutes(): string {
+  return compileTemplate('api/routes.default.ts', DEFAULT_CONFIG);
+}
+
 function generateApiTypesDts(): string {
   return compileTemplate('api/types.d.ts', DEFAULT_CONFIG);
 }
@@ -103,6 +111,8 @@ export function generateSpaTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'apps/api/src/procedures/users.ts', content: generateUserProcedures() },
     { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
+    { path: 'apps/api/src/schemas/health.ts', content: generateHealthSchema() },
+    { path: 'apps/api/src/routes.ts', content: generateRoutes() },
     { path: 'apps/api/src/types.d.ts', content: generateApiTypesDts() },
   ];
 

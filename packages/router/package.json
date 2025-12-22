@@ -17,10 +17,6 @@
     "./trpc": {
       "types": "./dist/trpc/index.d.ts",
       "import": "./dist/trpc/index.js"
-    },
-    "./vite": {
-      "types": "./dist/vite/index.d.ts",
-      "import": "./dist/vite/index.js"
     }
   },
   "scripts": {
@@ -62,16 +58,7 @@
   },
   "peerDependencies": {
     "fastify": "^5.0.0",
-    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",
     "zod": "^3.25.0"
-  },
-  "peerDependenciesMeta": {
-    "vite": {
-      "optional": true
-    },
-    "zod": {
-      "optional": false
-    }
   },
   "files": [
     "dist",

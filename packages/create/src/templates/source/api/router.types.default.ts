@@ -1,18 +1,56 @@
 /**
- * Router Types - Type-Only File for Frontend
+ * Router Types - Browser-Safe Type Definitions
  *
- * This file exports the AppRouter type for frontend type safety.
- * It uses TypeScript's inline `typeof import()` syntax which is
- * purely compile-time and should not trigger Vite's module resolution.
+ * CRITICAL: This file imports ONLY from schemas/ directory.
+ * Never import from procedures/ or @veloxts/* packages.
+ *
+ * This breaks the import chain that would otherwise pull server code
+ * into the browser bundle.
  */
 
-/**
- * AppRouter type for frontend type safety.
- *
- * Using inline typeof import() avoids top-level import statements
- * that Vite might try to resolve during bundle analysis.
- */
+import type { z } from 'zod';
+
+import type * as HealthSchemas from './schemas/health.js';
+import type * as UserSchemas from './schemas/user.js';
+
+// ============================================================================
+// Type Helpers
+// ============================================================================
+
+type Procedure<TInput, TOutput> = {
+  input: TInput;
+  output: TOutput;
+};
+
+// ============================================================================
+// AppRouter Type Definition
+// ============================================================================
+
 export type AppRouter = {
-  health: typeof import('./procedures/health.js')['healthProcedures'];
-  users: typeof import('./procedures/users.js')['userProcedures'];
+  health: {
+    getHealth: Procedure<undefined, z.infer<typeof HealthSchemas.HealthResponse>>;
+  };
+  users: {
+    getUser: Procedure<
+      z.infer<typeof UserSchemas.GetUserInput>,
+      z.infer<typeof UserSchemas.UserSchema>
+    >;
+    listUsers: Procedure<
+      z.infer<typeof UserSchemas.ListUsersInput>,
+      z.infer<typeof UserSchemas.ListUsersResponse>
+    >;
+    createUser: Procedure<
+      z.infer<typeof UserSchemas.CreateUserInput>,
+      z.infer<typeof UserSchemas.UserSchema>
+    >;
+    updateUser: Procedure<
+      z.infer<typeof UserSchemas.UpdateUserInput> & { id: string },
+      z.infer<typeof UserSchemas.UserSchema>
+    >;
+    patchUser: Procedure<
+      z.infer<typeof UserSchemas.UpdateUserInput> & { id: string },
+      z.infer<typeof UserSchemas.UserSchema>
+    >;
+    deleteUser: Procedure<{ id: string }, { success: boolean }>;
+  };
 };

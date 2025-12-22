@@ -6,11 +6,11 @@ import { createRoot } from 'react-dom/client';
 import { routeTree } from './routeTree.gen';
 import './styles/global.css';
 
-// Import router type from API for full type safety
-import type { AppRouter } from '../../api/src/index.js';
+// Import router type from browser-safe types file
+import type { AppRouter } from '../../api/src/router.types.js';
 /* @if auth */
-// Import routes directly from backend - no manual duplication needed
-import { routes } from '../../api/src/index.js';
+// Import routes from browser-safe routes file
+import { routes } from '../../api/src/routes.js';
 
 /* @endif auth */
 

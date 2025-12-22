@@ -20,7 +20,12 @@ import {
   z,
 } from '@veloxts/velox';
 
-import { CreateUserInput, UpdateUserInput, UserSchema } from '../schemas/user.js';
+import {
+  CreateUserInput,
+  ListUsersResponse,
+  UpdateUserInput,
+  UserSchema,
+} from '../schemas/user.js';
 
 // ============================================================================
 // User Procedures
@@ -41,16 +46,7 @@ export const userProcedures = defineProcedures('users', {
 
   listUsers: procedure()
     .input(paginationInputSchema.optional())
-    .output(
-      z.object({
-        data: z.array(UserSchema),
-        meta: z.object({
-          page: z.number(),
-          limit: z.number(),
-          total: z.number(),
-        }),
-      })
-    )
+    .output(ListUsersResponse)
     .query(async ({ input, ctx }) => {
       const page = input?.page ?? 1;
       const limit = input?.limit ?? 10;
