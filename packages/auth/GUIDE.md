@@ -21,7 +21,7 @@ const session = sessionMiddleware({
   expiration: { ttl: 86400, sliding: true },
 });
 
-const getProfile = procedure
+const getProfile = procedure()
   .use(session.requireAuth())
   .query(({ ctx }) => ctx.user);
 
@@ -46,7 +46,7 @@ const auth = authMiddleware({
   userLoader: (userId) => db.user.findUnique({ where: { id: userId } }),
 });
 
-const getProfile = procedure
+const getProfile = procedure()
   .use(auth.requireAuth())
   .query(({ ctx }) => ctx.user);
 ```
@@ -56,11 +56,11 @@ const getProfile = procedure
 ```typescript
 import { hasRole, hasPermission } from '@veloxts/auth';
 
-const adminOnly = procedure
+const adminOnly = procedure()
   .use(auth.middleware({ guards: [hasRole('admin')] }))
   .mutation(handler);
 
-const canEdit = procedure
+const canEdit = procedure()
   .use(auth.middleware({ guards: [hasPermission('posts.write')] }))
   .mutation(handler);
 ```

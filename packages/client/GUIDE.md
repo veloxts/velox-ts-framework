@@ -66,6 +66,8 @@ function useCreateUser() {
 | `getUser` | GET | `/users/:id` |
 | `listUsers` | GET | `/users` |
 | `createUser` | POST | `/users` |
+| `updateUser` | PUT | `/users/:id` |
+| `patchUser` | PATCH | `/users/:id` |
 | `deleteUser` | DELETE | `/users/:id` |
 
 ## Learn More

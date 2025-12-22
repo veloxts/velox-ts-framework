@@ -41,10 +41,10 @@ export default defineVeloxApp({
 ```typescript
 // src/api.handler.ts
 import { createApiRouter } from '@veloxts/web';
-import { createApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { userProcedures } from './procedures/users';
 
-const app = await createApp();
+const app = await veloxApp();
 // Register your procedures...
 
 export default createApiRouter({

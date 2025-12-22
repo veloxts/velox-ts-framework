@@ -42,11 +42,11 @@ Procedure names auto-map to HTTP methods:
 | Prefix | Method | Path |
 |--------|--------|------|
 | `get*` | GET | `/:id` |
-| `list*` | GET | `/` |
-| `create*` | POST | `/` |
-| `update*` | PUT | `/:id` |
+| `list*`, `find*` | GET | `/` |
+| `create*`, `add*` | POST | `/` |
+| `update*`, `edit*` | PUT | `/:id` |
 | `patch*` | PATCH | `/:id` |
-| `delete*` | DELETE | `/:id` |
+| `delete*`, `remove*` | DELETE | `/:id` |
 
 ## Registering Routes
 

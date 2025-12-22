@@ -7,7 +7,7 @@ Interactive project scaffolder for VeloxTS Framework.
 ```bash
 npx create-velox-app my-app
 cd my-app
-npm run db:migrate
+npm run db:push
 npm run dev
 ```
 
@@ -39,7 +39,7 @@ my-app/
 ```bash
 npm run dev          # Development server with HMR
 npm run build        # Build for production
-npm run db:migrate   # Run database migrations
+npm run db:push      # Push database schema
 ```
 
 ## Test Endpoints
