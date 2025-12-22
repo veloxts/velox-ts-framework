@@ -87,6 +87,8 @@ export interface TokenPayload {
   aud?: string;
   /** Not before timestamp - token is invalid before this time */
   nbf?: number;
+  /** Tenant ID for multi-tenancy (optional) */
+  tenantId?: string;
   /** Additional claims */
   [key: string]: unknown;
 }
