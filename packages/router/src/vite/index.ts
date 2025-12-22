@@ -92,6 +92,20 @@ const NODE_STUBS: Record<string, string> = {
     };
     export default { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, promises };
   `,
+  'node:fs/promises': `
+    export const readFile = async () => "";
+    export const writeFile = async () => {};
+    export const mkdir = async () => {};
+    export const readdir = async () => [];
+    export const stat = async () => ({ isFile: () => false, isDirectory: () => false });
+    export const access = async () => {};
+    export const unlink = async () => {};
+    export const rmdir = async () => {};
+    export const rm = async () => {};
+    export const copyFile = async () => {};
+    export const rename = async () => {};
+    export default { readFile, writeFile, mkdir, readdir, stat, access, unlink, rmdir, rm, copyFile, rename };
+  `,
   'node:path': `
     export const join = (...args) => args.filter(Boolean).join("/").replace(/\\/+/g, "/");
     export const resolve = (...args) => args.filter(Boolean).join("/").replace(/\\/+/g, "/");
@@ -322,6 +336,7 @@ function getAllStubs(): Record<string, string> {
   const nonPrefixedStubs: Record<string, string> = {};
   for (const key of Object.keys(NODE_STUBS)) {
     if (key.startsWith('node:')) {
+      // Create non-prefixed version: node:fs -> fs, node:fs/promises -> fs/promises
       nonPrefixedStubs[key.replace('node:', '')] = NODE_STUBS[key];
     }
   }
@@ -342,29 +357,43 @@ function createEsbuildNodeStubsPlugin(): EsbuildPlugin {
   return {
     name: 'velox-esbuild-node-stubs',
     setup(build) {
-      // Match all Node.js built-in module patterns
+      // Match all Node.js built-in module patterns, including subpaths like fs/promises
+      // This regex matches: node:fs, fs, node:fs/promises, fs/promises, etc.
       const nodeBuiltinFilter =
-        /^(node:)?(util|crypto|module|fs|path|url|os|buffer|events|stream|http|https|net|async_hooks|assert|diagnostics_channel|http2|dns|string_decoder|zlib|querystring|child_process|worker_threads|tty|readline|perf_hooks|process)$/;
+        /^(node:)?(util|crypto|module|fs|path|url|os|buffer|events|stream|http|https|net|async_hooks|assert|diagnostics_channel|http2|dns|string_decoder|zlib|querystring|child_process|worker_threads|tty|readline|perf_hooks|process)(\/.*)?$/;
 
       build.onResolve({ filter: nodeBuiltinFilter }, (args) => {
+        // Normalize to node: prefixed form for lookup
         const moduleName = args.path.startsWith('node:') ? args.path : `node:${args.path}`;
         if (moduleName in allStubs || args.path in allStubs) {
           return {
-            path: args.path,
+            path: moduleName, // Always use node: prefixed form
             namespace: 'velox-node-stubs',
           };
         }
         return null;
       });
 
-      // Note: We no longer stub npm packages like dotenv, fastify, pino, etc.
-      // These are now properly handled by Vite's pre-bundling (CJS -> ESM conversion)
-      // since we removed the optimizeDeps.exclude for @veloxts/* packages.
+      // Also intercept velox-virtual: paths that may come from Vite's alias resolution
+      build.onResolve({ filter: /^(\x00)?velox-virtual:/ }, (args) => {
+        // Strip the velox-virtual: prefix to get the original module name
+        const moduleName = args.path.replace(/^(\x00)?velox-virtual:/, '');
+        if (moduleName in allStubs) {
+          return {
+            path: moduleName,
+            namespace: 'velox-node-stubs',
+          };
+        }
+        return null;
+      });
 
       build.onLoad({ filter: /.*/, namespace: 'velox-node-stubs' }, (args) => {
-        // Try with node: prefix first, then without
+        // Try exact match, then with node: prefix, then without
         const content =
-          allStubs[args.path] ?? allStubs[`node:${args.path}`] ?? 'export default {};';
+          allStubs[args.path] ??
+          allStubs[`node:${args.path}`] ??
+          allStubs[args.path.replace('node:', '')] ??
+          'export default {};';
         return {
           contents: content,
           loader: 'js',
