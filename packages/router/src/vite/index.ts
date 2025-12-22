@@ -38,14 +38,22 @@ import type { Plugin, UserConfig } from 'vite';
  */
 const NODE_STUBS: Record<string, string> = {
   // =========================================================================
+  // NPM packages that execute at import time and crash in browser
+  // These need stubs because they run code that accesses Node.js globals
+  // =========================================================================
+  dotenv: `
+    export const config = () => ({ parsed: {} });
+    export const configDotenv = () => ({ parsed: {} });
+    export const parse = () => ({});
+    export const populate = () => {};
+    export default { config, configDotenv, parse, populate };
+  `,
+  'dotenv/config': `
+    export {};
+  `,
+
+  // =========================================================================
   // Node.js built-in modules (prefixed versions: node:*)
-  //
-  // Only Node.js built-ins need stubs. NPM packages like fastify, pino, etc.
-  // are handled by Vite's pre-bundling which converts CJS to ESM.
-  //
-  // We previously had stubs for dotenv, fastify, pino, etc. but these caused
-  // a whack-a-mole problem where each new CJS package needed its own stub.
-  // The correct solution is to let Vite pre-bundle these packages normally.
   // =========================================================================
   'node:util': `
     export const promisify = (fn) => fn;
@@ -361,6 +369,16 @@ function createEsbuildNodeStubsPlugin(): EsbuildPlugin {
       // This regex matches: node:fs, fs, node:fs/promises, fs/promises, etc.
       const nodeBuiltinFilter =
         /^(node:)?(util|crypto|module|fs|path|url|os|buffer|events|stream|http|https|net|async_hooks|assert|diagnostics_channel|http2|dns|string_decoder|zlib|querystring|child_process|worker_threads|tty|readline|perf_hooks|process)(\/.*)?$/;
+
+      // Match dotenv which executes at import time and crashes in browser
+      const dotenvFilter = /^dotenv(\/.*)?$/;
+
+      build.onResolve({ filter: dotenvFilter }, (args) => {
+        return {
+          path: args.path,
+          namespace: 'velox-node-stubs',
+        };
+      });
 
       build.onResolve({ filter: nodeBuiltinFilter }, (args) => {
         // Normalize to node: prefixed form for lookup
