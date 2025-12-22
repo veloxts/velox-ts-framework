@@ -103,6 +103,7 @@ export type {
 export {
   // Builder functions
   defineProcedures,
+  procedures, // Short alias for defineProcedures
   executeProcedure,
   isCompiledProcedure,
   isProcedureCollection,

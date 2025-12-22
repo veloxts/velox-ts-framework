@@ -510,6 +510,20 @@ export function defineProcedures<TProcedures extends ProcedureDefinitions>(
   };
 }
 
+/**
+ * Short alias for defineProcedures
+ *
+ * Laravel-inspired concise syntax for daily use.
+ *
+ * @example
+ * ```typescript
+ * // These are equivalent:
+ * export const users = procedures('users', { ... });
+ * export const users = defineProcedures('users', { ... });
+ * ```
+ */
+export const procedures = defineProcedures;
+
 // ============================================================================
 // Procedure Execution
 // ============================================================================
