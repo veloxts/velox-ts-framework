@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.25
+
+### Patch Changes
+
+- docs(create): add guide for React Server Components setup
+- Updated dependencies
+  - @veloxts/core@0.6.25
+  - @veloxts/router@0.6.25
+
 ## 0.6.24
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.25
+
+### Patch Changes
+
+- docs(create): add guide for React Server Components setup
+
 ## 0.6.24
 
 ### Patch Changes

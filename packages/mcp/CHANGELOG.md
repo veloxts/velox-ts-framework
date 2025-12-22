@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.25
+
+### Patch Changes
+
+- docs(create): add guide for React Server Components setup
+- Updated dependencies
+  - @veloxts/cli@0.6.25
+  - @veloxts/router@0.6.25
+  - @veloxts/validation@0.6.25
+
 ## 0.6.24
 
 ### Patch Changes
