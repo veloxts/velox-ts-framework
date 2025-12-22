@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.18
+
+### Patch Changes
+
+- add node:fs/promises stub and fix esbuild plugin
+- Updated dependencies
+  - @veloxts/core@0.6.18
+  - @veloxts/router@0.6.18
+
 ## 0.6.17
 
 ### Patch Changes
