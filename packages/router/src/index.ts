@@ -103,11 +103,11 @@ export type {
 export {
   // Builder functions
   defineProcedures,
-  procedures, // Short alias for defineProcedures
   executeProcedure,
   isCompiledProcedure,
   isProcedureCollection,
   procedure,
+  procedures, // Short alias for defineProcedures
 } from './procedure/builder.js';
 // Typed procedure factory
 export { createProcedure, typedProcedure } from './procedure/factory.js';

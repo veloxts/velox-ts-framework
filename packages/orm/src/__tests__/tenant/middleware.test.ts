@@ -1,17 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  createTenantMiddleware,
-  createTenant,
-  hasTenant,
-  getTenantOrThrow,
-} from '../../tenant/middleware.js';
+
 import {
   TenantIdMissingError,
   TenantNotFoundError,
   TenantSuspendedError,
 } from '../../tenant/errors.js';
-import type { DatabaseClient } from '../../types.js';
+import {
+  createTenant,
+  createTenantMiddleware,
+  getTenantOrThrow,
+  hasTenant,
+} from '../../tenant/middleware.js';
 import type { Tenant, TenantClientPool } from '../../tenant/types.js';
+import type { DatabaseClient } from '../../types.js';
 
 // Mock tenant
 const mockTenant: Tenant = {

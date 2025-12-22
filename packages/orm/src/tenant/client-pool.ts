@@ -8,13 +8,13 @@
  */
 
 import type { DatabaseClient } from '../types.js';
+import { ClientCreateError, ClientDisconnectError, ClientPoolExhaustedError } from './errors.js';
 import type {
   CachedClient,
   TenantClientPool as ITenantClientPool,
   TenantClientPoolConfig,
   TenantPoolStats,
 } from './types.js';
-import { ClientCreateError, ClientDisconnectError, ClientPoolExhaustedError } from './errors.js';
 
 /**
  * Default configuration values

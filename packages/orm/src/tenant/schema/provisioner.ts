@@ -9,20 +9,20 @@
  */
 
 import type { DatabaseClient } from '../../types.js';
+import {
+  DeprovisionError,
+  InvalidSlugError,
+  ProvisionError,
+  TenantNotFoundError,
+} from '../errors.js';
 import type {
-  Tenant,
   TenantProvisioner as ITenantProvisioner,
+  SchemaMigrateResult,
+  Tenant,
   TenantProvisionerConfig,
   TenantProvisionInput,
   TenantProvisionResult,
-  SchemaMigrateResult,
 } from '../types.js';
-import {
-  ProvisionError,
-  DeprovisionError,
-  TenantNotFoundError,
-  InvalidSlugError,
-} from '../errors.js';
 import { slugToSchemaName } from './manager.js';
 
 /**

@@ -7,13 +7,7 @@
  * - Output schema automatically serializes Date → string via withTimestamps()
  */
 
-import {
-  NotFoundError,
-  paginationInputSchema,
-  procedure,
-  procedures,
-  z,
-} from '@veloxts/velox';
+import { NotFoundError, paginationInputSchema, procedure, procedures, z } from '@veloxts/velox';
 
 import {
   CreateUserInput,

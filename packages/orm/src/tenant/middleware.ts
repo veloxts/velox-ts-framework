@@ -5,18 +5,14 @@
  */
 
 import type { DatabaseClient } from '../types.js';
+import { getTenantStatusError, TenantIdMissingError, TenantNotFoundError } from './errors.js';
 import type {
   Tenant,
-  TenantMiddlewareConfig,
-  TenantContextInput,
-  TenantContext,
   TenantClientPool,
+  TenantContext,
+  TenantContextInput,
+  TenantMiddlewareConfig,
 } from './types.js';
-import {
-  TenantIdMissingError,
-  TenantNotFoundError,
-  getTenantStatusError,
-} from './errors.js';
 
 /**
  * Middleware function type compatible with tRPC/procedure middleware

@@ -128,7 +128,10 @@ export class SchemaDeleteError extends TenantError {
  */
 export class SchemaMigrateError extends TenantError {
   constructor(schemaName: string, cause?: Error) {
-    super(`Failed to migrate schema: ${schemaName}`, 'SCHEMA_MIGRATE_FAILED', { schemaName, cause });
+    super(`Failed to migrate schema: ${schemaName}`, 'SCHEMA_MIGRATE_FAILED', {
+      schemaName,
+      cause,
+    });
     this.name = 'SchemaMigrateError';
   }
 }
@@ -158,10 +161,7 @@ export class SchemaAlreadyExistsError extends TenantError {
  */
 export class ClientPoolExhaustedError extends TenantError {
   constructor(maxClients: number) {
-    super(
-      `Client pool exhausted: maximum ${maxClients} clients reached`,
-      'CLIENT_POOL_EXHAUSTED'
-    );
+    super(`Client pool exhausted: maximum ${maxClients} clients reached`, 'CLIENT_POOL_EXHAUSTED');
     this.name = 'ClientPoolExhaustedError';
   }
 }
@@ -232,10 +232,7 @@ export function isTenantError(error: unknown): error is TenantError {
 /**
  * Get error based on tenant status
  */
-export function getTenantStatusError(
-  tenantId: string,
-  status: string
-): TenantError | null {
+export function getTenantStatusError(tenantId: string, status: string): TenantError | null {
   switch (status) {
     case 'suspended':
       return new TenantSuspendedError(tenantId);

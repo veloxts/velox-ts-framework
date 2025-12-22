@@ -18,6 +18,7 @@ import { createIntrospectCommand } from './commands/introspect.js';
 import { createMakeCommand } from './commands/make.js';
 import { createMigrateCommand } from './commands/migrate.js';
 import { createProceduresCommand } from './commands/procedures.js';
+import { createTenantCommand } from './commands/tenant.js';
 import { CLI_VERSION } from './index.js';
 
 /**
@@ -39,6 +40,7 @@ function createCLI(): Command {
   program.addCommand(createMakeCommand());
   program.addCommand(createMigrateCommand());
   program.addCommand(createProceduresCommand());
+  program.addCommand(createTenantCommand());
 
   return program;
 }

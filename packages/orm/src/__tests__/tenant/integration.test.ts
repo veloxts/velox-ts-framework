@@ -1,13 +1,14 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
-  createTenantClientPool,
   createTenant,
+  createTenantClientPool,
   TenantIdMissingError,
   TenantNotFoundError,
   TenantSuspendedError,
 } from '../../tenant/index.js';
-import type { DatabaseClient } from '../../types.js';
 import type { Tenant } from '../../tenant/types.js';
+import type { DatabaseClient } from '../../types.js';
 
 /**
  * Integration tests simulating real procedure middleware flow
@@ -17,23 +18,21 @@ import type { Tenant } from '../../tenant/types.js';
 interface MockUserClient extends DatabaseClient {
   user: {
     findMany: () => Promise<Array<{ id: string; name: string; email: string }>>;
-    create: (data: { data: { name: string; email: string } }) => Promise<{ id: string; name: string; email: string }>;
+    create: (data: {
+      data: { name: string; email: string };
+    }) => Promise<{ id: string; name: string; email: string }>;
   };
 }
 
 function createMockUserClient(schemaName: string): MockUserClient {
-  const users = [
-    { id: '1', name: `User from ${schemaName}`, email: 'user@example.com' },
-  ];
+  const users = [{ id: '1', name: `User from ${schemaName}`, email: 'user@example.com' }];
 
   return {
     $connect: vi.fn().mockResolvedValue(undefined),
     $disconnect: vi.fn().mockResolvedValue(undefined),
     user: {
       findMany: vi.fn().mockResolvedValue(users),
-      create: vi.fn().mockImplementation(({ data }) =>
-        Promise.resolve({ id: '2', ...data })
-      ),
+      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: '2', ...data })),
     },
   };
 }
@@ -104,16 +103,16 @@ describe('tenant/integration', () => {
       handler: (ctx: { tenant: Tenant; db: MockUserClient }) => Promise<TResult>
     ): Promise<TResult> {
       const middleware = tenant.middleware();
-      let result: TResult;
+      const resultHolder: { value?: TResult } = {};
 
       await middleware({
         ctx,
         next: async ({ ctx: extendedCtx }) => {
-          result = await handler(extendedCtx as { tenant: Tenant; db: MockUserClient });
+          resultHolder.value = await handler(extendedCtx as { tenant: Tenant; db: MockUserClient });
         },
       });
 
-      return result!;
+      return resultHolder.value as TResult;
     }
 
     it('should provide tenant-scoped db access in handler', async () => {
@@ -187,25 +186,25 @@ describe('tenant/integration', () => {
     it('should reject requests without tenant ID', async () => {
       const ctx = { auth: { token: {} } };
 
-      await expect(
-        executeProcedure(ctx, async ({ db }) => db.user.findMany())
-      ).rejects.toThrow(TenantIdMissingError);
+      await expect(executeProcedure(ctx, async ({ db }) => db.user.findMany())).rejects.toThrow(
+        TenantIdMissingError
+      );
     });
 
     it('should reject unknown tenant', async () => {
       const ctx = { auth: { token: { tenantId: 'unknown-tenant' } } };
 
-      await expect(
-        executeProcedure(ctx, async ({ db }) => db.user.findMany())
-      ).rejects.toThrow(TenantNotFoundError);
+      await expect(executeProcedure(ctx, async ({ db }) => db.user.findMany())).rejects.toThrow(
+        TenantNotFoundError
+      );
     });
 
     it('should reject suspended tenant', async () => {
       const ctx = { auth: { token: { tenantId: 'tenant-suspended' } } };
 
-      await expect(
-        executeProcedure(ctx, async ({ db }) => db.user.findMany())
-      ).rejects.toThrow(TenantSuspendedError);
+      await expect(executeProcedure(ctx, async ({ db }) => db.user.findMany())).rejects.toThrow(
+        TenantSuspendedError
+      );
     });
   });
 
@@ -215,7 +214,11 @@ describe('tenant/integration', () => {
      */
     async function executeWithAuth<TResult>(
       authContext: { userId: string; tenantId: string } | null,
-      handler: (ctx: { user?: { id: string }; tenant: Tenant; db: MockUserClient }) => Promise<TResult>
+      handler: (ctx: {
+        user?: { id: string };
+        tenant: Tenant;
+        db: MockUserClient;
+      }) => Promise<TResult>
     ): Promise<TResult> {
       // Simulate auth middleware
       const ctx: Record<string, unknown> = {};
@@ -233,16 +236,18 @@ describe('tenant/integration', () => {
 
       // Then tenant middleware
       const middleware = tenant.middleware();
-      let result: TResult;
+      const resultHolder: { value?: TResult } = {};
 
       await middleware({
         ctx,
         next: async ({ ctx: extendedCtx }) => {
-          result = await handler(extendedCtx as { user?: { id: string }; tenant: Tenant; db: MockUserClient });
+          resultHolder.value = await handler(
+            extendedCtx as { user?: { id: string }; tenant: Tenant; db: MockUserClient }
+          );
         },
       });
 
-      return result!;
+      return resultHolder.value as TResult;
     }
 
     it('should have both user and tenant in context', async () => {
@@ -314,14 +319,12 @@ describe('tenant/integration', () => {
   describe('client pool lifecycle', () => {
     it('should track pool statistics correctly', async () => {
       // Access multiple tenants
-      await executeProcedure(
-        { auth: { token: { tenantId: 'tenant-acme' } } },
-        async ({ db }) => db.user.findMany()
+      await executeProcedure({ auth: { token: { tenantId: 'tenant-acme' } } }, async ({ db }) =>
+        db.user.findMany()
       );
 
-      await executeProcedure(
-        { auth: { token: { tenantId: 'tenant-beta' } } },
-        async ({ db }) => db.user.findMany()
+      await executeProcedure({ auth: { token: { tenantId: 'tenant-beta' } } }, async ({ db }) =>
+        db.user.findMany()
       );
 
       const stats = clientPool.getStats();
@@ -333,14 +336,12 @@ describe('tenant/integration', () => {
 
     it('should disconnect all clients on shutdown', async () => {
       // Create some clients
-      await executeProcedure(
-        { auth: { token: { tenantId: 'tenant-acme' } } },
-        async ({ db }) => db.user.findMany()
+      await executeProcedure({ auth: { token: { tenantId: 'tenant-acme' } } }, async ({ db }) =>
+        db.user.findMany()
       );
 
-      await executeProcedure(
-        { auth: { token: { tenantId: 'tenant-beta' } } },
-        async ({ db }) => db.user.findMany()
+      await executeProcedure({ auth: { token: { tenantId: 'tenant-beta' } } }, async ({ db }) =>
+        db.user.findMany()
       );
 
       // Disconnect all
@@ -361,15 +362,15 @@ describe('tenant/integration', () => {
     handler: (ctx: { tenant: Tenant; db: MockUserClient }) => Promise<TResult>
   ): Promise<TResult> {
     const middleware = tenant.middleware();
-    let result: TResult;
+    const resultHolder: { value?: TResult } = {};
 
     await middleware({
       ctx,
       next: async ({ ctx: extendedCtx }) => {
-        result = await handler(extendedCtx as { tenant: Tenant; db: MockUserClient });
+        resultHolder.value = await handler(extendedCtx as { tenant: Tenant; db: MockUserClient });
       },
     });
 
-    return result!;
+    return resultHolder.value as TResult;
   }
 });

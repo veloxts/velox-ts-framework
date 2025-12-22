@@ -9,19 +9,20 @@
 
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import type {
-  TenantSchemaManager as ITenantSchemaManager,
-  TenantSchemaManagerConfig,
-  SchemaCreateResult,
-  SchemaMigrateResult,
-} from '../types.js';
+
 import {
+  InvalidSlugError,
   SchemaCreateError,
   SchemaDeleteError,
   SchemaMigrateError,
   SchemaNotFoundError,
-  InvalidSlugError,
 } from '../errors.js';
+import type {
+  TenantSchemaManager as ITenantSchemaManager,
+  SchemaCreateResult,
+  SchemaMigrateResult,
+  TenantSchemaManagerConfig,
+} from '../types.js';
 
 const execAsync = promisify(exec);
 
@@ -73,9 +74,7 @@ const RESERVED_SCHEMAS = new Set([
  * await schemaManager.migrateSchema('tenant_acme_corp');
  * ```
  */
-export function createTenantSchemaManager(
-  config: TenantSchemaManagerConfig
-): ITenantSchemaManager {
+export function createTenantSchemaManager(config: TenantSchemaManagerConfig): ITenantSchemaManager {
   const schemaPrefix = config.schemaPrefix ?? DEFAULTS.schemaPrefix;
   const prismaSchemaPath = config.prismaSchemaPath ?? DEFAULTS.prismaSchemaPath;
 
@@ -155,10 +154,9 @@ export function createTenantSchemaManager(
     const escapedSql = sql.replace(/'/g, "'\\''");
 
     try {
-      const { stdout } = await execAsync(
-        `psql "${config.databaseUrl}" -c '${escapedSql}' -t -A`,
-        { timeout: 30000 }
-      );
+      const { stdout } = await execAsync(`psql "${config.databaseUrl}" -c '${escapedSql}' -t -A`, {
+        timeout: 30000,
+      });
       return stdout.trim();
     } catch (error) {
       throw error instanceof Error ? error : new Error(String(error));

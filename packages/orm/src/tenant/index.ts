@@ -56,32 +56,28 @@
 // ============================================================================
 
 export type {
-  // Tenant entity
-  Tenant,
-  TenantStatus,
-
-  // Client pool
-  TenantClientPoolConfig,
-  TenantClientPool,
-  TenantPoolStats,
   CachedClient,
-
-  // Middleware
-  TenantMiddlewareConfig,
-  TenantContextInput,
-  TenantContext,
-
-  // Schema manager
-  TenantSchemaManagerConfig,
-  TenantSchemaManager,
   SchemaCreateResult,
   SchemaMigrateResult,
-
+  // Tenant entity
+  Tenant,
+  TenantClientPool,
+  // Client pool
+  TenantClientPoolConfig,
+  TenantContext,
+  TenantContextInput,
+  // Middleware
+  TenantMiddlewareConfig,
+  TenantPoolStats,
+  TenantProvisioner,
   // Provisioner
   TenantProvisionerConfig,
-  TenantProvisioner,
   TenantProvisionInput,
   TenantProvisionResult,
+  TenantSchemaManager,
+  // Schema manager
+  TenantSchemaManagerConfig,
+  TenantStatus,
 } from './types.js';
 
 // ============================================================================
@@ -89,39 +85,33 @@ export type {
 // ============================================================================
 
 export {
-  // Base error
-  TenantError,
-  type TenantErrorCode,
-
-  // Tenant errors
-  TenantNotFoundError,
-  TenantSuspendedError,
-  TenantPendingError,
-  TenantMigratingError,
-  TenantIdMissingError,
-
+  ClientCreateError,
+  ClientDisconnectError,
+  // Client pool errors
+  ClientPoolExhaustedError,
+  DeprovisionError,
+  getTenantStatusError,
+  // Validation errors
+  InvalidSlugError,
+  // Utilities
+  isTenantError,
+  // Provisioning errors
+  ProvisionError,
+  SchemaAlreadyExistsError,
   // Schema errors
   SchemaCreateError,
   SchemaDeleteError,
   SchemaMigrateError,
   SchemaNotFoundError,
-  SchemaAlreadyExistsError,
-
-  // Client pool errors
-  ClientPoolExhaustedError,
-  ClientCreateError,
-  ClientDisconnectError,
-
-  // Validation errors
-  InvalidSlugError,
-
-  // Provisioning errors
-  ProvisionError,
-  DeprovisionError,
-
-  // Utilities
-  isTenantError,
-  getTenantStatusError,
+  // Base error
+  TenantError,
+  type TenantErrorCode,
+  TenantIdMissingError,
+  TenantMigratingError,
+  // Tenant errors
+  TenantNotFoundError,
+  TenantPendingError,
+  TenantSuspendedError,
 } from './errors.js';
 
 // ============================================================================
@@ -135,12 +125,12 @@ export { createTenantClientPool } from './client-pool.js';
 // ============================================================================
 
 export {
-  createTenantMiddleware,
   createTenant,
-  hasTenant,
+  createTenantMiddleware,
   getTenantOrThrow,
-  type TenantNamespace,
+  hasTenant,
   type MiddlewareFunction,
+  type TenantNamespace,
 } from './middleware.js';
 
 // ============================================================================
@@ -151,5 +141,4 @@ export {
   createTenantSchemaManager,
   slugToSchemaName,
 } from './schema/manager.js';
-
 export { createTenantProvisioner } from './schema/provisioner.js';

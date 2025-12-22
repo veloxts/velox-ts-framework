@@ -1,4 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createTenantClientPool } from '../../tenant/client-pool.js';
 import type { DatabaseClient } from '../../types.js';
 
@@ -11,10 +12,7 @@ function createMockClient(): DatabaseClient {
 }
 
 describe('tenant/client-pool', () => {
-  let createdClients: DatabaseClient[];
-
   beforeEach(() => {
-    createdClients = [];
     vi.useFakeTimers();
   });
 

@@ -29,8 +29,8 @@ export type {
 export {
   createActions,
   createTrpcBridge,
-  trpcBridge, // Short alias for createTrpcBridge
   TrpcBridgeError,
+  trpcBridge, // Short alias for createTrpcBridge
   wrapProcedure,
 } from './bridge.js';
 // Error classification

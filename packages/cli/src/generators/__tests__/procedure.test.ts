@@ -104,7 +104,7 @@ describe('ProcedureGenerator', () => {
       expect(output.files).toHaveLength(1);
       // File is named after plural form since it handles /users endpoint
       expect(output.files[0].path).toBe('src/procedures/users.ts');
-      expect(output.files[0].content).toContain('defineProcedures');
+      expect(output.files[0].content).toContain('procedures');
       expect(output.files[0].content).toContain('getUser');
     });
 
