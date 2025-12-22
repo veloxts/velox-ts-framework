@@ -40,7 +40,9 @@ async function testClientIntegration() {
   const { method, path } = resolveRoute(createAccountRoute);
 
   if (typeof path !== 'string') {
-    throw new Error(`Expected path to be string, got ${typeof path}: ${JSON.stringify(createAccountRoute)}`);
+    throw new Error(
+      `Expected path to be string, got ${typeof path}: ${JSON.stringify(createAccountRoute)}`
+    );
   }
 
   if (!path.startsWith('/')) {
@@ -66,7 +68,9 @@ async function testClientIntegration() {
 
   if (!createResponse.ok) {
     const body = await createResponse.text();
-    throw new Error(`createAccount failed: ${createResponse.status} ${createResponse.statusText}\n${body}`);
+    throw new Error(
+      `createAccount failed: ${createResponse.status} ${createResponse.statusText}\n${body}`
+    );
   }
 
   const createData = await createResponse.json();
@@ -87,7 +91,7 @@ async function testClientIntegration() {
       method: meMethod,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${createData.accessToken}`,
+        Authorization: `Bearer ${createData.accessToken}`,
       },
     });
 
@@ -117,7 +121,7 @@ async function testClientIntegration() {
     if (listResponse.ok) {
       const listData = await listResponse.json();
       const users = listData.data || listData;
-      const foundUser = Array.isArray(users) && users.find(u => u.email === testEmail);
+      const foundUser = Array.isArray(users) && users.find((u) => u.email === testEmail);
 
       if (foundUser) {
         console.log('  ✓ Created user found in users list');
