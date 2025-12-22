@@ -49,6 +49,80 @@ const NODE_STUBS: Record<string, string> = {
   `,
 
   // =========================================================================
+  // CommonJS packages that need ESM stubs
+  // These are server-only packages pulled in via typeof import() chains
+  // =========================================================================
+  'fastify-plugin': `
+    const fp = (fn, opts) => {
+      if (typeof fn !== 'function') return fn;
+      fn[Symbol.for('skip-override')] = opts?.encapsulate !== false;
+      fn[Symbol.for('fastify.display-name')] = opts?.name;
+      return fn;
+    };
+    fp.default = fp;
+    export default fp;
+    export { fp };
+  `,
+  fastify: `
+    class Fastify {
+      constructor() {}
+      register() { return this; }
+      use() { return this; }
+      get() { return this; }
+      post() { return this; }
+      put() { return this; }
+      delete() { return this; }
+      patch() { return this; }
+      listen() { return Promise.resolve(); }
+      ready() { return Promise.resolve(); }
+      close() { return Promise.resolve(); }
+      addHook() { return this; }
+      decorate() { return this; }
+      decorateRequest() { return this; }
+      decorateReply() { return this; }
+    }
+    const fastify = (opts) => new Fastify();
+    fastify.default = fastify;
+    fastify.fastify = fastify;
+    export default fastify;
+    export { fastify };
+  `,
+  '@fastify/cookie': `
+    const plugin = (fastify, opts, done) => { if (done) done(); };
+    plugin[Symbol.for('skip-override')] = true;
+    export default plugin;
+  `,
+  '@fastify/cors': `
+    const plugin = (fastify, opts, done) => { if (done) done(); };
+    plugin[Symbol.for('skip-override')] = true;
+    export default plugin;
+  `,
+  '@fastify/formbody': `
+    const plugin = (fastify, opts, done) => { if (done) done(); };
+    plugin[Symbol.for('skip-override')] = true;
+    export default plugin;
+  `,
+  '@fastify/static': `
+    const plugin = (fastify, opts, done) => { if (done) done(); };
+    plugin[Symbol.for('skip-override')] = true;
+    export default plugin;
+  `,
+  pino: `
+    const pino = () => ({
+      info: () => {},
+      error: () => {},
+      warn: () => {},
+      debug: () => {},
+      trace: () => {},
+      fatal: () => {},
+      child: () => pino(),
+    });
+    pino.default = pino;
+    export default pino;
+    export { pino };
+  `,
+
+  // =========================================================================
   // Node.js built-in modules (prefixed versions: node:*)
   // =========================================================================
   'node:util': `
