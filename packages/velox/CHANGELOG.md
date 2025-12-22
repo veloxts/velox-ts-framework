@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.26
+
+### Patch Changes
+
+- docs(mcp): add README and GUIDE, docs(web): simplify README and create concise GUIDE
+- Updated dependencies
+  - @veloxts/auth@0.6.26
+  - @veloxts/core@0.6.26
+  - @veloxts/orm@0.6.26
+  - @veloxts/router@0.6.26
+  - @veloxts/validation@0.6.26
+
 ## 0.6.25
 
 ### Patch Changes

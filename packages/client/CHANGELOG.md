@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.6.26
+
+### Patch Changes
+
+- docs(mcp): add README and GUIDE, docs(web): simplify README and create concise GUIDE
+
 ## 0.6.25
 
 ### Patch Changes
