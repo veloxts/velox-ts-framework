@@ -1,33 +1,22 @@
-# @veloxts/velox - Complete Guide
+# @veloxts/velox
 
-> **Alpha Release** - This framework is in early development. APIs may change between versions. Not recommended for production use yet.
-
-Complete VeloxTS framework - batteries included.
+Complete VeloxTS Framework - batteries included for type-safe, full-stack TypeScript applications.
 
 ## Quick Start
 
 ```bash
-# Using npx (recommended)
 npx create-velox-app my-app
-
-# Using pnpm
-pnpm create velox-app my-app
-
-# Using npm
-npm create velox-app my-app
-
-# Using yarn
-yarn create velox-app my-app
+cd my-app
+npm run db:migrate
+npm run dev
 ```
 
-## Usage
-
-### Quick Start
+Or use directly:
 
 ```typescript
-import { veloxApp, procedure, defineProcedures, rest, z } from '@veloxts/velox';
+import { veloxApp, procedure, defineProcedures, z } from '@veloxts/velox';
 
-const app = await veloxApp(); // Default port: 3030
+const app = await veloxApp({ port: 3030 });
 
 const greetProcedures = defineProcedures('greet', {
   sayHello: procedure()
@@ -35,66 +24,60 @@ const greetProcedures = defineProcedures('greet', {
     .query(({ input }) => `Hello, ${input.name}!`),
 });
 
-// Register procedures as REST endpoints
-app.routes(rest([greetProcedures], { prefix: '/api' }));
-
+app.routes([greetProcedures]);
 await app.start();
-// GET /api/greet/hello?name=World -> "Hello, World!"
 ```
 
-### Import Patterns
+## What's Included
 
-VeloxTS supports three import patterns for different needs:
+- **@veloxts/core** - Application bootstrap, plugins, context, DI
+- **@veloxts/validation** - Zod integration and schema utilities
+- **@veloxts/orm** - Database plugin and Prisma integration
+- **@veloxts/router** - Procedures, REST adapter, tRPC
+- **@veloxts/auth** - Authentication and authorization
 
-#### 1. Main Export (Simplest)
+Separate packages: `@veloxts/client`, `@veloxts/cli`, `create-velox-app`
+
+## Import Patterns
 
 ```typescript
+// Main export
 import { veloxApp, procedure, z } from '@veloxts/velox';
-```
 
-#### 2. Subpath Imports (Better Tree-Shaking)
-
-```typescript
+// Subpath imports (better tree-shaking)
 import { veloxApp } from '@veloxts/velox/core';
-import { procedure, defineProcedures } from '@veloxts/velox/router';
-import { z } from '@veloxts/velox/validation';
-import { databasePlugin } from '@veloxts/velox/orm';
+import { procedure } from '@veloxts/velox/router';
+
+// Direct packages (best tree-shaking)
+import { veloxApp } from '@veloxts/core';
+import { procedure } from '@veloxts/router';
 ```
 
-#### 3. Direct Package Imports (Best Tree-Shaking)
+## REST Naming Conventions
+
+Procedure names auto-map to HTTP methods:
+
+- `getUser` → GET `/users/:id`
+- `listUsers` → GET `/users`
+- `createUser` → POST `/users`
+- `updateUser` → PUT `/users/:id`
+- `deleteUser` → DELETE `/users/:id`
+
+## Type Safety
+
+Types flow from backend to frontend without code generation:
 
 ```typescript
-import { veloxApp } from '@veloxts/core';
-import { procedure, defineProcedures } from '@veloxts/router';
-import { z } from '@veloxts/validation';
-import { databasePlugin } from '@veloxts/orm';
+// Frontend
+import { createClient } from '@veloxts/client';
+import type { userProcedures } from '../server/procedures';
+
+const api = createClient<{ users: typeof userProcedures }>({ baseUrl: '/api' });
+const user = await api.users.getUser({ id: '123' }); // Fully typed
 ```
 
-## Included Packages
+## Learn More
 
-This umbrella package includes:
-
-| Package | Description |
-|---------|-------------|
-| `@veloxts/core` | Application bootstrap, plugins, context |
-| `@veloxts/validation` | Zod integration and schema utilities |
-| `@veloxts/orm` | Database plugin and Prisma integration |
-| `@veloxts/router` | Procedure definitions, REST adapter, tRPC |
-| `@veloxts/auth` | Authentication and authorization (v1.1+) |
-
-## Not Included
-
-These packages are installed separately:
-
-- `@veloxts/client` - Type-safe frontend API client
-- `@veloxts/cli` - Developer tooling CLI
-- `create-velox-app` - Project scaffolder
-
-## Documentation
-
-- [VeloxTS Documentation](https://veloxts.dev)
 - [GitHub Repository](https://github.com/veloxts/velox-ts-framework)
-
-## License
-
-MIT
+- [@veloxts/router](https://www.npmjs.com/package/@veloxts/router) - Procedures
+- [@veloxts/client](https://www.npmjs.com/package/@veloxts/client) - Frontend client
