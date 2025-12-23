@@ -7,7 +7,7 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "__WS_PARALLEL__ dev",
+    "dev": "__DEV_CMD__",
     "build": "__WS_ALL__ build",
     "type-check": "__WS_ALL__ type-check",
     "db:push": "__WS_API__ db:push",

@@ -27,8 +27,8 @@ export const PLACEHOLDERS = {
   RUN_CMD: '__RUN_CMD__',
   /** Workspace command prefix for api package (e.g., "pnpm -F api", "npm run -w api") */
   WS_API: '__WS_API__',
-  /** Parallel recursive run command (e.g., "pnpm --parallel -r", "npm run -ws --if-present") */
-  WS_PARALLEL: '__WS_PARALLEL__',
+  /** Complete dev command for running api and web in parallel */
+  DEV_CMD: '__DEV_CMD__',
   /** Recursive run command (e.g., "pnpm -r", "npm run -ws") */
   WS_ALL: '__WS_ALL__',
   /** API server port (default: 3030) */
@@ -114,18 +114,22 @@ function getWsApiCommand(packageManager: TemplateConfig['packageManager']): stri
 }
 
 /**
- * Get the parallel workspace run command.
- * Used for running dev servers in parallel across workspaces.
+ * Get the complete dev command for running api and web in parallel.
+ * Note: npm doesn't support parallel workspace execution natively,
+ * so we use concurrently for npm users.
  */
-function getWsParallelCommand(packageManager: TemplateConfig['packageManager']): string {
+function getDevCommand(packageManager: TemplateConfig['packageManager']): string {
   switch (packageManager) {
     case 'npm':
-      return 'npm run -ws --if-present';
+      // npm doesn't have built-in parallel execution for workspaces
+      // Use concurrently to run api and web dev servers in parallel
+      // Quotes are escaped for JSON compatibility
+      return 'concurrently \\"npm run -w api dev\\" \\"npm run -w web dev\\"';
     case 'yarn':
-      return 'yarn workspaces foreach -A --parallel run';
+      return 'yarn workspaces foreach -A --parallel run dev';
     case 'pnpm':
     default:
-      return 'pnpm --parallel -r';
+      return 'pnpm --parallel -r dev';
   }
 }
 
@@ -172,7 +176,7 @@ export function applyPlaceholders(content: string, config: TemplateConfig): stri
     [PLACEHOLDERS.VELOXTS_VERSION]: VELOXTS_VERSION,
     [PLACEHOLDERS.RUN_CMD]: getRunCommand(config.packageManager),
     [PLACEHOLDERS.WS_API]: getWsApiCommand(config.packageManager),
-    [PLACEHOLDERS.WS_PARALLEL]: getWsParallelCommand(config.packageManager),
+    [PLACEHOLDERS.DEV_CMD]: getDevCommand(config.packageManager),
     [PLACEHOLDERS.WS_ALL]: getWsAllCommand(config.packageManager),
     [PLACEHOLDERS.API_PORT]: '3030',
     [PLACEHOLDERS.WEB_PORT]: '8080',

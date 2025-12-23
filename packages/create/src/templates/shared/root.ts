@@ -13,7 +13,25 @@ import type { TemplateConfig, TemplateFile } from '../types.js';
 // ============================================================================
 
 export function generateRootPackageJson(config: TemplateConfig): string {
-  return compileTemplate('root/package.json', config);
+  const content = compileTemplate('root/package.json', config);
+
+  // npm requires concurrently for parallel workspace execution
+  if (config.packageManager === 'npm') {
+    const pkg = JSON.parse(content) as {
+      devDependencies?: Record<string, string>;
+    };
+    pkg.devDependencies = pkg.devDependencies ?? {};
+    pkg.devDependencies.concurrently = '9.2.1';
+
+    // Sort devDependencies alphabetically
+    pkg.devDependencies = Object.fromEntries(
+      Object.entries(pkg.devDependencies).sort(([a], [b]) => a.localeCompare(b))
+    );
+
+    return JSON.stringify(pkg, null, 2);
+  }
+
+  return content;
 }
 
 export function generatePnpmWorkspaceYaml(): string {
