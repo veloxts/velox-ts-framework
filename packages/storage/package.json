@@ -37,11 +37,15 @@
   },
   "peerDependencies": {
     "@aws-sdk/client-s3": ">=3.0.0",
+    "@aws-sdk/lib-storage": ">=3.0.0",
     "@aws-sdk/s3-request-presigner": ">=3.0.0",
     "fastify": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@aws-sdk/client-s3": {
+      "optional": true
+    },
+    "@aws-sdk/lib-storage": {
       "optional": true
     },
     "@aws-sdk/s3-request-presigner": {
@@ -50,6 +54,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "3.821.0",
+    "@aws-sdk/lib-storage": "3.821.0",
     "@aws-sdk/s3-request-presigner": "3.821.0",
     "@types/mime-types": "2.1.4",
     "@types/node": "22.15.29",

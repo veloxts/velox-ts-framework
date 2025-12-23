@@ -70,11 +70,24 @@ export function createScheduler(
   // Job states
   const jobs = new Map<string, JobState>();
 
-  // Execution history
-  const history: TaskExecution[] = [];
+  // Execution history - use per-task arrays for O(1) trimming instead of O(n²)
+  const historyByTask = new Map<string, TaskExecution[]>();
+
+  // Get combined history (for API compatibility)
+  function getAllHistory(): TaskExecution[] {
+    const all: TaskExecution[] = [];
+    for (const taskHistory of historyByTask.values()) {
+      all.push(...taskHistory);
+    }
+    // Sort by scheduledAt descending (most recent first)
+    return all.sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
+  }
 
   // Running state
   let running = false;
+
+  // Track running task promises for graceful shutdown
+  const runningTasks = new Map<string, Promise<TaskExecution>>();
 
   /**
    * Log debug message.
@@ -87,22 +100,20 @@ export function createScheduler(
 
   /**
    * Add execution to history.
+   * O(1) amortized - uses per-task arrays with simple shift for trimming.
    */
   function addToHistory(execution: TaskExecution): void {
-    history.push(execution);
+    let taskHistory = historyByTask.get(execution.taskName);
+    if (!taskHistory) {
+      taskHistory = [];
+      historyByTask.set(execution.taskName, taskHistory);
+    }
 
-    // Trim history per task if needed
-    const taskHistory = history.filter((e) => e.taskName === execution.taskName);
-    if (taskHistory.length > MAX_HISTORY_PER_TASK) {
-      const toRemove = taskHistory.length - MAX_HISTORY_PER_TASK;
-      let removed = 0;
-      for (let i = 0; i < history.length && removed < toRemove; i++) {
-        if (history[i].taskName === execution.taskName) {
-          history.splice(i, 1);
-          removed++;
-          i--; // Adjust index after splice
-        }
-      }
+    taskHistory.push(execution);
+
+    // Trim oldest entries if needed - O(1) with shift
+    while (taskHistory.length > MAX_HISTORY_PER_TASK) {
+      taskHistory.shift();
     }
   }
 
@@ -334,9 +345,24 @@ export function createScheduler(
         () => {
           const jobState = jobs.get(task.name);
           if (jobState) {
-            executeTask(jobState).catch((err) => {
-              console.error(`[scheduler] Unhandled error in ${task.name}:`, err);
-            });
+            // Track the running promise for graceful shutdown
+            const taskPromise = executeTask(jobState)
+              .catch((err) => {
+                console.error(`[scheduler] Unhandled error in ${task.name}:`, err);
+                // Return a failed execution to satisfy the type
+                return {
+                  taskName: task.name,
+                  scheduledAt: new Date(),
+                  startedAt: new Date(),
+                  completedAt: new Date(),
+                  status: 'failed' as const,
+                  error: err instanceof Error ? err.message : String(err),
+                };
+              })
+              .finally(() => {
+                runningTasks.delete(task.name);
+              });
+            runningTasks.set(task.name, taskPromise);
           }
         },
         null, // onComplete
@@ -381,22 +407,32 @@ export function createScheduler(
 
       log('Stopping scheduler');
 
-      // Stop all cron jobs
+      // Stop all cron jobs (prevents new executions)
       for (const jobState of jobs.values()) {
         jobState.cronJob.stop();
       }
 
-      // Wait for running tasks to complete (with timeout)
+      // Wait for running tasks to complete with timeout
+      // Uses Promise.race instead of busy-wait polling for efficiency
       const maxWait = 30000; // 30 seconds
-      const startTime = Date.now();
+      const runningPromises = Array.from(runningTasks.values());
 
-      while (Date.now() - startTime < maxWait) {
-        const stillRunning = Array.from(jobs.values()).some((j) => j.isRunning);
-        if (!stillRunning) break;
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      if (runningPromises.length > 0) {
+        log(`Waiting for ${runningPromises.length} running task(s) to complete...`);
+
+        const timeoutPromise = new Promise<void>((resolve) => {
+          setTimeout(() => {
+            log('Graceful shutdown timeout reached, forcing stop');
+            resolve();
+          }, maxWait);
+        });
+
+        // Wait for all tasks OR timeout, whichever comes first
+        await Promise.race([Promise.all(runningPromises), timeoutPromise]);
       }
 
       running = false;
+      runningTasks.clear();
       log('Scheduler stopped');
     },
 
@@ -414,9 +450,11 @@ export function createScheduler(
 
     getHistory(taskName?: string): TaskExecution[] {
       if (taskName) {
-        return history.filter((e) => e.taskName === taskName);
+        // O(1) lookup for specific task
+        return [...(historyByTask.get(taskName) ?? [])];
       }
-      return [...history];
+      // Return combined history for all tasks
+      return getAllHistory();
     },
 
     async runTask(name: string): Promise<TaskExecution> {

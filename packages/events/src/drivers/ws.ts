@@ -194,12 +194,31 @@ export async function createWsDriver(
   }
 
   /**
-   * Send a message to a client.
+   * Maximum buffered amount before applying backpressure (64KB).
+   * If the WebSocket buffer exceeds this, we skip non-critical messages.
    */
-  function send(ws: ExtendedWebSocket, message: ServerMessage): void {
-    if (ws.readyState === ws.OPEN) {
-      ws.send(JSON.stringify(message));
+  const MAX_BUFFERED_AMOUNT = 64 * 1024;
+
+  /**
+   * Send a message to a client with backpressure handling.
+   * Returns true if message was sent, false if backpressure was applied.
+   */
+  function send(ws: ExtendedWebSocket, message: ServerMessage): boolean {
+    if (ws.readyState !== ws.OPEN) {
+      return false;
     }
+
+    // Apply backpressure: skip non-critical messages if buffer is full
+    // This prevents memory buildup under high load
+    if (ws.bufferedAmount > MAX_BUFFERED_AMOUNT) {
+      // Allow critical messages (connection, subscription, errors) through
+      if (message.type === 'event' && message.event !== 'connected') {
+        return false; // Drop non-critical event, client can recover
+      }
+    }
+
+    ws.send(JSON.stringify(message));
+    return true;
   }
 
   /**

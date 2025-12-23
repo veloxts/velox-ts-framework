@@ -24,7 +24,7 @@ import {
   isReadableStream,
   joinPath,
   normalizePath,
-  streamToBuffer,
+  streamToBuffer, // Still needed for get()
   toBuffer,
   validatePath,
 } from '../utils.js';
@@ -155,6 +155,9 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
     return `https://${bucket}.s3.${region}.amazonaws.com`;
   }
 
+  // Import Upload for streaming multipart uploads (prevents memory exhaustion for large files)
+  const { Upload } = await import('@aws-sdk/lib-storage');
+
   const store: StorageStore = {
     async put(
       path: string,
@@ -162,28 +165,45 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
       putOptions: PutOptions = {}
     ): Promise<string> {
       const key = getKey(path);
-
-      // Convert stream to buffer if necessary
-      let body: Buffer;
-      if (isReadableStream(content)) {
-        body = await streamToBuffer(content);
-      } else {
-        body = toBuffer(content as Buffer | string);
-      }
-
       const visibility = putOptions.visibility ?? defaultVisibility ?? 'private';
 
-      await client.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          Body: body,
-          ContentType: putOptions.contentType ?? detectMimeType(path),
-          CacheControl: putOptions.cacheControl,
-          ACL: visibilityToAcl(visibility),
-          Metadata: putOptions.metadata,
-        })
-      );
+      // For streams, use multipart upload to avoid buffering entire file in memory
+      // This prevents memory exhaustion for large files (100MB+)
+      if (isReadableStream(content)) {
+        const upload = new Upload({
+          client,
+          params: {
+            Bucket: bucket,
+            Key: key,
+            Body: content,
+            ContentType: putOptions.contentType ?? detectMimeType(path),
+            CacheControl: putOptions.cacheControl,
+            ACL: visibilityToAcl(visibility),
+            Metadata: putOptions.metadata,
+          },
+          // 5MB part size (minimum for S3 multipart)
+          partSize: 5 * 1024 * 1024,
+          // Upload up to 4 parts concurrently
+          queueSize: 4,
+        });
+
+        await upload.done();
+      } else {
+        // For buffers/strings, use simple put (already in memory)
+        const body = toBuffer(content as Buffer | string);
+
+        await client.send(
+          new PutObjectCommand({
+            Bucket: bucket,
+            Key: key,
+            Body: body,
+            ContentType: putOptions.contentType ?? detectMimeType(path),
+            CacheControl: putOptions.cacheControl,
+            ACL: visibilityToAcl(visibility),
+            Metadata: putOptions.metadata,
+          })
+        );
+      }
 
       return normalizePath(path);
     },
