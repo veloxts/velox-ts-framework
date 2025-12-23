@@ -90,7 +90,8 @@ function isPathSafe(baseDir: string, targetPath: string): boolean {
  */
 export async function createVeloxApp(
   initialProjectName?: string,
-  initialTemplate?: TemplateType
+  initialTemplate?: TemplateType,
+  initialDatabase?: DatabaseType
 ): Promise<void> {
   // Print welcome banner
   console.log('');
@@ -101,7 +102,7 @@ export async function createVeloxApp(
 
   try {
     // Collect project configuration
-    const config = await promptProjectConfig(initialProjectName, initialTemplate);
+    const config = await promptProjectConfig(initialProjectName, initialTemplate, initialDatabase);
     projectDirectory = config.directory;
 
     // Show configuration summary
@@ -173,7 +174,8 @@ export async function createVeloxApp(
  */
 async function promptProjectConfig(
   initialName?: string,
-  initialTemplate?: TemplateType
+  initialTemplate?: TemplateType,
+  initialDatabase?: DatabaseType
 ): Promise<ProjectConfig> {
   // Project name
   const name = initialName
@@ -227,11 +229,11 @@ async function promptProjectConfig(
     template = selectedTemplate as TemplateType;
   }
 
-  // Database selection (only in interactive mode - default to SQLite for CLI)
-  let database: DatabaseType = 'sqlite';
+  // Database selection
+  let database: DatabaseType = initialDatabase ?? 'sqlite';
 
-  // Only show database prompt in interactive mode (when template wasn't provided via CLI)
-  if (!initialTemplate) {
+  // Only show database prompt in interactive mode (when not provided via CLI)
+  if (!initialDatabase && !initialTemplate) {
     const databases = getAvailableDatabases();
     const selectedDatabase = await p.select({
       message: 'Choose a database',

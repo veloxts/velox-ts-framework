@@ -9,7 +9,7 @@
  */
 
 import { compileTemplate } from './compiler.js';
-import { DEFAULT_CONFIG } from './placeholders.js';
+import { applyDatabaseDependencies, DEFAULT_CONFIG } from './placeholders.js';
 import { generateRootFiles, generateWebBaseFiles, generateWebStyleFiles } from './shared/index.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 
@@ -18,7 +18,8 @@ import type { TemplateConfig, TemplateFile } from './types.js';
 // ============================================================================
 
 function generateApiPackageJson(config: TemplateConfig): string {
-  return compileTemplate('api/package.default.json', config);
+  const content = compileTemplate('api/package.default.json', config);
+  return applyDatabaseDependencies(content, config);
 }
 
 function generateApiTsConfig(): string {
@@ -33,8 +34,8 @@ function generateEnvExample(config: TemplateConfig): string {
   return compileTemplate('api/env.default', config);
 }
 
-function generatePrismaSchema(): string {
-  return compileTemplate('api/prisma/schema.default.prisma', DEFAULT_CONFIG);
+function generatePrismaSchema(config: TemplateConfig): string {
+  return compileTemplate('api/prisma/schema.default.prisma', config);
 }
 
 function generatePrismaConfig(): string {
@@ -57,8 +58,8 @@ function generateConfigApp(config: TemplateConfig): string {
   return compileTemplate('api/config/app.ts', config);
 }
 
-function generateConfigDatabase(): string {
-  return compileTemplate('api/config/database.ts', DEFAULT_CONFIG);
+function generateConfigDatabase(config: TemplateConfig): string {
+  return compileTemplate('api/config/database.ts', config);
 }
 
 function generateHealthProcedures(): string {
@@ -100,14 +101,14 @@ export function generateSpaTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/.env', content: generateEnvExample(config) },
 
     // Prisma
-    { path: 'apps/api/prisma/schema.prisma', content: generatePrismaSchema() },
+    { path: 'apps/api/prisma/schema.prisma', content: generatePrismaSchema(config) },
 
     // API Source files
     { path: 'apps/api/src/router.ts', content: generateRouterTs() },
     { path: 'apps/api/src/router.types.ts', content: generateRouterTypesTs() },
     { path: 'apps/api/src/index.ts', content: generateIndexTs() },
     { path: 'apps/api/src/config/app.ts', content: generateConfigApp(config) },
-    { path: 'apps/api/src/config/database.ts', content: generateConfigDatabase() },
+    { path: 'apps/api/src/config/database.ts', content: generateConfigDatabase(config) },
     { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'apps/api/src/procedures/users.ts', content: generateUserProcedures() },
     { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },

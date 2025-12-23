@@ -8,8 +8,15 @@
  */
 
 import { CREATE_VERSION, createVeloxApp } from './index.js';
-import type { TemplateType } from './templates/index.js';
-import { getAvailableTemplates, TEMPLATE_METADATA } from './templates/index.js';
+import type { DatabaseType, TemplateType } from './templates/index.js';
+import {
+  DATABASE_METADATA,
+  getAvailableDatabases,
+  getAvailableTemplates,
+  isDatabaseAvailable,
+  isValidDatabase,
+  TEMPLATE_METADATA,
+} from './templates/index.js';
 import { resolveTemplateAlias, TEMPLATE_ALIASES } from './templates/types.js';
 
 // ============================================================================
@@ -21,6 +28,14 @@ function getTemplateNames(): string {
   const templates = getAvailableTemplates().map((t) => t.type);
   const aliases = Object.keys(TEMPLATE_ALIASES);
   return [...templates, ...aliases].join(', ');
+}
+
+/** Get list of available database names for error messages */
+function getDatabaseNames(): string {
+  return getAvailableDatabases()
+    .filter((db) => !db.disabled)
+    .map((db) => db.type)
+    .join(', ');
 }
 
 // ============================================================================
@@ -37,6 +52,8 @@ Usage:
 Options:
   -t, --template <name>  Template to use (default: "spa")
                          Available: ${getTemplateNames()}
+  -d, --database <name>  Database to use (default: "sqlite")
+                         Available: ${getDatabaseNames()}
   -h, --help             Show this help message
   -v, --version          Show version number
 
@@ -46,15 +63,20 @@ Templates:
   trpc       ${TEMPLATE_METADATA.trpc.description}
   rsc        ${TEMPLATE_METADATA.rsc.description}
 
+Databases:
+  sqlite     ${DATABASE_METADATA.sqlite.hint}
+  postgresql ${DATABASE_METADATA.postgresql.hint}
+
 Aliases:
   default    → spa (backward compatible)
   fullstack  → rsc (backward compatible)
 
 Examples:
-  npx create-velox-app my-app                  # Interactive mode
-  npx create-velox-app my-app --template=spa   # SPA + API template
-  npx create-velox-app my-app --template=rsc   # RSC full-stack template
-  npx create-velox-app                         # Prompt for name
+  npx create-velox-app my-app                        # Interactive mode
+  npx create-velox-app my-app --template=spa         # SPA + API template
+  npx create-velox-app my-app --database=postgresql  # Use PostgreSQL
+  npx create-velox-app my-app -t rsc -d postgresql   # RSC with PostgreSQL
+  npx create-velox-app                               # Prompt for name
 `;
 
 // ============================================================================
@@ -64,6 +86,7 @@ Examples:
 interface ParsedArgs {
   projectName?: string;
   template?: TemplateType;
+  database?: DatabaseType;
   help: boolean;
   version: boolean;
 }
@@ -76,6 +99,7 @@ function parseArgs(args: string[]): ParsedArgs {
 
   const unexpectedArgs: string[] = [];
   let templateFlagSeen = false;
+  let databaseFlagSeen = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -141,6 +165,65 @@ function parseArgs(args: string[]): ParsedArgs {
       continue;
     }
 
+    // Handle --database=<value> or -d=<value>
+    if (arg.startsWith('--database=') || arg.startsWith('-d=')) {
+      // Check for duplicate flag
+      if (databaseFlagSeen) {
+        console.error('Error: --database flag specified multiple times');
+        process.exit(1);
+      }
+      databaseFlagSeen = true;
+
+      const value = arg.split('=')[1];
+      if (!value) {
+        console.error(`Error: --database requires a value. Available: ${getDatabaseNames()}`);
+        process.exit(1);
+      }
+      if (isValidDatabase(value)) {
+        if (!isDatabaseAvailable(value)) {
+          console.error(
+            `Database "${value}" is not yet available. Available: ${getDatabaseNames()}`
+          );
+          process.exit(1);
+        }
+        result.database = value;
+      } else {
+        console.error(`Invalid database: ${value}. Available: ${getDatabaseNames()}`);
+        process.exit(1);
+      }
+      continue;
+    }
+
+    // Handle --database <value> or -d <value>
+    if (arg === '--database' || arg === '-d') {
+      // Check for duplicate flag
+      if (databaseFlagSeen) {
+        console.error('Error: --database flag specified multiple times');
+        process.exit(1);
+      }
+      databaseFlagSeen = true;
+
+      const value = args[i + 1];
+      if (!value || value.startsWith('-')) {
+        console.error(`Error: --database requires a value. Available: ${getDatabaseNames()}`);
+        process.exit(1);
+      }
+      if (isValidDatabase(value)) {
+        if (!isDatabaseAvailable(value)) {
+          console.error(
+            `Database "${value}" is not yet available. Available: ${getDatabaseNames()}`
+          );
+          process.exit(1);
+        }
+        result.database = value;
+        i++; // Skip next arg
+      } else {
+        console.error(`Invalid database: ${value}. Available: ${getDatabaseNames()}`);
+        process.exit(1);
+      }
+      continue;
+    }
+
     // Non-flag argument
     if (!arg.startsWith('-')) {
       if (!result.projectName) {
@@ -185,7 +268,7 @@ async function main() {
     }
 
     // Run scaffolder
-    await createVeloxApp(parsed.projectName, parsed.template);
+    await createVeloxApp(parsed.projectName, parsed.template, parsed.database);
   } catch (error) {
     // Handle unexpected errors with actionable guidance
     if (error instanceof Error) {

@@ -95,7 +95,7 @@ export function readTemplateSource(relativePath: string): string {
  */
 export function compileTemplate(relativePath: string, config: TemplateConfig): string {
   const content = readTemplateSource(relativePath);
-  const withConditionals = processConditionals(content, config.template);
+  const withConditionals = processConditionals(content, config);
   return applyPlaceholders(withConditionals, config);
 }
 

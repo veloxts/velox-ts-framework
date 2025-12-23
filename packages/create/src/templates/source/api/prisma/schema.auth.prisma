@@ -1,7 +1,6 @@
 // Prisma Schema
 //
 // This schema defines the database structure with authentication support.
-// Using SQLite for simplicity - easily swap to PostgreSQL for production.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "__DATABASE_PROVIDER__"
 }
 
 // ============================================================================

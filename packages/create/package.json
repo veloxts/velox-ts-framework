@@ -28,6 +28,8 @@
     "type-check": "tsc --noEmit",
     "check:templates": "tsc -p tsconfig.templates.json --noEmit || true",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "smoke-test": "./scripts/smoke-test.sh"
   },
   "dependencies": {
@@ -37,7 +39,8 @@
   },
   "devDependencies": {
     "@types/node": "25.0.3",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "4.0.15"
   },
   "keywords": [
     "velox",

@@ -66,8 +66,7 @@ export const DATABASE_METADATA: Record<DatabaseType, DatabaseMetadata> = {
   postgresql: {
     type: 'postgresql',
     label: 'PostgreSQL',
-    hint: 'Coming soon - requires running PostgreSQL server',
-    disabled: true,
+    hint: 'Production-ready, requires running PostgreSQL server',
   },
   mysql: {
     type: 'mysql',

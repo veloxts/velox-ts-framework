@@ -9,7 +9,7 @@
  */
 
 import { compileTemplate } from './compiler.js';
-import { AUTH_CONFIG } from './placeholders.js';
+import { applyDatabaseDependencies, AUTH_CONFIG } from './placeholders.js';
 import { generateRootFiles, generateWebBaseFiles, generateWebStyleFiles } from './shared/index.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 
@@ -18,7 +18,8 @@ import type { TemplateConfig, TemplateFile } from './types.js';
 // ============================================================================
 
 function generateApiPackageJson(config: TemplateConfig): string {
-  return compileTemplate('api/package.auth.json', config);
+  const content = compileTemplate('api/package.auth.json', config);
+  return applyDatabaseDependencies(content, config);
 }
 
 function generateApiTsConfig(): string {
@@ -33,8 +34,8 @@ function generateEnvExample(config: TemplateConfig): string {
   return compileTemplate('api/env.auth', config);
 }
 
-function generatePrismaSchema(): string {
-  return compileTemplate('api/prisma/schema.auth.prisma', AUTH_CONFIG);
+function generatePrismaSchema(config: TemplateConfig): string {
+  return compileTemplate('api/prisma/schema.auth.prisma', config);
 }
 
 function generatePrismaConfig(): string {
@@ -69,8 +70,8 @@ function generateRouterTypesTs(): string {
   return compileTemplate('api/router.types.auth.ts', AUTH_CONFIG);
 }
 
-function generateConfigDatabase(): string {
-  return compileTemplate('api/config/database.ts', AUTH_CONFIG);
+function generateConfigDatabase(config: TemplateConfig): string {
+  return compileTemplate('api/config/database.ts', config);
 }
 
 function generateHealthProcedures(): string {
@@ -116,7 +117,7 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/.env', content: generateEnvExample(config) },
 
     // Prisma
-    { path: 'apps/api/prisma/schema.prisma', content: generatePrismaSchema() },
+    { path: 'apps/api/prisma/schema.prisma', content: generatePrismaSchema(config) },
 
     // API Source files
     { path: 'apps/api/src/router.ts', content: generateRouterTs() },
@@ -124,7 +125,7 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/src/index.ts', content: generateIndexTs() },
     { path: 'apps/api/src/config/app.ts', content: generateConfigApp(config) },
     { path: 'apps/api/src/config/auth.ts', content: generateAuthConfig() },
-    { path: 'apps/api/src/config/database.ts', content: generateConfigDatabase() },
+    { path: 'apps/api/src/config/database.ts', content: generateConfigDatabase(config) },
     { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'apps/api/src/procedures/auth.ts', content: generateAuthProcedures() },
     { path: 'apps/api/src/procedures/users.ts', content: generateUserProceduresWithAuth() },

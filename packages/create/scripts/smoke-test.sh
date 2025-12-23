@@ -10,6 +10,15 @@
 #   ./smoke-test.sh --rsc       # Test RSC full-stack template
 #   ./smoke-test.sh --all       # Test all templates
 #
+# Database options:
+#   ./smoke-test.sh --sqlite    # Use SQLite (default)
+#   ./smoke-test.sh --pg        # Use PostgreSQL
+#   ./smoke-test.sh --postgresql # Use PostgreSQL (alias)
+#
+# Combined examples:
+#   ./smoke-test.sh --auth --pg # Auth template with PostgreSQL
+#   ./smoke-test.sh --rsc --pg  # RSC template with PostgreSQL
+#
 # Aliases (backward compatible):
 #   ./smoke-test.sh --default   # Alias for --spa
 #   ./smoke-test.sh --fullstack # Alias for --rsc
@@ -20,6 +29,7 @@
 set -e
 
 TEMPLATE="spa"
+DATABASE="sqlite"
 TEST_ALL=false
 
 # Parse arguments
@@ -43,6 +53,14 @@ for arg in "$@"; do
       ;;
     --all)
       TEST_ALL=true
+      shift
+      ;;
+    --sqlite)
+      DATABASE="sqlite"
+      shift
+      ;;
+    --pg|--postgresql)
+      DATABASE="postgresql"
       shift
       ;;
     *)
@@ -107,8 +125,8 @@ test_template() {
   mkdir -p "$TEST_DIR"
   cd "$TEST_DIR"
 
-  # Run scaffolder with template flag (always pass explicitly to avoid interactive prompt)
-  SKIP_INSTALL=true node "$SCRIPT_DIR/dist/cli.js" "$project_name" --template="$template"
+  # Run scaffolder with template and database flags (always pass explicitly to avoid interactive prompt)
+  SKIP_INSTALL=true node "$SCRIPT_DIR/dist/cli.js" "$project_name" --template="$template" --database="$DATABASE"
 
   # Verify project was created
   if [ ! -f "$TEST_DIR/$project_name/package.json" ]; then
@@ -160,10 +178,15 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   npx prisma generate
   echo "✓ Prisma client generated"
 
-  # Push database schema
-  echo "=== Pushing database schema ==="
-  npx prisma db push
-  echo "✓ Database schema pushed"
+  # Push database schema (SQLite only - PostgreSQL requires running server)
+  if [ "$DATABASE" = "sqlite" ]; then
+    echo "=== Pushing database schema ==="
+    npx prisma db push
+    echo "✓ Database schema pushed"
+  else
+    echo "=== Skipping database push (PostgreSQL requires running server) ==="
+    echo "✓ PostgreSQL template validated (no live database test)"
+  fi
   echo ""
 
   # Test CLI commands
@@ -206,6 +229,29 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   fi
   cd ../api
   echo ""
+
+  # Skip runtime tests for PostgreSQL (requires running database server)
+  if [ "$DATABASE" = "postgresql" ]; then
+    echo ""
+    echo "=== PostgreSQL Template Validation Complete ==="
+    echo ""
+    echo "✓ Template '$template' with PostgreSQL passed all build validations!"
+    echo ""
+    echo "Note: Runtime endpoint tests skipped (PostgreSQL requires running server)"
+    echo "To test endpoints manually:"
+    echo "  1. Start PostgreSQL server"
+    echo "  2. Update DATABASE_URL in .env"
+    echo "  3. Run: npx prisma db push"
+    echo "  4. Run: npm run dev"
+    echo ""
+
+    # Return to project root
+    cd ../..
+
+    # Cleanup test project for next template
+    rm -rf "$TEST_DIR/$project_name"
+    return 0
+  fi
 
   # Start server from apps/api (where .env is located)
   echo "=== Testing endpoints ==="
@@ -626,8 +672,8 @@ test_rsc_template() {
   mkdir -p "$TEST_DIR"
   cd "$TEST_DIR"
 
-  # Run scaffolder with rsc template
-  SKIP_INSTALL=true node "$SCRIPT_DIR/dist/cli.js" "$project_name" --template="rsc"
+  # Run scaffolder with rsc template and database option
+  SKIP_INSTALL=true node "$SCRIPT_DIR/dist/cli.js" "$project_name" --template="rsc" --database="$DATABASE"
 
   # Verify project was created
   if [ ! -f "$TEST_DIR/$project_name/package.json" ]; then
@@ -689,10 +735,15 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   npx prisma generate
   echo "✓ Prisma client generated"
 
-  # Push database schema
-  echo "=== Pushing database schema ==="
-  npx prisma db push
-  echo "✓ Database schema pushed"
+  # Push database schema (SQLite only - PostgreSQL requires running server)
+  if [ "$DATABASE" = "sqlite" ]; then
+    echo "=== Pushing database schema ==="
+    npx prisma db push
+    echo "✓ Database schema pushed"
+  else
+    echo "=== Skipping database push (PostgreSQL requires running server) ==="
+    echo "✓ PostgreSQL template validated (no live database test)"
+  fi
   echo ""
 
   echo "=== Verifying template structure ==="
@@ -769,6 +820,27 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "⚠ TypeScript errors (expected - @veloxts/web types not yet complete)"
   fi
   echo ""
+
+  # Skip runtime tests for PostgreSQL (requires running database server)
+  if [ "$DATABASE" = "postgresql" ]; then
+    echo ""
+    echo "=== PostgreSQL Template Validation Complete ==="
+    echo ""
+    echo "✓ Template 'rsc' with PostgreSQL passed structure validation!"
+    echo ""
+    echo "Note: Runtime endpoint tests skipped (PostgreSQL requires running server)"
+    echo "To test endpoints manually:"
+    echo "  1. Start PostgreSQL server"
+    echo "  2. Update DATABASE_URL in .env"
+    echo "  3. Run: npx prisma db push"
+    echo "  4. Run: npm run dev"
+    echo ""
+
+    # Cleanup test project
+    cd "$TEST_DIR"
+    rm -rf "$project_name"
+    return 0
+  fi
 
   # Check if Vinxi runtime tests should run
   # Currently WIP - defineVeloxApp needs to use Vinxi's createApp()
@@ -1547,6 +1619,7 @@ if [ "$TEST_ALL" = true ]; then
 else
   echo "Testing template: $TEMPLATE"
 fi
+echo "Database: $DATABASE"
 echo ""
 
 # Build once

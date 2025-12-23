@@ -12,7 +12,7 @@
  */
 
 import { compileTemplate } from './compiler.js';
-import { RSC_CONFIG } from './placeholders.js';
+import { applyDatabaseDependencies, RSC_CONFIG } from './placeholders.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 
 // ============================================================================
@@ -20,7 +20,8 @@ import type { TemplateConfig, TemplateFile } from './types.js';
 // ============================================================================
 
 function generatePackageJson(config: TemplateConfig): string {
-  return compileTemplate('rsc/package.json', config);
+  const content = compileTemplate('rsc/package.json', config);
+  return applyDatabaseDependencies(content, config);
 }
 
 function generateAppConfig(): string {
@@ -44,8 +45,8 @@ function generateClaudeMd(config: TemplateConfig): string {
 }
 
 // Prisma
-function generatePrismaSchema(): string {
-  return compileTemplate('rsc/prisma/schema.prisma', RSC_CONFIG);
+function generatePrismaSchema(config: TemplateConfig): string {
+  return compileTemplate('rsc/prisma/schema.prisma', config);
 }
 
 function generatePrismaConfig(): string {
@@ -146,8 +147,8 @@ function generateApiHandler(): string {
   return compileTemplate('rsc/src/api/handler.ts', RSC_CONFIG);
 }
 
-function generateDatabase(): string {
-  return compileTemplate('rsc/src/api/database.ts', RSC_CONFIG);
+function generateDatabase(config: TemplateConfig): string {
+  return compileTemplate('rsc/src/api/database.ts', config);
 }
 
 function generateHealthProcedures(): string {
@@ -190,7 +191,7 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'CLAUDE.md', content: generateClaudeMd(config) },
 
     // Prisma
-    { path: 'prisma/schema.prisma', content: generatePrismaSchema() },
+    { path: 'prisma/schema.prisma', content: generatePrismaSchema(config) },
     { path: 'prisma.config.ts', content: generatePrismaConfig() },
 
     // App layer (RSC) - Basic pages
@@ -230,7 +231,7 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
 
     // Source layer - API
     { path: 'src/api/handler.ts', content: generateApiHandler() },
-    { path: 'src/api/database.ts', content: generateDatabase() },
+    { path: 'src/api/database.ts', content: generateDatabase(config) },
     { path: 'src/api/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'src/api/procedures/users.ts', content: generateUserProcedures() },
     { path: 'src/api/procedures/posts.ts', content: generatePostProcedures() },
