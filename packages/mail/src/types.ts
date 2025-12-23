@@ -286,7 +286,7 @@ export interface LogConfig {
 }
 
 /**
- * Mail configuration by driver.
+ * Mail configuration by driver (discriminated union).
  */
 export type MailConfig =
   | { driver: 'smtp'; config: SmtpConfig }
@@ -294,20 +294,9 @@ export type MailConfig =
   | { driver: 'log'; config?: LogConfig };
 
 /**
- * Mail plugin options.
+ * Base options shared across all mail configurations.
  */
-export interface MailPluginOptions {
-  /**
-   * Mail transport driver.
-   * @default 'log'
-   */
-  driver?: MailDriver;
-
-  /**
-   * Driver-specific configuration.
-   */
-  config?: SmtpConfig | ResendConfig | LogConfig;
-
+export interface MailBaseOptions {
   /**
    * Default from address for all emails.
    */
@@ -318,6 +307,103 @@ export interface MailPluginOptions {
    */
   replyTo?: Recipient;
 }
+
+/**
+ * Mail plugin options with SMTP driver.
+ */
+export interface MailSmtpOptions extends MailBaseOptions {
+  /**
+   * Mail transport driver.
+   */
+  driver: 'smtp';
+
+  /**
+   * SMTP-specific configuration (required for SMTP driver).
+   */
+  config: SmtpConfig;
+}
+
+/**
+ * Mail plugin options with Resend driver.
+ */
+export interface MailResendOptions extends MailBaseOptions {
+  /**
+   * Mail transport driver.
+   */
+  driver: 'resend';
+
+  /**
+   * Resend-specific configuration (required for Resend driver).
+   */
+  config: ResendConfig;
+}
+
+/**
+ * Mail plugin options with log driver.
+ */
+export interface MailLogOptions extends MailBaseOptions {
+  /**
+   * Mail transport driver.
+   */
+  driver: 'log';
+
+  /**
+   * Log driver-specific configuration (optional).
+   */
+  config?: LogConfig;
+}
+
+/**
+ * Mail plugin options with default driver (log).
+ * When no driver is specified, log is used as the default.
+ */
+export interface MailDefaultOptions extends MailBaseOptions {
+  /**
+   * Mail transport driver.
+   * @default 'log'
+   */
+  driver?: undefined;
+
+  /**
+   * Log driver-specific configuration (default driver).
+   */
+  config?: LogConfig;
+}
+
+/**
+ * Mail plugin options - discriminated union for type-safe driver configuration.
+ *
+ * The config type automatically narrows based on the selected driver:
+ * - `driver: 'smtp'` - config is SmtpConfig (required)
+ * - `driver: 'resend'` - config is ResendConfig (required)
+ * - `driver: 'log'` - config is LogConfig (optional)
+ * - no driver - defaults to log, config is LogConfig (optional)
+ *
+ * @example
+ * ```typescript
+ * // SMTP driver
+ * mailPlugin({ driver: 'smtp', config: { host: 'smtp.example.com', auth: {...} } });
+ *
+ * // Resend driver
+ * mailPlugin({ driver: 'resend', config: { apiKey: 'key_...' } });
+ *
+ * // Log driver (for development)
+ * mailPlugin({ driver: 'log', config: { showHtml: true } });
+ *
+ * // Default (log)
+ * mailPlugin({ from: { email: 'test@example.com' } });
+ * ```
+ */
+export type MailPluginOptions =
+  | MailSmtpOptions
+  | MailResendOptions
+  | MailLogOptions
+  | MailDefaultOptions;
+
+/**
+ * Mail manager options - same discriminated union for standalone usage.
+ */
+export type MailManagerOptions = MailPluginOptions;
 
 /**
  * Mail transport interface for driver implementations.

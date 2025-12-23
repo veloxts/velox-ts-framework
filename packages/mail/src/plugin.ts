@@ -7,6 +7,9 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
+// Side-effect import to enable module augmentation (TypeScript requires module reference)
+import '@veloxts/core';
+
 import { createMailManager, type MailManager } from './manager.js';
 import type { MailPluginOptions } from './types.js';
 
@@ -26,6 +29,26 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     mail?: MailManager;
+  }
+}
+
+// ============================================================================
+// Context Declaration Merging
+// ============================================================================
+
+/**
+ * Extend VeloxTS BaseContext with mail manager.
+ *
+ * This enables `ctx.mail` in procedure handlers with full type safety
+ * and autocomplete when the mail plugin is registered.
+ *
+ * The property is NON-optional since the plugin guarantees it exists
+ * after registration.
+ */
+declare module '@veloxts/core' {
+  interface BaseContext {
+    /** Mail manager for sending emails via templates */
+    mail: MailManager;
   }
 }
 
@@ -70,8 +93,13 @@ export function mailPlugin(options: MailPluginOptions = {}) {
       // Create a new mail manager for this Fastify instance
       const mailManager = await createMailManager(options);
 
-      // Store on Fastify instance using symbol key
-      (fastify as unknown as Record<symbol, MailManager>)[MAIL_MANAGER_KEY] = mailManager;
+      // Store on Fastify instance using symbol key (type-safe via Object.defineProperty)
+      Object.defineProperty(fastify, MAIL_MANAGER_KEY, {
+        value: mailManager,
+        writable: false,
+        enumerable: false,
+        configurable: false,
+      });
 
       // Decorate the request with mail manager
       fastify.decorateRequest('mail', undefined);
@@ -100,7 +128,9 @@ export function mailPlugin(options: MailPluginOptions = {}) {
  * @throws Error if mail plugin is not registered
  */
 export function getMailFromInstance(fastify: FastifyInstance): MailManager {
-  const mail = (fastify as unknown as Record<symbol, MailManager | undefined>)[MAIL_MANAGER_KEY];
+  // Type-safe property access using Object.getOwnPropertyDescriptor
+  const descriptor = Object.getOwnPropertyDescriptor(fastify, MAIL_MANAGER_KEY);
+  const mail = descriptor?.value as MailManager | undefined;
   if (!mail) {
     throw new Error(
       'Mail not initialized on this Fastify instance. Make sure to register mailPlugin first.'

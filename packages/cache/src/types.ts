@@ -233,26 +233,92 @@ export interface LockResult {
 }
 
 /**
- * Cache plugin options.
+ * Base options shared across all cache configurations.
  */
-export interface CachePluginOptions {
-  /**
-   * Cache driver to use.
-   * @default 'memory'
-   */
-  driver?: CacheDriver;
-  /**
-   * Driver-specific configuration.
-   */
-  config?: Omit<CacheConfig, 'driver'>;
+export interface CacheBaseOptions {
   /**
    * Key prefix for all cache entries.
    * @default 'velox:'
    */
   prefix?: string;
+
   /**
    * Default TTL for cache entries.
    * @default '1h'
    */
   defaultTtl?: TTL;
 }
+
+/**
+ * Cache plugin options with memory driver.
+ */
+export interface CacheMemoryOptions extends CacheBaseOptions {
+  /**
+   * Cache driver to use.
+   */
+  driver: 'memory';
+
+  /**
+   * Memory driver-specific configuration.
+   */
+  config?: Omit<MemoryCacheConfig, 'driver'>;
+}
+
+/**
+ * Cache plugin options with Redis driver.
+ */
+export interface CacheRedisOptions extends CacheBaseOptions {
+  /**
+   * Cache driver to use.
+   */
+  driver: 'redis';
+
+  /**
+   * Redis driver-specific configuration.
+   */
+  config?: Omit<RedisCacheConfig, 'driver'>;
+}
+
+/**
+ * Cache plugin options with default driver (memory).
+ * When no driver is specified, memory is used as the default.
+ */
+export interface CacheDefaultOptions extends CacheBaseOptions {
+  /**
+   * Cache driver to use.
+   * @default 'memory'
+   */
+  driver?: undefined;
+
+  /**
+   * Memory driver-specific configuration (default driver).
+   */
+  config?: Omit<MemoryCacheConfig, 'driver'>;
+}
+
+/**
+ * Cache plugin options - discriminated union for type-safe driver configuration.
+ *
+ * The config type automatically narrows based on the selected driver:
+ * - `driver: 'memory'` - config is MemoryCacheConfig (optional)
+ * - `driver: 'redis'` - config is RedisCacheConfig (optional)
+ * - no driver - defaults to memory, config is MemoryCacheConfig (optional)
+ *
+ * @example
+ * ```typescript
+ * // Memory driver (explicit)
+ * cachePlugin({ driver: 'memory', config: { maxSize: 1000 } });
+ *
+ * // Redis driver
+ * cachePlugin({ driver: 'redis', config: { url: 'redis://...' } });
+ *
+ * // Default (memory)
+ * cachePlugin({ prefix: 'myapp:' });
+ * ```
+ */
+export type CachePluginOptions = CacheMemoryOptions | CacheRedisOptions | CacheDefaultOptions;
+
+/**
+ * Cache manager options - same discriminated union for standalone usage.
+ */
+export type CacheManagerOptions = CachePluginOptions;

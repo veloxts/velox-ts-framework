@@ -7,6 +7,9 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
+// Side-effect import to enable module augmentation (TypeScript requires module reference)
+import '@veloxts/core';
+
 import { type CacheManager, createCacheManager } from './manager.js';
 import type { CachePluginOptions } from './types.js';
 
@@ -26,6 +29,26 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     cache?: CacheManager;
+  }
+}
+
+// ============================================================================
+// Context Declaration Merging
+// ============================================================================
+
+/**
+ * Extend VeloxTS BaseContext with cache manager.
+ *
+ * This enables `ctx.cache` in procedure handlers with full type safety
+ * and autocomplete when the cache plugin is registered.
+ *
+ * The property is NON-optional since the plugin guarantees it exists
+ * after registration.
+ */
+declare module '@veloxts/core' {
+  interface BaseContext {
+    /** Cache manager for get/put/remember operations */
+    cache: CacheManager;
   }
 }
 
@@ -68,8 +91,13 @@ export function cachePlugin(options: CachePluginOptions = {}) {
       // Create a new cache manager for this Fastify instance
       const cacheManager = await createCacheManager(options);
 
-      // Store on Fastify instance using symbol key
-      (fastify as unknown as Record<symbol, CacheManager>)[CACHE_MANAGER_KEY] = cacheManager;
+      // Store on Fastify instance using symbol key (type-safe via Object.defineProperty)
+      Object.defineProperty(fastify, CACHE_MANAGER_KEY, {
+        value: cacheManager,
+        writable: false,
+        enumerable: false,
+        configurable: false,
+      });
 
       // Decorate the request with cache manager
       fastify.decorateRequest('cache', undefined);
@@ -98,7 +126,9 @@ export function cachePlugin(options: CachePluginOptions = {}) {
  * @throws Error if cache plugin is not registered
  */
 export function getCacheFromInstance(fastify: FastifyInstance): CacheManager {
-  const cache = (fastify as unknown as Record<symbol, CacheManager | undefined>)[CACHE_MANAGER_KEY];
+  // Type-safe property access using Object.getOwnPropertyDescriptor
+  const descriptor = Object.getOwnPropertyDescriptor(fastify, CACHE_MANAGER_KEY);
+  const cache = descriptor?.value as CacheManager | undefined;
   if (!cache) {
     throw new Error(
       'Cache not initialized on this Fastify instance. Make sure to register cachePlugin first.'

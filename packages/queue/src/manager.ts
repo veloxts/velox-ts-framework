@@ -10,14 +10,12 @@ import { createBullMQStore, createBullMQWorker } from './drivers/bullmq.js';
 import { createSyncStore, createSyncWorker } from './drivers/sync.js';
 import type { JobDefinition } from './job.js';
 import type {
-  BullMQConfig,
   DispatchOptions,
   FailedJob,
   JobHandler,
   QueuePluginOptions,
   QueueStats,
   QueueStore,
-  SyncConfig,
   WorkerStore,
 } from './types.js';
 import { parseDelay } from './utils.js';
@@ -149,19 +147,17 @@ export interface WorkerManager {
  * ```
  */
 export async function createQueueManager(options: QueuePluginOptions = {}): Promise<QueueManager> {
-  const driver = options.driver ?? 'bullmq';
   const defaultQueue = options.defaultQueue ?? 'default';
 
   let store: QueueStore;
 
-  // Create the appropriate driver
-  switch (driver) {
-    case 'sync':
-      store = createSyncStore(options.config as SyncConfig);
-      break;
-    default:
-      store = await createBullMQStore(options.config as BullMQConfig);
-      break;
+  // Create the appropriate driver with type-safe config narrowing
+  if (options.driver === 'sync') {
+    // Type narrows: options.config is SyncConfig | undefined
+    store = createSyncStore(options.config);
+  } else {
+    // Type narrows: options.config is BullMQConfig | undefined (driver is 'bullmq' or undefined)
+    store = await createBullMQStore(options.config);
   }
 
   const manager: QueueManager = {
@@ -283,24 +279,21 @@ export async function createQueueManager(options: QueuePluginOptions = {}): Prom
 export async function createWorkerManager(
   options: QueuePluginOptions = {}
 ): Promise<WorkerManager> {
-  const driver = options.driver ?? 'bullmq';
   const defaultQueue = options.defaultQueue ?? 'default';
 
   let store: WorkerStore;
   let syncStore: QueueStore | null = null;
 
-  // Create the appropriate driver
-  switch (driver) {
-    case 'sync': {
-      // Create sync store and worker - they share internal state via WeakMap
-      const ss = createSyncStore(options.config as SyncConfig);
-      syncStore = ss;
-      store = createSyncWorker(ss);
-      break;
-    }
-    default:
-      store = await createBullMQWorker(options.config as BullMQConfig);
-      break;
+  // Create the appropriate driver with type-safe config narrowing
+  if (options.driver === 'sync') {
+    // Type narrows: options.config is SyncConfig | undefined
+    // Create sync store and worker - they share internal state via WeakMap
+    const ss = createSyncStore(options.config);
+    syncStore = ss;
+    store = createSyncWorker(ss);
+  } else {
+    // Type narrows: options.config is BullMQConfig | undefined (driver is 'bullmq' or undefined)
+    store = await createBullMQWorker(options.config);
   }
 
   const worker: WorkerManager = {

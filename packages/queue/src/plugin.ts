@@ -7,6 +7,9 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
+// Side-effect import to enable module augmentation (TypeScript requires module reference)
+import '@veloxts/core';
+
 import { createQueueManager, type QueueManager } from './manager.js';
 import type { QueuePluginOptions } from './types.js';
 
@@ -26,6 +29,26 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     queue?: QueueManager;
+  }
+}
+
+// ============================================================================
+// Context Declaration Merging
+// ============================================================================
+
+/**
+ * Extend VeloxTS BaseContext with queue manager.
+ *
+ * This enables `ctx.queue` in procedure handlers with full type safety
+ * and autocomplete when the queue plugin is registered.
+ *
+ * The property is NON-optional since the plugin guarantees it exists
+ * after registration.
+ */
+declare module '@veloxts/core' {
+  interface BaseContext {
+    /** Queue manager for dispatching and managing jobs */
+    queue: QueueManager;
   }
 }
 
@@ -66,8 +89,13 @@ export function queuePlugin(options: QueuePluginOptions = {}) {
       // Create a new queue manager for this Fastify instance
       const queueManager = await createQueueManager(options);
 
-      // Store on Fastify instance using symbol key
-      (fastify as unknown as Record<symbol, QueueManager>)[QUEUE_MANAGER_KEY] = queueManager;
+      // Store on Fastify instance using symbol key (type-safe via Object.defineProperty)
+      Object.defineProperty(fastify, QUEUE_MANAGER_KEY, {
+        value: queueManager,
+        writable: false,
+        enumerable: false,
+        configurable: false,
+      });
 
       // Decorate the request with queue manager
       fastify.decorateRequest('queue', undefined);
@@ -96,7 +124,9 @@ export function queuePlugin(options: QueuePluginOptions = {}) {
  * @throws Error if queue plugin is not registered
  */
 export function getQueueFromInstance(fastify: FastifyInstance): QueueManager {
-  const queue = (fastify as unknown as Record<symbol, QueueManager | undefined>)[QUEUE_MANAGER_KEY];
+  // Type-safe property access using Object.getOwnPropertyDescriptor
+  const descriptor = Object.getOwnPropertyDescriptor(fastify, QUEUE_MANAGER_KEY);
+  const queue = descriptor?.value as QueueManager | undefined;
   if (!queue) {
     throw new Error(
       'Queue not initialized on this Fastify instance. Make sure to register queuePlugin first.'

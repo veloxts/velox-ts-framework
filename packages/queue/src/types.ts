@@ -255,27 +255,16 @@ export interface SyncConfig {
 }
 
 /**
- * Queue configuration by driver.
+ * Queue configuration by driver (discriminated union).
  */
 export type QueueConfig =
   | { driver: 'bullmq'; config?: BullMQConfig }
   | { driver: 'sync'; config?: SyncConfig };
 
 /**
- * Queue plugin options.
+ * Base options shared across all queue configurations.
  */
-export interface QueuePluginOptions {
-  /**
-   * Queue driver to use.
-   * @default 'bullmq'
-   */
-  driver?: QueueDriver;
-
-  /**
-   * Driver-specific configuration.
-   */
-  config?: BullMQConfig | SyncConfig;
-
+export interface QueueBaseOptions {
   /**
    * Default queue name.
    * @default 'default'
@@ -288,6 +277,80 @@ export interface QueuePluginOptions {
    */
   queues?: string[];
 }
+
+/**
+ * Queue plugin options with BullMQ driver.
+ */
+export interface QueueBullMQOptions extends QueueBaseOptions {
+  /**
+   * Queue driver to use.
+   */
+  driver: 'bullmq';
+
+  /**
+   * BullMQ-specific configuration.
+   */
+  config?: BullMQConfig;
+}
+
+/**
+ * Queue plugin options with sync driver.
+ */
+export interface QueueSyncOptions extends QueueBaseOptions {
+  /**
+   * Queue driver to use.
+   */
+  driver: 'sync';
+
+  /**
+   * Sync driver-specific configuration.
+   */
+  config?: SyncConfig;
+}
+
+/**
+ * Queue plugin options with default driver (BullMQ).
+ * When no driver is specified, BullMQ is used as the default.
+ */
+export interface QueueDefaultOptions extends QueueBaseOptions {
+  /**
+   * Queue driver to use.
+   * @default 'bullmq'
+   */
+  driver?: undefined;
+
+  /**
+   * BullMQ-specific configuration (default driver).
+   */
+  config?: BullMQConfig;
+}
+
+/**
+ * Queue plugin options - discriminated union for type-safe driver configuration.
+ *
+ * The config type automatically narrows based on the selected driver:
+ * - `driver: 'bullmq'` - config is BullMQConfig
+ * - `driver: 'sync'` - config is SyncConfig
+ * - no driver - defaults to BullMQ, config is BullMQConfig
+ *
+ * @example
+ * ```typescript
+ * // BullMQ driver (explicit)
+ * queuePlugin({ driver: 'bullmq', config: { url: 'redis://...' } });
+ *
+ * // Sync driver (for testing)
+ * queuePlugin({ driver: 'sync', config: { throwOnError: true } });
+ *
+ * // Default (BullMQ)
+ * queuePlugin({ config: { url: 'redis://...' } });
+ * ```
+ */
+export type QueuePluginOptions = QueueBullMQOptions | QueueSyncOptions | QueueDefaultOptions;
+
+/**
+ * Queue manager options - same discriminated union for standalone usage.
+ */
+export type QueueManagerOptions = QueuePluginOptions;
 
 /**
  * Failed job information.

@@ -167,30 +167,27 @@ export interface TaggedCache {
  * ```
  */
 export async function createCacheManager(options: CachePluginOptions = {}): Promise<CacheManager> {
-  const driver = options.driver ?? 'memory';
-  // Access prefix from config if it exists (Redis has it), otherwise use top-level prefix
-  const configWithPrefix = options.config as { prefix?: string } | undefined;
-  const prefix = configWithPrefix?.prefix ?? options.prefix ?? 'velox:';
-  const configWithTtl = options.config as { defaultTtl?: TTL } | undefined;
-  const defaultTtl = configWithTtl?.defaultTtl ?? options.defaultTtl ?? '1h';
+  // Use top-level options with fallback to defaults
+  const prefix = options.prefix ?? 'velox:';
+  const defaultTtl = options.defaultTtl ?? '1h';
 
   let store: TaggableCacheStore;
 
-  // Create the appropriate driver
-  switch (driver) {
-    case 'redis':
-      store = await createRedisCache({
-        ...options.config,
-        prefix,
-        defaultTtl,
-      });
-      break;
-    default:
-      store = createMemoryCache({
-        ...options.config,
-        defaultTtl,
-      });
-      break;
+  // Create the appropriate driver with type-safe config narrowing
+  if (options.driver === 'redis') {
+    // Type narrows: options.config is Omit<RedisCacheConfig, 'driver'> | undefined
+    store = await createRedisCache({
+      ...options.config,
+      prefix: options.config?.prefix ?? prefix,
+      defaultTtl: options.config?.defaultTtl ?? defaultTtl,
+    });
+  } else {
+    // Type narrows: options.config is Omit<MemoryCacheConfig, 'driver'> | undefined
+    // (driver is 'memory' or undefined)
+    store = createMemoryCache({
+      ...options.config,
+      defaultTtl: options.config?.defaultTtl ?? defaultTtl,
+    });
   }
 
   /**

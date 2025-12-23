@@ -12,14 +12,11 @@ import { createLogTransport } from './transports/log.js';
 import { createResendTransport } from './transports/resend.js';
 import { createSmtpTransport } from './transports/smtp.js';
 import type {
-  LogConfig,
   MailPluginOptions,
   MailTransport,
   RenderedMail,
-  ResendConfig,
   SendMailOptions,
   SendResult,
-  SmtpConfig,
 } from './types.js';
 import { normalizeRecipient, normalizeRecipients, stripHtml, validateRecipients } from './utils.js';
 
@@ -108,23 +105,21 @@ export interface MailManager {
  * ```
  */
 export async function createMailManager(options: MailPluginOptions = {}): Promise<MailManager> {
-  const driver = options.driver ?? 'log';
   const defaultFrom = options.from ? normalizeRecipient(options.from) : undefined;
   const defaultReplyTo = options.replyTo ? normalizeRecipient(options.replyTo) : undefined;
 
   let transport: MailTransport;
 
-  // Create the appropriate transport
-  switch (driver) {
-    case 'smtp':
-      transport = await createSmtpTransport(options.config as SmtpConfig);
-      break;
-    case 'resend':
-      transport = await createResendTransport(options.config as ResendConfig);
-      break;
-    default:
-      transport = createLogTransport(options.config as LogConfig);
-      break;
+  // Create the appropriate transport with type-safe config narrowing
+  if (options.driver === 'smtp') {
+    // Type narrows: options.config is SmtpConfig (required)
+    transport = await createSmtpTransport(options.config);
+  } else if (options.driver === 'resend') {
+    // Type narrows: options.config is ResendConfig (required)
+    transport = await createResendTransport(options.config);
+  } else {
+    // Type narrows: options.config is LogConfig | undefined (driver is 'log' or undefined)
+    transport = createLogTransport(options.config);
   }
 
   /**

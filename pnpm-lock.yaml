@@ -325,6 +325,9 @@ importers:
       '@react-email/render':
         specifier: 1.0.4
         version: 1.0.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@veloxts/core':
+        specifier: workspace:*
+        version: link:../core
       fastify-plugin:
         specifier: 5.1.0
         version: 5.1.0
@@ -427,6 +430,9 @@ importers:
 
   packages/queue:
     dependencies:
+      '@veloxts/core':
+        specifier: workspace:*
+        version: link:../core
       bullmq:
         specifier: 5.51.0
         version: 5.51.0
