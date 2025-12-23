@@ -17,6 +17,8 @@ npm run dev
 
 Your API is running at `http://localhost:3030`.
 
+Your web app is running at `http://localhost:8080`.
+
 ## Manual Installation
 
 For adding to an existing project:
@@ -32,10 +34,12 @@ Note: Manual setup requires Prisma 7 configuration with driver adapters. See [@v
 
 This umbrella package re-exports:
 - `@veloxts/core` - App bootstrap, plugins, DI
-- `@veloxts/validation` - Zod integration
-- `@veloxts/orm` - Prisma database plugin
 - `@veloxts/router` - Procedures, REST adapter, tRPC
+- `@veloxts/orm` - Prisma database plugin
 - `@veloxts/auth` - Authentication & authorization
+- `@veloxts/validation` - Zod integration
+- `@veloxts/mcp` - exposes project context to AI assistants
+- `@veloxts/web` - React Server Components for full-stack web apps
 
 Separate packages: `@veloxts/cli`, `@veloxts/client`, `create-velox-app`
 

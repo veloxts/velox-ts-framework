@@ -13,6 +13,8 @@ npm run dev
 
 Your API is running at `http://localhost:3030`.
 
+Your web app is running at `http://localhost:8080`.
+
 ## Basic Usage
 
 ```typescript
