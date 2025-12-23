@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.30
+
+### Patch Changes
+
+- disable source maps for published packages
+- Updated dependencies
+  - @veloxts/core@0.6.30
+  - @veloxts/validation@0.6.30
+
 ## 0.6.29
 
 ### Patch Changes

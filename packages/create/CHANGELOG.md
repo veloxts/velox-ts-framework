@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.30
+
+### Patch Changes
+
+- disable source maps for published packages
+
 ## 0.6.29
 
 ### Patch Changes
