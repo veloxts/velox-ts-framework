@@ -1,5 +1,13 @@
 # @veloxts/validation
 
+## 0.6.29
+
+### Patch Changes
+
+- add multi-tenancy and PostgreSQL support - test and lint fix
+- Updated dependencies
+  - @veloxts/core@0.6.29
+
 ## 0.6.28
 
 ### Patch Changes

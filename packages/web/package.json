@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/web",
-  "version": "0.6.28",
+  "version": "0.6.29",
   "description": "React Server Components integration for VeloxTS framework using Vinxi",
   "type": "module",
   "main": "dist/index.js",

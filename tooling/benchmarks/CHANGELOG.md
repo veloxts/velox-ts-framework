@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.29
+
+### Patch Changes
+
+- add multi-tenancy and PostgreSQL support - test and lint fix
+
 ## 0.6.28
 
 ### Patch Changes
