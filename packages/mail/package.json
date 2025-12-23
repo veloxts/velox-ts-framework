@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/mail",
-  "version": "0.6.31",
+  "version": "0.6.32",
   "description": "Email templating and sending for VeloxTS framework",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "GUIDE.md"
   ],
   "scripts": {
     "build": "tsc",
