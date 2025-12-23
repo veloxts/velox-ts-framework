@@ -133,7 +133,7 @@ describe('Database Dependencies', () => {
     expect(pkg.dependencies['@prisma/adapter-better-sqlite3']).toBe('7.2.0');
     expect(pkg.dependencies['better-sqlite3']).toBe('12.5.0');
     expect(pkg.dependencies['@prisma/adapter-pg']).toBeUndefined();
-    expect(pkg.dependencies['pg']).toBeUndefined();
+    expect(pkg.dependencies.pg).toBeUndefined();
   });
 
   it('should swap to postgresql dependencies for postgres config', () => {
@@ -143,7 +143,7 @@ describe('Database Dependencies', () => {
     expect(pkg.dependencies['@prisma/adapter-better-sqlite3']).toBeUndefined();
     expect(pkg.dependencies['better-sqlite3']).toBeUndefined();
     expect(pkg.dependencies['@prisma/adapter-pg']).toBe('7.2.0');
-    expect(pkg.dependencies['pg']).toBe('8.16.0');
+    expect(pkg.dependencies.pg).toBe('8.16.0');
   });
 
   it('should add @types/pg to devDependencies for postgres config', () => {
@@ -158,8 +158,8 @@ describe('Database Dependencies', () => {
     const pkg = JSON.parse(result);
 
     expect(pkg.dependencies['@prisma/client']).toBe('7.2.0');
-    expect(pkg.dependencies['zod']).toBe('3.25.76');
-    expect(pkg.devDependencies['prisma']).toBe('7.2.0');
+    expect(pkg.dependencies.zod).toBe('3.25.76');
+    expect(pkg.devDependencies.prisma).toBe('7.2.0');
   });
 
   it('should sort dependencies alphabetically', () => {

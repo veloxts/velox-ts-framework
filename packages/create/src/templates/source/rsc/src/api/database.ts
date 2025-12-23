@@ -20,10 +20,10 @@ import type { PrismaBetterSqlite3 as PrismaBetterSqlite3Type } from '@prisma/ada
 /* @if postgresql */
 // Type imports (erased at runtime, safe for ESM)
 import type { PrismaPg as PrismaPgType } from '@prisma/adapter-pg';
-import type { Pool as PoolType } from 'pg';
 /* @endif postgresql */
 import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import dotenv from 'dotenv';
+import type { Pool as PoolType } from 'pg';
 
 // Runtime imports using createRequire for Node.js v24+ CJS interop
 const require = createRequire(import.meta.url);
@@ -56,10 +56,10 @@ declare global {
   // Allow global `var` declarations for hot reload in development
   // eslint-disable-next-line no-var
   var __db: PrismaClient | undefined;
-/* @if postgresql */
+  /* @if postgresql */
   // eslint-disable-next-line no-var
   var __pool: InstanceType<typeof PoolType> | undefined;
-/* @endif postgresql */
+  /* @endif postgresql */
 }
 
 /* @if sqlite */

@@ -9,7 +9,7 @@
  */
 
 import { compileTemplate } from './compiler.js';
-import { applyDatabaseDependencies, AUTH_CONFIG } from './placeholders.js';
+import { AUTH_CONFIG, applyDatabaseDependencies } from './placeholders.js';
 import { generateRootFiles, generateWebBaseFiles, generateWebStyleFiles } from './shared/index.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 

@@ -48,6 +48,19 @@
           }
         }
       }
+    },
+    {
+      "includes": ["**/templates/source/**/*.ts", "**/templates/source/**/*.tsx"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off"
+          },
+          "suspicious": {
+            "noRedeclare": "off"
+          }
+        }
+      }
     }
   ],
   "javascript": {

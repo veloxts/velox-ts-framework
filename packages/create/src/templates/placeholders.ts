@@ -172,7 +172,7 @@ export function applyDatabaseDependencies(content: string, config: TemplateConfi
     // Add PostgreSQL dependencies
     pkg.dependencies = pkg.dependencies ?? {};
     pkg.dependencies['@prisma/adapter-pg'] = PRISMA_VERSION;
-    pkg.dependencies['pg'] = PG_VERSION;
+    pkg.dependencies.pg = PG_VERSION;
 
     // Add @types/pg to devDependencies
     pkg.devDependencies = pkg.devDependencies ?? {};
