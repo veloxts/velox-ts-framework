@@ -317,7 +317,7 @@ export async function createCacheManager(options: CachePluginOptions = {}): Prom
 
         // Exponential backoff with jitter to prevent thundering herd
         // Formula: min(maxDelay, baseDelay * 2^retries) + random jitter
-        const exponentialDelay = Math.min(maxRetryInterval, baseRetryInterval * Math.pow(2, retries));
+        const exponentialDelay = Math.min(maxRetryInterval, baseRetryInterval * 2 ** retries);
         const jitter = Math.random() * exponentialDelay * 0.1; // 10% jitter
         const delay = exponentialDelay + jitter;
 
