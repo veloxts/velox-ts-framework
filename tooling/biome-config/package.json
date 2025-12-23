@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/biome-config",
-  "version": "0.6.31",
+  "version": "0.6.32",
   "description": "Shared Biome configuration for VeloxTS framework",
   "main": "biome.json",
   "dependencies": {},

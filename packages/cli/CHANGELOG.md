@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.32
+
+### Patch Changes
+
+- Introducing new Ecosystem Expansion packages: cache, queue, mail, storage, scheduler, events. Do not use yet
+- Updated dependencies
+  - @veloxts/auth@0.6.32
+  - @veloxts/core@0.6.32
+  - @veloxts/orm@0.6.32
+  - @veloxts/router@0.6.32
+  - @veloxts/validation@0.6.32
+
 ## 0.6.31
 
 ### Patch Changes
