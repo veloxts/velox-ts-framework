@@ -9,7 +9,9 @@ import { createActionGenerator } from './action.js';
 import { createExceptionGenerator } from './exception.js';
 import { createFactoryGenerator } from './factory.js';
 import { createGuardGenerator } from './guard.js';
+import { createJobGenerator } from './job.js';
 import { createLayoutGenerator } from './layout.js';
+import { createMailGenerator } from './mail.js';
 import { createMiddlewareGenerator } from './middleware.js';
 import { createMigrationGenerator } from './migration.js';
 import { createModelGenerator } from './model.js';
@@ -30,7 +32,9 @@ export { ActionGenerator, createActionGenerator } from './action.js';
 export { createExceptionGenerator, ExceptionGenerator } from './exception.js';
 export { createFactoryGenerator, FactoryGenerator } from './factory.js';
 export { createGuardGenerator, GuardGenerator } from './guard.js';
+export { createJobGenerator, JobGenerator } from './job.js';
 export { createLayoutGenerator, LayoutGenerator } from './layout.js';
+export { createMailGenerator, MailGenerator } from './mail.js';
 export { createMiddlewareGenerator, MiddlewareGenerator } from './middleware.js';
 export { createMigrationGenerator, MigrationGenerator } from './migration.js';
 export { createModelGenerator, ModelGenerator } from './model.js';
@@ -85,6 +89,8 @@ export function registerBuiltinGenerators(): void {
   registerGenerator(createMiddlewareGenerator());
   registerGenerator(createServiceGenerator());
   registerGenerator(createExceptionGenerator());
+  registerGenerator(createJobGenerator());
+  registerGenerator(createMailGenerator());
 
   // Register auth generators
   registerGenerator(createGuardGenerator());
