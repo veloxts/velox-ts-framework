@@ -51,7 +51,7 @@ Examples:
   velox make mail notification --text    # Plain text email
   velox make mail invoice --attachment   # Email with attachment support
 `,
-    aliases: ['email', 'm'],
+    aliases: ['email', 'em'],
     category: 'infrastructure',
   };
 

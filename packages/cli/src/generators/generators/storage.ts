@@ -50,7 +50,7 @@ Examples:
   velox make storage file --upload         # Upload handler with storage integration
   velox make storage media --local         # Explicit local storage
 `,
-    aliases: ['s', 'store'],
+    aliases: ['st', 'store'],
     category: 'infrastructure',
   };
 

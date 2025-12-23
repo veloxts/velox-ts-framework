@@ -29,7 +29,7 @@ describe('MailGenerator', () => {
 
     it('should have aliases', () => {
       expect(generator.metadata.aliases).toContain('email');
-      expect(generator.metadata.aliases).toContain('m');
+      expect(generator.metadata.aliases).toContain('em');
     });
 
     it('should be in infrastructure category', () => {

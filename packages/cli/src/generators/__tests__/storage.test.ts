@@ -28,7 +28,7 @@ describe('StorageGenerator', () => {
     });
 
     it('should have aliases', () => {
-      expect(generator.metadata.aliases).toContain('s');
+      expect(generator.metadata.aliases).toContain('st');
       expect(generator.metadata.aliases).toContain('store');
     });
 
