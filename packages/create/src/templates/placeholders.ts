@@ -25,6 +25,12 @@ export const PLACEHOLDERS = {
   VELOXTS_VERSION: '__VELOXTS_VERSION__',
   /** Package manager run command (npm run, pnpm, yarn) */
   RUN_CMD: '__RUN_CMD__',
+  /** Workspace command prefix for api package (e.g., "pnpm -F api", "npm run -w api") */
+  WS_API: '__WS_API__',
+  /** Parallel recursive run command (e.g., "pnpm --parallel -r", "npm run -ws --if-present") */
+  WS_PARALLEL: '__WS_PARALLEL__',
+  /** Recursive run command (e.g., "pnpm -r", "npm run -ws") */
+  WS_ALL: '__WS_ALL__',
   /** API server port (default: 3030) */
   API_PORT: '__API_PORT__',
   /** Web dev server port (default: 8080) */
@@ -92,6 +98,54 @@ function getRunCommand(packageManager: TemplateConfig['packageManager']): string
 }
 
 /**
+ * Get the workspace command prefix for the api package.
+ * Used for commands like db:push, db:generate that target the api workspace.
+ */
+function getWsApiCommand(packageManager: TemplateConfig['packageManager']): string {
+  switch (packageManager) {
+    case 'npm':
+      return 'npm run -w api';
+    case 'yarn':
+      return 'yarn workspace api';
+    case 'pnpm':
+    default:
+      return 'pnpm -F api';
+  }
+}
+
+/**
+ * Get the parallel workspace run command.
+ * Used for running dev servers in parallel across workspaces.
+ */
+function getWsParallelCommand(packageManager: TemplateConfig['packageManager']): string {
+  switch (packageManager) {
+    case 'npm':
+      return 'npm run -ws --if-present';
+    case 'yarn':
+      return 'yarn workspaces foreach -A --parallel run';
+    case 'pnpm':
+    default:
+      return 'pnpm --parallel -r';
+  }
+}
+
+/**
+ * Get the recursive workspace run command.
+ * Used for running build across all workspaces.
+ */
+function getWsAllCommand(packageManager: TemplateConfig['packageManager']): string {
+  switch (packageManager) {
+    case 'npm':
+      return 'npm run -ws --if-present';
+    case 'yarn':
+      return 'yarn workspaces foreach -A run';
+    case 'pnpm':
+    default:
+      return 'pnpm -r';
+  }
+}
+
+/**
  * Get the default DATABASE_URL for the selected database.
  */
 function getDatabaseUrl(database: TemplateConfig['database']): string {
@@ -117,6 +171,9 @@ export function applyPlaceholders(content: string, config: TemplateConfig): stri
     [PLACEHOLDERS.PACKAGE_MANAGER]: config.packageManager,
     [PLACEHOLDERS.VELOXTS_VERSION]: VELOXTS_VERSION,
     [PLACEHOLDERS.RUN_CMD]: getRunCommand(config.packageManager),
+    [PLACEHOLDERS.WS_API]: getWsApiCommand(config.packageManager),
+    [PLACEHOLDERS.WS_PARALLEL]: getWsParallelCommand(config.packageManager),
+    [PLACEHOLDERS.WS_ALL]: getWsAllCommand(config.packageManager),
     [PLACEHOLDERS.API_PORT]: '3030',
     [PLACEHOLDERS.WEB_PORT]: '8080',
     [PLACEHOLDERS.DATABASE_PROVIDER]: config.database,
