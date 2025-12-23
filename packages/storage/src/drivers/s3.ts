@@ -331,7 +331,8 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
       await client.send(
         new CopyObjectCommand({
           Bucket: bucket,
-          CopySource: `${bucket}/${sourceKey}`,
+          // CopySource must be URL-encoded for special characters in paths
+          CopySource: encodeURIComponent(`${bucket}/${sourceKey}`),
           Key: destKey,
           ACL: visibilityToAcl(visibility),
         })
@@ -435,7 +436,8 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
       await client.send(
         new CopyObjectCommand({
           Bucket: bucket,
-          CopySource: `${bucket}/${key}`,
+          // CopySource must be URL-encoded for special characters in paths
+          CopySource: encodeURIComponent(`${bucket}/${key}`),
           Key: key,
           ACL: visibilityToAcl(visibility),
           MetadataDirective: 'COPY',

@@ -41,6 +41,20 @@
 // Drivers
 export { createLocalStore, DRIVER_NAME as LOCAL_DRIVER } from './drivers/local.js';
 export { createS3Store, DRIVER_NAME as S3_DRIVER } from './drivers/s3.js';
+// Errors
+export {
+  FileExistsError,
+  FileNotFoundError,
+  InvalidPathError,
+  isFileNotFoundError,
+  isPermissionDeniedError,
+  isStorageError,
+  PermissionDeniedError,
+  QuotaExceededError,
+  S3Error,
+  StorageConfigError,
+  StorageError,
+} from './errors.js';
 // Manager
 export { createStorageManager, type StorageManager, storage } from './manager.js';
 // Plugin

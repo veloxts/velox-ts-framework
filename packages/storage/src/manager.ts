@@ -17,9 +17,28 @@ import type {
   ListResult,
   PutOptions,
   SignedUrlOptions,
+  StorageDefaultOptions,
+  StorageLocalOptions,
   StorageManagerOptions,
+  StorageS3Options,
   StorageStore,
 } from './types.js';
+
+/**
+ * Type guard to check if options are for S3 driver.
+ */
+function isS3Options(options: StorageManagerOptions): options is StorageS3Options {
+  return options.driver === 's3';
+}
+
+/**
+ * Type guard to check if options are for local driver.
+ */
+function isLocalOptions(
+  options: StorageManagerOptions
+): options is StorageLocalOptions | StorageDefaultOptions {
+  return options.driver === 'local' || options.driver === undefined;
+}
 
 /**
  * Storage manager interface providing a unified file storage API.
@@ -298,35 +317,35 @@ export async function createStorageManager(
 ): Promise<StorageManager> {
   let store: StorageStore;
 
-  // Type-safe driver configuration with discriminated unions
-  if (options.driver === 's3') {
-    // S3 driver - use type assertion since TS can't narrow through union with undefined
-    const s3Options = options as import('./types.js').StorageS3Options;
+  // Type-safe driver configuration with type guards
+  if (isS3Options(options)) {
+    // S3 driver - type guard narrows to StorageS3Options
     store = await createS3Store({
       driver: 's3',
-      bucket: s3Options.bucket,
-      region: s3Options.region,
-      endpoint: s3Options.endpoint,
-      accessKeyId: s3Options.accessKeyId,
-      secretAccessKey: s3Options.secretAccessKey,
-      forcePathStyle: s3Options.forcePathStyle,
-      defaultVisibility: s3Options.defaultVisibility,
-      prefix: s3Options.prefix,
+      bucket: options.bucket,
+      region: options.region,
+      endpoint: options.endpoint,
+      accessKeyId: options.accessKeyId,
+      secretAccessKey: options.secretAccessKey,
+      forcePathStyle: options.forcePathStyle,
+      defaultVisibility: options.defaultVisibility,
+      prefix: options.prefix,
     });
-  } else {
-    // Local driver (default)
-    const localOptions = options as
-      | import('./types.js').StorageLocalOptions
-      | import('./types.js').StorageDefaultOptions;
-    const root = 'root' in localOptions && localOptions.root ? localOptions.root : './storage';
-    const baseUrl = 'baseUrl' in localOptions ? localOptions.baseUrl : undefined;
+  } else if (isLocalOptions(options)) {
+    // Local driver - type guard narrows to StorageLocalOptions | StorageDefaultOptions
+    const root = 'root' in options && options.root ? options.root : './storage';
+    const baseUrl = 'baseUrl' in options ? options.baseUrl : undefined;
 
     store = createLocalStore({
       driver: 'local',
       root,
       baseUrl,
-      defaultVisibility: localOptions.defaultVisibility,
+      defaultVisibility: options.defaultVisibility,
     });
+  } else {
+    // This should never happen - exhaustive check
+    const _exhaustiveCheck: never = options;
+    throw new Error(`Unknown storage driver: ${JSON.stringify(_exhaustiveCheck)}`);
   }
 
   // Create manager that delegates to the store
