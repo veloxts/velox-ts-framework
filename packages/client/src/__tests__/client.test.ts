@@ -915,7 +915,10 @@ describe('createClient', () => {
       });
 
       // Missing required id parameter
-      await expect(client.users.getUser({})).rejects.toThrow('Missing path parameter: id');
+      await expect(client.users.getUser({})).rejects.toHaveProperty(
+        'message',
+        'Missing path parameter: id'
+      );
     });
 
     it('should throw error for null path parameter', async () => {
@@ -933,7 +936,8 @@ describe('createClient', () => {
       });
 
       // Explicitly null id parameter
-      await expect(client.users.getUser({ id: null })).rejects.toThrow(
+      await expect(client.users.getUser({ id: null })).rejects.toHaveProperty(
+        'message',
         'Missing path parameter: id'
       );
     });
