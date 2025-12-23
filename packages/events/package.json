@@ -1,0 +1,78 @@
+{
+  "name": "@veloxts/events",
+  "version": "0.6.31",
+  "description": "Real-time event broadcasting for VeloxTS framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./drivers/ws": {
+      "types": "./dist/drivers/ws.d.ts",
+      "import": "./dist/drivers/ws.js"
+    },
+    "./drivers/sse": {
+      "types": "./dist/drivers/sse.d.ts",
+      "import": "./dist/drivers/sse.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@veloxts/core": "workspace:*",
+    "fastify-plugin": "5.1.0",
+    "superjson": "2.2.2",
+    "ws": "8.18.2"
+  },
+  "peerDependencies": {
+    "fastify": "^5.0.0",
+    "ioredis": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "22.15.29",
+    "@types/ws": "8.18.1",
+    "fastify": "5.6.2",
+    "ioredis": "5.6.1",
+    "typescript": "5.8.3",
+    "vitest": "4.0.16"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/veloxts/veloxts.git",
+    "directory": "packages/events"
+  },
+  "keywords": [
+    "veloxts",
+    "events",
+    "websocket",
+    "sse",
+    "realtime",
+    "broadcasting",
+    "pubsub"
+  ],
+  "author": "VeloxTS Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

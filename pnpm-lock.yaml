@@ -317,6 +317,40 @@ importers:
         specifier: 4.0.15
         version: 4.0.15(@types/node@25.0.3)(jiti@2.6.1)(jsdom@27.3.0)(terser@5.44.1)(tsx@4.21.0)
 
+  packages/events:
+    dependencies:
+      '@veloxts/core':
+        specifier: workspace:*
+        version: link:../core
+      fastify-plugin:
+        specifier: 5.1.0
+        version: 5.1.0
+      superjson:
+        specifier: 2.2.2
+        version: 2.2.2
+      ws:
+        specifier: 8.18.2
+        version: 8.18.2
+    devDependencies:
+      '@types/node':
+        specifier: 22.15.29
+        version: 22.15.29
+      '@types/ws':
+        specifier: 8.18.1
+        version: 8.18.1
+      fastify:
+        specifier: 5.6.2
+        version: 5.6.2
+      ioredis:
+        specifier: 5.6.1
+        version: 5.6.1
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: 4.0.16
+        version: 4.0.16(@types/node@22.15.29)(jiti@2.6.1)(jsdom@27.3.0)(terser@5.44.1)(tsx@4.21.0)
+
   packages/mail:
     dependencies:
       '@react-email/components':
@@ -2547,6 +2581,9 @@ packages:
 
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@vercel/nft@0.30.4':
     resolution: {integrity: sha512-wE6eAGSXScra60N2l6jWvNtVK0m+sh873CpfZW4KI2v8EHuUQp+mSEi4T+IcdPCSEDgCdAS/7bizbhQlkjzrSA==}
@@ -6141,6 +6178,18 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
+  ws@8.18.2:
+    resolution: {integrity: sha512-DMricUmwGZUVr++AEAe2uiVM7UoO9MAVZMDu05UQOaUII0lp+zOzLLU4Xqh/JvTqklB1T4uELaaPBKyjE1r4fQ==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   ws@8.18.3:
     resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
     engines: {node: '>=10.0.0'}
@@ -8424,6 +8473,10 @@ snapshots:
   '@types/resolve@1.20.2': {}
 
   '@types/tough-cookie@4.0.5': {}
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 25.0.3
 
   '@vercel/nft@0.30.4(rollup@4.53.3)':
     dependencies:
@@ -12319,6 +12372,8 @@ snapshots:
       strip-ansi: 7.1.2
 
   wrappy@1.0.2: {}
+
+  ws@8.18.2: {}
 
   ws@8.18.3: {}
 

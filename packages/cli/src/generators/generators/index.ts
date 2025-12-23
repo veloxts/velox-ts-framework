@@ -6,6 +6,7 @@
 
 import { registerGenerator } from '../registry.js';
 import { createActionGenerator } from './action.js';
+import { createEventGenerator } from './event.js';
 import { createExceptionGenerator } from './exception.js';
 import { createFactoryGenerator } from './factory.js';
 import { createGuardGenerator } from './guard.js';
@@ -30,6 +31,7 @@ import { createTestGenerator } from './test.js';
 // ============================================================================
 
 export { ActionGenerator, createActionGenerator } from './action.js';
+export { createEventGenerator, EventGenerator } from './event.js';
 export { createExceptionGenerator, ExceptionGenerator } from './exception.js';
 export { createFactoryGenerator, FactoryGenerator } from './factory.js';
 export { createGuardGenerator, GuardGenerator } from './guard.js';
@@ -94,6 +96,7 @@ export function registerBuiltinGenerators(): void {
   registerGenerator(createJobGenerator());
   registerGenerator(createMailGenerator());
   registerGenerator(createStorageGenerator());
+  registerGenerator(createEventGenerator());
 
   // Register auth generators
   registerGenerator(createGuardGenerator());
