@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.28
+
+### Patch Changes
+
+- add multi-tenancy support and postgresql database
+- Updated dependencies
+  - @veloxts/core@0.6.28
+  - @veloxts/validation@0.6.28
+
 ## 0.6.27
 
 ### Patch Changes

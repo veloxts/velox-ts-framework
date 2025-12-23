@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.6.28
+
+### Patch Changes
+
+- add multi-tenancy support and postgresql database
+
 ## 0.6.27
 
 ### Patch Changes
