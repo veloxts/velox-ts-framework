@@ -1,0 +1,68 @@
+{
+  "name": "@veloxts/mail",
+  "version": "0.6.31",
+  "description": "Email templating and sending for VeloxTS framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome lint src",
+    "lint:fix": "biome lint --write src"
+  },
+  "dependencies": {
+    "@react-email/components": "0.0.31",
+    "@react-email/render": "1.0.4",
+    "fastify-plugin": "5.1.0",
+    "nodemailer": "6.10.1",
+    "resend": "4.1.2",
+    "zod": "3.24.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.0.0",
+    "@types/node": "22.15.29",
+    "@types/nodemailer": "6.4.17",
+    "@types/react": "19.2.7",
+    "fastify": "5.6.2",
+    "react": "19.2.3",
+    "typescript": "5.8.3",
+    "vitest": "4.0.16"
+  },
+  "peerDependencies": {
+    "fastify": "^5.0.0",
+    "react": "^19.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/veloxts/veloxts.git",
+    "directory": "packages/mail"
+  },
+  "keywords": [
+    "veloxts",
+    "mail",
+    "email",
+    "react-email",
+    "smtp",
+    "resend",
+    "nodemailer"
+  ],
+  "author": "VeloxTS Team",
+  "license": "MIT"
+}

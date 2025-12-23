@@ -1,0 +1,63 @@
+{
+  "name": "@veloxts/queue",
+  "version": "0.6.31",
+  "description": "Background job processing for VeloxTS framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome lint src",
+    "lint:fix": "biome lint --write src"
+  },
+  "dependencies": {
+    "bullmq": "5.51.0",
+    "fastify-plugin": "5.1.0",
+    "ioredis": "5.6.1",
+    "superjson": "2.2.2",
+    "zod": "3.24.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.0.0",
+    "@types/node": "22.15.29",
+    "fastify": "5.6.2",
+    "typescript": "5.8.3",
+    "vitest": "4.0.16"
+  },
+  "peerDependencies": {
+    "fastify": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/veloxts/veloxts.git",
+    "directory": "packages/queue"
+  },
+  "keywords": [
+    "veloxts",
+    "queue",
+    "jobs",
+    "background",
+    "bullmq",
+    "redis",
+    "worker"
+  ],
+  "author": "VeloxTS Team",
+  "license": "MIT"
+}
