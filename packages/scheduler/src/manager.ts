@@ -134,8 +134,7 @@ export function createScheduler(
       // Check if the lock has expired
       const maxLockMs = (task.maxLockMinutes ?? DEFAULT_MAX_LOCK_MINUTES) * 60 * 1000;
       const lockExpired =
-        jobState.runningStartedAt &&
-        Date.now() - jobState.runningStartedAt.getTime() > maxLockMs;
+        jobState.runningStartedAt && Date.now() - jobState.runningStartedAt.getTime() > maxLockMs;
 
       if (lockExpired) {
         // Lock expired - force release and allow new execution
