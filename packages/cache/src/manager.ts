@@ -300,7 +300,8 @@ export async function createCacheManager(options: CachePluginOptions = {}): Prom
     async lock(key: string, options: LockOptions): Promise<LockResult> {
       const lockKey = prefixKey(`lock:${key}`, prefix);
       const token = generateLockToken();
-      const retryInterval = options.retryInterval ?? 100;
+      const baseRetryInterval = options.retryInterval ?? 50;
+      const maxRetryInterval = 2000; // Cap at 2 seconds
       const maxRetries = options.maxRetries ?? 100;
 
       let acquired = false;
@@ -314,8 +315,13 @@ export async function createCacheManager(options: CachePluginOptions = {}): Prom
           break;
         }
 
-        // Wait and retry
-        await new Promise((resolve) => setTimeout(resolve, retryInterval));
+        // Exponential backoff with jitter to prevent thundering herd
+        // Formula: min(maxDelay, baseDelay * 2^retries) + random jitter
+        const exponentialDelay = Math.min(maxRetryInterval, baseRetryInterval * Math.pow(2, retries));
+        const jitter = Math.random() * exponentialDelay * 0.1; // 10% jitter
+        const delay = exponentialDelay + jitter;
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
         retries++;
       }
 

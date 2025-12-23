@@ -91,6 +91,16 @@ export async function createBullMQStore(config: BullMQConfig = {}): Promise<Queu
     maxRetriesPerRequest: null, // Required for BullMQ
   });
 
+  // Verify connection is healthy before proceeding
+  // This prevents connection leaks if subsequent initialization fails
+  try {
+    await connection.ping();
+  } catch (error) {
+    // Clean up connection on initialization failure
+    await connection.quit().catch(() => {});
+    throw error;
+  }
+
   // Queue instances cache
   const queues = new Map<string, Queue>();
 
@@ -241,22 +251,27 @@ export async function createBullMQStore(config: BullMQConfig = {}): Promise<Queu
 
     async retryAllFailed(queueName?: string): Promise<number> {
       const targetQueues = queueName ? [queueName] : Array.from(queues.keys());
-      let retriedCount = 0;
 
-      for (const name of targetQueues) {
-        const queue = getQueue(name);
-        const failedJobs = await queue.getFailed();
-
-        if (failedJobs.length === 0) {
-          continue;
-        }
-
-        // Use parallel retry for all jobs in this queue
-        await Promise.all(failedJobs.map((job) => job.retry()));
-        retriedCount += failedJobs.length;
+      if (targetQueues.length === 0) {
+        return 0;
       }
 
-      return retriedCount;
+      // Process all queues in parallel for better performance
+      const retryResults = await Promise.all(
+        targetQueues.map(async (name) => {
+          const queue = getQueue(name);
+          const failedJobs = await queue.getFailed();
+
+          if (failedJobs.length === 0) {
+            return 0;
+          }
+
+          await Promise.all(failedJobs.map((job) => job.retry()));
+          return failedJobs.length;
+        })
+      );
+
+      return retryResults.reduce((sum, count) => sum + count, 0);
     },
 
     async removeJob(jobId: string, queueName: string): Promise<boolean> {
@@ -413,42 +428,52 @@ export async function createBullMQWorker(config: BullMQConfig = {}): Promise<Wor
         handlersByQueue.set(info.options.queue, queueHandlers);
       }
 
-      // Create workers for each queue
+      // Create workers for each queue with cleanup on partial failure
       for (const [queueName, queueHandlers] of Array.from(handlersByQueue.entries())) {
         // Find minimum concurrency for this queue
         const concurrency = Math.min(
           ...Array.from(queueHandlers.values()).map((h) => h.concurrency)
         );
 
-        const worker = new Worker(
-          queueName,
-          async (job: Job) => {
-            const handlerInfo = queueHandlers.get(job.name);
-            if (!handlerInfo) {
-              throw new Error(`No handler registered for job: ${job.name}`);
+        let worker: Worker;
+        try {
+          worker = new Worker(
+            queueName,
+            async (job: Job) => {
+              const handlerInfo = queueHandlers.get(job.name);
+              if (!handlerInfo) {
+                throw new Error(`No handler registered for job: ${job.name}`);
+              }
+
+              const context: JobContext = {
+                data: job.data,
+                jobId: job.id ?? '',
+                queueName,
+                attemptNumber: job.attemptsMade + 1,
+                progress: async (value: number) => {
+                  await job.updateProgress(value);
+                },
+                log: async (message: string) => {
+                  await job.log(message);
+                },
+              };
+
+              await handlerInfo.handler(context);
+            },
+            {
+              connection,
+              prefix: options.prefix,
+              concurrency,
             }
-
-            const context: JobContext = {
-              data: job.data,
-              jobId: job.id ?? '',
-              queueName,
-              attemptNumber: job.attemptsMade + 1,
-              progress: async (value: number) => {
-                await job.updateProgress(value);
-              },
-              log: async (message: string) => {
-                await job.log(message);
-              },
-            };
-
-            await handlerInfo.handler(context);
-          },
-          {
-            connection,
-            prefix: options.prefix,
-            concurrency,
-          }
-        );
+          );
+        } catch (error) {
+          // Clean up already-created workers before rethrowing
+          // Prevents memory leak on partial initialization failure
+          const existingWorkers = Array.from(workers.values());
+          await Promise.all(existingWorkers.map((w) => w.close().catch(() => {})));
+          workers.clear();
+          throw error;
+        }
 
         workers.set(queueName, worker);
       }

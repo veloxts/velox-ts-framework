@@ -128,6 +128,7 @@ export async function createRedisCache(
       const pattern = `${prefix}*`;
       let cursor = '0';
       const batchSize = 100;
+      let iterations = 0;
 
       do {
         // SCAN returns [cursor, keys[]]
@@ -136,6 +137,13 @@ export async function createRedisCache(
 
         if (keys.length > 0) {
           await redis.del(...keys);
+        }
+
+        // Yield to event loop every 10 iterations to prevent blocking
+        // This prevents event loop starvation when flushing millions of keys
+        iterations++;
+        if (iterations % 10 === 0) {
+          await new Promise((resolve) => setImmediate(resolve));
         }
       } while (cursor !== '0');
     },

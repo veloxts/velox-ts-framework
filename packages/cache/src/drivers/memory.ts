@@ -89,21 +89,35 @@ export function createMemoryCache(
 
   /**
    * Clean up expired entries.
+   * Uses async batched processing to avoid blocking the event loop.
    */
-  function cleanupExpired(): void {
-    for (const [key, entry] of cache.entries()) {
-      if (isExpired(entry.expiresAt)) {
-        cache.delete(key);
-        // Clean up tag mappings
-        for (const tag of entry.tags) {
-          const keys = tagToKeys.get(tag);
-          if (keys) {
-            keys.delete(key);
-            if (keys.size === 0) {
-              tagToKeys.delete(tag);
+  async function cleanupExpired(): Promise<void> {
+    const entries = Array.from(cache.entries());
+    const batchSize = 100;
+
+    for (let i = 0; i < entries.length; i += batchSize) {
+      const batch = entries.slice(i, i + batchSize);
+
+      for (const [key, entry] of batch) {
+        if (isExpired(entry.expiresAt)) {
+          cache.delete(key);
+          // Clean up tag mappings
+          for (const tag of entry.tags) {
+            const keys = tagToKeys.get(tag);
+            if (keys) {
+              keys.delete(key);
+              if (keys.size === 0) {
+                tagToKeys.delete(tag);
+              }
             }
           }
         }
+      }
+
+      // Yield to event loop after each batch to prevent blocking
+      // This prevents event loop starvation when cleaning up large caches
+      if (i + batchSize < entries.length) {
+        await new Promise((resolve) => setImmediate(resolve));
       }
     }
   }
