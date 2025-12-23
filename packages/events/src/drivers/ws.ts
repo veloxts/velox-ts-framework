@@ -6,7 +6,9 @@
  */
 
 import type { IncomingMessage } from 'node:http';
+import type { Duplex } from 'node:stream';
 
+import type { Redis } from 'ioredis';
 import type { WebSocket } from 'ws';
 import { WebSocketServer } from 'ws';
 
@@ -40,15 +42,74 @@ interface ExtendedWebSocket extends WebSocket {
 }
 
 /**
- * Redis pub/sub interface for horizontal scaling.
+ * Type-safe Redis pub/sub adapter interface.
+ * Wraps ioredis clients with a clean async interface.
  */
-interface RedisPubSub {
-  subscriber: {
-    subscribe: (channel: string) => Promise<void>;
-    on: (event: string, handler: (channel: string, message: string) => void) => void;
-  };
-  publisher: { publish: (channel: string, message: string) => Promise<void> };
+interface RedisPubSubAdapter {
+  /** Subscribe to a channel */
+  subscribe(channel: string): Promise<void>;
+  /** Set up a message handler */
+  onMessage(handler: (channel: string, message: string) => void): void;
+  /** Publish a message */
+  publish(channel: string, message: string): Promise<void>;
+  /** Disconnect */
+  quit(): Promise<void>;
+}
+
+/**
+ * Redis pub/sub connection with separate subscriber and publisher.
+ */
+interface RedisPubSubConnection {
+  subscriber: RedisPubSubAdapter;
+  publisher: RedisPubSubAdapter;
   quit: () => Promise<void>;
+}
+
+/**
+ * Create a type-safe pub/sub adapter from ioredis clients.
+ * This wraps the Redis clients to provide a clean async interface without type assertions.
+ */
+function createRedisPubSubAdapter(
+  subscriberClient: Redis,
+  publisherClient: Redis
+): RedisPubSubConnection {
+  const subscriber: RedisPubSubAdapter = {
+    async subscribe(channel: string): Promise<void> {
+      await subscriberClient.subscribe(channel);
+    },
+    onMessage(handler: (channel: string, message: string) => void): void {
+      subscriberClient.on('message', handler);
+    },
+    async publish(): Promise<void> {
+      throw new Error('Cannot publish on subscriber connection');
+    },
+    async quit(): Promise<void> {
+      await subscriberClient.quit();
+    },
+  };
+
+  const publisher: RedisPubSubAdapter = {
+    async subscribe(): Promise<void> {
+      throw new Error('Cannot subscribe on publisher connection');
+    },
+    onMessage(): void {
+      throw new Error('Cannot receive messages on publisher connection');
+    },
+    async publish(channel: string, message: string): Promise<void> {
+      await publisherClient.publish(channel, message);
+    },
+    async quit(): Promise<void> {
+      await publisherClient.quit();
+    },
+  };
+
+  return {
+    subscriber,
+    publisher,
+    quit: async () => {
+      await Promise.all([subscriber.quit(), publisher.quit()]);
+    },
+  };
 }
 
 /**
@@ -78,7 +139,7 @@ export async function createWsDriver(
 ): Promise<
   BroadcastDriver & {
     wss: WebSocketServer;
-    handleUpgrade: (request: IncomingMessage, socket: unknown, head: Buffer) => void;
+    handleUpgrade: (request: IncomingMessage, socket: Duplex, head: Buffer) => void;
   }
 > {
   const options = { ...DEFAULT_CONFIG, ...config };
@@ -100,17 +161,19 @@ export async function createWsDriver(
   const presenceData = new Map<string, Map<string, PresenceMember>>();
 
   // Redis pub/sub for horizontal scaling
-  let redisPubSub: RedisPubSub | null = null;
+  let redisPubSub: RedisPubSubConnection | null = null;
 
   if (redis) {
-    const { Redis } = await import('ioredis');
-    const subscriber = new Redis(redis);
-    const publisher = new Redis(redis);
+    const { Redis: RedisClient } = await import('ioredis');
+    const subscriberClient = new RedisClient(redis);
+    const publisherClient = new RedisClient(redis);
+
+    const adapter = createRedisPubSubAdapter(subscriberClient, publisherClient);
 
     // Subscribe to broadcast channel
-    await subscriber.subscribe('velox:broadcast');
+    await adapter.subscriber.subscribe('velox:broadcast');
 
-    subscriber.on('message', (_channel: string, message: string) => {
+    adapter.subscriber.onMessage((_channel: string, message: string) => {
       try {
         const event = JSON.parse(message) as BroadcastEvent;
         // Only broadcast locally, don't re-publish
@@ -120,14 +183,7 @@ export async function createWsDriver(
       }
     });
 
-    redisPubSub = {
-      subscriber: subscriber as unknown as RedisPubSub['subscriber'],
-      publisher: publisher as unknown as RedisPubSub['publisher'],
-      quit: async () => {
-        await subscriber.quit();
-        await publisher.quit();
-      },
-    };
+    redisPubSub = adapter;
   }
 
   /**
@@ -360,9 +416,13 @@ export async function createWsDriver(
 
   /**
    * Handle HTTP upgrade to WebSocket.
+   *
+   * @param request - The incoming HTTP request
+   * @param socket - The underlying TCP socket (Duplex stream)
+   * @param head - The first packet of the upgraded stream
    */
-  function handleUpgrade(request: IncomingMessage, socket: unknown, head: Buffer): void {
-    wss.handleUpgrade(request, socket as never, head, (ws) => {
+  function handleUpgrade(request: IncomingMessage, socket: Duplex, head: Buffer): void {
+    wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request);
     });
   }

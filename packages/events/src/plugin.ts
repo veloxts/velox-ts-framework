@@ -5,15 +5,25 @@
  * Extends BaseContext with events manager access.
  */
 
+import type { Duplex } from 'node:stream';
+
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 
 // Side-effect import for declaration merging
 import '@veloxts/core';
 
+import { type ChannelAuthSigner, createChannelAuthSigner } from './auth.js';
 import { createSseDriver } from './drivers/sse.js';
 import { createWsDriver } from './drivers/ws.js';
 import { createManagerFromDriver } from './manager.js';
+import {
+  formatValidationErrors,
+  SseSubscribeBodySchema,
+  SseUnsubscribeBodySchema,
+  validateBody,
+  WsAuthBodySchema,
+} from './schemas.js';
 import type {
   BroadcastDriver,
   ChannelAuthorizer,
@@ -21,7 +31,6 @@ import type {
   EventsPluginOptions,
   EventsSseOptions,
   EventsWsOptions,
-  PresenceMember,
 } from './types.js';
 
 /**
@@ -116,13 +125,15 @@ export function eventsPlugin(options: EventsPluginOptions = {}) {
           await sse.handler(request, reply);
         });
 
-        // Register subscription endpoint
+        // Register subscription endpoint with Zod validation
         fastify.post(`${path}/subscribe`, async (request, reply) => {
-          const { connectionId, channel, member } = request.body as {
-            connectionId: string;
-            channel: string;
-            member?: PresenceMember;
-          };
+          const validation = validateBody(request.body, SseSubscribeBodySchema);
+
+          if (!validation.success) {
+            return reply.status(400).send(formatValidationErrors(validation.errors));
+          }
+
+          const { connectionId, channel, member } = validation.data;
 
           // Authorize the channel
           const channelInfo = parseChannel(channel);
@@ -136,12 +147,15 @@ export function eventsPlugin(options: EventsPluginOptions = {}) {
           return { success: true };
         });
 
-        // Register unsubscribe endpoint
-        fastify.post(`${path}/unsubscribe`, async (request) => {
-          const { connectionId, channel } = request.body as {
-            connectionId: string;
-            channel: string;
-          };
+        // Register unsubscribe endpoint with Zod validation
+        fastify.post(`${path}/unsubscribe`, async (request, reply) => {
+          const validation = validateBody(request.body, SseUnsubscribeBodySchema);
+
+          if (!validation.success) {
+            return reply.status(400).send(formatValidationErrors(validation.errors));
+          }
+
+          const { connectionId, channel } = validation.data;
           sse.unsubscribe(connectionId, channel);
           return { success: true };
         });
@@ -154,22 +168,31 @@ export function eventsPlugin(options: EventsPluginOptions = {}) {
         const ws = await createWsDriver(wsOptions, { server: fastify.server });
         driver = ws;
 
+        // Initialize auth signer if authSecret is provided
+        let authSigner: ChannelAuthSigner | null = null;
+        if (options.authSecret) {
+          authSigner = createChannelAuthSigner(options.authSecret);
+        }
+
         // Handle WebSocket upgrade
         const path = wsOptions.path ?? '/ws';
 
-        fastify.server.on('upgrade', (request, socket, head) => {
+        fastify.server.on('upgrade', (request, socket: Duplex, head) => {
           const url = new URL(request.url ?? '', `http://${request.headers.host}`);
           if (url.pathname === path) {
             ws.handleUpgrade(request, socket, head);
           }
         });
 
-        // Register auth endpoint for private/presence channels
+        // Register auth endpoint for private/presence channels with Zod validation
         fastify.post(`${path}/auth`, async (request, reply) => {
-          const { socketId, channel } = request.body as {
-            socketId: string;
-            channel: string;
-          };
+          const validation = validateBody(request.body, WsAuthBodySchema);
+
+          if (!validation.success) {
+            return reply.status(400).send(formatValidationErrors(validation.errors));
+          }
+
+          const { socketId, channel } = validation.data;
 
           const channelInfo = parseChannel(channel);
           const authResult = await authorizer(channelInfo, request);
@@ -178,10 +201,25 @@ export function eventsPlugin(options: EventsPluginOptions = {}) {
             return reply.status(403).send({ error: authResult.error ?? 'Unauthorized' });
           }
 
-          // Return auth signature (simplified - production would use HMAC)
+          // Require authSecret for private/presence channels
+          if (!authSigner && channelInfo.type !== 'public') {
+            return reply.status(500).send({
+              error: 'Server configuration error: authSecret required for private channels',
+            });
+          }
+
+          // For public channels, no signature needed
+          if (channelInfo.type === 'public') {
+            return { auth: null };
+          }
+
+          // Generate HMAC-SHA256 signature for secure auth
+          const channelData = authResult.member ? JSON.stringify(authResult.member) : undefined;
+          const signature = authSigner?.sign(socketId, channel, channelData) ?? '';
+
           return {
-            auth: `${socketId}:${channel}`,
-            channel_data: authResult.member ? JSON.stringify(authResult.member) : undefined,
+            auth: `${socketId}:${signature}`,
+            channel_data: channelData,
           };
         });
       }

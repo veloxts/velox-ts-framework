@@ -180,6 +180,16 @@ describe('Scheduler Manager', () => {
       resolveTask?.();
       await firstExecution;
     });
+
+    it('should accept maxLockMinutes parameter', async () => {
+      const handler = vi.fn();
+      scheduler = createScheduler([
+        task('with-lock', handler).everyMinute().withoutOverlapping(30).build(),
+      ]);
+
+      const t = scheduler.getTask('with-lock');
+      expect(t?.maxLockMinutes).toBe(30);
+    });
   });
 
   describe('getHistory()', () => {

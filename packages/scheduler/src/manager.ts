@@ -20,12 +20,19 @@ import type {
 const MAX_HISTORY_PER_TASK = 100;
 
 /**
+ * Default max lock duration in minutes (24 hours).
+ */
+const DEFAULT_MAX_LOCK_MINUTES = 1440;
+
+/**
  * Internal job state.
  */
 interface JobState {
   task: ScheduledTask;
   cronJob: CronJob;
   isRunning: boolean;
+  /** When the current execution started (for lock expiration) */
+  runningStartedAt?: Date;
   lastRunAt?: Date;
 }
 
@@ -124,31 +131,47 @@ export function createScheduler(
 
     // Check if task is already running (overlap prevention)
     if (task.withoutOverlapping && jobState.isRunning) {
-      const skipReason = 'Task is still running from previous execution';
-      execution.status = 'skipped';
-      execution.completedAt = new Date();
-      execution.duration = 0;
+      // Check if the lock has expired
+      const maxLockMs = (task.maxLockMinutes ?? DEFAULT_MAX_LOCK_MINUTES) * 60 * 1000;
+      const lockExpired =
+        jobState.runningStartedAt &&
+        Date.now() - jobState.runningStartedAt.getTime() > maxLockMs;
 
-      log(`Skipping ${task.name}: ${skipReason}`);
+      if (lockExpired) {
+        // Lock expired - force release and allow new execution
+        log(
+          `Lock expired for ${task.name} after ${task.maxLockMinutes ?? DEFAULT_MAX_LOCK_MINUTES} minutes, forcing new execution`
+        );
+        jobState.isRunning = false;
+        jobState.runningStartedAt = undefined;
+      } else {
+        // Lock still valid - skip this execution
+        const skipReason = 'Task is still running from previous execution';
+        execution.status = 'skipped';
+        execution.completedAt = new Date();
+        execution.duration = 0;
 
-      if (task.onSkip) {
-        try {
-          await task.onSkip(ctx, skipReason);
-        } catch {
-          // Ignore skip callback errors
+        log(`Skipping ${task.name}: ${skipReason}`);
+
+        if (task.onSkip) {
+          try {
+            await task.onSkip(ctx, skipReason);
+          } catch {
+            // Ignore skip callback errors
+          }
         }
-      }
 
-      if (options.onTaskSkip) {
-        try {
-          await options.onTaskSkip(task, ctx, skipReason);
-        } catch {
-          // Ignore callback errors
+        if (options.onTaskSkip) {
+          try {
+            await options.onTaskSkip(task, ctx, skipReason);
+          } catch {
+            // Ignore callback errors
+          }
         }
-      }
 
-      addToHistory(execution);
-      return execution;
+        addToHistory(execution);
+        return execution;
+      }
     }
 
     // Check constraints
@@ -197,6 +220,7 @@ export function createScheduler(
 
     // Mark as running
     jobState.isRunning = true;
+    jobState.runningStartedAt = new Date();
 
     log(`Starting ${task.name}`);
 
@@ -211,14 +235,23 @@ export function createScheduler(
     try {
       // Create timeout promise if specified
       if (task.timeout) {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(
+          timeoutId = setTimeout(
             () => reject(new Error(`Task timed out after ${task.timeout}ms`)),
             task.timeout
           );
         });
 
-        await Promise.race([task.handler(ctx), timeoutPromise]);
+        try {
+          await Promise.race([task.handler(ctx), timeoutPromise]);
+        } finally {
+          // Clear the timeout timer to prevent memory leak
+          if (timeoutId !== undefined) {
+            clearTimeout(timeoutId);
+          }
+        }
       } else {
         await task.handler(ctx);
       }
@@ -278,6 +311,7 @@ export function createScheduler(
       }
     } finally {
       jobState.isRunning = false;
+      jobState.runningStartedAt = undefined;
     }
 
     addToHistory(execution);

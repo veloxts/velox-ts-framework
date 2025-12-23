@@ -37,8 +37,10 @@
  * @packageDocumentation
  */
 
-export { createSseDriver, DRIVER_NAME as SSE_DRIVER } from './drivers/sse.js';
+// Auth
+export { type ChannelAuthSigner, createChannelAuthSigner } from './auth.js';
 // Drivers
+export { createSseDriver, DRIVER_NAME as SSE_DRIVER } from './drivers/sse.js';
 export { createWsDriver, DRIVER_NAME as WS_DRIVER } from './drivers/ws.js';
 // Manager
 export {
@@ -54,6 +56,17 @@ export {
   getEvents,
   getEventsFromInstance,
 } from './plugin.js';
+// Schemas (for validation)
+export {
+  ClientMessageSchema,
+  formatValidationErrors,
+  PresenceMemberSchema,
+  SseSubscribeBodySchema,
+  SseUnsubscribeBodySchema,
+  type ValidationResult,
+  validateBody,
+  WsAuthBodySchema,
+} from './schemas.js';
 // Types
 export type {
   // Driver interface

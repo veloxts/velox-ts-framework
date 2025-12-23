@@ -81,6 +81,12 @@ export interface ScheduledTask {
   handler: TaskHandler;
   /** Prevent overlapping executions */
   withoutOverlapping: boolean;
+  /**
+   * Maximum lock duration in minutes for overlap prevention.
+   * If a task runs longer than this, the lock is considered expired
+   * and a new execution can start. Default: 1440 (24 hours).
+   */
+  maxLockMinutes?: number;
   /** Maximum execution time in milliseconds */
   timeout?: number;
   /** Callbacks */

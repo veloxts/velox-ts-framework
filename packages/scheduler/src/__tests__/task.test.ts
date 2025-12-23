@@ -240,6 +240,16 @@ describe('Task Builder', () => {
         .withoutOverlapping()
         .build();
       expect(t.withoutOverlapping).toBe(true);
+      expect(t.maxLockMinutes).toBeUndefined();
+    });
+
+    it('should set withoutOverlapping with maxLockMinutes', () => {
+      const t = task('test', () => {})
+        .everyMinute()
+        .withoutOverlapping(30)
+        .build();
+      expect(t.withoutOverlapping).toBe(true);
+      expect(t.maxLockMinutes).toBe(30);
     });
 
     it('should set timeout', () => {

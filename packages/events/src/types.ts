@@ -189,6 +189,11 @@ export interface BroadcastDriver {
 export interface EventsBaseOptions {
   /** Default channel authorizer */
   authorizer?: ChannelAuthorizer;
+  /**
+   * Secret key for signing auth tokens (required for private/presence channels).
+   * Should be at least 16 characters of high entropy.
+   */
+  authSecret?: string;
   /** Ping interval in milliseconds (default: 30000) */
   pingInterval?: number;
   /** Connection timeout in milliseconds (default: 60000) */

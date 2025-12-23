@@ -73,6 +73,7 @@ class TaskBuilderImpl implements TaskBuilder {
   private _dayOfWeek = '*';
 
   private _withoutOverlapping = false;
+  private _maxLockMinutes?: number;
   private _timeout?: number;
   private _onSuccess?: TaskSuccessCallback;
   private _onFailure?: TaskFailureCallback;
@@ -351,8 +352,9 @@ class TaskBuilderImpl implements TaskBuilder {
   // Execution Control
   // ===========================================================================
 
-  withoutOverlapping(_maxLockMinutes?: number): TaskBuilder {
+  withoutOverlapping(maxLockMinutes?: number): TaskBuilder {
     this._withoutOverlapping = true;
+    this._maxLockMinutes = maxLockMinutes;
     return this;
   }
 
@@ -457,6 +459,7 @@ class TaskBuilderImpl implements TaskBuilder {
       timezone: this._timezone,
       handler: this._handler,
       withoutOverlapping: this._withoutOverlapping,
+      maxLockMinutes: this._maxLockMinutes,
       timeout: this._timeout,
       onSuccess: this._onSuccess,
       onFailure: this._onFailure,
