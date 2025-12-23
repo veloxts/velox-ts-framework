@@ -182,11 +182,22 @@ function getDatabaseUrl(): string {
 
 /**
  * Create a PostgreSQL client connection
+ * Ensures proper cleanup even if connect() fails
  */
 async function createDbClient(databaseUrl: string): Promise<pg.Client> {
   const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
-  return client;
+  try {
+    await client.connect();
+    return client;
+  } catch (err) {
+    // Ensure client is cleaned up even if connect fails
+    try {
+      await client.end();
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw err;
+  }
 }
 
 /**
@@ -218,6 +229,32 @@ async function executeQuerySingle<T extends pg.QueryResultRow = TenantRow>(
 ): Promise<T | null> {
   const rows = await executeQuery<T>(databaseUrl, sql, params);
   return rows[0] ?? null;
+}
+
+/**
+ * Validate that the tenants table exists in the database
+ * Provides a helpful error message if not found
+ */
+async function validateTenantsTableExists(databaseUrl: string): Promise<void> {
+  const result = await executeQuerySingle<{ exists: boolean }>(
+    databaseUrl,
+    `SELECT EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public'
+      AND table_name = 'tenants'
+    ) as exists`,
+    []
+  );
+
+  if (!result?.exists) {
+    throw new Error(
+      'Tenants table not found in the database.\n' +
+        'Please ensure your Prisma schema includes a Tenant model and run migrations:\n' +
+        '  npx prisma migrate dev\n' +
+        '\nOr create the table manually with the required columns:\n' +
+        '  id, slug, name, schema_name, status, created_at, updated_at'
+    );
+  }
 }
 
 // ============================================================================
@@ -288,14 +325,17 @@ function createTenantCreateCommand(): Command {
         const schemaManager = createTenantSchemaManager({ databaseUrl });
         const schemaName = slugToSchemaName(slug);
 
-        if (options.json && !options.dryRun) {
-          // Silent mode for JSON output
-        } else if (options.dryRun) {
+        if (options.dryRun) {
           info(`Would create tenant: ${pc.cyan(slug)}`);
           step(`Schema name: ${pc.cyan(schemaName)}`);
           step(`Display name: ${name}`);
           return;
-        } else {
+        }
+
+        // Validate tenants table exists before proceeding
+        await validateTenantsTableExists(databaseUrl);
+
+        if (!options.json) {
           info(`Creating tenant: ${pc.cyan(slug)}`);
         }
 
@@ -308,46 +348,58 @@ function createTenantCreateCommand(): Command {
         if (!schemaResult.created) {
           s.stop('Schema already exists');
           warning(`Schema ${schemaName} already exists`);
-        } else {
-          s.message('Running migrations...');
-
-          // Run migrations
-          const migrateResult = await schemaManager.migrateSchema(schemaName);
-
-          s.message('Creating tenant record...');
-
-          // Insert tenant record using parameterized query
-          await executeQuery(
-            databaseUrl,
-            `INSERT INTO tenants (id, slug, name, schema_name, status, created_at, updated_at)
-             VALUES (gen_random_uuid(), $1, $2, $3, 'active', NOW(), NOW())`,
-            [slug, name, schemaName]
-          );
-
-          s.stop('Tenant created successfully');
 
           if (options.json) {
             console.log(
               JSON.stringify(
-                {
-                  success: true,
-                  tenant: {
-                    slug,
-                    name,
-                    schemaName,
-                    status: 'active',
-                    migrationsApplied: migrateResult.migrationsApplied,
-                  },
-                },
+                { success: false, error: 'Schema already exists', schemaName },
                 null,
                 2
               )
             );
-          } else {
-            success(`Created tenant ${pc.cyan(slug)}`);
-            step(`Schema: ${pc.cyan(schemaName)}`);
-            step(`Migrations applied: ${migrateResult.migrationsApplied}`);
           }
+          return; // Explicit early return
+        }
+
+        // Schema was created, continue with migration
+        s.message('Running migrations...');
+
+        // Run migrations
+        const migrateResult = await schemaManager.migrateSchema(schemaName);
+
+        s.message('Creating tenant record...');
+
+        // Insert tenant record using parameterized query
+        await executeQuery(
+          databaseUrl,
+          `INSERT INTO tenants (id, slug, name, schema_name, status, created_at, updated_at)
+           VALUES (gen_random_uuid(), $1, $2, $3, 'active', NOW(), NOW())`,
+          [slug, name, schemaName]
+        );
+
+        s.stop('Tenant created successfully');
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                success: true,
+                tenant: {
+                  slug,
+                  name,
+                  schemaName,
+                  status: 'active',
+                  migrationsApplied: migrateResult.migrationsApplied,
+                },
+              },
+              null,
+              2
+            )
+          );
+        } else {
+          success(`Created tenant ${pc.cyan(slug)}`);
+          step(`Schema: ${pc.cyan(schemaName)}`);
+          step(`Migrations applied: ${migrateResult.migrationsApplied}`);
         }
       } catch (err) {
         if (err instanceof InvalidSlugError) {
@@ -374,6 +426,9 @@ function createTenantListCommand(): Command {
     .action(async (options: TenantListOptions) => {
       try {
         const databaseUrl = getDatabaseUrl();
+
+        // Validate tenants table exists
+        await validateTenantsTableExists(databaseUrl);
 
         // Build query with optional parameterized status filter
         let sql: string;
@@ -472,6 +527,9 @@ function createTenantMigrateCommand(): Command {
         const databaseUrl = getDatabaseUrl();
         const schemaManager = createTenantSchemaManager({ databaseUrl });
 
+        // Validate tenants table exists
+        await validateTenantsTableExists(databaseUrl);
+
         // Get tenants to migrate using parameterized queries
         let sql: string;
         let params: unknown[];
@@ -494,10 +552,11 @@ function createTenantMigrateCommand(): Command {
         if (tenants.length === 0) {
           if (slug) {
             error(`Tenant not found: ${slug}`);
+            process.exit(1);
           } else {
             info('No active tenants to migrate');
+            return;
           }
-          return;
         }
 
         if (options.dryRun) {
@@ -515,6 +574,31 @@ function createTenantMigrateCommand(): Command {
           s.start(`Migrating ${t.slug}...`);
 
           try {
+            // Check current status before updating (prevents concurrent migrations)
+            const currentTenant = await executeQuerySingle<{ status: string }>(
+              databaseUrl,
+              'SELECT status FROM tenants WHERE slug = $1',
+              [t.slug]
+            );
+
+            if (!currentTenant) {
+              s.stop(`Tenant ${t.slug} no longer exists`);
+              warning(`Skipping ${t.slug}: tenant not found`);
+              continue;
+            }
+
+            if (currentTenant.status === 'migrating') {
+              s.stop(`Tenant ${t.slug} already migrating`);
+              warning(`Skipping ${t.slug}: migration already in progress`);
+              continue;
+            }
+
+            if (currentTenant.status === 'suspended') {
+              s.stop(`Tenant ${t.slug} is suspended`);
+              warning(`Skipping ${t.slug}: tenant is suspended`);
+              continue;
+            }
+
             // Update status to migrating using parameterized query
             await executeQuery(databaseUrl, 'UPDATE tenants SET status = $1 WHERE slug = $2', [
               'migrating',
@@ -540,11 +624,15 @@ function createTenantMigrateCommand(): Command {
             s.stop(`Failed to migrate ${t.slug}`);
             error(sanitizeErrorMessage(err instanceof Error ? err.message : String(err)));
 
-            // Restore status
-            await executeQuery(databaseUrl, 'UPDATE tenants SET status = $1 WHERE slug = $2', [
-              'active',
-              t.slug,
-            ]);
+            // Restore status (try to set back to active, ignore if it fails)
+            try {
+              await executeQuery(databaseUrl, 'UPDATE tenants SET status = $1 WHERE slug = $2', [
+                'active',
+                t.slug,
+              ]);
+            } catch {
+              warning(`Could not restore status for ${t.slug} - may need manual intervention`);
+            }
           }
         }
 
@@ -574,6 +662,9 @@ function createTenantStatusCommand(): Command {
       try {
         validateSlugInput(slug);
         const databaseUrl = getDatabaseUrl();
+
+        // Validate tenants table exists
+        await validateTenantsTableExists(databaseUrl);
 
         // Use parameterized query
         const tenant = await executeQuerySingle(
@@ -642,6 +733,9 @@ function createTenantSuspendCommand(): Command {
         validateSlugInput(slug);
         const databaseUrl = getDatabaseUrl();
 
+        // Validate tenants table exists
+        await validateTenantsTableExists(databaseUrl);
+
         // Check tenant exists using parameterized query
         const existing = await executeQuerySingle<{ status: string }>(
           databaseUrl,
@@ -703,6 +797,9 @@ function createTenantActivateCommand(): Command {
       try {
         validateSlugInput(slug);
         const databaseUrl = getDatabaseUrl();
+
+        // Validate tenants table exists
+        await validateTenantsTableExists(databaseUrl);
 
         // Check tenant exists using parameterized query
         const existing = await executeQuerySingle<{ status: string }>(
