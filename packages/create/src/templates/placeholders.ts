@@ -107,7 +107,6 @@ function getWsApiCommand(packageManager: TemplateConfig['packageManager']): stri
       return 'npm run -w api';
     case 'yarn':
       return 'yarn workspace api';
-    case 'pnpm':
     default:
       return 'pnpm -F api';
   }
@@ -127,7 +126,6 @@ function getDevCommand(packageManager: TemplateConfig['packageManager']): string
       return 'concurrently \\"npm run -w api dev\\" \\"npm run -w web dev\\"';
     case 'yarn':
       return 'yarn workspaces foreach -A --parallel run dev';
-    case 'pnpm':
     default:
       return 'pnpm --parallel -r dev';
   }
@@ -143,7 +141,6 @@ function getWsAllCommand(packageManager: TemplateConfig['packageManager']): stri
       return 'npm run -ws --if-present';
     case 'yarn':
       return 'yarn workspaces foreach -A run';
-    case 'pnpm':
     default:
       return 'pnpm -r';
   }
