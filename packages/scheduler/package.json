@@ -1,0 +1,60 @@
+{
+  "name": "@veloxts/scheduler",
+  "version": "0.6.31",
+  "description": "Task scheduling for VeloxTS framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@veloxts/core": "workspace:*",
+    "cron": "3.5.0",
+    "fastify-plugin": "5.1.0"
+  },
+  "peerDependencies": {
+    "fastify": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.29",
+    "fastify": "5.6.2",
+    "typescript": "5.8.3",
+    "vitest": "4.0.16"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/veloxts/veloxts.git",
+    "directory": "packages/scheduler"
+  },
+  "keywords": [
+    "veloxts",
+    "scheduler",
+    "cron",
+    "tasks",
+    "jobs",
+    "background"
+  ],
+  "author": "VeloxTS Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
