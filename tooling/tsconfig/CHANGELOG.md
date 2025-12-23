@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.31
+
+### Patch Changes
+
+- npm must use concurrently for run dev script
+
 ## 0.6.30
 
 ### Patch Changes

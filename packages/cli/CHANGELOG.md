@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.31
+
+### Patch Changes
+
+- npm must use concurrently for run dev script
+- Updated dependencies
+  - @veloxts/auth@0.6.31
+  - @veloxts/core@0.6.31
+  - @veloxts/orm@0.6.31
+  - @veloxts/router@0.6.31
+  - @veloxts/validation@0.6.31
+
 ## 0.6.30
 
 ### Patch Changes
