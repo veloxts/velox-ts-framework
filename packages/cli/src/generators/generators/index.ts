@@ -22,6 +22,7 @@ import { createResourceGenerator } from './resource.js';
 import { createSchemaGenerator } from './schema.js';
 import { createSeederGenerator } from './seeder.js';
 import { createServiceGenerator } from './service.js';
+import { createStorageGenerator } from './storage.js';
 import { createTestGenerator } from './test.js';
 
 // ============================================================================
@@ -45,6 +46,7 @@ export { createResourceGenerator, ResourceGenerator } from './resource.js';
 export { createSchemaGenerator, SchemaGenerator } from './schema.js';
 export { createSeederGenerator, SeederGenerator } from './seeder.js';
 export { createServiceGenerator, ServiceGenerator } from './service.js';
+export { createStorageGenerator, StorageGenerator } from './storage.js';
 export { createTestGenerator, TestGenerator } from './test.js';
 
 // ============================================================================
@@ -91,6 +93,7 @@ export function registerBuiltinGenerators(): void {
   registerGenerator(createExceptionGenerator());
   registerGenerator(createJobGenerator());
   registerGenerator(createMailGenerator());
+  registerGenerator(createStorageGenerator());
 
   // Register auth generators
   registerGenerator(createGuardGenerator());

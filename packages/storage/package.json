@@ -1,0 +1,82 @@
+{
+  "name": "@veloxts/storage",
+  "version": "0.6.31",
+  "description": "Multi-driver file storage abstraction for VeloxTS framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./drivers/local": {
+      "types": "./dist/drivers/local.d.ts",
+      "import": "./dist/drivers/local.js"
+    },
+    "./drivers/s3": {
+      "types": "./dist/drivers/s3.d.ts",
+      "import": "./dist/drivers/s3.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@veloxts/core": "workspace:*",
+    "fastify-plugin": "5.1.0",
+    "mime-types": "2.1.35"
+  },
+  "peerDependencies": {
+    "@aws-sdk/client-s3": ">=3.0.0",
+    "@aws-sdk/s3-request-presigner": ">=3.0.0",
+    "fastify": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@aws-sdk/client-s3": {
+      "optional": true
+    },
+    "@aws-sdk/s3-request-presigner": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "3.821.0",
+    "@aws-sdk/s3-request-presigner": "3.821.0",
+    "@types/mime-types": "2.1.4",
+    "@types/node": "22.15.29",
+    "fastify": "5.6.2",
+    "typescript": "5.8.3",
+    "vitest": "4.0.16"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/veloxts/veloxts.git",
+    "directory": "packages/storage"
+  },
+  "keywords": [
+    "veloxts",
+    "storage",
+    "filesystem",
+    "s3",
+    "r2",
+    "upload",
+    "files"
+  ],
+  "author": "VeloxTS Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
