@@ -2,7 +2,7 @@
  * Events Manager Tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createManagerFromDriver } from '../manager.js';
 import type { BroadcastDriver, BroadcastEvent, PresenceMember } from '../types.js';
