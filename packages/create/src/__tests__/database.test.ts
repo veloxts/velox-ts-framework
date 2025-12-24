@@ -78,7 +78,6 @@ import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 /* @endif sqlite */
 /* @if postgresql */
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
 /* @endif postgresql */
 `;
 
@@ -86,14 +85,12 @@ import { Pool } from 'pg';
     const result = processConditionals(contentWithConditionals, sqliteConfig);
     expect(result).toContain('PrismaBetterSqlite3');
     expect(result).not.toContain('PrismaPg');
-    expect(result).not.toContain('Pool');
   });
 
   it('should keep postgresql block and remove sqlite for postgres config', () => {
     const result = processConditionals(contentWithConditionals, postgresConfig);
     expect(result).not.toContain('PrismaBetterSqlite3');
     expect(result).toContain('PrismaPg');
-    expect(result).toContain('Pool');
   });
 
   it('should remove conditional markers but keep content for matching database', () => {
@@ -204,7 +201,7 @@ describe('Template Compilation', () => {
       const result = compileTemplate('api/config/database.ts', postgresConfig);
       expect(result).toContain('PrismaPg');
       expect(result).toContain("'@prisma/adapter-pg'");
-      expect(result).toContain('Pool');
+      expect(result).toContain('connectionString');
       expect(result).not.toContain('PrismaBetterSqlite3');
       expect(result).not.toContain("'@prisma/adapter-better-sqlite3'");
     });
@@ -212,13 +209,8 @@ describe('Template Compilation', () => {
     it('should include graceful shutdown for PostgreSQL', () => {
       const result = compileTemplate('api/config/database.ts', postgresConfig);
       expect(result).toContain('shutdown');
-      expect(result).toContain('pool.end()');
+      expect(result).toContain('db.$disconnect()');
       expect(result).toContain('SIGTERM');
-    });
-
-    it('should not include pool shutdown for SQLite', () => {
-      const result = compileTemplate('api/config/database.ts', sqliteConfig);
-      expect(result).not.toContain('pool.end()');
     });
   });
 
@@ -272,7 +264,7 @@ describe('RSC Template Database Support', () => {
     it('should compile with PostgreSQL adapter for postgres config', () => {
       const result = compileTemplate('rsc/src/api/database.ts', rscPostgresConfig);
       expect(result).toContain('PrismaPg');
-      expect(result).toContain('Pool');
+      expect(result).toContain('connectionString');
       expect(result).not.toContain('PrismaBetterSqlite3');
     });
 
