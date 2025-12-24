@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/mail",
-  "version": "0.6.33",
+  "version": "0.6.34",
   "description": "Email templating and sending for VeloxTS framework",
   "type": "module",
   "main": "./dist/index.js",

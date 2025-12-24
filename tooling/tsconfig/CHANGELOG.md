@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.34
+
+### Patch Changes
+
+- update PostgreSQL adapter for Prisma 7 API
+
 ## 0.6.33
 
 ### Patch Changes
