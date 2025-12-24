@@ -69,6 +69,12 @@ export const postProcedures = procedures('posts', {
 
 Then register in `src/procedures/index.ts` and add to collections in `src/index.ts`.
 
+## Prisma 7 Configuration
+
+This project uses Prisma 7 which has breaking changes:
+- Database URL is configured in `prisma.config.ts`, NOT in `schema.prisma`
+- NEVER add `url` property to the datasource block in `schema.prisma`
+
 ### Frontend Development (apps/web)
 
 **Creating a new route:**
