@@ -23,7 +23,6 @@ import type { PrismaPg as PrismaPgType } from '@prisma/adapter-pg';
 /* @endif postgresql */
 import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import dotenv from 'dotenv';
-import type { Pool as PoolType } from 'pg';
 
 // Runtime imports using createRequire for Node.js v24+ CJS interop
 const require = createRequire(import.meta.url);
@@ -35,9 +34,6 @@ const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3') as {
 /* @if postgresql */
 const { PrismaPg } = require('@prisma/adapter-pg') as {
   PrismaPg: typeof PrismaPgType;
-};
-const { Pool } = require('pg') as {
-  Pool: typeof PoolType;
 };
 /* @endif postgresql */
 const { PrismaClient } = require('@prisma/client') as {
@@ -56,10 +52,6 @@ declare global {
   // Allow global `var` declarations for hot reload in development
   // eslint-disable-next-line no-var
   var __db: PrismaClient | undefined;
-  /* @if postgresql */
-  // eslint-disable-next-line no-var
-  var __pool: InstanceType<typeof PoolType> | undefined;
-  /* @endif postgresql */
 }
 
 /* @if sqlite */
@@ -88,32 +80,24 @@ function createPrismaClient(): PrismaClient {
 /* @endif sqlite */
 /* @if postgresql */
 /**
- * Create a PostgreSQL connection pool.
- * Uses connection pooling for better performance in production.
+ * Create a Prisma client instance using the PostgreSQL adapter.
+ *
+ * Prisma 7 Breaking Change:
+ * - PrismaPg now takes connectionString directly (not a Pool instance)
+ * - Pool management is handled internally by the adapter
  */
-function createPool(): InstanceType<typeof PoolType> {
-  const databaseUrl = process.env.DATABASE_URL;
+function createPrismaClient(): PrismaClient {
+  const connectionString = process.env.DATABASE_URL;
 
-  if (!databaseUrl) {
+  if (!connectionString) {
     throw new Error(
       '[VeloxTS] DATABASE_URL environment variable is not set. ' +
         'Ensure .env file exists in project root with DATABASE_URL defined.'
     );
   }
 
-  return new Pool({
-    connectionString: databaseUrl,
-    max: 10, // Maximum connections in pool
-  });
-}
-
-/**
- * Create a Prisma client instance using the PostgreSQL adapter.
- * Uses connection pooling for efficient database access.
- */
-function createPrismaClient(pool: InstanceType<typeof PoolType>): PrismaClient {
-  // Prisma 7 requires driver adapters for direct connections
-  const adapter = new PrismaPg(pool);
+  // Prisma 7: Pass connectionString directly to PrismaPg (not a Pool)
+  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
 /* @endif postgresql */
@@ -127,19 +111,16 @@ if (process.env.NODE_ENV !== 'production') {
 }
 /* @endif sqlite */
 /* @if postgresql */
-// Use global singletons for hot reload in development
-const pool = globalThis.__pool ?? createPool();
-export const db = globalThis.__db ?? createPrismaClient(pool);
+// Use global singleton for hot reload in development
+export const db = globalThis.__db ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
-  globalThis.__pool = pool;
   globalThis.__db = db;
 }
 
-// Graceful shutdown - close pool on process exit
+// Graceful shutdown - disconnect Prisma on process exit
 const shutdown = async () => {
   await db.$disconnect();
-  await pool.end();
   process.exit(0);
 };
 
