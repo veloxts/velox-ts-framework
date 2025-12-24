@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.33
+
+### Patch Changes
+
+- changed claude.md instruction, added prisma config
+
 ## 0.6.32
 
 ### Patch Changes

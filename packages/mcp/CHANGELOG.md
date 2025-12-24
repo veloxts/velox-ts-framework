@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.33
+
+### Patch Changes
+
+- changed claude.md instruction, added prisma config
+- Updated dependencies
+  - @veloxts/cli@0.6.33
+  - @veloxts/router@0.6.33
+  - @veloxts/validation@0.6.33
+
 ## 0.6.32
 
 ### Patch Changes
