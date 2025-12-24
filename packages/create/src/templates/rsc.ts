@@ -175,12 +175,16 @@ function generateFavicon(): string {
   return compileTemplate('rsc/public/favicon.svg', RSC_CONFIG);
 }
 
+function generateDockerCompose(config: TemplateConfig): string {
+  return compileTemplate('rsc/docker-compose.yml', config);
+}
+
 // ============================================================================
 // RSC Template Generator
 // ============================================================================
 
 export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
-  return [
+  const files: TemplateFile[] = [
     // Root configuration files
     { path: 'package.json', content: generatePackageJson(config) },
     { path: 'app.config.ts', content: generateAppConfig() },
@@ -241,4 +245,14 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
     // Public assets
     { path: 'public/favicon.svg', content: generateFavicon() },
   ];
+
+  // Add docker-compose for PostgreSQL
+  if (config.database === 'postgresql') {
+    files.push({
+      path: 'docker-compose.yml',
+      content: generateDockerCompose(config),
+    });
+  }
+
+  return files;
 }

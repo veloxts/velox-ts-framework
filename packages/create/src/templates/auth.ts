@@ -102,6 +102,10 @@ function generateAuthUtils(): string {
   return compileTemplate('api/utils/auth.ts', AUTH_CONFIG);
 }
 
+function generateDockerCompose(config: TemplateConfig): string {
+  return compileTemplate('api/docker-compose.yml', config);
+}
+
 // ============================================================================
 // Auth Template Generator
 // ============================================================================
@@ -136,6 +140,14 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/src/types.d.ts', content: generateApiTypesDts() },
     { path: 'apps/api/src/utils/auth.ts', content: generateAuthUtils() },
   ];
+
+  // Add docker-compose for PostgreSQL
+  if (config.database === 'postgresql') {
+    files.push({
+      path: 'apps/api/docker-compose.yml',
+      content: generateDockerCompose(config),
+    });
+  }
 
   // Add root workspace files
   const rootFiles = generateRootFiles(config, true);

@@ -86,6 +86,10 @@ function generateApiTypesDts(): string {
   return compileTemplate('api/types.d.ts', DEFAULT_CONFIG);
 }
 
+function generateDockerCompose(config: TemplateConfig): string {
+  return compileTemplate('api/docker-compose.yml', config);
+}
+
 // ============================================================================
 // SPA Template Generator
 // ============================================================================
@@ -116,6 +120,14 @@ export function generateSpaTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/src/routes.ts', content: generateRoutes() },
     { path: 'apps/api/src/types.d.ts', content: generateApiTypesDts() },
   ];
+
+  // Add docker-compose for PostgreSQL
+  if (config.database === 'postgresql') {
+    files.push({
+      path: 'apps/api/docker-compose.yml',
+      content: generateDockerCompose(config),
+    });
+  }
 
   // Add root workspace files
   const rootFiles = generateRootFiles(config, false);
