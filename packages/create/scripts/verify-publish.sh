@@ -3,18 +3,17 @@
 # Tests actual published npm packages (not file: references like smoke-test.sh)
 #
 # Usage:
-#   ./verify-publish.sh                    # Test latest from npm
+#   ./verify-publish.sh                    # Test latest from npm (spa + sqlite)
 #   ./verify-publish.sh 0.6.34             # Test specific version
 #   ./verify-publish.sh --registry http://localhost:4873  # Test from Verdaccio
 #   ./verify-publish.sh --all              # Test all template/database combinations
 #   ./verify-publish.sh --template auth    # Test specific template
-#   ./verify-publish.sh --database postgresql  # Test specific database
-#   ./verify-publish.sh --docker           # Start PostgreSQL via Docker for runtime tests
+#   ./verify-publish.sh --database postgresql  # Test with PostgreSQL (auto-starts Docker)
 #
 # Examples:
 #   ./verify-publish.sh 0.6.34 --all                    # Full matrix test
 #   ./verify-publish.sh --template rsc --database sqlite # Single combination
-#   ./verify-publish.sh --docker --database postgresql   # PostgreSQL with Docker
+#   ./verify-publish.sh --database postgresql            # PostgreSQL (Docker auto-enabled)
 
 set -e
 
@@ -69,9 +68,11 @@ while [[ $# -gt 0 ]]; do
       echo "  --all               Test all template/database combinations"
       echo "  --template NAME     Test specific template (spa, auth, trpc, rsc)"
       echo "  --database NAME     Test specific database (sqlite, postgresql)"
-      echo "  --docker            Start PostgreSQL via Docker for runtime tests"
+      echo "  --docker            Force Docker for runtime tests (auto-enabled for postgresql)"
       echo "  --keep              Keep test projects after completion"
       echo "  --help              Show this help"
+      echo ""
+      echo "Note: Docker is automatically enabled when testing postgresql databases."
       exit 0
       ;;
     *)
@@ -110,6 +111,14 @@ else
   TEMPLATES=("spa")
   DATABASES=("sqlite")
 fi
+
+# Auto-enable Docker for PostgreSQL (required for runtime tests)
+for db in "${DATABASES[@]}"; do
+  if [ "$db" = "postgresql" ]; then
+    USE_DOCKER=true
+    break
+  fi
+done
 
 # Counters
 PASSED=0

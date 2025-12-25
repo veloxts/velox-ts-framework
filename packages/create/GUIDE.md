@@ -88,7 +88,7 @@ pnpm verify-publish --registry http://localhost:4873
 # Test specific template
 pnpm verify-publish --template auth
 
-# Test specific database
+# Test specific database (Docker auto-enabled for postgresql)
 pnpm verify-publish --database postgresql
 
 # Test specific combination
@@ -110,7 +110,7 @@ pnpm verify-publish --keep
 | `--template NAME` | Template to test (`spa`, `auth`, `trpc`, `rsc`) | `spa` |
 | `--database NAME` | Database to test (`sqlite`, `postgresql`) | `sqlite` |
 | `--all` | Test all template/database combinations | `false` |
-| `--docker` | Start PostgreSQL via Docker for runtime tests | `false` |
+| `--docker` | Force Docker (auto-enabled for postgresql) | `false` |
 | `--keep` | Keep test projects after completion | `false` |
 | `--help` | Show help message | - |
 
@@ -123,8 +123,8 @@ For each template/database combination, the script validates:
 3. **Dependency Installation** - `npm install` succeeds
 4. **Prisma Generation** - `npm run db:generate` succeeds
 5. **Build** - `npm run build` (or `npm run -w api build` for monorepo) succeeds
-6. **Database Setup** - `npm run db:push` succeeds (SQLite or PostgreSQL with Docker)
-7. **Runtime Endpoints** (SQLite or PostgreSQL with `--docker`):
+6. **Database Setup** - `npm run db:push` succeeds (SQLite direct, PostgreSQL via Docker)
+7. **Runtime Endpoints** (all databases - Docker auto-enabled for PostgreSQL):
    - `GET /api/health` → 200
    - `GET /api/users` → 200
    - `POST /api/users` → 201
@@ -160,14 +160,14 @@ pnpm verify-publish --registry http://localhost:4873
 #### Full Matrix Test
 ```bash
 # Test all 8 combinations (4 templates × 2 databases)
-# SQLite tests include runtime, PostgreSQL is build-only without --docker
+# Docker auto-enabled for PostgreSQL runtime tests
 pnpm verify-publish --all
 ```
 
-#### PostgreSQL with Docker
+#### PostgreSQL (Docker Auto-Enabled)
 ```bash
-# Start PostgreSQL container, run full runtime tests
-pnpm verify-publish --template spa --database postgresql --docker
+# Docker automatically starts for PostgreSQL runtime tests
+pnpm verify-publish --template spa --database postgresql
 ```
 
 #### Debug Failed Tests
@@ -226,11 +226,11 @@ The specified version doesn't exist on the registry:
 npm view create-velox-app versions --registry http://localhost:4873
 ```
 
-#### PostgreSQL Tests Skipped
-PostgreSQL runtime tests require Docker:
+#### Docker Not Running
+PostgreSQL tests require Docker to be running:
 ```bash
-# Enable Docker-based PostgreSQL testing
-pnpm verify-publish --database postgresql --docker
+# Start Docker Desktop or daemon first, then run:
+pnpm verify-publish --database postgresql
 ```
 
 #### Port Already in Use
@@ -281,7 +281,7 @@ verify-publish:
 | **Speed** | Faster (no npm download) | Slower (full npm install) |
 | **When to Run** | Before publishing | After publishing |
 | **Matrix Testing** | Single template | All combinations |
-| **Docker Support** | No | Yes (PostgreSQL) |
+| **Docker Support** | No | Auto (PostgreSQL) |
 
 ## Learn More
 
