@@ -151,24 +151,29 @@ cleanup() {
 trap cleanup EXIT
 
 # Function to start PostgreSQL Docker container
+# Sets PG_PORT variable with the assigned port
 start_postgres() {
   local project_name="$1"
-  echo "Starting PostgreSQL container..."
+
+  # Use random port to avoid conflicts (5433-5533)
+  PG_PORT=$((5433 + RANDOM % 100))
+
+  echo "Starting PostgreSQL container on port $PG_PORT..."
 
   docker run -d \
     --name "${project_name}-postgres" \
     -e POSTGRES_USER=user \
     -e POSTGRES_PASSWORD=password \
-    -e POSTGRES_DB="${project_name}" \
-    -p 5432:5432 \
+    -e POSTGRES_DB="${project_name//-/_}" \
+    -p ${PG_PORT}:5432 \
     postgres:16-alpine \
     > /dev/null 2>&1
 
   # Wait for PostgreSQL to be ready
   echo "Waiting for PostgreSQL to be ready..."
   for i in {1..30}; do
-    if docker exec "${project_name}-postgres" pg_isready -U user -d "${project_name}" > /dev/null 2>&1; then
-      echo "PostgreSQL is ready!"
+    if docker exec "${project_name}-postgres" pg_isready -U user -d "${project_name//-/_}" > /dev/null 2>&1; then
+      echo "PostgreSQL is ready on port $PG_PORT!"
       return 0
     fi
     sleep 1
@@ -456,15 +461,15 @@ test_combination() {
     echo ""
     echo "=== Setting up PostgreSQL via Docker ==="
 
-    # Update .env with Docker PostgreSQL URL
-    if [ "$template" = "rsc" ]; then
-      echo "DATABASE_URL=postgresql://user:password@localhost:5432/${project_name}" > .env
-    else
-      echo "DATABASE_URL=postgresql://user:password@localhost:5432/${project_name}" > apps/api/.env
-    fi
-
-    # Start PostgreSQL
+    # Start PostgreSQL first to get the port
     if start_postgres "$project_name"; then
+      # Update .env with Docker PostgreSQL URL (using dynamic port)
+      local db_name="${project_name//-/_}"
+      if [ "$template" = "rsc" ]; then
+        echo "DATABASE_URL=postgresql://user:password@localhost:${PG_PORT}/${db_name}" > .env
+      else
+        echo "DATABASE_URL=postgresql://user:password@localhost:${PG_PORT}/${db_name}" > apps/api/.env
+      fi
       echo ""
       echo "=== Pushing database schema ==="
       if npm run db:push 2>&1 | tail -3; then
