@@ -344,6 +344,18 @@ test_combination() {
   fi
   echo -e "${GREEN}✓${NC} Dependencies installed"
 
+  # Rebuild native modules (required for SQLite when using local registries)
+  if [ "$database" = "sqlite" ]; then
+    echo ""
+    echo "=== Rebuilding native modules ==="
+    if [ "$template" = "rsc" ]; then
+      npm rebuild better-sqlite3 2>&1 | tail -3 || true
+    else
+      npm rebuild better-sqlite3 -w api 2>&1 | tail -3 || true
+    fi
+    echo -e "${GREEN}✓${NC} Native modules rebuilt"
+  fi
+
   # Generate Prisma client
   echo ""
   echo "=== Generating Prisma client ==="
