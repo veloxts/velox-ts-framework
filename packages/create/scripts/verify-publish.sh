@@ -209,7 +209,7 @@ test_endpoints() {
     -d '{"email":"test@example.com","name":"Test User"}' \
     -w "\n%{http_code}" 2>/dev/null)
   status=$(echo "$response" | tail -1)
-  body=$(echo "$response" | head -n -1)
+  body=$(echo "$response" | sed '$d')  # Delete last line (portable alternative to head -n -1)
 
   if [ "$status" = "201" ]; then
     echo -e "${GREEN}✓${NC} POST /api/users (201)"
