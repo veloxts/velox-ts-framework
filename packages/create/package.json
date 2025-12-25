@@ -30,7 +30,8 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke-test": "./scripts/smoke-test.sh"
+    "smoke-test": "./scripts/smoke-test.sh",
+    "verify-publish": "./scripts/verify-publish.sh"
   },
   "dependencies": {
     "@clack/prompts": "0.11.0",
