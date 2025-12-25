@@ -192,7 +192,18 @@ packages/
 ├── auth/           # @veloxts/auth - Authentication & authorization (JWT + Sessions)
 ├── client/         # @veloxts/client - Type-safe frontend API client
 ├── cli/            # @veloxts/cli - Developer tooling
-└── create/         # create-velox-app - Project scaffolder
+├── create/         # create-velox-app - Project scaffolder
+├── velox/          # @veloxts/velox - Unified meta-package (re-exports core packages)
+├── web/            # @veloxts/web - RSC + Vinxi integration
+├── mcp/            # @veloxts/mcp - Model Context Protocol server
+│
+│ # Ecosystem Packages (Early Preview)
+├── cache/          # @veloxts/cache - Multi-driver caching (memory, Redis)
+├── queue/          # @veloxts/queue - Background jobs (sync, BullMQ)
+├── mail/           # @veloxts/mail - Email sending (SMTP, Resend, React Email)
+├── storage/        # @veloxts/storage - File storage (local, S3/R2)
+├── scheduler/      # @veloxts/scheduler - Cron task scheduling
+└── events/         # @veloxts/events - Real-time broadcasting (WebSocket, SSE)
 
 apps/
 ├── playground/     # Development testing application
@@ -200,7 +211,9 @@ apps/
 
 tooling/
 ├── biome-config/   # Shared Biome configuration
-└── tsconfig/       # Shared TypeScript configurations
+├── tsconfig/       # Shared TypeScript configurations
+├── testing/        # Shared test utilities
+└── benchmarks/     # Performance benchmarks
 ```
 
 ### Package Dependencies
@@ -364,6 +377,117 @@ const message = ctx.session.getFlash('success');  // Returns once, then removed
 - In-memory store (development) or Redis (production)
 - Cookie security: httpOnly, secure, sameSite
 
+### Ecosystem Packages (Early Preview)
+
+These packages provide Laravel-style infrastructure patterns. **APIs may change before v1.0.**
+
+#### `@veloxts/cache` - Multi-Driver Caching
+```typescript
+import { cachePlugin } from '@veloxts/cache';
+
+// Memory cache (development)
+app.use(cachePlugin({ driver: 'memory', config: { maxSize: 1000 } }));
+
+// Redis cache (production)
+app.use(cachePlugin({ driver: 'redis', config: { url: process.env.REDIS_URL } }));
+
+// Usage
+await ctx.cache.put('user:123', user, '30m');
+const user = await ctx.cache.get('user:123');
+const data = await ctx.cache.remember('key', '1h', async () => fetchData());
+await ctx.cache.tags(['users']).flush();  // Tag-based invalidation
+```
+
+#### `@veloxts/queue` - Background Job Processing
+```typescript
+import { queuePlugin, defineJob, dispatch } from '@veloxts/queue';
+
+// Define a job
+const SendWelcomeEmail = defineJob('send-welcome-email', {
+  input: z.object({ userId: z.string(), email: z.string() }),
+  handler: async ({ data }) => {
+    await sendEmail(data.email, 'Welcome!');
+  },
+});
+
+// Dispatch
+await dispatch(SendWelcomeEmail, { userId: '123', email: 'user@example.com' });
+
+// Drivers: 'sync' (immediate), 'bullmq' (Redis-backed)
+```
+
+#### `@veloxts/mail` - Email with React Templates
+```typescript
+import { mailPlugin, send } from '@veloxts/mail';
+
+// SMTP or Resend driver
+app.use(mailPlugin({
+  driver: 'resend',
+  config: { apiKey: process.env.RESEND_API_KEY },
+  defaults: { from: 'noreply@example.com' },
+}));
+
+// Send with React Email template
+await send({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  react: <WelcomeEmail name="John" />,
+});
+```
+
+#### `@veloxts/storage` - File Storage Abstraction
+```typescript
+import { storagePlugin } from '@veloxts/storage';
+
+// Local or S3/R2 driver
+app.use(storagePlugin({
+  driver: 'local',
+  config: { root: './uploads', baseUrl: '/files' },
+}));
+
+// Usage
+await ctx.storage.put('avatars/user-123.jpg', buffer);
+const url = await ctx.storage.url('avatars/user-123.jpg');
+const stream = await ctx.storage.stream('large-file.zip');
+await ctx.storage.delete('old-file.pdf');
+```
+
+#### `@veloxts/scheduler` - Cron Task Scheduling
+```typescript
+import { schedulerPlugin, schedule } from '@veloxts/scheduler';
+
+app.use(schedulerPlugin());
+
+// Fluent API
+schedule('cleanup-expired-sessions')
+  .call(async () => { await db.session.deleteMany({ where: { expiresAt: { lt: new Date() } } }); })
+  .daily()
+  .at('03:00')
+  .withoutOverlapping();
+
+schedule('send-daily-digest')
+  .call(sendDigestEmails)
+  .weekdays()
+  .at('09:00');
+```
+
+#### `@veloxts/events` - Real-Time Broadcasting
+```typescript
+import { eventsPlugin, broadcast } from '@veloxts/events';
+
+// WebSocket or SSE driver (optional Redis for scaling)
+app.use(eventsPlugin({
+  driver: 'ws',
+  redis: { url: process.env.REDIS_URL },  // Optional pub/sub
+}));
+
+// Broadcast to channel
+broadcast('orders', { event: 'order.created', data: { orderId: '123' } });
+
+// Private channels with auth
+broadcast(`user.${userId}`, { event: 'notification', data: message });
+```
+
 ## MVP Scope (v0.1.0)
 
 Currently building toward MVP with these constraints:
@@ -376,14 +500,24 @@ Currently building toward MVP with these constraints:
 - `@veloxts/orm` - Prisma client wrapper (manual migrations)
 - `@veloxts/auth` - JWT authentication, session management, guards, rate limiting
 - `@veloxts/client` - Type-safe API client for frontend
-- `@veloxts/cli` - Basic commands (`velox dev`, `velox migrate`)
+- `@veloxts/cli` - Basic commands (`velox dev`, `velox migrate`, `velox make`)
+- `@veloxts/web` - RSC + Vinxi integration with file-based routing
+- `@veloxts/velox` - Unified meta-package
+- `@veloxts/mcp` - Model Context Protocol server
 - `create-velox-app` - Project scaffolding with 4 templates: default, auth, trpc, and rsc
+
+### Ecosystem Packages (Early Preview)
+- `@veloxts/cache` - Multi-driver caching (memory, Redis)
+- `@veloxts/queue` - Background job processing (sync, BullMQ)
+- `@veloxts/mail` - Email sending (SMTP, Resend, React Email)
+- `@veloxts/storage` - File storage abstraction (local, S3/R2)
+- `@veloxts/scheduler` - Cron task scheduling
+- `@veloxts/events` - Real-time broadcasting (WebSocket, SSE)
 
 ### Deferred to v1.1+
 - Nested resource routing
 - Full DI container with decorators
-- Code generators
-- React hooks
+- React hooks for data fetching
 - Migration runner CLI
 - Database seeding system
 
@@ -471,7 +605,14 @@ const db = new PrismaClient({ adapter });
 }
 ```
 
-**PostgreSQL:** `@prisma/adapter-pg`
+**PostgreSQL:**
+```typescript
+import { PrismaPg } from '@prisma/adapter-pg';
+// Prisma 7: Pass connectionString directly (NOT a Pool instance)
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const db = new PrismaClient({ adapter });
+```
+
 **MySQL:** `@prisma/adapter-mysql`
 **LibSQL/Turso:** `@prisma/adapter-libsql`
 
