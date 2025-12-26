@@ -39,12 +39,16 @@ describeIntegration('Redis cache driver (integration)', () => {
   }, 30000); // 30s timeout for container startup
 
   afterAll(async () => {
-    // Clean up
-    if (cache) {
-      await cache.close();
+    // Clean up with try/catch to prevent test hangs on cleanup failures
+    try {
+      if (cache) await cache.close();
+    } catch {
+      /* ignore cleanup errors */
     }
-    if (redis) {
-      await redis.stop();
+    try {
+      if (redis) await redis.stop();
+    } catch {
+      /* ignore cleanup errors */
     }
   });
 

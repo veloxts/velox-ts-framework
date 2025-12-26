@@ -49,11 +49,16 @@ describeIntegration('S3 storage driver (integration)', () => {
   }, 60000); // 60s timeout for container startup
 
   afterAll(async () => {
-    if (store) {
-      await store.close();
+    // Clean up with try/catch to prevent test hangs on cleanup failures
+    try {
+      if (store) await store.close();
+    } catch {
+      /* ignore cleanup errors */
     }
-    if (minio) {
-      await minio.stop();
+    try {
+      if (minio) await minio.stop();
+    } catch {
+      /* ignore cleanup errors */
     }
   });
 

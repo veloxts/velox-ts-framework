@@ -96,11 +96,32 @@ describeIntegration('Redis pub/sub for events (integration)', () => {
   }, 60000); // 60s timeout for container + servers
 
   afterAll(async () => {
-    await driver1.close();
-    await driver2.close();
-    await new Promise<void>((resolve) => httpServer1.close(() => resolve()));
-    await new Promise<void>((resolve) => httpServer2.close(() => resolve()));
-    await redis.stop();
+    // Clean up with try/catch to prevent test hangs on cleanup failures
+    try {
+      await driver1.close();
+    } catch {
+      /* ignore cleanup errors */
+    }
+    try {
+      await driver2.close();
+    } catch {
+      /* ignore cleanup errors */
+    }
+    try {
+      await new Promise<void>((resolve) => httpServer1.close(() => resolve()));
+    } catch {
+      /* ignore cleanup errors */
+    }
+    try {
+      await new Promise<void>((resolve) => httpServer2.close(() => resolve()));
+    } catch {
+      /* ignore cleanup errors */
+    }
+    try {
+      await redis.stop();
+    } catch {
+      /* ignore cleanup errors */
+    }
   });
 
   /**

@@ -6,6 +6,9 @@
  *                 7=Cache, 8=Queue, 9=Mail, 10=Storage, 11=Scheduler, 12=Events)
  * - YYY: Sequential number within domain
  *
+ * Note: Domains 1-9 use 4-digit codes (e.g., VELOX-1001)
+ *       Domains 10+ use 5-digit codes (e.g., VELOX-10001)
+ *
  * @module errors/catalog
  */
 

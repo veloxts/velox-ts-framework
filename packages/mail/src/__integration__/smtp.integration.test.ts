@@ -62,11 +62,16 @@ describeIntegration('SMTP transport (integration)', () => {
   }, 60000); // 60s timeout for container startup
 
   afterAll(async () => {
-    if (transport) {
-      await transport.close();
+    // Clean up with try/catch to prevent test hangs on cleanup failures
+    try {
+      if (transport) await transport.close();
+    } catch {
+      /* ignore cleanup errors */
     }
-    if (mailhog) {
-      await mailhog.stop();
+    try {
+      if (mailhog) await mailhog.stop();
+    } catch {
+      /* ignore cleanup errors */
     }
   });
 

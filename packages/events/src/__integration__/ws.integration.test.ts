@@ -48,10 +48,19 @@ describe('WebSocket driver (integration)', () => {
   }, 30000);
 
   afterAll(async () => {
-    await driver.close();
-    await new Promise<void>((resolve) => {
-      httpServer.close(() => resolve());
-    });
+    // Clean up with try/catch to prevent test hangs on cleanup failures
+    try {
+      await driver.close();
+    } catch {
+      /* ignore cleanup errors */
+    }
+    try {
+      await new Promise<void>((resolve) => {
+        httpServer.close(() => resolve());
+      });
+    } catch {
+      /* ignore cleanup errors */
+    }
   });
 
   /**

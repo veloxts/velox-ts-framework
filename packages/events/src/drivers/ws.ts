@@ -5,6 +5,7 @@
  * Supports optional Redis pub/sub for horizontal scaling.
  */
 
+import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 
@@ -146,7 +147,7 @@ export async function createWsDriver(
   const { pingInterval, maxPayloadSize, redis } = options;
 
   // Generate unique instance ID for filtering self-messages in Redis pub/sub
-  const instanceId = `${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 10)}`;
+  const instanceId = randomUUID();
 
   // Create WebSocket server
   const wss = new WebSocketServer({

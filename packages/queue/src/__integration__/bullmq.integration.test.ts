@@ -34,15 +34,21 @@ describeIntegration('BullMQ queue driver (integration)', () => {
   }, 30000); // 30s timeout for container startup
 
   afterAll(async () => {
-    // Clean up in reverse order
-    if (worker) {
-      await worker.close();
+    // Clean up in reverse order with try/catch to prevent test hangs
+    try {
+      if (worker) await worker.close();
+    } catch {
+      /* ignore cleanup errors */
     }
-    if (store) {
-      await store.close();
+    try {
+      if (store) await store.close();
+    } catch {
+      /* ignore cleanup errors */
     }
-    if (redis) {
-      await redis.stop();
+    try {
+      if (redis) await redis.stop();
+    } catch {
+      /* ignore cleanup errors */
     }
   });
 
