@@ -1,5 +1,13 @@
 # @veloxts/queue
 
+## 0.6.35
+
+### Patch Changes
+
+- proper auth template testing in verify-publis
+- Updated dependencies
+  - @veloxts/core@0.6.35
+
 ## 0.6.34
 
 ### Patch Changes

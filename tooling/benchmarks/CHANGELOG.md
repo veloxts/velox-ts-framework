@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.35
+
+### Patch Changes
+
+- proper auth template testing in verify-publis
+
 ## 0.6.34
 
 ### Patch Changes

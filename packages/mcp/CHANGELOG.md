@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.35
+
+### Patch Changes
+
+- proper auth template testing in verify-publis
+- Updated dependencies
+  - @veloxts/cli@0.6.35
+  - @veloxts/router@0.6.35
+  - @veloxts/validation@0.6.35
+
 ## 0.6.34
 
 ### Patch Changes
