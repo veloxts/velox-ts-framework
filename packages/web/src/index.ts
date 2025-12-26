@@ -56,6 +56,7 @@ export {
   AuthenticationError,
   AuthorizationError,
   action,
+  CsrfError,
   // Action creation
   createAction,
   // Context utilities
@@ -87,6 +88,7 @@ export {
   RateLimitError,
   registerAction,
   resetActionRegistry,
+  resetServerContextCache,
   success,
   TrpcBridgeError,
   validated,

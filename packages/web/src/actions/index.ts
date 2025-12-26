@@ -117,8 +117,10 @@ export type {
 export {
   AuthenticationError,
   AuthorizationError,
+  CsrfError,
   InputSizeError,
   RateLimitError,
+  resetServerContextCache,
   validated,
   validatedMutation,
   validatedQuery,

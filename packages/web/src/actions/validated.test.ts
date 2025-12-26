@@ -8,8 +8,10 @@ import { z } from 'zod';
 import {
   AuthenticationError,
   AuthorizationError,
+  CsrfError,
   InputSizeError,
   RateLimitError,
+  resetServerContextCache,
   validated,
   validatedMutation,
   validatedQuery,
@@ -605,6 +607,81 @@ describe('type inference', () => {
       const _userId: string = result.data.userId;
       const _timestamp: number = result.data.timestamp;
       expect(result.data.userId).toBe('test');
+    }
+  });
+});
+
+// ============================================================================
+// CSRF Validation Tests
+// ============================================================================
+
+describe('CSRF validation', () => {
+  it('should export CsrfError class', () => {
+    const error = new CsrfError('Test error');
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe('CsrfError');
+    expect(error.code).toBe('CSRF_INVALID');
+    expect(error.message).toBe('Test error');
+  });
+
+  it('should have default message for CsrfError', () => {
+    const error = new CsrfError();
+    expect(error.message).toBe('CSRF validation failed');
+  });
+
+  it('should export resetServerContextCache for testing', () => {
+    expect(typeof resetServerContextCache).toBe('function');
+    // Should not throw
+    resetServerContextCache();
+  });
+});
+
+// ============================================================================
+// Integration: CSRF with Authenticated Mutations
+// ============================================================================
+
+describe('CSRF with authenticated mutations', () => {
+  it('should require auth for validatedMutation', async () => {
+    const schema = z.object({ data: z.string() });
+
+    // Use unique key generator to avoid rate limiting conflicts with other tests
+    const action = validatedMutation(
+      schema,
+      async (input, ctx) => {
+        return { data: input.data, userId: ctx.user.id };
+      },
+      {
+        rateLimit: {
+          maxRequests: 100,
+          windowMs: 60000,
+          keyGenerator: () => `csrf-auth-test-${Date.now()}`,
+        },
+      }
+    );
+
+    // Without authenticated context, should fail with UNAUTHORIZED
+    const result = await action({ data: 'test' });
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error.code).toBe('UNAUTHORIZED');
+    }
+  });
+
+  it('should allow bypassCsrf option for validatedQuery', async () => {
+    const schema = z.object({ id: z.string() });
+
+    // validatedQuery bypasses CSRF by default
+    const action = validatedQuery(schema, async (input) => {
+      return { id: input.id };
+    });
+
+    const result = await action({ id: 'test' });
+
+    // Should succeed (no CSRF check for queries)
+    expect(isSuccess(result)).toBe(true);
+    if (isSuccess(result)) {
+      expect(result.data.id).toBe('test');
     }
   });
 });

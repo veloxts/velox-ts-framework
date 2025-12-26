@@ -11,6 +11,7 @@
 
 import { ZodError, type ZodType, type ZodTypeDef } from 'zod';
 
+import { createH3Context, type H3ActionContext } from '../adapters/h3-adapter.js';
 import type {
   ActionContext,
   ActionError,
@@ -288,6 +289,14 @@ class AuthorizationError extends Error {
   }
 }
 
+class CsrfError extends Error {
+  readonly code = 'CSRF_INVALID' as const;
+  constructor(message = 'CSRF validation failed') {
+    super(message);
+    this.name = 'CsrfError';
+  }
+}
+
 // ============================================================================
 // Result Factories
 // ============================================================================
@@ -391,24 +400,54 @@ function handleError(
     return errorResult('FORBIDDEN', error.message);
   }
 
-  // Log unknown errors server-side
-  console.error('[VeloxTS] Server action error:', error);
+  if (error instanceof CsrfError) {
+    return errorResult('FORBIDDEN', error.message);
+  }
+
+  // Log unknown errors server-side (structured for production)
+  console.error(
+    '[VeloxTS] Server action error:',
+    error instanceof Error ? error.message : 'Unknown error'
+  );
 
   // Return sanitized error to client
   return errorResult('INTERNAL_ERROR', 'An unexpected error occurred');
 }
 
 // ============================================================================
-// Context Provider (mock for now, will integrate with Vinxi)
+// Context Provider - Vinxi Integration
 // ============================================================================
 
 /**
- * Gets the current server action context
- * In production, this integrates with Vinxi's request context
+ * Whether we're running in a Vinxi/H3 environment
+ * Cached after first check for performance
  */
-async function getServerContext(): Promise<ActionContext> {
-  // TODO: Integrate with Vinxi's getRequestEvent() or similar
-  // For now, return a mock context
+let isVinxiEnvironment: boolean | null = null;
+
+/**
+ * Gets the current server action context from Vinxi's H3 layer.
+ *
+ * When running inside a Vinxi server function, this returns real request
+ * context with headers, cookies, and response utilities. Falls back to
+ * a mock context for testing or non-Vinxi environments.
+ */
+async function getServerContext(): Promise<ActionContext | H3ActionContext> {
+  // Try to use real H3 context from Vinxi
+  if (isVinxiEnvironment === null) {
+    try {
+      // Attempt to create H3 context - this will throw if vinxi is not available
+      const ctx = await createH3Context();
+      isVinxiEnvironment = true;
+      return ctx;
+    } catch {
+      // Not in Vinxi environment (testing, non-RSC usage, etc.)
+      isVinxiEnvironment = false;
+    }
+  } else if (isVinxiEnvironment) {
+    return createH3Context();
+  }
+
+  // Fallback: mock context for testing
   const headers = new Headers();
   const request = new Request('http://localhost/', { headers });
 
@@ -417,6 +456,101 @@ async function getServerContext(): Promise<ActionContext> {
     headers,
     cookies: new Map(),
   };
+}
+
+/**
+ * Resets the Vinxi environment detection.
+ * Only used for testing purposes.
+ */
+export function resetServerContextCache(): void {
+  isVinxiEnvironment = null;
+}
+
+// ============================================================================
+// CSRF Validation
+// ============================================================================
+
+/**
+ * Default allowed origins for CSRF validation.
+ * Can be extended via environment variable ALLOWED_ORIGINS (comma-separated).
+ */
+function getAllowedOrigins(request: Request): string[] {
+  const origins: string[] = [];
+
+  // Add the request's origin as allowed
+  const url = new URL(request.url);
+  origins.push(url.origin);
+
+  // Add configured origins from environment
+  const envOrigins = process.env.ALLOWED_ORIGINS;
+  if (envOrigins) {
+    origins.push(...envOrigins.split(',').map((o) => o.trim()));
+  }
+
+  // Common development origins
+  if (process.env.NODE_ENV !== 'production') {
+    origins.push('http://localhost:3000', 'http://localhost:3030', 'http://127.0.0.1:3000');
+  }
+
+  return origins;
+}
+
+/**
+ * Validates CSRF protection for authenticated mutations.
+ *
+ * Uses Origin header validation as the primary defense against CSRF attacks.
+ * For server actions invoked via JavaScript, browsers always send the Origin header.
+ *
+ * Security model:
+ * 1. Origin header MUST be present for authenticated mutations
+ * 2. Origin MUST match the server's expected origins
+ * 3. If no Origin, check Referer as fallback
+ * 4. Reject if neither header is present or valid
+ *
+ * @throws CsrfError if validation fails
+ */
+function validateCsrf(ctx: ActionContext): void {
+  const origin = ctx.headers.get('origin');
+  const referer = ctx.headers.get('referer');
+
+  // For server actions, Origin header should always be present
+  // (browsers send it for all cross-origin AND same-origin requests triggered by JS)
+  if (!origin && !referer) {
+    // If both are missing, this could be:
+    // 1. A same-origin navigation (safe for form submissions, but we're a server action)
+    // 2. A non-browser client (API client, curl, etc.)
+    // 3. Privacy-stripping proxy
+    // For server actions, we require at least one header for CSRF protection
+    throw new CsrfError(
+      'Missing Origin header. CSRF validation requires Origin or Referer header.'
+    );
+  }
+
+  const allowedOrigins = getAllowedOrigins(ctx.request);
+
+  // Check Origin header first (preferred)
+  if (origin) {
+    if (!allowedOrigins.includes(origin)) {
+      throw new CsrfError(`Origin '${origin}' not in allowed list`);
+    }
+    return; // Origin is valid, CSRF check passed
+  }
+
+  // Fallback: check Referer header
+  if (referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      if (!allowedOrigins.includes(refererOrigin)) {
+        throw new CsrfError(`Referer origin '${refererOrigin}' not in allowed list`);
+      }
+      return; // Referer origin is valid, CSRF check passed
+    } catch {
+      throw new CsrfError('Invalid Referer header format');
+    }
+  }
+
+  // Should not reach here (checked above), but just in case
+  throw new CsrfError('CSRF validation failed');
 }
 
 // ============================================================================
@@ -523,10 +657,10 @@ export function validated<
       }
 
       // 7. CSRF validation (for authenticated mutations)
-      // TODO: Integrate with CSRF manager when available
-      // if (!options?.bypassCsrf && isAuthRequired(options)) {
-      //   await verifyCsrf(ctx);
-      // }
+      // Server actions require Origin header validation to prevent CSRF attacks
+      if (!options?.bypassCsrf && isAuthRequired(options)) {
+        validateCsrf(ctx);
+      }
 
       // 8. Zod schema validation
       const parseResult = schema.safeParse(rawInput);
@@ -639,4 +773,4 @@ export type InferValidatedOutput<TAction> = TAction extends (
 // Re-export Error Classes for Custom Error Handling
 // ============================================================================
 
-export { AuthenticationError, AuthorizationError, InputSizeError, RateLimitError };
+export { AuthenticationError, AuthorizationError, CsrfError, InputSizeError, RateLimitError };
