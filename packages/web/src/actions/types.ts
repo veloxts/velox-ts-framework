@@ -219,17 +219,34 @@ export interface ActionRegistry {
  */
 export interface TrpcBridgeOptions {
   /**
-   * Base URL for the tRPC endpoint (short alias)
+   * Base path for the tRPC endpoint (short alias)
    * @default '/trpc'
    */
   base?: string;
 
   /**
-   * Base URL for the tRPC endpoint
+   * Base path for the tRPC endpoint
    * @default '/trpc'
    * @deprecated Use `base` instead for conciseness
    */
   trpcBase?: string;
+
+  /**
+   * Full base URL for server-side tRPC calls (when not in browser context).
+   * In browser, uses window.location.origin automatically.
+   *
+   * @default process.env.API_URL || 'http://localhost:3030'
+   *
+   * @example
+   * ```typescript
+   * // Development
+   * const bridge = createTrpcBridge({ baseUrl: 'http://localhost:3030' });
+   *
+   * // Production
+   * const bridge = createTrpcBridge({ baseUrl: process.env.API_URL });
+   * ```
+   */
+  baseUrl?: string;
 
   /**
    * Headers to forward to tRPC calls

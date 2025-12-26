@@ -73,3 +73,21 @@ export {
 
 export type { TestServerOptions } from './server.js';
 export { createTestServer, wrapVeloxPlugin } from './server.js';
+
+// ============================================================================
+// Testcontainers (Docker-based integration testing)
+// ============================================================================
+
+export type {
+  DescribeFn,
+  MailhogContainerResult,
+  MinioContainerResult,
+  RedisContainerResult,
+} from './containers.js';
+export {
+  describeWithDocker,
+  isDockerAvailable,
+  startMailhogContainer,
+  startMinioContainer,
+  startRedisContainer,
+} from './containers.js';

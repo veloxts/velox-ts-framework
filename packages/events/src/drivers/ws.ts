@@ -145,6 +145,9 @@ export async function createWsDriver(
   const options = { ...DEFAULT_CONFIG, ...config };
   const { pingInterval, maxPayloadSize, redis } = options;
 
+  // Generate unique instance ID for filtering self-messages in Redis pub/sub
+  const instanceId = `${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 10)}`;
+
   // Create WebSocket server
   const wss = new WebSocketServer({
     noServer: true,
@@ -175,9 +178,18 @@ export async function createWsDriver(
 
     adapter.subscriber.onMessage((_channel: string, message: string) => {
       try {
-        const event = JSON.parse(message) as BroadcastEvent;
+        const parsed = JSON.parse(message) as { __origin?: string } & BroadcastEvent;
+
+        // Skip messages from this instance to prevent duplicates
+        if (parsed.__origin === instanceId) {
+          return;
+        }
+
+        // Extract the event without the origin field
+        const { __origin: _, ...event } = parsed;
+
         // Only broadcast locally, don't re-publish
-        broadcastLocal(event);
+        broadcastLocal(event as BroadcastEvent);
       } catch {
         // Ignore invalid messages
       }
@@ -456,7 +468,11 @@ export async function createWsDriver(
 
       // Publish to Redis for other instances
       if (redisPubSub) {
-        await redisPubSub.publisher.publish('velox:broadcast', JSON.stringify(event));
+        // Include instance ID to prevent self-echo
+        await redisPubSub.publisher.publish(
+          'velox:broadcast',
+          JSON.stringify({ ...event, __origin: instanceId })
+        );
       }
     },
 

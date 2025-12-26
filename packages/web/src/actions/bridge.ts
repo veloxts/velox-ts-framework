@@ -101,10 +101,16 @@ export type ExtractProcedureOutput<
  */
 export interface BridgeConfig {
   /**
-   * Base URL for tRPC endpoint
+   * Base path for tRPC endpoint
    * @default '/trpc'
    */
   base: string;
+
+  /**
+   * Full base URL for server-side tRPC calls
+   * @default process.env.API_URL || 'http://localhost:3030'
+   */
+  baseUrl: string;
 
   /**
    * Headers to forward from action context to tRPC
@@ -117,8 +123,22 @@ export interface BridgeConfig {
   fetch: typeof fetch;
 }
 
+/**
+ * Resolves the default base URL for server-side tRPC calls.
+ * Uses API_URL env var if available, falls back to localhost:3030.
+ */
+function resolveDefaultBaseUrl(): string {
+  // In browser, we don't need this - buildTrpcUrl uses window.location.origin
+  // On server, use API_URL or default to localhost:3030
+  if (typeof process !== 'undefined' && process.env?.API_URL) {
+    return process.env.API_URL;
+  }
+  return 'http://localhost:3030';
+}
+
 const defaultConfig: BridgeConfig = {
   base: '/trpc',
+  baseUrl: resolveDefaultBaseUrl(),
   forwardHeaders: ['authorization', 'cookie', 'x-request-id'],
   fetch: globalThis.fetch,
 };
@@ -157,6 +177,7 @@ export function createTrpcBridge<TRouter>(
   const config: BridgeConfig = {
     ...defaultConfig,
     base: options?.base ?? options?.trpcBase ?? defaultConfig.base,
+    baseUrl: options?.baseUrl ?? defaultConfig.baseUrl,
     forwardHeaders: options?.forwardHeaders ?? defaultConfig.forwardHeaders,
     fetch: options?.fetch ?? defaultConfig.fetch,
   };
@@ -478,8 +499,9 @@ class TrpcBridgeImpl<TRouter> implements TrpcBridge<TRouter> {
    * Builds the tRPC URL for a procedure call
    */
   private buildTrpcUrl(procedurePath: string, input: unknown): string {
-    const baseUrl =
-      typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3030';
+    // In browser, use window.location.origin for same-origin requests
+    // On server, use configured baseUrl (from options or API_URL env var)
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : this.config.baseUrl;
 
     const url = new URL(`${this.config.base}/${procedurePath}`, baseUrl);
 

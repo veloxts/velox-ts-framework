@@ -36,7 +36,13 @@
 
 import type { BaseContext } from '@veloxts/core';
 import type { CompiledProcedure } from '@veloxts/router';
-import type { infer as ZodInfer, ZodSchema, ZodType, ZodTypeDef } from 'zod';
+import {
+  ZodError,
+  type infer as ZodInfer,
+  type ZodSchema,
+  type ZodType,
+  type ZodTypeDef,
+} from 'zod';
 
 import { toActionError } from './error-classifier.js';
 import { formDataToObject } from './form-parser.js';
@@ -230,10 +236,9 @@ function fail(
  * Formats a Zod error into an ActionError.
  */
 function formatZodError(err: unknown): ActionError {
-  if (err && typeof err === 'object' && 'errors' in err) {
-    const zodError = err as { errors: Array<{ path: (string | number)[]; message: string }> };
+  if (err instanceof ZodError) {
     return fail('VALIDATION_ERROR', 'Validation failed', {
-      errors: zodError.errors.map((e) => ({
+      errors: err.errors.map((e) => ({
         path: e.path.join('.'),
         message: e.message,
       })),

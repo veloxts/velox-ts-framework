@@ -7,7 +7,7 @@
  * @module @veloxts/web/actions/handler
  */
 
-import type { ZodSchema } from 'zod';
+import { ZodError, type ZodSchema } from 'zod';
 
 import { toActionError } from './error-classifier.js';
 import type {
@@ -124,10 +124,9 @@ async function validateInput<T>(schema: ZodSchema<T>, input: unknown): Promise<A
     const result = await schema.parseAsync(input);
     return success(result);
   } catch (err) {
-    if (err && typeof err === 'object' && 'errors' in err) {
-      const zodError = err as { errors: Array<{ path: (string | number)[]; message: string }> };
+    if (err instanceof ZodError) {
       return error('VALIDATION_ERROR', 'Input validation failed', {
-        errors: zodError.errors.map((e) => ({
+        errors: err.errors.map((e) => ({
           path: e.path.join('.'),
           message: e.message,
         })),
