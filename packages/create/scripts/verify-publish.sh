@@ -190,10 +190,9 @@ stop_postgres() {
   docker rm "${project_name}-postgres" > /dev/null 2>&1 || true
 }
 
-# Function to test endpoints
-test_endpoints() {
+# Function to test endpoints for non-auth templates
+test_endpoints_standard() {
   local port="$1"
-  local template="$2"
   local base_url="http://localhost:${port}"
 
   echo ""
@@ -223,7 +222,7 @@ test_endpoints() {
     -d '{"email":"test@example.com","name":"Test User"}' \
     -w "\n%{http_code}" 2>/dev/null)
   status=$(echo "$response" | tail -1)
-  body=$(echo "$response" | sed '$d')  # Delete last line (portable alternative to head -n -1)
+  body=$(echo "$response" | sed '$d')
 
   if [ "$status" = "201" ]; then
     echo -e "${GREEN}✓${NC} POST /api/users (201)"
@@ -253,39 +252,104 @@ test_endpoints() {
     fi
   fi
 
-  # Auth-specific tests
-  if [ "$template" = "auth" ]; then
-    echo ""
-    echo "--- Testing auth endpoints ---"
+  return 0
+}
 
-    # Register
-    response=$(curl -s -X POST "${base_url}/auth/register" \
-      -H "Content-Type: application/json" \
-      -d '{"email":"auth-test@example.com","password":"password123","name":"Auth Test"}' \
-      -w "\n%{http_code}" 2>/dev/null)
-    status=$(echo "$response" | tail -1)
+# Function to test endpoints for auth template
+test_endpoints_auth() {
+  local port="$1"
+  local base_url="http://localhost:${port}"
 
-    if [ "$status" = "201" ] || [ "$status" = "200" ]; then
-      echo -e "${GREEN}✓${NC} POST /auth/register ($status)"
+  echo ""
+  echo "--- Testing auth endpoints ---"
+
+  # Health check (no auth required)
+  response=$(curl -s -o /dev/null -w "%{http_code}" "${base_url}/api/health" 2>/dev/null || echo "000")
+  if [ "$response" = "200" ]; then
+    echo -e "${GREEN}✓${NC} GET /api/health (200)"
+  else
+    echo -e "${RED}✗${NC} GET /api/health (expected 200, got $response)"
+    return 1
+  fi
+
+  # Register new user
+  response=$(curl -s -X POST "${base_url}/api/auth/register" \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@example.com","password":"SecurePassword123!","name":"Test User"}' \
+    -w "\n%{http_code}" 2>/dev/null)
+  status=$(echo "$response" | tail -1)
+  body=$(echo "$response" | sed '$d')
+
+  if [ "$status" = "201" ] || [ "$status" = "200" ]; then
+    echo -e "${GREEN}✓${NC} POST /api/auth/register ($status)"
+  else
+    echo -e "${RED}✗${NC} POST /api/auth/register (expected 201, got $status)"
+    echo "Response: $body"
+    return 1
+  fi
+
+  # Login to get token
+  response=$(curl -s -X POST "${base_url}/api/auth/login" \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@example.com","password":"SecurePassword123!"}' \
+    -w "\n%{http_code}" 2>/dev/null)
+  status=$(echo "$response" | tail -1)
+  body=$(echo "$response" | sed '$d')
+
+  if [ "$status" = "200" ] || [ "$status" = "201" ]; then
+    echo -e "${GREEN}✓${NC} POST /api/auth/login ($status)"
+    # Extract access token
+    access_token=$(echo "$body" | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+  else
+    echo -e "${RED}✗${NC} POST /api/auth/login (expected 200/201, got $status)"
+    echo "Response: $body"
+    return 1
+  fi
+
+  # Test /api/auth/me with token
+  if [ -n "$access_token" ]; then
+    response=$(curl -s -o /dev/null -w "%{http_code}" "${base_url}/api/auth/me" \
+      -H "Authorization: Bearer ${access_token}" 2>/dev/null || echo "000")
+    if [ "$response" = "200" ]; then
+      echo -e "${GREEN}✓${NC} GET /api/auth/me (200) [authenticated]"
     else
-      echo -e "${YELLOW}⚠${NC} POST /auth/register (got $status)"
+      echo -e "${RED}✗${NC} GET /api/auth/me (expected 200, got $response)"
+      return 1
     fi
 
-    # Login
-    response=$(curl -s -X POST "${base_url}/auth/login" \
-      -H "Content-Type: application/json" \
-      -d '{"email":"auth-test@example.com","password":"password123"}' \
-      -w "\n%{http_code}" 2>/dev/null)
-    status=$(echo "$response" | tail -1)
-
-    if [ "$status" = "200" ]; then
-      echo -e "${GREEN}✓${NC} POST /auth/login (200)"
+    # Test authenticated user list
+    response=$(curl -s -o /dev/null -w "%{http_code}" "${base_url}/api/users" \
+      -H "Authorization: Bearer ${access_token}" 2>/dev/null || echo "000")
+    if [ "$response" = "200" ]; then
+      echo -e "${GREEN}✓${NC} GET /api/users (200) [authenticated]"
     else
-      echo -e "${YELLOW}⚠${NC} POST /auth/login (got $status)"
+      echo -e "${RED}✗${NC} GET /api/users (expected 200, got $response)"
+      return 1
     fi
   fi
 
+  # Test logout
+  response=$(curl -s -X POST -o /dev/null -w "%{http_code}" "${base_url}/api/auth/logout" \
+    -H "Authorization: Bearer ${access_token}" 2>/dev/null || echo "000")
+  if [ "$response" = "200" ] || [ "$response" = "204" ]; then
+    echo -e "${GREEN}✓${NC} POST /api/auth/logout ($response)"
+  else
+    echo -e "${YELLOW}⚠${NC} POST /api/auth/logout (got $response)"
+  fi
+
   return 0
+}
+
+# Function to test endpoints (dispatcher)
+test_endpoints() {
+  local port="$1"
+  local template="$2"
+
+  if [ "$template" = "auth" ]; then
+    test_endpoints_auth "$port"
+  else
+    test_endpoints_standard "$port"
+  fi
 }
 
 # Function to test a single combination
@@ -368,6 +432,25 @@ test_combination() {
       npm rebuild better-sqlite3 -w api 2>&1 | tail -3 || true
     fi
     echo -e "${GREEN}✓${NC} Native modules rebuilt"
+  fi
+
+  # Configure auth template with proper JWT secrets
+  if [ "$template" = "auth" ]; then
+    echo ""
+    echo "=== Configuring auth secrets ==="
+    # Generate 64+ character secrets for JWT (required by @veloxts/auth)
+    local jwt_secret="test-jwt-secret-that-is-at-least-64-characters-long-for-security-requirements"
+    local jwt_refresh_secret="test-jwt-refresh-secret-that-is-at-least-64-characters-long-for-security"
+
+    # Append to existing .env or create new one
+    if [ "$template" = "rsc" ]; then
+      echo "JWT_SECRET=${jwt_secret}" >> .env
+      echo "JWT_REFRESH_SECRET=${jwt_refresh_secret}" >> .env
+    else
+      echo "JWT_SECRET=${jwt_secret}" >> apps/api/.env
+      echo "JWT_REFRESH_SECRET=${jwt_refresh_secret}" >> apps/api/.env
+    fi
+    echo -e "${GREEN}✓${NC} Auth secrets configured"
   fi
 
   # Generate Prisma client
@@ -465,8 +548,18 @@ test_combination() {
     if start_postgres "$project_name"; then
       # Update .env with Docker PostgreSQL URL (using dynamic port)
       local db_name="${project_name//-/_}"
+      local jwt_secret="test-jwt-secret-that-is-at-least-64-characters-long-for-security-requirements"
+      local jwt_refresh_secret="test-jwt-refresh-secret-that-is-at-least-64-characters-long-for-security"
+
       if [ "$template" = "rsc" ]; then
         echo "DATABASE_URL=postgresql://user:password@localhost:${PG_PORT}/${db_name}" > .env
+      elif [ "$template" = "auth" ]; then
+        # Auth template needs DATABASE_URL + JWT secrets
+        cat > apps/api/.env << EOF
+DATABASE_URL=postgresql://user:password@localhost:${PG_PORT}/${db_name}
+JWT_SECRET=${jwt_secret}
+JWT_REFRESH_SECRET=${jwt_refresh_secret}
+EOF
       else
         echo "DATABASE_URL=postgresql://user:password@localhost:${PG_PORT}/${db_name}" > apps/api/.env
       fi
