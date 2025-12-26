@@ -16,11 +16,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Key Defaults (IMPORTANT - memorize these):**
 - **Default API port:** `3030` (not 3210)
 - **How to start a new project:** `npx create-velox-app my-app` (recommended)
-- **create-velox-app templates:** 4 templates available
+- **create-velox-app templates:** 5 templates available
   - `--default` (or no flag) - Basic REST API with user CRUD procedures
   - `--auth` - Full authentication (JWT, sessions, guards)
   - `--trpc` - tRPC-only setup for type-safe internal APIs
   - `--rsc` - Full-stack React Server Components with Vinxi
+  - `--rsc-auth` - RSC + JWT authentication with `validated()` server actions
 
 ## Commands
 
@@ -39,9 +40,10 @@ cd packages/create && pnpm smoke-test --default # Explicit default template
 cd packages/create && pnpm smoke-test --auth    # Test auth template
 cd packages/create && pnpm smoke-test --trpc    # Test tRPC template
 cd packages/create && pnpm smoke-test --rsc     # Test RSC full-stack template
+cd packages/create && pnpm smoke-test --rsc-auth # Test RSC + auth template
 ```
 
-**IMPORTANT:** Always use CLI arguments (`--auth`, `--default`, `--trpc`, `--rsc`) to select templates. Do NOT use environment variables like `SMOKE_TEMPLATE=auth` - the script does not support this pattern.
+**IMPORTANT:** Always use CLI arguments (`--auth`, `--default`, `--trpc`, `--rsc`, `--rsc-auth`) to select templates. Do NOT use environment variables like `SMOKE_TEMPLATE=auth` - the script does not support this pattern.
 
 The smoke test validates the entire `create-velox-app` scaffolder workflow:
 1. Builds the scaffolder and all monorepo packages
@@ -51,6 +53,7 @@ The smoke test validates the entire `create-velox-app` scaffolder workflow:
 5. For `--auth`: Also tests authentication endpoints (`/auth/register`, `/auth/login`, `/auth/me`)
 6. For `--trpc`: Tests tRPC-only endpoints without REST adapter
 7. For `--rsc`: Tests full-stack RSC app with Vinxi, React 19, and file-based routing
+8. For `--rsc-auth`: Tests RSC + JWT auth with `validated()` server actions and auth pages
 
 **Run this before publishing** to catch template errors early.
 
@@ -504,7 +507,7 @@ Currently building toward MVP with these constraints:
 - `@veloxts/web` - RSC + Vinxi integration with file-based routing
 - `@veloxts/velox` - Unified meta-package
 - `@veloxts/mcp` - Model Context Protocol server
-- `create-velox-app` - Project scaffolding with 4 templates: default, auth, trpc, and rsc
+- `create-velox-app` - Project scaffolding with 5 templates: default, auth, trpc, rsc, and rsc-auth
 
 ### Ecosystem Packages (Early Preview)
 - `@veloxts/cache` - Multi-driver caching (memory, Redis)
