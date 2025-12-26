@@ -440,9 +440,11 @@ async function generatePrismaClient(config: ProjectConfig): Promise<void> {
   }).start();
 
   try {
-    // RSC template has Prisma in root, others in apps/api
+    // RSC templates have Prisma in root, others in apps/api
     const prismaDir =
-      config.template === 'rsc' ? config.directory : path.join(config.directory, 'apps', 'api');
+      config.template === 'rsc' || config.template === 'rsc-auth'
+        ? config.directory
+        : path.join(config.directory, 'apps', 'api');
 
     await execAsync('npx prisma generate', {
       cwd: prismaDir,
@@ -519,11 +521,14 @@ function printSuccessMessage(config: ProjectConfig): void {
   console.log('');
 
   // Different structure messages based on template
-  if (config.template === 'rsc') {
+  if (config.template === 'rsc' || config.template === 'rsc-auth') {
     console.log(pc.dim('  Full-stack RSC application with:'));
     console.log(pc.dim('    app/pages   - React Server Components (file-based routing)'));
     console.log(pc.dim('    app/actions - Server actions'));
     console.log(pc.dim('    src/api     - Embedded Fastify API at /api/*'));
+    if (config.template === 'rsc-auth') {
+      console.log(pc.dim('    src/api/utils/auth.ts - JWT authentication helpers'));
+    }
   } else {
     console.log(pc.dim('  Full-stack workspace with:'));
     console.log(pc.dim('    apps/api - Backend API (Fastify + VeloxTS)'));
@@ -546,7 +551,7 @@ function printSuccessMessage(config: ProjectConfig): void {
   console.log('');
 
   // Different URL messages based on template
-  if (config.template === 'rsc') {
+  if (config.template === 'rsc' || config.template === 'rsc-auth') {
     console.log('  Your app will be available at:');
     console.log(`    ${pc.cyan('http://localhost:3030')}${pc.dim('  # Full-stack app')}`);
     console.log(`    ${pc.cyan('http://localhost:3030/api/*')}${pc.dim('  # API routes')}`);
@@ -561,6 +566,14 @@ function printSuccessMessage(config: ProjectConfig): void {
     console.log('');
     console.log(
       pc.yellow('  Note: Set JWT_SECRET and JWT_REFRESH_SECRET in apps/api/.env for production')
+    );
+  }
+
+  // RSC-Auth template specific message
+  if (config.template === 'rsc-auth') {
+    console.log('');
+    console.log(
+      pc.yellow('  Note: Set JWT_SECRET and JWT_REFRESH_SECRET in .env for production')
     );
   }
 

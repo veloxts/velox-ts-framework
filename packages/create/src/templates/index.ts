@@ -5,6 +5,7 @@
  */
 
 import { generateAuthTemplate } from './auth.js';
+import { generateRscAuthTemplate } from './rsc-auth.js';
 import { generateRscTemplate } from './rsc.js';
 import { VELOXTS_VERSION } from './shared.js';
 import { generateSpaTemplate } from './spa.js';
@@ -59,6 +60,8 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
       return generateTrpcTemplate(config);
     case 'rsc':
       return generateRscTemplate(config);
+    case 'rsc-auth':
+      return generateRscAuthTemplate(config);
     case 'spa':
       return generateSpaTemplate(config);
     default: {
@@ -73,7 +76,7 @@ export function generateTemplateFiles(config: TemplateConfig): TemplateFile[] {
  * Get directories that need to be created for the template
  */
 export function getTemplateDirectories(template: TemplateType): string[] {
-  // RSC template has a different structure (single-package, not monorepo)
+  // RSC templates have a different structure (single-package, not monorepo)
   if (template === 'rsc') {
     return [
       // App layer (RSC)
@@ -87,6 +90,32 @@ export function getTemplateDirectories(template: TemplateType): string[] {
       'src/api',
       'src/api/procedures',
       'src/api/schemas',
+
+      // Prisma
+      'prisma',
+
+      // Public assets
+      'public',
+    ];
+  }
+
+  // RSC with Auth has additional directories for auth pages and utils
+  if (template === 'rsc-auth') {
+    return [
+      // App layer (RSC)
+      'app',
+      'app/pages',
+      'app/pages/auth',
+      'app/pages/dashboard',
+      'app/layouts',
+      'app/actions',
+
+      // Source layer
+      'src',
+      'src/api',
+      'src/api/procedures',
+      'src/api/schemas',
+      'src/api/utils',
 
       // Prisma
       'prisma',

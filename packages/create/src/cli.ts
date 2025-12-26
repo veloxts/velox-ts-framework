@@ -62,6 +62,7 @@ Templates:
   auth       ${TEMPLATE_METADATA.auth.description}
   trpc       ${TEMPLATE_METADATA.trpc.description}
   rsc        ${TEMPLATE_METADATA.rsc.description}
+  rsc-auth   ${TEMPLATE_METADATA['rsc-auth'].description}
 
 Databases:
   sqlite     ${DATABASE_METADATA.sqlite.hint}

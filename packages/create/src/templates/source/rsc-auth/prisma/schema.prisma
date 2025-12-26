@@ -1,0 +1,23 @@
+// Prisma Schema for VeloxTS RSC with Auth
+// Database: __DATABASE_PROVIDER__
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "__DATABASE_PROVIDER__"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String?  // Hashed password (nullable for OAuth users)
+  roles     String?  @default("[\"user\"]") // JSON array of roles
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}

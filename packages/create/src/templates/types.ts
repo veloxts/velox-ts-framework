@@ -15,8 +15,9 @@
  * - `auth` - SPA + API with JWT authentication
  * - `trpc` - SPA + API with tRPC integration
  * - `rsc` (alias: `fullstack`) - React Server Components with Vinxi
+ * - `rsc-auth` - RSC with JWT authentication and validated() server actions
  */
-export type TemplateType = 'spa' | 'auth' | 'trpc' | 'rsc';
+export type TemplateType = 'spa' | 'auth' | 'trpc' | 'rsc' | 'rsc-auth';
 
 /**
  * Template aliases for backward compatibility
@@ -172,6 +173,12 @@ export const TEMPLATE_METADATA: Record<TemplateType, TemplateMetadata> = {
     label: 'RSC Full-Stack',
     description: 'React Server Components with Vinxi + embedded Fastify',
     hint: 'Unified server/client with file-based routing and streaming',
+  },
+  'rsc-auth': {
+    type: 'rsc-auth',
+    label: 'RSC + Auth',
+    description: 'RSC with JWT authentication and validated() server actions',
+    hint: 'Full-stack auth with rate limiting, CSRF, and role-based access',
   },
 };
 
