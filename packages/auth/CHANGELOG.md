@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.36
+
+### Patch Changes
+
+- Gap Remediation Plan
+- Updated dependencies
+  - @veloxts/core@0.6.36
+  - @veloxts/router@0.6.36
+
 ## 0.6.35
 
 ### Patch Changes

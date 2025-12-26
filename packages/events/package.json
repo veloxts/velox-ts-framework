@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/events",
-  "version": "0.6.35",
+  "version": "0.6.36",
   "description": "Real-time event broadcasting for VeloxTS framework",
   "type": "module",
   "main": "./dist/index.js",
