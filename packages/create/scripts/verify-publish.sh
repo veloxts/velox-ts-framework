@@ -288,7 +288,7 @@ test_endpoints_auth() {
     return 1
   fi
 
-  # Login to get token
+  # Login to get tokens
   response=$(curl -s -X POST "${base_url}/api/auth/login" \
     -H "Content-Type: application/json" \
     -d '{"email":"test@example.com","password":"SecurePassword123!"}' \
@@ -298,12 +298,36 @@ test_endpoints_auth() {
 
   if [ "$status" = "200" ] || [ "$status" = "201" ]; then
     echo -e "${GREEN}✓${NC} POST /api/auth/login ($status)"
-    # Extract access token
+    # Extract tokens
     access_token=$(echo "$body" | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+    refresh_token=$(echo "$body" | grep -o '"refreshToken":"[^"]*"' | cut -d'"' -f4)
   else
     echo -e "${RED}✗${NC} POST /api/auth/login (expected 200/201, got $status)"
     echo "Response: $body"
     return 1
+  fi
+
+  # Test refresh token endpoint
+  if [ -n "$refresh_token" ]; then
+    response=$(curl -s -X POST "${base_url}/api/auth/refresh" \
+      -H "Content-Type: application/json" \
+      -d "{\"refreshToken\":\"${refresh_token}\"}" \
+      -w "\n%{http_code}" 2>/dev/null)
+    status=$(echo "$response" | tail -1)
+    body=$(echo "$response" | sed '$d')
+
+    if [ "$status" = "200" ] || [ "$status" = "201" ]; then
+      echo -e "${GREEN}✓${NC} POST /api/auth/refresh ($status)"
+      # Update access token with new one
+      new_access_token=$(echo "$body" | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+      if [ -n "$new_access_token" ]; then
+        access_token="$new_access_token"
+      fi
+    else
+      echo -e "${RED}✗${NC} POST /api/auth/refresh (expected 200/201, got $status)"
+      echo "Response: $body"
+      return 1
+    fi
   fi
 
   # Test /api/auth/me with token
