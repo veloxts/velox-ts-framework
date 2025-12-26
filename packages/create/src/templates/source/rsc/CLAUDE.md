@@ -44,8 +44,62 @@ __PROJECT_NAME__/
 
 ### Server Actions
 - Defined in `app/actions/` with `'use server'` directive
-- Type-safe with Zod validation via `createAction()`
+- Type-safe with Zod validation
 - Can be called directly from client components
+
+### Validated Actions (Recommended)
+Use `validated()` for secure server actions with built-in protection:
+```typescript
+// app/actions/users.ts
+'use server';
+import { validated, validatedMutation, validatedQuery } from '@veloxts/web';
+import { z } from 'zod';
+
+// Public query (no auth required)
+export const searchUsers = validatedQuery(
+  z.object({ query: z.string().optional() }),
+  async (input) => {
+    return db.user.findMany({ where: { name: { contains: input.query } } });
+  }
+);
+
+// Protected mutation (requires auth by default)
+export const updateUser = validatedMutation(
+  z.object({ id: z.string(), name: z.string() }),
+  async (input, ctx) => {
+    // ctx.user is typed and available
+    return db.user.update({ where: { id: input.id }, data: input });
+  }
+);
+
+// Custom security options
+export const createUser = validated(
+  CreateUserSchema,
+  async (input) => { /* ... */ },
+  {
+    rateLimit: { maxRequests: 10, windowMs: 60_000 },
+    maxInputSize: 10 * 1024,
+  }
+);
+
+// With role-based authorization
+export const deleteUser = validated(
+  DeleteUserSchema,
+  async (input) => { /* ... */ },
+  {
+    requireAuth: true,
+    requireRoles: ['admin'],
+  }
+);
+```
+
+Security features:
+- **Input validation** - Zod schema validation
+- **Input sanitization** - Prototype pollution prevention
+- **Input size limits** - DoS protection (default 1MB)
+- **Rate limiting** - Sliding window per IP
+- **Authentication** - Optional via `requireAuth: true`
+- **Authorization** - Custom callbacks via `authorize`
 
 ### Procedure Bridge Pattern
 Server actions can bridge to API procedures for code reuse:

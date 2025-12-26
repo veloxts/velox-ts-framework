@@ -102,3 +102,24 @@ export type {
   RegisteredAction,
   TrpcBridgeOptions,
 } from './types.js';
+// Validated server action helper (for "use server" directive)
+export type {
+  InferSchemaType,
+  InferValidatedInput,
+  InferValidatedOutput,
+  RateLimitConfig,
+  ValidatedHandler,
+  ValidatedOptions,
+  ValidatedOptionsAuthenticated,
+  ValidatedOptionsBase,
+  ValidZodSchema,
+} from './validated.js';
+export {
+  AuthenticationError,
+  AuthorizationError,
+  InputSizeError,
+  RateLimitError,
+  validated,
+  validatedMutation,
+  validatedQuery,
+} from './validated.js';
