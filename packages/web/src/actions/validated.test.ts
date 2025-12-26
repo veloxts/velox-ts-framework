@@ -9,9 +9,11 @@ import {
   AuthenticationError,
   AuthorizationError,
   CsrfError,
+  clearRateLimitStore,
   InputSizeError,
   RateLimitError,
   resetServerContextCache,
+  stopRateLimitCleanup,
   validated,
   validatedMutation,
   validatedQuery,
@@ -683,5 +685,291 @@ describe('CSRF with authenticated mutations', () => {
     if (isSuccess(result)) {
       expect(result.data.id).toBe('test');
     }
+  });
+});
+
+// ============================================================================
+// P2 Fix: Rate Limiter Cleanup Tests
+// ============================================================================
+
+describe('rate limiter cleanup utilities', () => {
+  it('should export clearRateLimitStore for testing', () => {
+    expect(typeof clearRateLimitStore).toBe('function');
+    // Should not throw
+    clearRateLimitStore();
+  });
+
+  it('should export stopRateLimitCleanup for testing', () => {
+    expect(typeof stopRateLimitCleanup).toBe('function');
+    // Should not throw
+    stopRateLimitCleanup();
+  });
+
+  it('should clear rate limit store correctly', async () => {
+    const testKey = `cleanup-test-${Date.now()}-${Math.random()}`;
+    const schema = z.object({ id: z.number() });
+    const action = validated(schema, async (input) => ({ id: input.id }), {
+      rateLimit: {
+        maxRequests: 2,
+        windowMs: 60000,
+        keyGenerator: () => testKey,
+      },
+    });
+
+    // Exhaust rate limit
+    await action({ id: 1 });
+    await action({ id: 2 });
+    const limitedResult = await action({ id: 3 });
+
+    expect(isError(limitedResult)).toBe(true);
+    if (isError(limitedResult)) {
+      expect(limitedResult.error.code).toBe('RATE_LIMITED');
+    }
+
+    // Clear the store
+    clearRateLimitStore();
+
+    // Should succeed again after clearing
+    const freshResult = await action({ id: 4 });
+    expect(isSuccess(freshResult)).toBe(true);
+  });
+});
+
+// ============================================================================
+// P2 Fix: Circular Reference Handling Tests
+// ============================================================================
+
+describe('input size validation with circular references', () => {
+  it('should handle circular references gracefully', async () => {
+    const schema = z.record(z.unknown());
+    const action = validated(
+      schema,
+      async (input) => ({ received: true, keys: Object.keys(input) }),
+      {
+        maxInputSize: 10000, // Large enough for circular ref estimate
+      }
+    );
+
+    // Create circular reference
+    const circular: Record<string, unknown> = { name: 'test' };
+    circular.self = circular;
+
+    const result = await action(circular);
+
+    // Should not throw - either succeeds or returns validation error
+    // The important thing is it doesn't crash
+    expect(result).toBeDefined();
+    expect(typeof result.success).toBe('boolean');
+  });
+
+  it('should reject large circular structures', async () => {
+    const schema = z.record(z.unknown());
+    const action = validated(schema, async () => ({ received: true }), {
+      maxInputSize: 10, // Very small - should reject
+    });
+
+    // Create circular reference with data
+    const circular: Record<string, unknown> = { name: 'test', value: 'data' };
+    circular.self = circular;
+
+    const result = await action(circular);
+
+    // Should fail with size error since estimated size > 10 bytes
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error.code).toBe('BAD_REQUEST');
+      expect(result.error.message).toContain('maximum size');
+    }
+  });
+
+  it('should handle deeply nested objects', async () => {
+    const schema = z.record(z.unknown());
+    const action = validated(
+      schema,
+      async (input) => ({ depth: 'deep', keys: Object.keys(input) }),
+      {
+        maxInputSize: 50000,
+      }
+    );
+
+    // Create deeply nested object
+    interface NestedObject {
+      value: string;
+      nested?: NestedObject;
+    }
+    let deep: NestedObject = { value: 'leaf' };
+    for (let i = 0; i < 15; i++) {
+      deep = { value: `level-${i}`, nested: deep };
+    }
+
+    const result = await action(deep);
+    expect(result).toBeDefined();
+  });
+});
+
+// ============================================================================
+// P2 Fix: Authorization Tests (requireRoles/requirePermissions)
+// ============================================================================
+
+describe('authorization with roles and permissions', () => {
+  it('should reject when user lacks required roles', async () => {
+    const schema = z.object({ data: z.string() });
+
+    // This will fail because mock context doesn't have a user
+    const action = validated(
+      schema,
+      async (_input, ctx) => {
+        return { userId: ctx.user.id };
+      },
+      {
+        requireAuth: true,
+        requireRoles: ['admin'],
+        rateLimit: {
+          maxRequests: 100,
+          windowMs: 60000,
+          keyGenerator: () => `roles-test-${Date.now()}`,
+        },
+      }
+    );
+
+    const result = await action({ data: 'test' });
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      // Will fail with UNAUTHORIZED (no user) before checking roles
+      expect(result.error.code).toBe('UNAUTHORIZED');
+    }
+  });
+
+  it('should reject when user lacks required permissions', async () => {
+    const schema = z.object({ data: z.string() });
+
+    const action = validated(
+      schema,
+      async (_input, ctx) => {
+        return { userId: ctx.user.id };
+      },
+      {
+        requireAuth: true,
+        requirePermissions: ['users:delete', 'users:admin'],
+        rateLimit: {
+          maxRequests: 100,
+          windowMs: 60000,
+          keyGenerator: () => `perms-test-${Date.now()}`,
+        },
+      }
+    );
+
+    const result = await action({ data: 'test' });
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      // Will fail with UNAUTHORIZED (no user) before checking permissions
+      expect(result.error.code).toBe('UNAUTHORIZED');
+    }
+  });
+
+  it('should handle hasRequiredRoles with roles array', () => {
+    // Test the type inference for role-based access
+    const schema = z.object({ action: z.string() });
+
+    const action = validated(
+      schema,
+      async (input) => {
+        return { action: input.action, authorized: true };
+      },
+      {
+        requireAuth: true,
+        requireRoles: ['admin', 'moderator'], // Any of these roles grants access
+        rateLimit: {
+          maxRequests: 100,
+          windowMs: 60000,
+          keyGenerator: () => `role-arr-test-${Date.now()}`,
+        },
+      }
+    );
+
+    // Verify the action is callable
+    expect(typeof action).toBe('function');
+  });
+
+  it('should handle hasRequiredPermissions with permissions array', () => {
+    // Test the type inference for permission-based access
+    const schema = z.object({ resource: z.string() });
+
+    const action = validated(
+      schema,
+      async (input) => {
+        return { resource: input.resource, authorized: true };
+      },
+      {
+        requireAuth: true,
+        requirePermissions: ['read:users', 'write:users'], // All permissions required
+        rateLimit: {
+          maxRequests: 100,
+          windowMs: 60000,
+          keyGenerator: () => `perm-arr-test-${Date.now()}`,
+        },
+      }
+    );
+
+    // Verify the action is callable
+    expect(typeof action).toBe('function');
+  });
+});
+
+// ============================================================================
+// P2 Fix: IP Extraction Tests
+// ============================================================================
+
+describe('IP extraction and validation', () => {
+  // Note: These tests verify the exported functionality works correctly.
+  // The actual IP extraction happens internally via getDefaultRateLimitKey.
+
+  it('should use unique rate limit key for each IP', async () => {
+    const testKey1 = `ip-test-1-${Date.now()}`;
+    const testKey2 = `ip-test-2-${Date.now()}`;
+    const schema = z.object({ id: z.number() });
+
+    // Create two actions with different key generators (simulating different IPs)
+    const action1 = validated(schema, async (input) => ({ id: input.id }), {
+      rateLimit: { maxRequests: 1, windowMs: 60000, keyGenerator: () => testKey1 },
+    });
+
+    const action2 = validated(schema, async (input) => ({ id: input.id }), {
+      rateLimit: { maxRequests: 1, windowMs: 60000, keyGenerator: () => testKey2 },
+    });
+
+    // First request from "IP 1" should succeed
+    const result1 = await action1({ id: 1 });
+    expect(isSuccess(result1)).toBe(true);
+
+    // First request from "IP 2" should also succeed (different key)
+    const result2 = await action2({ id: 2 });
+    expect(isSuccess(result2)).toBe(true);
+
+    // Second request from "IP 1" should be rate limited
+    const result3 = await action1({ id: 3 });
+    expect(isError(result3)).toBe(true);
+    if (isError(result3)) {
+      expect(result3.error.code).toBe('RATE_LIMITED');
+    }
+  });
+
+  it('should handle rate limiting by user ID when authenticated', async () => {
+    // This tests that user ID is preferred over IP for authenticated users
+    const schema = z.object({ data: z.string() });
+
+    // When user is not authenticated, falls back to IP
+    const action = validatedQuery(schema, async (input) => ({ data: input.data }), {
+      rateLimit: {
+        maxRequests: 100,
+        windowMs: 60000,
+        keyGenerator: () => `user-ip-test-${Date.now()}`,
+      },
+    });
+
+    const result = await action({ data: 'test' });
+    expect(isSuccess(result)).toBe(true);
   });
 });

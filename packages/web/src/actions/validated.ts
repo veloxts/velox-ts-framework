@@ -153,7 +153,55 @@ const DEFAULT_RATE_LIMITS = {
 };
 
 // Simple in-memory rate limiter (replace with Redis in production)
+// WARNING: For production with multiple server instances, use Redis-backed rate limiting
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+// Cleanup interval reference (for testing cleanup)
+let cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Starts periodic cleanup of expired rate limit entries to prevent memory leaks.
+ * Runs every 60 seconds by default.
+ *
+ * @param intervalMs - Cleanup interval in milliseconds (default: 60000)
+ */
+function startRateLimitCleanup(intervalMs = 60000): void {
+  if (cleanupInterval) return; // Already running
+
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitStore) {
+      if (now > entry.resetAt) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }, intervalMs);
+
+  // Don't prevent Node.js from exiting
+  cleanupInterval.unref();
+}
+
+/**
+ * Stops the rate limit cleanup interval.
+ * Only used for testing purposes.
+ */
+export function stopRateLimitCleanup(): void {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
+}
+
+/**
+ * Clears all rate limit entries.
+ * Only used for testing purposes.
+ */
+export function clearRateLimitStore(): void {
+  rateLimitStore.clear();
+}
+
+// Start cleanup on module load
+startRateLimitCleanup();
 
 // ============================================================================
 // Security Utilities
@@ -161,11 +209,74 @@ const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 /**
  * Validates input size before parsing (DoS prevention)
+ *
+ * Handles circular references and other serialization failures gracefully.
  */
 function validateInputSize(input: unknown, maxSize: number): void {
-  const serialized = JSON.stringify(input);
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(input);
+  } catch {
+    // Handle circular references or other serialization failures
+    // Estimate size using a depth-limited traversal
+    const estimatedSize = estimateObjectSize(input);
+    if (estimatedSize > maxSize) {
+      throw new InputSizeError(`Input payload exceeds maximum size of ${maxSize} bytes`);
+    }
+    return;
+  }
+
   if (serialized.length > maxSize) {
     throw new InputSizeError(`Input payload exceeds maximum size of ${maxSize} bytes`);
+  }
+}
+
+/**
+ * Estimates object size for inputs that can't be serialized (e.g., circular refs)
+ *
+ * Uses a depth-limited traversal with Set-based cycle detection to avoid
+ * infinite loops. Returns a conservative estimate of the serialized size.
+ */
+function estimateObjectSize(obj: unknown, seen = new WeakSet(), depth = 0): number {
+  const MAX_DEPTH = 10;
+
+  if (depth > MAX_DEPTH) {
+    return 100; // Conservative estimate for deep objects
+  }
+
+  if (obj === null) return 4; // "null"
+  if (obj === undefined) return 9; // "undefined"
+
+  switch (typeof obj) {
+    case 'string':
+      return obj.length + 2; // quotes
+    case 'number':
+    case 'boolean':
+      return String(obj).length;
+    case 'object': {
+      // Cycle detection
+      if (seen.has(obj as object)) {
+        return 100; // Conservative estimate for circular ref
+      }
+      seen.add(obj as object);
+
+      if (Array.isArray(obj)) {
+        let size = 2; // []
+        for (const item of obj) {
+          size += estimateObjectSize(item, seen, depth + 1) + 1; // comma
+        }
+        return size;
+      }
+
+      let size = 2; // {}
+      for (const [key, value] of Object.entries(obj)) {
+        size += key.length + 3; // "key":
+        size += estimateObjectSize(value, seen, depth + 1) + 1; // comma
+      }
+      return size;
+    }
+    default:
+      return 10;
   }
 }
 
@@ -226,6 +337,90 @@ function enforceRateLimit(ctx: ActionContext, config: RateLimitConfig): void {
 }
 
 /**
+ * IPv4 regex pattern
+ * Matches standard dotted-decimal notation (e.g., 192.168.1.1)
+ */
+const IPV4_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
+
+/**
+ * IPv6 regex pattern (simplified)
+ * Matches standard and compressed IPv6 notation
+ */
+const IPV6_REGEX = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+
+/**
+ * Validates an IP address format
+ *
+ * Returns the IP if valid, or 'invalid' if the format is not recognized.
+ * This prevents using malformed IP strings as rate limit keys.
+ */
+function validateIpAddress(ip: string | undefined | null): string {
+  if (!ip) return 'unknown';
+
+  const trimmed = ip.trim();
+  if (!trimmed) return 'unknown';
+
+  // Check IPv4
+  if (IPV4_REGEX.test(trimmed)) {
+    // Validate each octet is 0-255
+    const octets = trimmed.split('.');
+    if (octets.every((o) => Number(o) >= 0 && Number(o) <= 255)) {
+      return trimmed;
+    }
+  }
+
+  // Check IPv6
+  if (IPV6_REGEX.test(trimmed) || trimmed === '::1') {
+    return trimmed;
+  }
+
+  // Could be IPv4-mapped IPv6 (::ffff:192.168.1.1)
+  if (trimmed.startsWith('::ffff:')) {
+    const ipv4Part = trimmed.slice(7);
+    if (IPV4_REGEX.test(ipv4Part)) {
+      return ipv4Part; // Normalize to IPv4
+    }
+  }
+
+  return 'invalid';
+}
+
+/**
+ * Extracts client IP address from request headers
+ *
+ * Priority order:
+ * 1. X-Forwarded-For (first IP in chain, set by reverse proxies)
+ * 2. X-Real-IP (set by nginx and some proxies)
+ * 3. 'unknown' if no valid IP found
+ *
+ * All IPs are validated to prevent malformed rate limit keys.
+ */
+function extractClientIp(headers: Headers): string {
+  // Try X-Forwarded-For first (standard for proxies)
+  const forwardedFor = headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    // X-Forwarded-For can be a comma-separated list: client, proxy1, proxy2
+    // The first IP is typically the original client
+    const firstIp = forwardedFor.split(',')[0];
+    const validated = validateIpAddress(firstIp);
+    if (validated !== 'unknown' && validated !== 'invalid') {
+      return validated;
+    }
+  }
+
+  // Try X-Real-IP (used by nginx)
+  const realIp = headers.get('x-real-ip');
+  if (realIp) {
+    const validated = validateIpAddress(realIp);
+    if (validated !== 'unknown' && validated !== 'invalid') {
+      return validated;
+    }
+  }
+
+  return 'unknown';
+}
+
+/**
  * Gets default rate limit key from context
  */
 function getDefaultRateLimitKey(ctx: ActionContext): string {
@@ -233,9 +428,9 @@ function getDefaultRateLimitKey(ctx: ActionContext): string {
   if ('user' in ctx && ctx.user) {
     return `user:${(ctx.user as { id: string }).id}`;
   }
-  // Extract IP from headers (X-Forwarded-For or fallback)
-  const forwardedFor = ctx.headers.get('x-forwarded-for');
-  const ip = forwardedFor?.split(',')[0]?.trim() ?? 'unknown';
+
+  // Extract and validate client IP
+  const ip = extractClientIp(ctx.headers);
   return `ip:${ip}`;
 }
 
