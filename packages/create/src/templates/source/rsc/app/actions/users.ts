@@ -78,25 +78,19 @@ const SearchUsersSchema = z.object({
  * Uses validatedQuery() which allows unauthenticated access by default.
  * Includes input sanitization and validation.
  */
-export const searchUsers = validatedQuery(
-  SearchUsersSchema,
-  async (input) => {
-    const users = await db.user.findMany({
-      where: input.query
-        ? {
-            OR: [
-              { name: { contains: input.query } },
-              { email: { contains: input.query } },
-            ],
-          }
-        : undefined,
-      take: input.limit,
-      orderBy: { createdAt: 'desc' },
-    });
+export const searchUsers = validatedQuery(SearchUsersSchema, async (input) => {
+  const users = await db.user.findMany({
+    where: input.query
+      ? {
+          OR: [{ name: { contains: input.query } }, { email: { contains: input.query } }],
+        }
+      : undefined,
+    take: input.limit,
+    orderBy: { createdAt: 'desc' },
+  });
 
-    return users;
-  }
-);
+  return users;
+});
 
 // ============================================================================
 // Mutations (with security options)
@@ -141,23 +135,20 @@ export const createUser = validated(
  *
  * Note: In a real app, add authorization to verify the user owns this record.
  */
-export const updateUser = validatedMutation(
-  UpdateUserSchema,
-  async (input, ctx) => {
-    // ctx.user is available because validatedMutation requires auth
-    console.log('User updating record:', ctx.user.id);
+export const updateUser = validatedMutation(UpdateUserSchema, async (input, ctx) => {
+  // ctx.user is available because validatedMutation requires auth
+  console.log('User updating record:', ctx.user.id);
 
-    const user = await db.user.update({
-      where: { id: input.id },
-      data: {
-        ...(input.name && { name: input.name.trim() }),
-        ...(input.email && { email: input.email.toLowerCase().trim() }),
-      },
-    });
+  const user = await db.user.update({
+    where: { id: input.id },
+    data: {
+      ...(input.name && { name: input.name.trim() }),
+      ...(input.email && { email: input.email.toLowerCase().trim() }),
+    },
+  });
 
-    return user;
-  }
-);
+  return user;
+});
 
 /**
  * Deletes a user by ID.

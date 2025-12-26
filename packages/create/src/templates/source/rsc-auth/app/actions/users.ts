@@ -81,32 +81,26 @@ const SearchUsersSchema = z.object({
  * Uses validatedQuery() which allows unauthenticated access by default.
  * Only returns public user information (no sensitive fields).
  */
-export const searchUsers = validatedQuery(
-  SearchUsersSchema,
-  async (input) => {
-    const users = await db.user.findMany({
-      where: input.query
-        ? {
-            OR: [
-              { name: { contains: input.query } },
-              { email: { contains: input.query } },
-            ],
-          }
-        : undefined,
-      take: input.limit,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        createdAt: true,
-        // Exclude password, roles, etc.
-      },
-    });
+export const searchUsers = validatedQuery(SearchUsersSchema, async (input) => {
+  const users = await db.user.findMany({
+    where: input.query
+      ? {
+          OR: [{ name: { contains: input.query } }, { email: { contains: input.query } }],
+        }
+      : undefined,
+    take: input.limit,
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      // Exclude password, roles, etc.
+    },
+  });
 
-    return users;
-  }
-);
+  return users;
+});
 
 // ============================================================================
 // Authenticated Actions (require login)

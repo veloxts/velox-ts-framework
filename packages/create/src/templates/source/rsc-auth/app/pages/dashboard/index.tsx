@@ -76,19 +76,11 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        Loading...
-      </div>
-    );
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
   }
 
   if (error) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#c00' }}>
-        {error}
-      </div>
-    );
+    return <div style={{ padding: '2rem', textAlign: 'center', color: '#c00' }}>{error}</div>;
   }
 
   if (!user) {
@@ -100,6 +92,7 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Dashboard</h1>
         <button
+          type="button"
           onClick={handleLogout}
           style={{
             padding: '0.5rem 1rem',
@@ -114,13 +107,17 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      <div style={{ marginTop: '2rem', padding: '1rem', background: '#f5f5f5', borderRadius: '8px' }}>
+      <div
+        style={{ marginTop: '2rem', padding: '1rem', background: '#f5f5f5', borderRadius: '8px' }}
+      >
         <h2>Welcome, {user.name || 'User'}!</h2>
         <p>Email: {user.email}</p>
         <p>Roles: {user.roles.join(', ')}</p>
       </div>
 
-      <div style={{ marginTop: '2rem', padding: '1rem', background: '#e3f2fd', borderRadius: '8px' }}>
+      <div
+        style={{ marginTop: '2rem', padding: '1rem', background: '#e3f2fd', borderRadius: '8px' }}
+      >
         <h3>Your Actions</h3>
         <p>As an authenticated user, you can:</p>
         <ul style={{ lineHeight: '2' }}>
@@ -128,15 +125,21 @@ export default function DashboardPage() {
           <li>Update your settings</li>
           {user.roles.includes('admin') && (
             <>
-              <li><strong>Admin:</strong> Manage users</li>
-              <li><strong>Admin:</strong> View all data</li>
+              <li>
+                <strong>Admin:</strong> Manage users
+              </li>
+              <li>
+                <strong>Admin:</strong> View all data
+              </li>
             </>
           )}
         </ul>
       </div>
 
       <div style={{ marginTop: '2rem' }}>
-        <a href="/" style={{ color: '#007bff' }}>← Back to Home</a>
+        <a href="/" style={{ color: '#007bff' }}>
+          ← Back to Home
+        </a>
       </div>
     </div>
   );

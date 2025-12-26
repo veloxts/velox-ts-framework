@@ -6,10 +6,10 @@
  * Includes JWT authentication via @veloxts/auth.
  */
 
+import { authPlugin } from '@veloxts/auth';
 import { veloxApp } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
 import { rest } from '@veloxts/router';
-import { authPlugin } from '@veloxts/auth';
 import { createH3ApiHandler } from '@veloxts/web';
 
 import { db } from './database.js';

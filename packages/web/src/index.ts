@@ -52,10 +52,10 @@ export type {
 // New action() helper - recommended API
 // Server Actions (legacy API - still supported)
 export {
-  action,
   // Validated server action helpers (recommended for "use server")
   AuthenticationError,
   AuthorizationError,
+  action,
   // Action creation
   createAction,
   // Context utilities

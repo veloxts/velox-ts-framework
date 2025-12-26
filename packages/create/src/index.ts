@@ -572,9 +572,7 @@ function printSuccessMessage(config: ProjectConfig): void {
   // RSC-Auth template specific message
   if (config.template === 'rsc-auth') {
     console.log('');
-    console.log(
-      pc.yellow('  Note: Set JWT_SECRET and JWT_REFRESH_SECRET in .env for production')
-    );
+    console.log(pc.yellow('  Note: Set JWT_SECRET and JWT_REFRESH_SECRET in .env for production'));
   }
 
   console.log('');

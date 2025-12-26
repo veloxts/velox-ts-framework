@@ -16,32 +16,60 @@ export default function HomePage() {
       <section className="quick-links">
         <h2>Quick Links</h2>
         <ul>
-          <li><a href="/auth/login">Login</a></li>
-          <li><a href="/auth/register">Register</a></li>
-          <li><a href="/dashboard">Dashboard</a> (requires login)</li>
-          <li><a href="/users">Users</a></li>
+          <li>
+            <a href="/auth/login">Login</a>
+          </li>
+          <li>
+            <a href="/auth/register">Register</a>
+          </li>
+          <li>
+            <a href="/dashboard">Dashboard</a> (requires login)
+          </li>
+          <li>
+            <a href="/users">Users</a>
+          </li>
         </ul>
       </section>
 
       <section className="api-endpoints">
         <h2>API Endpoints</h2>
         <ul>
-          <li><code>GET /api/health</code> - Health check</li>
-          <li><code>POST /api/auth/register</code> - Create account</li>
-          <li><code>POST /api/auth/login</code> - Get tokens</li>
-          <li><code>GET /api/auth/me</code> - Current user (protected)</li>
-          <li><code>GET /api/users</code> - List users</li>
+          <li>
+            <code>GET /api/health</code> - Health check
+          </li>
+          <li>
+            <code>POST /api/auth/register</code> - Create account
+          </li>
+          <li>
+            <code>POST /api/auth/login</code> - Get tokens
+          </li>
+          <li>
+            <code>GET /api/auth/me</code> - Current user (protected)
+          </li>
+          <li>
+            <code>GET /api/users</code> - List users
+          </li>
         </ul>
       </section>
 
       <section className="features">
         <h2>Features</h2>
         <ul>
-          <li><strong>JWT Authentication</strong> - Access and refresh tokens</li>
-          <li><strong>Rate Limiting</strong> - Built-in protection for auth endpoints</li>
-          <li><strong>Password Validation</strong> - Strength requirements enforced</li>
-          <li><strong>Role-Based Access</strong> - Authorization via guards</li>
-          <li><strong>Server Actions</strong> - Type-safe with validated() helper</li>
+          <li>
+            <strong>JWT Authentication</strong> - Access and refresh tokens
+          </li>
+          <li>
+            <strong>Rate Limiting</strong> - Built-in protection for auth endpoints
+          </li>
+          <li>
+            <strong>Password Validation</strong> - Strength requirements enforced
+          </li>
+          <li>
+            <strong>Role-Based Access</strong> - Authorization via guards
+          </li>
+          <li>
+            <strong>Server Actions</strong> - Type-safe with validated() helper
+          </li>
         </ul>
       </section>
 

@@ -52,13 +52,23 @@ export default function RegisterPage() {
 
       <form onSubmit={handleSubmit} style={{ marginTop: '1rem' }}>
         {error && (
-          <div style={{ padding: '0.5rem', background: '#fee', color: '#c00', borderRadius: '4px', marginBottom: '1rem' }}>
+          <div
+            style={{
+              padding: '0.5rem',
+              background: '#fee',
+              color: '#c00',
+              borderRadius: '4px',
+              marginBottom: '1rem',
+            }}
+          >
             {error}
           </div>
         )}
 
         <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="name" style={{ display: 'block', marginBottom: '0.25rem' }}>Name</label>
+          <label htmlFor="name" style={{ display: 'block', marginBottom: '0.25rem' }}>
+            Name
+          </label>
           <input
             id="name"
             type="text"
@@ -66,24 +76,38 @@ export default function RegisterPage() {
             onChange={(e) => setName(e.target.value)}
             required
             minLength={2}
-            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+            }}
           />
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '0.25rem' }}>Email</label>
+          <label htmlFor="email" style={{ display: 'block', marginBottom: '0.25rem' }}>
+            Email
+          </label>
           <input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+            }}
           />
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '0.25rem' }}>Password</label>
+          <label htmlFor="password" style={{ display: 'block', marginBottom: '0.25rem' }}>
+            Password
+          </label>
           <input
             id="password"
             type="password"
@@ -91,7 +115,12 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={12}
-            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+            }}
           />
           <small style={{ color: '#666' }}>
             At least 12 characters with uppercase, lowercase, and number

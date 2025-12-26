@@ -5,8 +5,8 @@
  */
 
 import { generateAuthTemplate } from './auth.js';
-import { generateRscAuthTemplate } from './rsc-auth.js';
 import { generateRscTemplate } from './rsc.js';
+import { generateRscAuthTemplate } from './rsc-auth.js';
 import { VELOXTS_VERSION } from './shared.js';
 import { generateSpaTemplate } from './spa.js';
 import { generateTrpcTemplate } from './trpc.js';
