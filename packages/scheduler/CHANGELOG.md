@@ -1,5 +1,13 @@
 # @veloxts/scheduler
 
+## 0.6.37
+
+### Patch Changes
+
+- feat(web): add validated() helper for secure server actions & add rsc-auth template with validated()
+- Updated dependencies
+  - @veloxts/core@0.6.37
+
 ## 0.6.36
 
 ### Patch Changes

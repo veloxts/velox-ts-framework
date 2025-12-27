@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.37
+
+### Patch Changes
+
+- feat(web): add validated() helper for secure server actions & add rsc-auth template with validated()
+- Updated dependencies
+  - @veloxts/cli@0.6.37
+  - @veloxts/router@0.6.37
+  - @veloxts/validation@0.6.37
+
 ## 0.6.36
 
 ### Patch Changes

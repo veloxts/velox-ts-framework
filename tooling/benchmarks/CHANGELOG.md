@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.37
+
+### Patch Changes
+
+- feat(web): add validated() helper for secure server actions & add rsc-auth template with validated()
+
 ## 0.6.36
 
 ### Patch Changes
