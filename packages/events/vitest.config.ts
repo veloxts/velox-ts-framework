@@ -21,7 +21,7 @@ export default defineConfig({
       thresholds: {
         lines: 75,
         functions: 75,
-        branches: 55,  // Lower threshold due to driver complexity with Redis pub/sub
+        branches: 55, // Lower threshold due to driver complexity with Redis pub/sub
         statements: 75,
       },
     },
