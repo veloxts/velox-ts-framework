@@ -325,7 +325,7 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
         // Validate arguments with Zod
         const parsed = GenerateArgsSchema.safeParse(args);
         if (!parsed.success) {
-          const errors = parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+          const errors = parsed.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
           return {
             content: [
               {
@@ -360,7 +360,7 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
         // Validate arguments with Zod
         const parsed = MigrateArgsSchema.safeParse(args);
         if (!parsed.success) {
-          const errors = parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+          const errors = parsed.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
           return {
             content: [
               {
