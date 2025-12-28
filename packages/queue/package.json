@@ -22,6 +22,7 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "biome lint src",
     "lint:fix": "biome lint --write src"
   },
@@ -37,6 +38,7 @@
     "@biomejs/biome": "2.0.0",
     "@types/node": "22.15.29",
     "@veloxts/testing": "workspace:*",
+    "@vitest/coverage-v8": "4.0.16",
     "fastify": "5.6.2",
     "typescript": "5.8.3",
     "vitest": "4.0.16"

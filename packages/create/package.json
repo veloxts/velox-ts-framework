@@ -30,6 +30,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "smoke-test": "./scripts/smoke-test.sh",
     "verify-publish": "./scripts/verify-publish.sh"
   },
@@ -40,8 +41,9 @@
   },
   "devDependencies": {
     "@types/node": "25.0.3",
+    "@vitest/coverage-v8": "4.0.16",
     "typescript": "5.9.3",
-    "vitest": "4.0.15"
+    "vitest": "4.0.16"
   },
   "keywords": [
     "velox",

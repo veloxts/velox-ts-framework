@@ -29,7 +29,8 @@
     "build": "tsc",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@veloxts/core": "workspace:*",
@@ -51,6 +52,7 @@
     "@types/node": "22.15.29",
     "@types/ws": "8.18.1",
     "@veloxts/testing": "workspace:*",
+    "@vitest/coverage-v8": "4.0.16",
     "fastify": "5.6.2",
     "ioredis": "5.6.1",
     "typescript": "5.8.3",

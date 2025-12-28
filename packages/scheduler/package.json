@@ -21,7 +21,8 @@
     "build": "tsc",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@veloxts/core": "workspace:*",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@types/node": "22.15.29",
+    "@vitest/coverage-v8": "4.0.16",
     "fastify": "5.6.2",
     "typescript": "5.8.3",
     "vitest": "4.0.16"

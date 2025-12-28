@@ -42,7 +42,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage --reporter=json"
   },
   "dependencies": {
     "@vinxi/server-functions": "0.5.1",
