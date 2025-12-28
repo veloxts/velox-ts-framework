@@ -414,8 +414,8 @@ test_combination() {
   local missing_files=false
 
   # Check based on template type
-  if [ "$template" = "rsc" ]; then
-    # RSC is single-package, not monorepo
+  if [ "$template" = "rsc" ] || [ "$template" = "rsc-auth" ]; then
+    # RSC templates are single-package, not monorepo
     [ ! -f "package.json" ] && echo -e "${RED}✗ Missing: package.json${NC}" && missing_files=true
     [ ! -f "prisma.config.ts" ] && echo -e "${RED}✗ Missing: prisma.config.ts${NC}" && missing_files=true
     [ ! -f "prisma/schema.prisma" ] && echo -e "${RED}✗ Missing: prisma/schema.prisma${NC}" && missing_files=true
@@ -450,7 +450,7 @@ test_combination() {
   if [ "$database" = "sqlite" ]; then
     echo ""
     echo "=== Rebuilding native modules ==="
-    if [ "$template" = "rsc" ]; then
+    if [ "$template" = "rsc" ] || [ "$template" = "rsc-auth" ]; then
       npm rebuild better-sqlite3 2>&1 | tail -3 || true
     else
       npm rebuild better-sqlite3 -w api 2>&1 | tail -3 || true
@@ -458,8 +458,8 @@ test_combination() {
     echo -e "${GREEN}✓${NC} Native modules rebuilt"
   fi
 
-  # Configure auth template with proper JWT secrets
-  if [ "$template" = "auth" ]; then
+  # Configure auth templates with proper JWT secrets
+  if [ "$template" = "auth" ] || [ "$template" = "rsc-auth" ]; then
     echo ""
     echo "=== Configuring auth secrets ==="
     # Generate 64+ character secrets for JWT (required by @veloxts/auth)
@@ -467,7 +467,7 @@ test_combination() {
     local jwt_refresh_secret="test-jwt-refresh-secret-that-is-at-least-64-characters-long-for-security"
 
     # Append to existing .env or create new one
-    if [ "$template" = "rsc" ]; then
+    if [ "$template" = "rsc-auth" ]; then
       echo "JWT_SECRET=${jwt_secret}" >> .env
       echo "JWT_REFRESH_SECRET=${jwt_refresh_secret}" >> .env
     else
@@ -490,8 +490,8 @@ test_combination() {
   # Build
   echo ""
   echo "=== Building project ==="
-  if [ "$template" = "rsc" ]; then
-    # RSC uses vinxi build
+  if [ "$template" = "rsc" ] || [ "$template" = "rsc-auth" ]; then
+    # RSC templates use vinxi build
     if ! npm run build 2>&1 | tail -10; then
       echo -e "${RED}✗ Failed to build${NC}"
       ((FAILED++))
@@ -522,8 +522,8 @@ test_combination() {
     echo ""
     echo "=== Starting server ==="
 
-    if [ "$template" = "rsc" ]; then
-      # RSC uses vinxi dev (skip runtime test for now, build is enough)
+    if [ "$template" = "rsc" ] || [ "$template" = "rsc-auth" ]; then
+      # RSC templates use vinxi dev (skip runtime test for now, build is enough)
       echo -e "${YELLOW}⚠${NC} RSC runtime test skipped (requires vinxi)"
       ((PASSED++))
       return 0
@@ -577,8 +577,15 @@ test_combination() {
 
       if [ "$template" = "rsc" ]; then
         echo "DATABASE_URL=postgresql://user:password@localhost:${PG_PORT}/${db_name}" > .env
+      elif [ "$template" = "rsc-auth" ]; then
+        # rsc-auth template needs DATABASE_URL + JWT secrets (single-package)
+        cat > .env << EOF
+DATABASE_URL=postgresql://user:password@localhost:${PG_PORT}/${db_name}
+JWT_SECRET=${jwt_secret}
+JWT_REFRESH_SECRET=${jwt_refresh_secret}
+EOF
       elif [ "$template" = "auth" ]; then
-        # Auth template needs DATABASE_URL + JWT secrets
+        # Auth template needs DATABASE_URL + JWT secrets (monorepo)
         cat > apps/api/.env << EOF
 DATABASE_URL=postgresql://user:password@localhost:${PG_PORT}/${db_name}
 JWT_SECRET=${jwt_secret}
@@ -592,8 +599,8 @@ EOF
       if npm run db:push 2>&1 | tail -3; then
         echo -e "${GREEN}✓${NC} Database schema pushed"
 
-        # Start server and test (skip for RSC)
-        if [ "$template" != "rsc" ]; then
+        # Start server and test (skip for RSC templates)
+        if [ "$template" != "rsc" ] && [ "$template" != "rsc-auth" ]; then
           echo ""
           echo "=== Starting server ==="
 
