@@ -6,7 +6,7 @@
  * We hydrate the existing DOM to attach event handlers.
  */
 
-import { hydrateRoot } from '@veloxts/web';
+import { hydrateRoot } from 'react-dom/client';
 
 const rootElement = document.getElementById('root');
 
