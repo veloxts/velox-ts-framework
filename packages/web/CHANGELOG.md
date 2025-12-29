@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.39
+
+### Patch Changes
+
+- fix RSC client hydration with split layout architecture
+- Updated dependencies
+  - @veloxts/auth@0.6.39
+  - @veloxts/client@0.6.39
+  - @veloxts/core@0.6.39
+  - @veloxts/router@0.6.39
+
 ## 0.6.38
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.39
+
+### Patch Changes
+
+- fix RSC client hydration with split layout architecture
+
 ## 0.6.38
 
 ### Patch Changes
