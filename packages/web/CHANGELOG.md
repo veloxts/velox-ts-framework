@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.38
+
+### Patch Changes
+
+- fix client hydration for RSC templates
+- Updated dependencies
+  - @veloxts/auth@0.6.38
+  - @veloxts/client@0.6.38
+  - @veloxts/core@0.6.38
+  - @veloxts/router@0.6.38
+
 ## 0.6.37
 
 ### Patch Changes

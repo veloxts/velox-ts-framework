@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.38
+
+### Patch Changes
+
+- fix client hydration for RSC templates
+
 ## 0.6.37
 
 ### Patch Changes
