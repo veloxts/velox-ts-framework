@@ -91,6 +91,10 @@ function generateMinimalLayout(): string {
   return compileTemplate('rsc-auth/app/layouts/minimal.tsx', RSC_CONFIG);
 }
 
+function generateMinimalContentLayout(): string {
+  return compileTemplate('rsc-auth/app/layouts/minimal-content.tsx', RSC_CONFIG);
+}
+
 function generateDashboardLayout(): string {
   return compileTemplate('rsc-auth/app/layouts/dashboard.tsx', RSC_CONFIG);
 }
@@ -192,6 +196,7 @@ export function generateRscAuthTemplate(config: TemplateConfig): TemplateFile[] 
     { path: 'app/layouts/root.tsx', content: generateRootLayout() },
     { path: 'app/layouts/marketing.tsx', content: generateMarketingLayout() },
     { path: 'app/layouts/minimal.tsx', content: generateMinimalLayout() },
+    { path: 'app/layouts/minimal-content.tsx', content: generateMinimalContentLayout() },
     { path: 'app/layouts/dashboard.tsx', content: generateDashboardLayout() },
 
     // App layer - Actions
