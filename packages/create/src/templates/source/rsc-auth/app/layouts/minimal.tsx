@@ -19,11 +19,29 @@ export default function MinimalLayout({ children }: MinimalLayoutProps) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>VeloxTS</title>
-        <link rel="stylesheet" href="/_build/styles.css" />
+        <style>{`
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: #1a1a2e;
+            background: #f8f9fa;
+          }
+          .minimal-layout {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+        `}</style>
       </head>
       <body className="minimal-layout">
-        {children}
-        <script src="/_build/entry.client.js" type="module" />
+        <div id="root">{children}</div>
+        <script src="/_build/src/entry.client.tsx" type="module" />
       </body>
     </html>
   );

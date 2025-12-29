@@ -112,9 +112,9 @@ const routes: RouteDefinition[] = [
   defineRoute('/', HomePage, [RootLayout, MarketingLayout]),
   defineRoute('/index', HomePage, [RootLayout, MarketingLayout]),
 
-  // Auth pages (minimal layout)
-  defineRoute('/auth/login', LoginPage, [RootLayout, MinimalLayout]),
-  defineRoute('/auth/register', RegisterPage, [RootLayout, MinimalLayout]),
+  // Auth pages (minimal layout - replaces root)
+  defineRoute('/auth/login', LoginPage, [MinimalLayout]),
+  defineRoute('/auth/register', RegisterPage, [MinimalLayout]),
 
   // Protected pages (dashboard layout)
   defineRoute('/dashboard', DashboardPage, [RootLayout, DashboardLayout]),

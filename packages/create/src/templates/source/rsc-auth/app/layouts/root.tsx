@@ -234,7 +234,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
           <footer className="footer">Built with VeloxTS &bull; React Server Components</footer>
         </div>
-        <script src="/_build/entry.client.js" type="module" />
+        <script src="/_build/src/entry.client.tsx" type="module" />
       </body>
     </html>
   );

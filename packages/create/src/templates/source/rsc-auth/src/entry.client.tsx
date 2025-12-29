@@ -1,28 +1,47 @@
 /**
  * Client Entry Point
  *
- * Hydrates the React application on the client side.
- * For SSR apps, the server streams the component tree as HTML.
- * We hydrate the existing DOM to attach event handlers.
+ * Hydrates React client components on the client side.
+ * Only pages marked with 'use client' need hydration.
+ * Server-only components remain static HTML.
  */
 
 import { hydrateRoot } from 'react-dom/client';
+import { StrictMode } from 'react';
+
+// Import client pages (only pages with 'use client' directive)
+import LoginPage from '../app/pages/auth/login.tsx';
+import RegisterPage from '../app/pages/auth/register.tsx';
+
+// Route mapping for client pages
+const clientRoutes: Record<string, React.ComponentType> = {
+  '/auth/login': LoginPage,
+  '/auth/register': RegisterPage,
+};
 
 const rootElement = document.getElementById('root');
+const pathname = window.location.pathname;
 
-if (rootElement?.firstElementChild) {
-  // Hydrate the server-rendered React tree
-  // This attaches event handlers and makes the app interactive
-  hydrateRoot(rootElement, rootElement.firstElementChild as unknown as React.ReactNode, {
-    onRecoverableError: (error: unknown) => {
-      // Log hydration mismatches in development
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('[VeloxTS] Hydration warning:', error);
-      }
-    },
-  });
-} else {
-  console.error(
-    '[VeloxTS] Root element or content not found. Ensure #root exists with server-rendered content.'
+// Only hydrate if this is a client page
+const PageComponent = clientRoutes[pathname];
+
+if (rootElement && PageComponent) {
+  // Hydrate the client component
+  hydrateRoot(
+    rootElement,
+    <StrictMode>
+      <PageComponent />
+    </StrictMode>,
+    {
+      onRecoverableError: (error: unknown) => {
+        // Log hydration mismatches in development
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[VeloxTS] Hydration warning:', error);
+        }
+      },
+    }
   );
+} else if (!PageComponent) {
+  // Server-only page, no hydration needed
+  console.debug('[VeloxTS] Server-rendered page, no client hydration needed');
 }
