@@ -10,7 +10,7 @@ import { authPlugin } from '@veloxts/auth';
 import { veloxApp } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
 import { rest } from '@veloxts/router';
-import { createH3ApiHandler } from '@veloxts/web/server';
+import { createH3ApiHandler } from '@veloxts/web/adapters';
 
 import { db } from './database.js';
 import { authProcedures } from './procedures/auth.js';

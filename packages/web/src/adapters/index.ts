@@ -7,7 +7,7 @@
  */
 
 // Fastify adapter for embedding Fastify in Vinxi
-export { createApiHandler, isFastifyInstance } from './fastify-adapter.js';
+export { createApiHandler, createH3ApiHandler, isFastifyInstance } from './fastify-adapter.js';
 // H3/Vinxi adapter for RSC server actions
 export {
   type AuthenticatedH3ActionContext,
