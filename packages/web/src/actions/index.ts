@@ -17,6 +17,15 @@ export type {
 } from './action.js';
 // New action() helper - recommended API
 export { action } from './action.js';
+// Auth bridge - authentication-specific action helpers
+export type {
+  AuthActionOptions,
+  AuthCookieConfig,
+  H3ActionContextWithRefreshToken,
+  LoginResponse,
+  TokenResponse,
+} from './auth-bridge.js';
+export { authAction, isTokenResponse } from './auth-bridge.js';
 export type {
   ExtractProcedureInput,
   ExtractProcedureOutput,
@@ -82,15 +91,6 @@ export {
   type InferProcedureInputType,
   type InferProcedureOutputType,
 } from './procedure-bridge.js';
-// Auth bridge - authentication-specific action helpers
-export type {
-  AuthActionOptions,
-  AuthCookieConfig,
-  H3ActionContextWithRefreshToken,
-  LoginResponse,
-  TokenResponse,
-} from './auth-bridge.js';
-export { authAction, isTokenResponse } from './auth-bridge.js';
 // Types
 export type {
   ActionBuilder,

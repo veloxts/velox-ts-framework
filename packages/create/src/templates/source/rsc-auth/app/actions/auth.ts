@@ -45,14 +45,11 @@ import { authProcedures } from '@/api/procedures/auth';
  *
  * Rate limited via the procedure's middleware (5 attempts per 15 minutes).
  */
-export const login = authAction.fromTokenProcedure(
-  authProcedures.procedures.createSession,
-  {
-    parseFormData: true,
-    contextExtensions: { db },
-    skipGuards: true, // Login has no guards, only rate limit middleware
-  }
-);
+export const login = authAction.fromTokenProcedure(authProcedures.procedures.createSession, {
+  parseFormData: true,
+  contextExtensions: { db },
+  skipGuards: true, // Login has no guards, only rate limit middleware
+});
 
 /**
  * Register action - creates new account, stores tokens in httpOnly cookies
@@ -64,14 +61,11 @@ export const login = authAction.fromTokenProcedure(
  *
  * Rate limited via the procedure's middleware (3 attempts per hour).
  */
-export const register = authAction.fromTokenProcedure(
-  authProcedures.procedures.createAccount,
-  {
-    parseFormData: true,
-    contextExtensions: { db },
-    skipGuards: true, // Register has no guards, only rate limit middleware
-  }
-);
+export const register = authAction.fromTokenProcedure(authProcedures.procedures.createAccount, {
+  parseFormData: true,
+  contextExtensions: { db },
+  skipGuards: true, // Register has no guards, only rate limit middleware
+});
 
 /**
  * Logout action - clears auth cookies
@@ -83,13 +77,10 @@ export const register = authAction.fromTokenProcedure(
  * For production apps needing token revocation, call the API endpoint directly
  * from the client or implement a custom logout procedure without guards.
  */
-export const logout = authAction.fromLogoutProcedure(
-  authProcedures.procedures.deleteSession,
-  {
-    contextExtensions: { db },
-    skipGuards: true, // Skip auth guard - we'll clear cookies regardless
-  }
-);
+export const logout = authAction.fromLogoutProcedure(authProcedures.procedures.deleteSession, {
+  contextExtensions: { db },
+  skipGuards: true, // Skip auth guard - we'll clear cookies regardless
+});
 
 // ============================================================================
 // Standalone Actions (No Procedure Required)

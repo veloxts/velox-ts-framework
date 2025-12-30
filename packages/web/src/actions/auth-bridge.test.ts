@@ -10,7 +10,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { authAction, isTokenResponse, type LoginResponse, type TokenResponse } from './auth-bridge.js';
+import {
+  authAction,
+  isTokenResponse,
+  type LoginResponse,
+  type TokenResponse,
+} from './auth-bridge.js';
 
 describe('isTokenResponse type guard', () => {
   it('should return true for valid TokenResponse', () => {
@@ -45,27 +50,33 @@ describe('isTokenResponse type guard', () => {
   it('should return false for partial TokenResponse', () => {
     expect(isTokenResponse({ accessToken: 'token' })).toBe(false);
     expect(isTokenResponse({ accessToken: 'token', refreshToken: 'refresh' })).toBe(false);
-    expect(isTokenResponse({
-      accessToken: 'token',
-      refreshToken: 'refresh',
-      expiresIn: 900,
-    })).toBe(false);
+    expect(
+      isTokenResponse({
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        expiresIn: 900,
+      })
+    ).toBe(false);
   });
 
   it('should return false for wrong types', () => {
-    expect(isTokenResponse({
-      accessToken: 123, // should be string
-      refreshToken: 'refresh',
-      expiresIn: 900,
-      tokenType: 'Bearer',
-    })).toBe(false);
+    expect(
+      isTokenResponse({
+        accessToken: 123, // should be string
+        refreshToken: 'refresh',
+        expiresIn: 900,
+        tokenType: 'Bearer',
+      })
+    ).toBe(false);
 
-    expect(isTokenResponse({
-      accessToken: 'token',
-      refreshToken: 'refresh',
-      expiresIn: '900', // should be number
-      tokenType: 'Bearer',
-    })).toBe(false);
+    expect(
+      isTokenResponse({
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        expiresIn: '900', // should be number
+        tokenType: 'Bearer',
+      })
+    ).toBe(false);
   });
 
   it('should narrow type correctly when used as guard', () => {
