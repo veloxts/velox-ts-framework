@@ -8,9 +8,24 @@
  */
 
 import { createApp } from 'vinxi';
+import { config as viteConfig } from 'vinxi/plugins/config';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 import type { ResolvedVeloxWebConfig, VeloxWebConfig, VinxiApp, VinxiRouter } from '../types.js';
+
+/**
+ * Native Node.js modules that should be excluded from Vite's dependency optimization.
+ * These modules contain platform-specific binary code (.node files) that cannot be
+ * processed by esbuild and should never be bundled for the browser.
+ */
+const NATIVE_MODULES_TO_EXCLUDE = [
+  'fsevents', // macOS file system events (used by chokidar)
+  'esbuild', // Native build tool binaries
+  'lightningcss', // Native CSS processing
+  'sharp', // Image processing
+  'better-sqlite3', // SQLite native bindings
+  '@prisma/client', // Prisma native query engine
+];
 import { getEnvConfig, resolveConfig, validateConfig } from './config.js';
 
 /**
@@ -319,8 +334,17 @@ function createClientRouter(config: ResolvedVeloxWebConfig, entryPath: string): 
     handler: entryPath,
     target: 'browser',
     base: config.buildBase,
-    // Enable tsconfig path aliases (e.g., @/* → ./src/*)
-    plugins: () => [tsconfigPaths()],
+    plugins: () => [
+      // Enable tsconfig path aliases (e.g., @/* → ./src/*)
+      tsconfigPaths(),
+      // Exclude native Node.js modules from dependency optimization.
+      // These contain .node binary files that esbuild cannot process.
+      viteConfig('velox-native-exclusions', {
+        optimizeDeps: {
+          exclude: NATIVE_MODULES_TO_EXCLUDE,
+        },
+      }),
+    ],
   };
 }
 
