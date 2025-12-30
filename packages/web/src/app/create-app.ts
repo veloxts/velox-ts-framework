@@ -8,6 +8,7 @@
  */
 
 import { createApp } from 'vinxi';
+import { serverFunctions } from '@vinxi/server-functions/plugin';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 import type { ResolvedVeloxWebConfig, VeloxWebConfig, VinxiApp, VinxiRouter } from '../types.js';
@@ -266,7 +267,13 @@ export function defineVeloxApp(options: DefineVeloxAppOptions = {}): VinxiApp {
 }
 
 /**
- * Creates the three routers for the Vinxi application
+ * Creates the four routers for the Vinxi application
+ *
+ * Router architecture:
+ * 1. API - Fastify for /api/* and /trpc/*
+ * 2. Client - Static assets and client bundle
+ * 3. SSR - Server-side rendering for pages
+ * 4. Server Functions - Handles 'use server' directives (RPC for server actions)
  */
 function createRouters(
   config: ResolvedVeloxWebConfig,
@@ -285,6 +292,9 @@ function createRouters(
 
     // Router 3: SSR/RSC handler
     createSsrRouter(config, handlers.serverEntry),
+
+    // Router 4: Server Functions (handles 'use server' directives)
+    createServerFunctionsRouter(),
   ];
 }
 
@@ -312,13 +322,16 @@ function createApiRouter(config: ResolvedVeloxWebConfig, handlerPath: string): V
  * This router serves the client-side JavaScript bundle
  * and other static assets.
  *
+ * CRITICAL: Includes serverFunctions.client() plugin to:
+ * - Transform 'use server' directives into RPC calls
+ * - Prevent server-only code from being bundled
+ * - Replace server action imports with client stubs
+ *
  * Note: Server/client separation is enforced via:
- * - `@veloxts/web/server` - Server-only exports (uses server-only package)
+ * - `@veloxts/web/server` - Server-only exports (uses browser export condition)
  * - `@veloxts/web/client` - Browser-safe hooks and utilities
  * - `@veloxts/web/types` - Isomorphic type definitions
- *
- * Server actions should import from `@veloxts/web/server` to avoid
- * pulling server dependencies into client bundle analysis.
+ * - `'use server'` directive - Marks server-only files
  */
 function createClientRouter(config: ResolvedVeloxWebConfig, entryPath: string): VinxiRouter {
   return {
@@ -328,6 +341,8 @@ function createClientRouter(config: ResolvedVeloxWebConfig, entryPath: string): 
     target: 'browser',
     base: config.buildBase,
     plugins: () => [
+      // CRITICAL: Must come first - transforms 'use server' directives
+      serverFunctions.client(),
       // Enable tsconfig path aliases (e.g., @/* → ./src/*)
       tsconfigPaths(),
     ],
@@ -339,6 +354,9 @@ function createClientRouter(config: ResolvedVeloxWebConfig, entryPath: string): 
  *
  * This router handles all other routes by rendering
  * React Server Components.
+ *
+ * IMPORTANT: Includes serverFunctions.client() to support server actions
+ * called from Server Components during SSR.
  */
 function createSsrRouter(_config: ResolvedVeloxWebConfig, entryPath: string): VinxiRouter {
   return {
@@ -347,9 +365,36 @@ function createSsrRouter(_config: ResolvedVeloxWebConfig, entryPath: string): Vi
     handler: entryPath,
     target: 'server',
     // No base = handles all routes not matched by other routers
-    // Enable tsconfig path aliases (e.g., @/* → ./src/*, @/app/* → ./app/*)
-    plugins: () => [tsconfigPaths()],
+    plugins: () => [
+      // Server functions support (for server actions in RSC)
+      serverFunctions.client(),
+      // Enable tsconfig path aliases (e.g., @/* → ./src/*, @/app/* → ./app/*)
+      tsconfigPaths(),
+    ],
   };
+}
+
+/**
+ * Creates the Server Functions router
+ *
+ * This dedicated router handles RPC calls to server actions
+ * (files/functions with 'use server' directive).
+ *
+ * The serverFunctions.router() creates a special HTTP router that:
+ * - Receives serialized function calls from the client
+ * - Executes the actual server-side function
+ * - Returns serialized results
+ *
+ * This is the bridge that makes 'use server' work - it's what prevents
+ * server action code from being bundled into the client.
+ */
+function createServerFunctionsRouter(): VinxiRouter {
+  return serverFunctions.router({
+    plugins: () => [
+      // Enable tsconfig path aliases for server function files
+      tsconfigPaths(),
+    ],
+  }) as VinxiRouter;
 }
 
 /**

@@ -110,3 +110,54 @@ declare module 'vinxi/plugins/config' {
    */
   export function config(name: string, options: ViteConfigOptions): Plugin;
 }
+
+/**
+ * Type declarations for '@vinxi/server-functions/plugin'
+ *
+ * Provides type-safe server function support for Vinxi applications.
+ * Enables 'use server' directive transformation and RPC handling.
+ */
+declare module '@vinxi/server-functions/plugin' {
+  import type { Plugin } from 'vite';
+  import type { VinxiRouter } from './types.js';
+
+  /**
+   * Server functions plugin configuration options
+   */
+  interface ServerFunctionsRouterOptions {
+    /**
+     * Additional Vite plugins to include in the server functions router
+     */
+    plugins?: () => Plugin[];
+  }
+
+  /**
+   * Server functions plugin API
+   */
+  export const serverFunctions: {
+    /**
+     * Client-side Vite plugin that transforms 'use server' directives
+     *
+     * This plugin:
+     * - Detects files with 'use server' at the top
+     * - Replaces server function implementations with RPC stubs
+     * - Prevents server-only code from being bundled into the client
+     *
+     * MUST be added to both client and SSR routers.
+     */
+    client: () => Plugin;
+
+    /**
+     * Creates a dedicated router for handling server function RPC calls
+     *
+     * This router:
+     * - Handles POST requests to server function endpoints
+     * - Executes the actual server-side function implementation
+     * - Serializes and returns the result
+     *
+     * @param options - Configuration options for the router
+     * @returns A Vinxi router configuration
+     */
+    router: (options?: ServerFunctionsRouterOptions) => VinxiRouter;
+  };
+}
