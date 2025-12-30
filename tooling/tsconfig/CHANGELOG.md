@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.48
+
+### Patch Changes
+
+- fix(web): remove server-only guards incompatible with Vite SS
+
 ## 0.6.47
 
 ### Patch Changes

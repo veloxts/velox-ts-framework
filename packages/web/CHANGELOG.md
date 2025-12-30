@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.48
+
+### Patch Changes
+
+- fix(web): remove server-only guards incompatible with Vite SS
+- Updated dependencies
+  - @veloxts/auth@0.6.48
+  - @veloxts/client@0.6.48
+  - @veloxts/core@0.6.48
+  - @veloxts/router@0.6.48
+
 ## 0.6.47
 
 ### Patch Changes
