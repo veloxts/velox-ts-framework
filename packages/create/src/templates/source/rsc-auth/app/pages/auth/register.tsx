@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 
-import { register } from '@/actions/auth';
+import { register } from '@/app/actions/auth';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');

@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 
-import { login } from '@/actions/auth';
+import { login } from '@/app/actions/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');

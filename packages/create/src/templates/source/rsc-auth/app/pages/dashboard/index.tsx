@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { logout } from '@/actions/auth';
+import { logout } from '@/app/actions/auth';
 
 interface User {
   id: string;
