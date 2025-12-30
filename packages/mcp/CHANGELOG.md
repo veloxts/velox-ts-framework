@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.46
+
+### Patch Changes
+
+- fix(web): remove transitive server-only import from main entry
+- Updated dependencies
+  - @veloxts/cli@0.6.46
+  - @veloxts/router@0.6.46
+  - @veloxts/validation@0.6.46
+
 ## 0.6.45
 
 ### Patch Changes
