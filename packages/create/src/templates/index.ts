@@ -96,6 +96,9 @@ export function getTemplateDirectories(template: TemplateType): string[] {
 
       // Public assets
       'public',
+
+      // Scripts
+      'scripts',
     ];
   }
 
@@ -122,6 +125,9 @@ export function getTemplateDirectories(template: TemplateType): string[] {
 
       // Public assets
       'public',
+
+      // Scripts
+      'scripts',
     ];
   }
 

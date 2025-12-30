@@ -11,9 +11,33 @@
  * This is a single-package structure (not a monorepo workspace).
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { compileTemplate } from './compiler.js';
 import { applyDatabaseDependencies, RSC_CONFIG } from './placeholders.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/**
+ * Read shared script from templates/source/shared/scripts/
+ */
+function readSharedScript(scriptName: string): string {
+  // Try dist path first (production), then src path (development)
+  const distPath = path.join(__dirname, '..', '..', 'src', 'templates', 'source', 'shared', 'scripts', scriptName);
+  const srcPath = path.join(__dirname, 'source', 'shared', 'scripts', scriptName);
+
+  for (const scriptPath of [distPath, srcPath]) {
+    if (fs.existsSync(scriptPath)) {
+      return fs.readFileSync(scriptPath, 'utf-8');
+    }
+  }
+
+  throw new Error(`Shared script not found: ${scriptName}. Checked:\n  - ${distPath}\n  - ${srcPath}`);
+}
 
 // ============================================================================
 // Template Compilation
@@ -249,6 +273,9 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
 
     // Public assets
     { path: 'public/favicon.svg', content: generateFavicon() },
+
+    // Scripts
+    { path: 'scripts/check-client-imports.sh', content: readSharedScript('check-client-imports.sh') },
   ];
 
   // Add docker-compose for PostgreSQL
