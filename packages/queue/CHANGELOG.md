@@ -1,5 +1,13 @@
 # @veloxts/queue
 
+## 0.6.51
+
+### Patch Changes
+
+- fix(web): configure @vinxi/server-functions for RSC server actions
+- Updated dependencies
+  - @veloxts/core@0.6.51
+
 ## 0.6.50
 
 ### Patch Changes

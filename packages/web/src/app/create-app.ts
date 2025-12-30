@@ -7,8 +7,8 @@
  * 3. SSR router - Renders React Server Components for all other routes
  */
 
-import { createApp } from 'vinxi';
 import { serverFunctions } from '@vinxi/server-functions/plugin';
+import { createApp } from 'vinxi';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 import type { ResolvedVeloxWebConfig, VeloxWebConfig, VinxiApp, VinxiRouter } from '../types.js';
