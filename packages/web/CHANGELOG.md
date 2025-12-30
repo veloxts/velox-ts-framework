@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.49
+
+### Patch Changes
+
+- feat(create): add client import lint script for RSC templates
+- Updated dependencies
+  - @veloxts/auth@0.6.49
+  - @veloxts/client@0.6.49
+  - @veloxts/core@0.6.49
+  - @veloxts/router@0.6.49
+
 ## 0.6.48
 
 ### Patch Changes

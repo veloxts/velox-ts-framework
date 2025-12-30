@@ -27,7 +27,17 @@ const __dirname = path.dirname(__filename);
  */
 function readSharedScript(scriptName: string): string {
   // Try dist path first (production), then src path (development)
-  const distPath = path.join(__dirname, '..', '..', 'src', 'templates', 'source', 'shared', 'scripts', scriptName);
+  const distPath = path.join(
+    __dirname,
+    '..',
+    '..',
+    'src',
+    'templates',
+    'source',
+    'shared',
+    'scripts',
+    scriptName
+  );
   const srcPath = path.join(__dirname, 'source', 'shared', 'scripts', scriptName);
 
   for (const scriptPath of [distPath, srcPath]) {
@@ -36,7 +46,9 @@ function readSharedScript(scriptName: string): string {
     }
   }
 
-  throw new Error(`Shared script not found: ${scriptName}. Checked:\n  - ${distPath}\n  - ${srcPath}`);
+  throw new Error(
+    `Shared script not found: ${scriptName}. Checked:\n  - ${distPath}\n  - ${srcPath}`
+  );
 }
 
 // ============================================================================
@@ -275,7 +287,10 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'public/favicon.svg', content: generateFavicon() },
 
     // Scripts
-    { path: 'scripts/check-client-imports.sh', content: readSharedScript('check-client-imports.sh') },
+    {
+      path: 'scripts/check-client-imports.sh',
+      content: readSharedScript('check-client-imports.sh'),
+    },
   ];
 
   // Add docker-compose for PostgreSQL
