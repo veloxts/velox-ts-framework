@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.42
+
+### Patch Changes
+
+- fix(web): enable tsconfig path aliases for Vite/Vinxi + docs(web): add @public/@internal JSDoc annotations to server actions
+- Updated dependencies
+  - @veloxts/core@0.6.42
+  - @veloxts/router@0.6.42
+
 ## 0.6.41
 
 ### Patch Changes
