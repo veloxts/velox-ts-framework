@@ -86,10 +86,11 @@ export {
 export type {
   AuthActionOptions,
   AuthCookieConfig,
+  H3ActionContextWithRefreshToken,
   LoginResponse,
   TokenResponse,
 } from './auth-bridge.js';
-export { authAction } from './auth-bridge.js';
+export { authAction, isTokenResponse } from './auth-bridge.js';
 // Types
 export type {
   ActionBuilder,

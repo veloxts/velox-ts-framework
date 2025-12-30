@@ -10,7 +10,83 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { authAction, type LoginResponse, type TokenResponse } from './auth-bridge.js';
+import { authAction, isTokenResponse, type LoginResponse, type TokenResponse } from './auth-bridge.js';
+
+describe('isTokenResponse type guard', () => {
+  it('should return true for valid TokenResponse', () => {
+    const validTokens: TokenResponse = {
+      accessToken: 'access-123',
+      refreshToken: 'refresh-456',
+      expiresIn: 900,
+      tokenType: 'Bearer',
+    };
+
+    expect(isTokenResponse(validTokens)).toBe(true);
+  });
+
+  it('should return false for null', () => {
+    expect(isTokenResponse(null)).toBe(false);
+  });
+
+  it('should return false for undefined', () => {
+    expect(isTokenResponse(undefined)).toBe(false);
+  });
+
+  it('should return false for primitive types', () => {
+    expect(isTokenResponse('string')).toBe(false);
+    expect(isTokenResponse(123)).toBe(false);
+    expect(isTokenResponse(true)).toBe(false);
+  });
+
+  it('should return false for empty object', () => {
+    expect(isTokenResponse({})).toBe(false);
+  });
+
+  it('should return false for partial TokenResponse', () => {
+    expect(isTokenResponse({ accessToken: 'token' })).toBe(false);
+    expect(isTokenResponse({ accessToken: 'token', refreshToken: 'refresh' })).toBe(false);
+    expect(isTokenResponse({
+      accessToken: 'token',
+      refreshToken: 'refresh',
+      expiresIn: 900,
+    })).toBe(false);
+  });
+
+  it('should return false for wrong types', () => {
+    expect(isTokenResponse({
+      accessToken: 123, // should be string
+      refreshToken: 'refresh',
+      expiresIn: 900,
+      tokenType: 'Bearer',
+    })).toBe(false);
+
+    expect(isTokenResponse({
+      accessToken: 'token',
+      refreshToken: 'refresh',
+      expiresIn: '900', // should be number
+      tokenType: 'Bearer',
+    })).toBe(false);
+  });
+
+  it('should narrow type correctly when used as guard', () => {
+    const maybeTokens: unknown = {
+      accessToken: 'access-123',
+      refreshToken: 'refresh-456',
+      expiresIn: 900,
+      tokenType: 'Bearer',
+    };
+
+    if (isTokenResponse(maybeTokens)) {
+      // TypeScript should now know this is TokenResponse
+      expect(maybeTokens.accessToken).toBe('access-123');
+      expect(maybeTokens.refreshToken).toBe('refresh-456');
+      expect(maybeTokens.expiresIn).toBe(900);
+      expect(maybeTokens.tokenType).toBe('Bearer');
+    } else {
+      throw new Error('Should have matched');
+    }
+  });
+});
 
 describe('authAction', () => {
   describe('type exports', () => {

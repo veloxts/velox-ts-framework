@@ -99,6 +99,59 @@ export interface LoginResponse {
   expiresIn: number;
 }
 
+/**
+ * Extended H3 context with refresh token available.
+ * Used by beforeExecute hook in fromRefreshProcedure.
+ */
+export interface H3ActionContextWithRefreshToken extends H3ActionContext {
+  refreshToken?: string;
+}
+
+// ============================================================================
+// Type Guards
+// ============================================================================
+
+/**
+ * Runtime type guard for TokenResponse.
+ * Validates that the procedure result has the expected token shape.
+ *
+ * @param result - The value to check
+ * @returns True if result is a valid TokenResponse
+ *
+ * @example
+ * ```typescript
+ * if (isTokenResponse(result)) {
+ *   // result is now typed as TokenResponse
+ *   console.log(result.accessToken);
+ * }
+ * ```
+ */
+export function isTokenResponse(result: unknown): result is TokenResponse {
+  if (typeof result !== 'object' || result === null) {
+    return false;
+  }
+  const obj = result as Record<string, unknown>;
+  return (
+    typeof obj.accessToken === 'string' &&
+    typeof obj.refreshToken === 'string' &&
+    typeof obj.expiresIn === 'number' &&
+    typeof obj.tokenType === 'string'
+  );
+}
+
+/**
+ * Asserts that a result is a valid TokenResponse.
+ * Throws a descriptive error if validation fails.
+ */
+function assertTokenResponse(result: unknown): asserts result is TokenResponse {
+  if (!isTokenResponse(result)) {
+    throw new Error(
+      '[VeloxTS] Auth procedure did not return expected TokenResponse shape. ' +
+        'Expected: { accessToken: string, refreshToken: string, expiresIn: number, tokenType: string }'
+    );
+  }
+}
+
 // ============================================================================
 // Default Cookie Configuration
 // ============================================================================
@@ -191,27 +244,27 @@ export const authAction = {
       ...executionOptions,
 
       onSuccess: async (result: unknown, ctx: H3ActionContext) => {
-        const tokens = result as TokenResponse;
+        assertTokenResponse(result);
 
         // Set access token cookie (short-lived)
-        ctx.setCookie(accessName, tokens.accessToken, {
+        ctx.setCookie(accessName, result.accessToken, {
           ...cookieOpts,
           maxAge: ACCESS_TOKEN_MAX_AGE,
         });
 
         // Set refresh token cookie (longer-lived)
-        ctx.setCookie(refreshName, tokens.refreshToken, {
+        ctx.setCookie(refreshName, result.refreshToken, {
           ...cookieOpts,
           maxAge: REFRESH_TOKEN_MAX_AGE,
         });
       },
 
       transformResult: (result: unknown): LoginResponse => {
-        const tokens = result as TokenResponse;
+        assertTokenResponse(result);
         // Strip raw tokens from client response (security)
         return {
           success: true,
-          expiresIn: tokens.expiresIn,
+          expiresIn: result.expiresIn,
         };
       },
     }) as (input: TInput) => Promise<ActionResult<LoginResponse>>;
@@ -297,22 +350,28 @@ export const authAction = {
         const refreshToken = ctx.getCookie(refreshName);
         if (refreshToken) {
           // Store for the handler to access if needed
-          (ctx as unknown as Record<string, unknown>).refreshToken = refreshToken;
+          // Use Object.defineProperty to add property without type assertion
+          Object.defineProperty(ctx, 'refreshToken', {
+            value: refreshToken,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          });
         }
       },
 
       onSuccess: async (result: unknown, ctx: H3ActionContext) => {
-        const tokens = result as TokenResponse;
+        assertTokenResponse(result);
 
         // Update access token cookie
-        ctx.setCookie(accessName, tokens.accessToken, {
+        ctx.setCookie(accessName, result.accessToken, {
           ...cookieOpts,
           maxAge: ACCESS_TOKEN_MAX_AGE,
         });
 
         // Update refresh token cookie (if new one provided)
-        if (tokens.refreshToken) {
-          ctx.setCookie(refreshName, tokens.refreshToken, {
+        if (result.refreshToken) {
+          ctx.setCookie(refreshName, result.refreshToken, {
             ...cookieOpts,
             maxAge: REFRESH_TOKEN_MAX_AGE,
           });
@@ -320,10 +379,10 @@ export const authAction = {
       },
 
       transformResult: (result: unknown): LoginResponse => {
-        const tokens = result as TokenResponse;
+        assertTokenResponse(result);
         return {
           success: true,
-          expiresIn: tokens.expiresIn,
+          expiresIn: result.expiresIn,
         };
       },
     }) as (input: TInput) => Promise<ActionResult<LoginResponse>>;

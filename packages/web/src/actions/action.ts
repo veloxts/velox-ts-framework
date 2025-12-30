@@ -790,8 +790,12 @@ const action: Action = Object.assign(
           }
 
           // Transform result if transformer provided
+          // Note: When transformResult is used, the caller is responsible for
+          // providing the correct return type (via type assertion on the function)
           if (result.success && transformResult) {
-            return { success: true, data: transformResult(result.data) as TOutput };
+            const transformedData = transformResult(result.data);
+            // Return with transformed data - caller handles type via external cast
+            return { success: true, data: transformedData } as ActionResult<TOutput>;
           }
 
           return result;
