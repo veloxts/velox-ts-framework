@@ -12,22 +12,50 @@ import { config as viteConfig } from 'vinxi/plugins/config';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 import type { ResolvedVeloxWebConfig, VeloxWebConfig, VinxiApp, VinxiRouter } from '../types.js';
+import { getEnvConfig, resolveConfig, validateConfig } from './config.js';
 
 /**
- * Native Node.js modules that should be excluded from Vite's dependency optimization.
- * These modules contain platform-specific binary code (.node files) that cannot be
- * processed by esbuild and should never be bundled for the browser.
+ * Node.js built-in modules that need browser stubs when bundling for the client.
+ * These modules don't exist in the browser but may be imported by server-side code
+ * that gets accidentally pulled into the client bundle.
  */
-const NATIVE_MODULES_TO_EXCLUDE = [
-  'fsevents', // macOS file system events (used by chokidar)
-  'esbuild', // Native build tool binaries
-  'lightningcss', // Native CSS processing
-  'sharp', // Image processing
-  'better-sqlite3', // SQLite native bindings
-  '@prisma/client', // Prisma native query engine
-];
-
-import { getEnvConfig, resolveConfig, validateConfig } from './config.js';
+const NODE_BUILTIN_STUBS: Record<string, string> = {
+  // Core Node.js modules - provide empty stubs
+  'node:fs': 'data:text/javascript,export default {};export const readFileSync=()=>"";export const existsSync=()=>false;export const mkdirSync=()=>{};export const writeFileSync=()=>{};export const readdirSync=()=>[];',
+  'node:path': 'data:text/javascript,export default {};export const join=(...a)=>a.join("/");export const resolve=(...a)=>a.join("/");export const dirname=()=>"";export const basename=(p)=>p;export const extname=()=>"";export const sep="/";',
+  'node:url': 'data:text/javascript,export default {};export const fileURLToPath=(u)=>u;export const pathToFileURL=(p)=>p;export const URL=globalThis.URL;',
+  'node:crypto': 'data:text/javascript,export default {};export const randomBytes=()=>new Uint8Array(0);export const createHash=()=>({update:()=>({digest:()=>""}),digest:()=>""});export const randomUUID=()=>crypto.randomUUID();',
+  'node:os': 'data:text/javascript,export default {};export const platform=()=>"browser";export const homedir=()=>"";export const tmpdir=()=>"/tmp";export const cpus=()=>[];export const hostname=()=>"localhost";',
+  'node:process': 'data:text/javascript,export default {env:{},cwd:()=>"/",platform:"browser",version:"v0.0.0"};',
+  'node:child_process': 'data:text/javascript,export default {};export const spawn=()=>({on:()=>{},stdout:{on:()=>{}},stderr:{on:()=>{}}});export const exec=()=>{};export const execSync=()=>"";',
+  'node:util': 'data:text/javascript,export default {};export const promisify=(f)=>f;export const inspect=(o)=>String(o);export const format=(...a)=>a.join(" ");',
+  'node:stream': 'data:text/javascript,export default {};export class Readable{};export class Writable{};export class Transform{};export class Duplex{};',
+  'node:buffer': 'data:text/javascript,export const Buffer={from:()=>new Uint8Array(),alloc:()=>new Uint8Array(),isBuffer:()=>false};export default {Buffer};',
+  'node:events': 'data:text/javascript,export default class EventEmitter{on(){}off(){}emit(){}once(){}};export {default as EventEmitter};',
+  'node:assert': 'data:text/javascript,export default ()=>{};export const strict=()=>{};export const deepEqual=()=>{};export const equal=()=>{};',
+  'node:http': 'data:text/javascript,export default {};export const createServer=()=>({listen:()=>{}});export const request=()=>({on:()=>{},end:()=>{}});',
+  'node:https': 'data:text/javascript,export default {};export const createServer=()=>({listen:()=>{}});export const request=()=>({on:()=>{},end:()=>{}});',
+  'node:net': 'data:text/javascript,export default {};export const createServer=()=>({listen:()=>{}});export const createConnection=()=>({on:()=>{},end:()=>{}});',
+  'node:tls': 'data:text/javascript,export default {};export const createServer=()=>({listen:()=>{}});export const connect=()=>({on:()=>{},end:()=>{}});',
+  'node:dns': 'data:text/javascript,export default {};export const lookup=()=>{};export const resolve=()=>{};',
+  'node:zlib': 'data:text/javascript,export default {};export const gzip=()=>{};export const gunzip=()=>{};export const deflate=()=>{};export const inflate=()=>{};',
+  'node:readline': 'data:text/javascript,export default {};export const createInterface=()=>({on:()=>{},close:()=>{}});',
+  'node:querystring': 'data:text/javascript,export default {};export const parse=(s)=>Object.fromEntries(new URLSearchParams(s));export const stringify=(o)=>new URLSearchParams(o).toString();',
+  'node:async_hooks': 'data:text/javascript,export default {};export const createHook=()=>({enable:()=>{},disable:()=>{}});export const AsyncResource=class{};',
+  'node:perf_hooks': 'data:text/javascript,export default {};export const performance=globalThis.performance;',
+  'node:worker_threads': 'data:text/javascript,export default {};export const isMainThread=true;export const parentPort=null;export const Worker=class{};',
+  'node:module': 'data:text/javascript,export default {};export const createRequire=()=>()=>({});',
+  // Native packages that cannot run in browser
+  'esbuild': 'data:text/javascript,export default {};export const build=async()=>({});export const transform=async()=>({code:""});export const formatMessages=async()=>[];',
+  'fsevents': 'data:text/javascript,export default {};',
+  'lightningcss': 'data:text/javascript,export default {};export const transform=()=>({code:""});',
+  'sharp': 'data:text/javascript,export default ()=>({resize:()=>({toBuffer:async()=>new Uint8Array()})});',
+  'better-sqlite3': 'data:text/javascript,export default class Database{prepare(){return{run:()=>{},get:()=>null,all:()=>[]}}};',
+  // Server framework packages
+  'dotenv': 'data:text/javascript,export default {};export const config=()=>({});export const parse=()=>({});',
+  'fastify': 'data:text/javascript,export default ()=>({register:()=>{},get:()=>{},post:()=>{},listen:async()=>{}});',
+  'pino': 'data:text/javascript,export default ()=>({info:()=>{},error:()=>{},warn:()=>{},debug:()=>{}});',
+};
 
 /**
  * Server configuration options
@@ -338,11 +366,12 @@ function createClientRouter(config: ResolvedVeloxWebConfig, entryPath: string): 
     plugins: () => [
       // Enable tsconfig path aliases (e.g., @/* → ./src/*)
       tsconfigPaths(),
-      // Exclude native Node.js modules from dependency optimization.
-      // These contain .node binary files that esbuild cannot process.
-      viteConfig('velox-native-exclusions', {
-        optimizeDeps: {
-          exclude: NATIVE_MODULES_TO_EXCLUDE,
+      // Provide browser stubs for Node.js built-in modules and native packages.
+      // When server-side code gets pulled into the client bundle (e.g., through
+      // server actions or shared imports), these stubs prevent bundling errors.
+      viteConfig('velox-browser-stubs', {
+        resolve: {
+          alias: NODE_BUILTIN_STUBS,
         },
       }),
     ],

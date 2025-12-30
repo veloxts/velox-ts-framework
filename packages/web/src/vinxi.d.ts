@@ -36,6 +36,16 @@ declare module 'vinxi/plugins/config' {
    */
   interface ViteConfigOptions {
     /**
+     * Module resolution options
+     */
+    resolve?: {
+      /**
+       * Aliases for module resolution.
+       * Can map module names to replacement modules or inline data URIs.
+       */
+      alias?: Record<string, string>;
+    };
+    /**
      * Dependency optimization options
      */
     optimizeDeps?: {
