@@ -16,8 +16,42 @@ import { getEnvConfig, resolveConfig, validateConfig } from './config.js';
 
 /**
  * Node.js built-in modules that need browser stubs when bundling for the client.
- * These modules don't exist in the browser but may be imported by server-side code
- * that gets accidentally pulled into the client bundle.
+ *
+ * ## Why This Exists (TEMPORARY WORKAROUND)
+ *
+ * When Vite bundles client components that import server actions, it analyzes the
+ * full import graph even though the server action code won't run on the client.
+ * This causes errors when server-side packages (e.g., `@veloxts/auth`, Prisma)
+ * have transitive dependencies on Node.js-only modules.
+ *
+ * Example error chain:
+ * ```
+ * login.tsx ('use client')
+ *   -> imports login from 'app/actions/auth' ('use server')
+ *     -> imports { authAction } from '@veloxts/web'
+ *       -> imports { CompiledProcedure } from '@veloxts/router'
+ *         -> imports from vinxi (has esbuild dep)
+ *     -> imports { db } from '@/api/database'
+ *       -> imports better-sqlite3 (native .node module)
+ * ```
+ *
+ * ## Problems With This Approach
+ *
+ * 1. **Maintenance burden** - New Node.js deps require new stubs
+ * 2. **Masks architectural violations** - Server code shouldn't reach client analysis
+ * 3. **Bundle bloat** - Dead code paths included in client bundle
+ * 4. **Type safety erosion** - Stubs are runtime no-ops with full types
+ *
+ * ## Proper Solution (TODO)
+ *
+ * 1. Split @veloxts/web exports: `@veloxts/web/client` vs `@veloxts/web/server`
+ * 2. Use dynamic imports in server actions for heavy dependencies
+ * 3. Use type-only imports for shared type definitions
+ * 4. Leverage Vinxi's server function transform for proper isolation
+ *
+ * @see CLAUDE.md section "RSC Server/Client Separation" for architecture guidelines
+ *
+ * @internal
  */
 const NODE_BUILTIN_STUBS: Record<string, string> = {
   // Core Node.js modules - provide empty stubs

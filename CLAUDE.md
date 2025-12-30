@@ -715,6 +715,137 @@ The project is in early foundation work. Focus is on:
 - Validating the type flow from backend to frontend works without codegen
 - Keeping scope tight to hit MVP in 6 weeks
 
+### RSC Server/Client Separation (CRITICAL for @veloxts/web)
+
+When working with React Server Components and server actions, strict module boundaries must be maintained to prevent Node.js code from bleeding into the client bundle.
+
+#### The Problem
+
+Even with `'use server'` directives, Vite's bundler analyzes the import graph of client components. If a client component imports a server action that imports Node.js-only dependencies, those dependencies get pulled into the client bundle analysis, causing errors like:
+- `No loader is configured for .node files` (native modules)
+- `Failed to resolve import 'esbuild'`
+- `Module 'node:fs' externalized for browser compatibility`
+
+#### Current Mitigation (Browser Stubs)
+
+`@veloxts/web` provides browser stubs in `packages/web/src/app/create-app.ts` via `NODE_BUILTIN_STUBS`. This is a **temporary workaround**, not a proper solution.
+
+```typescript
+// These stubs are applied to the client router's Vite config
+const NODE_BUILTIN_STUBS: Record<string, string> = {
+  'node:fs': 'data:text/javascript,export default {};...',
+  'esbuild': 'data:text/javascript,export default {};...',
+  // ... more stubs
+};
+```
+
+**Problems with stubs:**
+1. Whack-a-mole maintenance - new deps need new stubs
+2. Masks architectural violations
+3. Bundle size bloat from dead code
+4. Type safety erosion
+
+#### Recommended Architecture Patterns
+
+**1. Type-Only Imports in Server Actions**
+
+Server action files should use type-only imports for shared types:
+
+```typescript
+// GOOD - Type stripped at build time
+'use server';
+import type { CompiledProcedure } from '@veloxts/router';
+import type { ActionResult } from '@veloxts/web';
+
+// BAD - Pulls in full module graph
+import { CompiledProcedure } from '@veloxts/router';
+```
+
+**2. Isolate Database/Heavy Dependencies**
+
+Database clients and native modules should only be imported in files that are exclusively server-side:
+
+```typescript
+// app/actions/users.ts
+'use server';
+
+// GOOD - Dynamic import at runtime (server only)
+export async function getUsers() {
+  const { db } = await import('@/api/database');
+  return db.user.findMany();
+}
+
+// BAD - Static import analyzed at bundle time
+import { db } from '@/api/database';
+export async function getUsers() {
+  return db.user.findMany();
+}
+```
+
+**3. Procedure Bridge Pattern**
+
+When bridging procedures to server actions, pass procedure identifiers rather than importing procedures directly:
+
+```typescript
+// GOOD - Server action with lazy procedure loading
+'use server';
+export async function login(input: LoginInput) {
+  const { executeProcedure } = await import('@veloxts/web/server');
+  const { authProcedures } = await import('@/api/procedures/auth');
+  return executeProcedure(authProcedures.procedures.createSession, input);
+}
+
+// BAD - Static imports pull entire procedure graph
+import { authProcedures } from '@/api/procedures/auth';
+export async function login(input: LoginInput) {
+  // ...
+}
+```
+
+**4. Package Export Conditions (Future)**
+
+`@veloxts/web` should eventually provide separate entry points:
+
+```json
+{
+  "exports": {
+    ".": {
+      "server": "./dist/index.server.js",
+      "client": "./dist/index.client.js"
+    }
+  }
+}
+```
+
+#### Adding New Stubs (If Absolutely Necessary)
+
+If a new Node.js module causes client bundle errors:
+
+1. **First, try to fix the import chain** - Use dynamic imports or type-only imports
+2. **If stubs are unavoidable**, add to `NODE_BUILTIN_STUBS` in `packages/web/src/app/create-app.ts`
+3. **Document why** the stub is needed and which import chain causes it
+4. **Add a TODO** to fix properly via module separation
+
+```typescript
+// In NODE_BUILTIN_STUBS
+'new-problematic-module': 'data:text/javascript,export default {};',
+// TODO: Remove once we split @veloxts/web exports (issue #XXX)
+```
+
+#### Testing for Module Leaks
+
+After changes to server actions or `@veloxts/web`:
+
+```bash
+# Run RSC smoke test - will fail if client bundle has Node.js deps
+cd packages/create && pnpm smoke-test --rsc-auth
+```
+
+Watch for these warning signs in Vite output:
+- `Module externalized for browser compatibility`
+- `No loader configured for .node files`
+- Very large client bundle sizes (>500KB suggests server code leaking)
+
 ### Reference Documents
 Key planning documents in `/.plans/`:
 - `/.plans/0.requirements.md` - Full specification with Laravel inspiration philosophy
