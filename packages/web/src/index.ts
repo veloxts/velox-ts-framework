@@ -114,10 +114,9 @@ export {
   type LayoutResolverOptions,
   wrapWithLayouts,
 } from './routing/layouts.js';
-// ============================================================================
-// Re-export Server Module (for convenience)
-// ============================================================================
-export * from './server/index.js';
+// NOTE: We intentionally do NOT re-export from ./server/index.js here
+// because it has a 'server-only' guard that would block Vinxi config loading.
+// Users should import server-only functionality from '@veloxts/web/server'.
 // ============================================================================
 // Types (isomorphic, also available via @veloxts/web/types)
 // ============================================================================
