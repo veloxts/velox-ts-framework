@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.41
+
+### Patch Changes
+
+- feat(web): add authAction helper for procedure bridge authentication
+
 ## 0.6.40
 
 ### Patch Changes

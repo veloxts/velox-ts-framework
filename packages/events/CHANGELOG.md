@@ -1,5 +1,13 @@
 # @veloxts/events
 
+## 0.6.41
+
+### Patch Changes
+
+- feat(web): add authAction helper for procedure bridge authentication
+- Updated dependencies
+  - @veloxts/core@0.6.41
+
 ## 0.6.40
 
 ### Patch Changes
