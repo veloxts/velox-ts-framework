@@ -47,106 +47,186 @@ export default function RegisterPage() {
   };
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '400px', margin: '0 auto' }}>
-      <h1>Create Account</h1>
+    <div className="auth-container">
+      <style>{`
+        .auth-container {
+          max-width: 450px;
+          margin: 0 auto;
+        }
 
-      <form onSubmit={handleSubmit} style={{ marginTop: '1rem' }}>
-        {error && (
-          <div
-            style={{
-              padding: '0.5rem',
-              background: '#fee',
-              color: '#c00',
-              borderRadius: '4px',
-              marginBottom: '1rem',
-            }}
-          >
-            {error}
+        .auth-card {
+          background: #111;
+          padding: 2rem;
+          border-radius: 8px;
+          border: 1px solid #222;
+        }
+
+        .auth-card h1 {
+          font-size: 1.5rem;
+          font-weight: 700;
+          margin-bottom: 1.5rem;
+          text-align: center;
+          color: #ededed;
+        }
+
+        .auth-form {
+          margin-top: 1.5rem;
+        }
+
+        .form-group {
+          margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+          display: block;
+          margin-bottom: 0.5rem;
+          color: #ededed;
+          font-weight: 500;
+          font-size: 0.875rem;
+        }
+
+        .form-input {
+          width: 100%;
+          padding: 0.75rem 1rem;
+          border-radius: 4px;
+          border: 1px solid #222;
+          background: #0a0a0a;
+          color: #ededed;
+          font-size: 0.875rem;
+          transition: border-color 0.2s, background 0.2s;
+        }
+
+        .form-input:focus {
+          outline: none;
+          border-color: #00d9ff;
+          background: #111;
+        }
+
+        .form-input:hover {
+          border-color: #333;
+        }
+
+        .form-hint {
+          display: block;
+          color: #888;
+          font-size: 0.75rem;
+          margin-top: 0.5rem;
+        }
+
+        .btn {
+          width: 100%;
+          padding: 0.75rem 1.25rem;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 500;
+          font-size: 0.875rem;
+          transition: background 0.2s, opacity 0.2s;
+        }
+
+        .btn-primary {
+          background: #00d9ff;
+          color: #000;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          background: rgba(0, 217, 255, 0.8);
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .error-message {
+          padding: 0.75rem;
+          background: #2a1111;
+          color: #ff6666;
+          border-radius: 4px;
+          margin-bottom: 1rem;
+          border: 1px solid #ff4444;
+          font-size: 0.875rem;
+        }
+
+        .auth-footer {
+          margin-top: 1.5rem;
+          text-align: center;
+          color: #888;
+          font-size: 0.875rem;
+        }
+
+        .auth-footer a {
+          color: #00d9ff;
+          font-weight: 500;
+        }
+
+        .auth-footer a:hover {
+          opacity: 0.8;
+        }
+      `}</style>
+
+      <div className="auth-card">
+        <h1>Create Account</h1>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          {error && <div className="error-message">{error}</div>}
+
+          <div className="form-group">
+            <label htmlFor="name" className="form-label">
+              Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              minLength={2}
+              className="form-input"
+            />
           </div>
-        )}
 
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="name" style={{ display: 'block', marginBottom: '0.25rem' }}>
-            Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            minLength={2}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-            }}
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="email" className="form-label">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="form-input"
+            />
+          </div>
 
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '0.25rem' }}>
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-            }}
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="password" className="form-label">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={12}
+              className="form-input"
+            />
+            <small className="form-hint">
+              At least 12 characters with uppercase, lowercase, and number
+            </small>
+          </div>
 
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '0.25rem' }}>
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={12}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-            }}
-          />
-          <small style={{ color: '#666' }}>
-            At least 12 characters with uppercase, lowercase, and number
-          </small>
-        </div>
+          <button type="submit" disabled={loading} className="btn btn-primary">
+            {loading ? 'Creating account...' : 'Create Account'}
+          </button>
+        </form>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            background: loading ? '#999' : '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Creating account...' : 'Create Account'}
-        </button>
-      </form>
-
-      <p style={{ marginTop: '1rem', textAlign: 'center' }}>
-        Already have an account? <a href="/auth/login">Login</a>
-      </p>
+        <p className="auth-footer">
+          Already have an account? <a href="/auth/login">Login</a>
+        </p>
+      </div>
     </div>
   );
 }

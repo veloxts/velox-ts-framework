@@ -21,19 +21,84 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <title>VeloxTS App</title>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <style>{`
-          * {
+          /* Global Reset & Dark Mode Base */
+          *,
+          *::before,
+          *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            font: inherit;
+          }
+
+          html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
           }
 
           body {
-            font-family: system-ui, -apple-system, sans-serif;
+            background: #0a0a0a;
+            color: #ededed;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
             line-height: 1.6;
-            color: #1a1a2e;
-            background: #f8f9fa;
+            min-height: 100svh;
           }
 
+          h1, h2, h3, h4, h5, h6 {
+            text-wrap: balance;
+          }
+
+          p, li, figcaption {
+            text-wrap: pretty;
+          }
+
+          img, picture, svg, video, canvas {
+            max-width: 100%;
+          }
+
+          a {
+            color: #00d9ff;
+            text-decoration: none;
+            transition: opacity 0.2s;
+          }
+
+          a:hover {
+            opacity: 0.8;
+          }
+
+          code {
+            font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Monaco, "Courier New", monospace;
+            background: #1a1a1a;
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-size: 0.9em;
+          }
+
+          ::selection {
+            background: #00d9ff;
+            color: #000;
+          }
+
+          ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+
+          ::-webkit-scrollbar-track {
+            background: #111;
+          }
+
+          ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+          }
+
+          ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+          }
+
+          /* Layout Structure */
           .layout {
             min-height: 100vh;
             display: flex;
@@ -41,8 +106,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
           }
 
           .nav {
-            background: #1a1a2e;
+            background: #111;
             padding: 1rem 2rem;
+            border-bottom: 1px solid #222;
           }
 
           .nav-list {
@@ -51,17 +117,21 @@ export default function RootLayout({ children }: RootLayoutProps) {
             list-style: none;
             max-width: 1200px;
             margin: 0 auto;
+            align-items: center;
           }
 
           .nav-link {
-            color: #e8e8e8;
+            color: #ededed;
             text-decoration: none;
             font-weight: 500;
             transition: color 0.2s;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
           }
 
           .nav-link:hover {
-            color: #6366f1;
+            color: #00d9ff;
+            background: #1a1a1a;
           }
 
           .main {
@@ -73,14 +143,15 @@ export default function RootLayout({ children }: RootLayoutProps) {
           }
 
           .footer {
-            background: #1a1a2e;
-            color: #a8a8b8;
+            background: #111;
+            color: #888;
             text-align: center;
             padding: 1rem;
             font-size: 0.875rem;
+            border-top: 1px solid #222;
           }
 
-          /* Page styles */
+          /* Home Page Hero */
           .home-page .hero {
             text-align: center;
             padding: 3rem 0;
@@ -88,50 +159,64 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
           .home-page h1 {
             font-size: 2.5rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
           }
 
           .home-page .tagline {
-            color: #666;
+            color: #888;
             font-size: 1.25rem;
           }
 
+          /* Stats Cards */
           .stats {
             display: flex;
             gap: 1rem;
             justify-content: center;
             margin: 2rem 0;
+            flex-wrap: wrap;
           }
 
           .stat-card {
-            background: white;
+            background: #111;
             padding: 1.5rem 2rem;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #222;
             text-align: center;
+            min-width: 150px;
+            transition: border-color 0.2s;
+          }
+
+          .stat-card:hover {
+            border-color: #00d9ff;
           }
 
           .stat-value {
             display: block;
             font-size: 2rem;
             font-weight: 700;
-            color: #6366f1;
+            color: #00d9ff;
           }
 
           .stat-label {
-            color: #666;
+            color: #888;
             font-size: 0.875rem;
+            margin-top: 0.5rem;
           }
 
+          /* Features Section */
           .features {
-            background: white;
+            background: #111;
             padding: 2rem;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #222;
+            margin-top: 2rem;
           }
 
           .features h2 {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
           }
 
           .features ul {
@@ -139,8 +224,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
           }
 
           .features li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #222;
+            color: #ededed;
           }
 
           .features li:last-child {
@@ -150,27 +236,23 @@ export default function RootLayout({ children }: RootLayoutProps) {
           .cta {
             text-align: center;
             margin-top: 2rem;
-            color: #666;
+            color: #888;
           }
 
-          code {
-            background: #f0f0f0;
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
-            font-family: monospace;
-          }
-
-          /* Users page */
+          /* Users Page */
           .users-page h1 {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            font-weight: 700;
           }
 
           .empty-state {
-            color: #666;
+            color: #888;
             padding: 2rem;
             text-align: center;
-            background: white;
+            background: #111;
             border-radius: 8px;
+            border: 1px solid #222;
           }
 
           .user-list {
@@ -180,21 +262,48 @@ export default function RootLayout({ children }: RootLayoutProps) {
           }
 
           .user-card {
-            background: white;
+            background: #111;
             padding: 1rem;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #222;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: border-color 0.2s;
+          }
+
+          .user-card:hover {
+            border-color: #00d9ff;
           }
 
           .user-name {
             font-weight: 600;
+            color: #ededed;
           }
 
           .user-email {
-            color: #666;
+            color: #888;
+            font-size: 0.875rem;
+          }
+
+          /* About Page */
+          .about-page h1 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+          }
+
+          .about-page h2 {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+          }
+
+          .about-page p {
+            color: #888;
+            margin-bottom: 1rem;
+            line-height: 1.8;
           }
         `}</style>
       </head>
@@ -213,18 +322,13 @@ export default function RootLayout({ children }: RootLayoutProps) {
                 </a>
               </li>
               <li>
-                <a href="/settings" className="nav-link">
-                  Settings
+                <a href="/about" className="nav-link">
+                  About
                 </a>
               </li>
               <li>
                 <a href="/docs/getting-started" className="nav-link">
                   Docs
-                </a>
-              </li>
-              <li>
-                <a href="/api/health" className="nav-link">
-                  API
                 </a>
               </li>
             </ul>

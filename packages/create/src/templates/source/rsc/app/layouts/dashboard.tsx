@@ -24,12 +24,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         }
 
         .dashboard-sidebar {
-          width: 200px;
+          width: 240px;
           flex-shrink: 0;
-          background: white;
+          background: #111;
           border-radius: 8px;
-          padding: 1rem;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          padding: 1.5rem;
+          border: 1px solid #222;
           height: fit-content;
         }
 
@@ -37,8 +37,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           font-size: 0.75rem;
           text-transform: uppercase;
           color: #888;
-          margin-bottom: 0.5rem;
-          padding: 0 0.5rem;
+          margin-bottom: 0.75rem;
+          padding: 0 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
         }
 
         .sidebar-nav {
@@ -47,39 +49,42 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         .sidebar-nav a {
           display: block;
-          padding: 0.5rem;
-          color: #1a1a2e;
+          padding: 0.75rem;
+          color: #ededed;
           text-decoration: none;
           border-radius: 4px;
           transition: background 0.2s;
         }
 
         .sidebar-nav a:hover {
-          background: #f0f0f0;
+          background: #1a1a1a;
+          color: #00d9ff;
         }
 
         .sidebar-nav a.active {
-          background: #6366f1;
-          color: white;
+          background: #00d9ff;
+          color: #000;
         }
 
         .dashboard-content {
           flex: 1;
-          background: white;
+          background: #111;
           border-radius: 8px;
           padding: 1.5rem;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          border: 1px solid #222;
         }
 
         .dashboard-badge {
           display: inline-block;
-          background: #6366f1;
-          color: white;
+          background: #00d9ff;
+          color: #000;
           font-size: 0.625rem;
           text-transform: uppercase;
-          padding: 0.25rem 0.5rem;
+          padding: 0.5rem 0.75rem;
           border-radius: 4px;
           margin-bottom: 1rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
         }
       `}</style>
 
