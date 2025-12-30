@@ -10,15 +10,14 @@
  * Client hydrates: <MinimalContent><Page /></MinimalContent>
  */
 
-import { hydrateRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
-
-// Import client pages (only pages with 'use client' directive)
-import LoginPage from '../app/pages/auth/login.tsx';
-import RegisterPage from '../app/pages/auth/register.tsx';
+import { hydrateRoot } from 'react-dom/client';
 
 // Import content layouts (shared between server and client)
 import MinimalContent from '../app/layouts/minimal-content.tsx';
+// Import client pages (only pages with 'use client' directive)
+import LoginPage from '../app/pages/auth/login.tsx';
+import RegisterPage from '../app/pages/auth/register.tsx';
 
 // Route mapping for client pages with their layouts
 // The layout must match what the server rendered inside <div id="root">

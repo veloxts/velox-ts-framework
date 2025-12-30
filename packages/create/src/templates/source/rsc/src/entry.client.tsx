@@ -23,8 +23,8 @@
  * };
  */
 
-import { hydrateRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
+import { hydrateRoot } from 'react-dom/client';
 
 // Import content layouts (shared between server and client)
 import MinimalContent from '../app/layouts/minimal-content.tsx';

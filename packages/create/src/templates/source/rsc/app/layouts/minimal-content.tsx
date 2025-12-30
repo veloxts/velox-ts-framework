@@ -17,9 +17,5 @@ interface MinimalContentProps {
 }
 
 export default function MinimalContent({ children }: MinimalContentProps) {
-  return (
-    <div className="minimal-content">
-      {children}
-    </div>
-  );
+  return <div className="minimal-content">{children}</div>;
 }

@@ -5,7 +5,7 @@
  * These functions provide consistent dark mode styling across all RSC templates.
  */
 
-import { colors, typography, spacing, layout, transitions } from './theme.js';
+import { colors, layout, spacing, transitions, typography } from './theme.js';
 
 /**
  * Global CSS reset and base styles for dark mode
