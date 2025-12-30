@@ -26,6 +26,7 @@ const NATIVE_MODULES_TO_EXCLUDE = [
   'better-sqlite3', // SQLite native bindings
   '@prisma/client', // Prisma native query engine
 ];
+
 import { getEnvConfig, resolveConfig, validateConfig } from './config.js';
 
 /**
