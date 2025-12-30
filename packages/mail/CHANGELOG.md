@@ -1,5 +1,13 @@
 # @veloxts/mail
 
+## 0.6.50
+
+### Patch Changes
+
+- lint fixed
+- Updated dependencies
+  - @veloxts/core@0.6.50
+
 ## 0.6.49
 
 ### Patch Changes

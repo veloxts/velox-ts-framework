@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.50
+
+### Patch Changes
+
+- lint fixed
+
 ## 0.6.49
 
 ### Patch Changes
