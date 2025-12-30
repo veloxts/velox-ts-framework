@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.44
+
+### Patch Changes
+
+- refactor(web): implement proper RSC server/client separation
+- Updated dependencies
+  - @veloxts/auth@0.6.44
+  - @veloxts/client@0.6.44
+  - @veloxts/core@0.6.44
+  - @veloxts/router@0.6.44
+
 ## 0.6.43
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.44
+
+### Patch Changes
+
+- refactor(web): implement proper RSC server/client separation
+- Updated dependencies
+  - @veloxts/cli@0.6.44
+  - @veloxts/router@0.6.44
+  - @veloxts/validation@0.6.44
+
 ## 0.6.43
 
 ### Patch Changes

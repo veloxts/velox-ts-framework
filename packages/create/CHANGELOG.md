@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.44
+
+### Patch Changes
+
+- refactor(web): implement proper RSC server/client separation
+
 ## 0.6.43
 
 ### Patch Changes

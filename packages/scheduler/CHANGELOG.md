@@ -1,5 +1,13 @@
 # @veloxts/scheduler
 
+## 0.6.44
+
+### Patch Changes
+
+- refactor(web): implement proper RSC server/client separation
+- Updated dependencies
+  - @veloxts/core@0.6.44
+
 ## 0.6.43
 
 ### Patch Changes
