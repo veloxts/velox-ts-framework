@@ -27,8 +27,14 @@
  * @module @veloxts/web/server
  */
 
-// This will throw at runtime if imported in client bundle
-import 'server-only';
+// NOTE: We do NOT use 'server-only' here because it's incompatible with
+// Vite/Vinxi's SSR module evaluation. The server-only package always throws
+// when loaded, but Vite SSR legitimately loads server modules.
+//
+// RSC server/client separation is enforced via:
+// - Package.json export conditions (browser vs node)
+// - 'use server' directives in server action files
+// - Documentation guiding users to correct entry points
 
 // ============================================================================
 // Action Builder - Recommended API
