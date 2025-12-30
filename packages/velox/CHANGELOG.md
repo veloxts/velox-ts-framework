@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.45
+
+### Patch Changes
+
+- fix(web): remove server-only guard from main entry for Vinxi compat
+- Updated dependencies
+  - @veloxts/auth@0.6.45
+  - @veloxts/core@0.6.45
+  - @veloxts/orm@0.6.45
+  - @veloxts/router@0.6.45
+  - @veloxts/validation@0.6.45
+
 ## 0.6.44
 
 ### Patch Changes

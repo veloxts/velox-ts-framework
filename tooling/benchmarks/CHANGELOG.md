@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.45
+
+### Patch Changes
+
+- fix(web): remove server-only guard from main entry for Vinxi compat
+
 ## 0.6.44
 
 ### Patch Changes
