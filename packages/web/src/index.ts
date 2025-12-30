@@ -5,15 +5,18 @@
  *
  * ## Entry Points
  *
- * - `@veloxts/web` - Server-side code (this module, uses server-only guard)
- * - `@veloxts/web/server` - Explicit server imports (same as main entry)
+ * - `@veloxts/web` - Server-side code and build-time configuration (NO server-only guard)
+ * - `@veloxts/web/server` - RSC server runtime (uses server-only guard)
  * - `@veloxts/web/client` - Browser-safe hooks and utilities
  * - `@veloxts/web/types` - Type definitions (isomorphic)
  *
  * ## Usage
  *
  * ```typescript
- * // Server action files ('use server')
+ * // Build-time configuration (app.config.ts) - runs in Node.js
+ * import { defineVeloxApp } from '@veloxts/web';
+ *
+ * // Server action files ('use server') - runs in RSC context
  * import { authAction, validated } from '@veloxts/web/server';
  *
  * // Client components ('use client')
@@ -21,16 +24,21 @@
  *
  * // Type imports (works anywhere)
  * import type { ActionResult, PageProps } from '@veloxts/web/types';
- *
- * // App configuration (velox.config.ts)
- * import { defineVeloxApp } from '@veloxts/web';
  * ```
+ *
+ * ## Why No server-only Guard Here?
+ *
+ * This module includes build-time configuration (`defineVeloxApp`) which runs
+ * in Node.js context during Vinxi's config loading, NOT in React Server Component
+ * context. The `server-only` package is designed to prevent client bundle inclusion,
+ * but it incorrectly throws during legitimate Node.js build-time usage.
+ *
+ * RSC-specific runtime code is protected via:
+ * - `@veloxts/web/server` - Has server-only guard for RSC server runtime
+ * - `@veloxts/web/actions` - Has server-only guard for server actions
  *
  * @packageDocumentation
  */
-
-// Guard: This module throws if imported in client bundle
-import 'server-only';
 
 export {
   getEnvConfig,

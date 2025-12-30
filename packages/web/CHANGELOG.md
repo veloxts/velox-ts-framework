@@ -5,6 +5,10 @@
 ### Patch Changes
 
 - refactor(web): implement proper RSC server/client separation
+- fix(web): remove server-only guard from main entry to allow Vinxi config loading
+  - Main entry (`@veloxts/web`) now allows build-time Node.js usage (e.g., `defineVeloxApp` in `app.config.ts`)
+  - RSC runtime protection still enforced via `@veloxts/web/server` and `@veloxts/web/actions` guards
+  - Fixes "This module cannot be imported from a Client Component" error during `vinxi dev`
 - Updated dependencies
   - @veloxts/auth@0.6.44
   - @veloxts/client@0.6.44
