@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/client",
-  "version": "0.6.46",
+  "version": "0.6.47",
   "description": "Type-safe frontend API client for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",

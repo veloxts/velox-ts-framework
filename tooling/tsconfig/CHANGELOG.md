@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.47
+
+### Patch Changes
+
+- fix(web): use /adapters for createH3ApiHandler to avoid server-only
+
 ## 0.6.46
 
 ### Patch Changes

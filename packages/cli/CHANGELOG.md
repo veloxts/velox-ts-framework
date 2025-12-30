@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.47
+
+### Patch Changes
+
+- fix(web): use /adapters for createH3ApiHandler to avoid server-only
+- Updated dependencies
+  - @veloxts/auth@0.6.47
+  - @veloxts/core@0.6.47
+  - @veloxts/orm@0.6.47
+  - @veloxts/router@0.6.47
+  - @veloxts/validation@0.6.47
+
 ## 0.6.46
 
 ### Patch Changes
