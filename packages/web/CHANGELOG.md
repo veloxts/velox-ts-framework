@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.40
+
+### Patch Changes
+
+- feat(create): consolidate template styles with unified dark mode design
+- Updated dependencies
+  - @veloxts/auth@0.6.40
+  - @veloxts/client@0.6.40
+  - @veloxts/core@0.6.40
+  - @veloxts/router@0.6.40
+
 ## 0.6.39
 
 ### Patch Changes

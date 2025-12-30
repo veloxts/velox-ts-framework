@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.40
+
+### Patch Changes
+
+- feat(create): consolidate template styles with unified dark mode design
+
 ## 0.6.39
 
 ### Patch Changes
