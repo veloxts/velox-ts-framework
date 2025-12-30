@@ -8,6 +8,7 @@
  */
 
 import { createApp } from 'vinxi';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 import type { ResolvedVeloxWebConfig, VeloxWebConfig, VinxiApp, VinxiRouter } from '../types.js';
 import { getEnvConfig, resolveConfig, validateConfig } from './config.js';
@@ -300,6 +301,8 @@ function createApiRouter(config: ResolvedVeloxWebConfig, handlerPath: string): V
     handler: handlerPath,
     target: 'server',
     base: config.apiBase,
+    // Enable tsconfig path aliases (e.g., @/* → ./src/*)
+    plugins: () => [tsconfigPaths()],
   };
 }
 
@@ -316,6 +319,8 @@ function createClientRouter(config: ResolvedVeloxWebConfig, entryPath: string): 
     handler: entryPath,
     target: 'browser',
     base: config.buildBase,
+    // Enable tsconfig path aliases (e.g., @/* → ./src/*)
+    plugins: () => [tsconfigPaths()],
   };
 }
 
@@ -332,6 +337,8 @@ function createSsrRouter(_config: ResolvedVeloxWebConfig, entryPath: string): Vi
     handler: entryPath,
     target: 'server',
     // No base = handles all routes not matched by other routers
+    // Enable tsconfig path aliases (e.g., @/* → ./src/*, @/app/* → ./app/*)
+    plugins: () => [tsconfigPaths()],
   };
 }
 

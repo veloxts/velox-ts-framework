@@ -111,7 +111,7 @@ const response = await fetch('/api/auth/me', {
 });
 
 // Logout - uses server action
-import { logout } from '@/actions/auth';
+import { logout } from '@/app/actions/auth';
 await logout();  // Clears cookies server-side
 ```
 
