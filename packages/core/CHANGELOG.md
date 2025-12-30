@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.43
+
+### Patch Changes
+
+- fix(web): exclude native modules from Vite dependency optimization
+
 ## 0.6.42
 
 ### Patch Changes

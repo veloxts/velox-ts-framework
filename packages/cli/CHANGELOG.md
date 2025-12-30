@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.43
+
+### Patch Changes
+
+- fix(web): exclude native modules from Vite dependency optimization
+- Updated dependencies
+  - @veloxts/auth@0.6.43
+  - @veloxts/core@0.6.43
+  - @veloxts/orm@0.6.43
+  - @veloxts/router@0.6.43
+  - @veloxts/validation@0.6.43
+
 ## 0.6.42
 
 ### Patch Changes
