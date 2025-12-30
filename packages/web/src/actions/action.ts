@@ -44,6 +44,7 @@ import {
   type ZodTypeDef,
 } from 'zod';
 
+import { createH3Context, isH3Context, type H3ActionContext } from '../adapters/h3-adapter.js';
 import { toActionError } from './error-classifier.js';
 import { formDataToObject } from './form-parser.js';
 import { type ExecuteProcedureOptions, executeProcedureDirectly } from './procedure-bridge.js';
@@ -107,6 +108,51 @@ interface FromProcedureOptions extends ExecuteProcedureOptions {
    * @default false
    */
   parseFormData?: boolean;
+
+  /**
+   * Called after successful procedure execution.
+   * Use for side effects like setting cookies, logging, etc.
+   *
+   * @param result - The procedure's output
+   * @param ctx - H3 action context with cookie methods
+   *
+   * @example
+   * ```typescript
+   * action.fromProcedure(authProcedures.login, {
+   *   onSuccess: async (tokens, ctx) => {
+   *     ctx.setCookie('accessToken', tokens.accessToken, { httpOnly: true });
+   *   }
+   * });
+   * ```
+   */
+  onSuccess?: (result: unknown, ctx: H3ActionContext) => void | Promise<void>;
+
+  /**
+   * Called before procedure execution.
+   * Use for extracting data from cookies, setting up context.
+   *
+   * @param ctx - H3 action context with cookie methods
+   */
+  beforeExecute?: (ctx: H3ActionContext) => void | Promise<void>;
+
+  /**
+   * Transform the result before returning to the client.
+   * Useful for stripping sensitive data (like tokens) from responses.
+   *
+   * @param result - The procedure's raw output
+   * @returns The transformed result
+   *
+   * @example
+   * ```typescript
+   * action.fromProcedure(authProcedures.login, {
+   *   transformResult: (tokens) => ({
+   *     success: true,
+   *     expiresIn: tokens.expiresIn,
+   *   })
+   * });
+   * ```
+   */
+  transformResult?: <T>(result: T) => unknown;
 }
 
 // ============================================================================
@@ -705,12 +751,29 @@ const action: Action = Object.assign(
       procedure: CompiledProcedure<TInput, TOutput, TContext>,
       options?: FromProcedureOptions
     ): ValidatedAction<TInput, TOutput> {
-      const { parseFormData = false, ...executionOptions } = options ?? {};
+      const {
+        parseFormData = false,
+        onSuccess,
+        beforeExecute,
+        transformResult,
+        ...executionOptions
+      } = options ?? {};
 
       return async (rawInput: TInput): Promise<ActionResult<TOutput>> => {
         try {
-          // Create context for the action
-          const ctx = createContext();
+          // Try to create real H3 context when running in Vinxi
+          // Falls back to mock context in non-Vinxi environments
+          let ctx: ActionContext;
+          try {
+            ctx = await createH3Context();
+          } catch {
+            ctx = createContext();
+          }
+
+          // Call beforeExecute hook if provided (only for H3 context)
+          if (beforeExecute && isH3Context(ctx)) {
+            await beforeExecute(ctx);
+          }
 
           // Handle FormData if enabled
           let input: unknown = rawInput;
@@ -719,7 +782,19 @@ const action: Action = Object.assign(
           }
 
           // Execute the procedure directly
-          return await executeProcedureDirectly(procedure, input, ctx, executionOptions);
+          const result = await executeProcedureDirectly(procedure, input, ctx, executionOptions);
+
+          // Call onSuccess hook if execution succeeded (only for H3 context)
+          if (result.success && onSuccess && isH3Context(ctx)) {
+            await onSuccess(result.data, ctx);
+          }
+
+          // Transform result if transformer provided
+          if (result.success && transformResult) {
+            return { success: true, data: transformResult(result.data) as TOutput };
+          }
+
+          return result;
         } catch (err) {
           return handleError(err);
         }

@@ -1,11 +1,14 @@
 /**
  * Login Page
  *
- * Client component for authentication.
+ * Client component for authentication using server actions.
+ * Tokens are stored in httpOnly cookies automatically by the server action.
  */
 'use client';
 
 import { useState } from 'react';
+
+import { login } from '@/actions/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,24 +22,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      // Call server action - tokens are stored in httpOnly cookies automatically
+      const result = await login({ email, password });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || 'Login failed');
+      if (!result.success) {
+        throw new Error(result.error.message);
       }
 
-      const tokens = await response.json();
-
-      // Store tokens (in production, use httpOnly cookies)
-      localStorage.setItem('accessToken', tokens.accessToken);
-      localStorage.setItem('refreshToken', tokens.refreshToken);
-
-      // Redirect to dashboard
+      // Redirect to dashboard (cookies are already set by server action)
       window.location.href = '/dashboard';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

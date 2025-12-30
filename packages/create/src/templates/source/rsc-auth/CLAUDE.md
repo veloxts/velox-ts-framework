@@ -41,20 +41,78 @@ __PROJECT_NAME__/
 
 ## Authentication
 
-### JWT-Based Authentication
-- Access tokens (15 min expiry)
-- Refresh tokens (7 day expiry)
+### JWT-Based Authentication with httpOnly Cookies
+- Access tokens (15 min expiry) stored in httpOnly cookies
+- Refresh tokens (7 day expiry) stored in httpOnly cookies
 - Secure password hashing (bcrypt)
 - Rate limiting on auth endpoints
 - Token revocation support
+- Tokens are NOT accessible to JavaScript (XSS protection)
 
-### Auth Endpoints
+### Auth Architecture
+
+This template uses the **Procedure Bridge Pattern** for authentication:
+
+1. **Server Actions** (`app/actions/auth.ts`) call auth procedures directly
+2. **Tokens are stored in httpOnly cookies** by server actions (not localStorage)
+3. **API requests use cookies** via `credentials: 'include'`
+
+```typescript
+// app/actions/auth.ts - Procedure Bridge Pattern
+'use server';
+import { authAction } from '@veloxts/web';
+import { authProcedures } from '@/api/procedures/auth';
+import { db } from '@/api/database';
+
+// Login: executes procedure directly, stores tokens in httpOnly cookies
+export const login = authAction.fromTokenProcedure(
+  authProcedures.procedures.createSession,
+  { parseFormData: true, contextExtensions: { db }, skipGuards: true }
+);
+
+// Register: same pattern
+export const register = authAction.fromTokenProcedure(
+  authProcedures.procedures.createAccount,
+  { parseFormData: true, contextExtensions: { db }, skipGuards: true }
+);
+
+// Logout: clears auth cookies
+export const logout = authAction.fromLogoutProcedure(
+  authProcedures.procedures.deleteSession,
+  { contextExtensions: { db }, skipGuards: true }
+);
+```
+
+### Why Procedure Bridge vs HTTP Fetch?
+
+| Aspect | Procedure Bridge | HTTP Fetch |
+|--------|-----------------|------------|
+| Network | Direct in-process | HTTP round-trip |
+| Type Safety | Full inference | Lost at boundary |
+| Cookie Access | Yes (server action) | No (client-side) |
+| Guards/Middleware | Reused | Bypassed |
+| URL Hardcoding | None | Required |
+
+### Auth Endpoints (REST API)
 ```
 POST /api/auth/register  - Create new account
 POST /api/auth/login     - Authenticate, get tokens
 POST /api/auth/refresh   - Refresh access token
 POST /api/auth/logout    - Revoke current token
 GET  /api/auth/me        - Get current user (protected)
+```
+
+### Client-Side Auth
+
+```typescript
+// Dashboard - uses cookies automatically
+const response = await fetch('/api/auth/me', {
+  credentials: 'include',  // Sends httpOnly cookies
+});
+
+// Logout - uses server action
+import { logout } from '@/actions/auth';
+await logout();  // Clears cookies server-side
 ```
 
 ### Password Requirements

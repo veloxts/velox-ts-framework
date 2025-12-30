@@ -1,11 +1,15 @@
 'use server';
 
 /**
- * Authentication Server Actions
+ * Authentication Server Actions - Procedure Bridge Pattern
  *
- * Server actions for authentication flows using validated() helper.
- * These bridge to the API auth procedures while providing RSC-friendly
- * interfaces for login, registration, and session management.
+ * Uses authAction helpers to execute auth procedures directly,
+ * storing tokens in httpOnly cookies for security.
+ *
+ * This is the recommended pattern for authentication in VeloxTS RSC apps:
+ * - Tokens are stored in httpOnly cookies (not accessible to JavaScript)
+ * - The procedure's validation, guards, and business logic are reused
+ * - No HTTP round-trip overhead (direct in-process execution)
  *
  * @example
  * ```tsx
@@ -13,8 +17,7 @@
  * const result = await login({ email: 'user@example.com', password: '...' });
  *
  * if (result.success) {
- *   // Store tokens and redirect
- *   localStorage.setItem('accessToken', result.data.accessToken);
+ *   // Tokens are stored in cookies automatically
  *   redirect('/dashboard');
  * } else {
  *   setError(result.error.message);
@@ -22,107 +25,81 @@
  * ```
  */
 
-import { validated } from '@veloxts/web';
+import { authAction, validated } from '@veloxts/web';
 import { z } from 'zod';
 
 import { db } from '@/api/database';
-
-// We can't import from @veloxts/velox in server actions directly due to
-// bundling constraints, so we re-implement minimal auth logic here.
-// For production, consider using the procedure bridge pattern instead.
+import { authProcedures } from '@/api/procedures/auth';
 
 // ============================================================================
-// Schemas
-// ============================================================================
-
-const LoginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-const RegisterSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  email: z.string().email('Invalid email address'),
-  password: z
-    .string()
-    .min(12, 'Password must be at least 12 characters')
-    .max(128)
-    .refine((pwd) => /[a-z]/.test(pwd), 'Must contain lowercase letter')
-    .refine((pwd) => /[A-Z]/.test(pwd), 'Must contain uppercase letter')
-    .refine((pwd) => /[0-9]/.test(pwd), 'Must contain a number'),
-});
-
-// ============================================================================
-// Auth Actions (using API fetch internally)
+// Auth Actions (Procedure Bridge Pattern)
 // ============================================================================
 
 /**
- * Login action - validates credentials via API
+ * Login action - validates credentials, stores tokens in httpOnly cookies
  *
- * This action calls the API auth endpoint internally.
- * Rate limited to prevent brute force attacks.
+ * Uses the procedure bridge pattern to:
+ * 1. Execute the createSession procedure directly (no HTTP)
+ * 2. Store tokens in httpOnly cookies via onSuccess callback
+ * 3. Return a sanitized response (tokens stripped for security)
+ *
+ * Rate limited via the procedure's middleware (5 attempts per 15 minutes).
  */
-export const login = validated(
-  LoginSchema,
-  async (input) => {
-    // Call the internal API endpoint
-    const response = await fetch('http://localhost:3030/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Login failed' }));
-      throw new Error(error.message || 'Invalid email or password');
-    }
-
-    const tokens = await response.json();
-    return tokens;
-  },
+export const login = authAction.fromTokenProcedure(
+  authProcedures.procedures.createSession,
   {
-    rateLimit: {
-      maxRequests: 5,
-      windowMs: 15 * 60 * 1000, // 5 attempts per 15 minutes
-    },
+    parseFormData: true,
+    contextExtensions: { db },
+    skipGuards: true, // Login has no guards, only rate limit middleware
   }
 );
 
 /**
- * Register action - creates new account via API
+ * Register action - creates new account, stores tokens in httpOnly cookies
  *
- * Strict rate limiting to prevent abuse.
+ * Uses the procedure bridge pattern to:
+ * 1. Execute the createAccount procedure directly
+ * 2. Store tokens in httpOnly cookies
+ * 3. Return sanitized response
+ *
+ * Rate limited via the procedure's middleware (3 attempts per hour).
  */
-export const register = validated(
-  RegisterSchema,
-  async (input) => {
-    const response = await fetch('http://localhost:3030/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Registration failed' }));
-      throw new Error(error.message || 'Could not create account');
-    }
-
-    const tokens = await response.json();
-    return tokens;
-  },
+export const register = authAction.fromTokenProcedure(
+  authProcedures.procedures.createAccount,
   {
-    rateLimit: {
-      maxRequests: 3,
-      windowMs: 60 * 60 * 1000, // 3 registrations per hour
-    },
+    parseFormData: true,
+    contextExtensions: { db },
+    skipGuards: true, // Register has no guards, only rate limit middleware
   }
 );
 
 /**
- * Check if email is available
+ * Logout action - clears auth cookies
  *
- * Useful for real-time form validation.
- * Rate limited to prevent email enumeration.
+ * For logout, we clear cookies client-side since the deleteSession procedure
+ * requires authenticated context which is complex to set up in server actions.
+ * The token will naturally expire.
+ *
+ * For production apps needing token revocation, call the API endpoint directly
+ * from the client or implement a custom logout procedure without guards.
+ */
+export const logout = authAction.fromLogoutProcedure(
+  authProcedures.procedures.deleteSession,
+  {
+    contextExtensions: { db },
+    skipGuards: true, // Skip auth guard - we'll clear cookies regardless
+  }
+);
+
+// ============================================================================
+// Standalone Actions (No Procedure Required)
+// ============================================================================
+
+/**
+ * Check if email is available for registration
+ *
+ * This is a simple database lookup that doesn't need procedure bridge.
+ * Rate limited to prevent email enumeration attacks.
  */
 export const checkEmailAvailable = validated(
   z.object({ email: z.string().email() }),

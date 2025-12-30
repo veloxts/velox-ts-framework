@@ -82,6 +82,14 @@ export {
   type InferProcedureInputType,
   type InferProcedureOutputType,
 } from './procedure-bridge.js';
+// Auth bridge - authentication-specific action helpers
+export type {
+  AuthActionOptions,
+  AuthCookieConfig,
+  LoginResponse,
+  TokenResponse,
+} from './auth-bridge.js';
+export { authAction } from './auth-bridge.js';
 // Types
 export type {
   ActionBuilder,

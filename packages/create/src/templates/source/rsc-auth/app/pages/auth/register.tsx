@@ -1,11 +1,14 @@
 /**
  * Registration Page
  *
- * Client component for user registration.
+ * Client component for user registration using server actions.
+ * Tokens are stored in httpOnly cookies automatically by the server action.
  */
 'use client';
 
 import { useState } from 'react';
+
+import { register } from '@/actions/auth';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -20,24 +23,14 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
-      });
+      // Call server action - tokens are stored in httpOnly cookies automatically
+      const result = await register({ name, email, password });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || 'Registration failed');
+      if (!result.success) {
+        throw new Error(result.error.message);
       }
 
-      const tokens = await response.json();
-
-      // Store tokens
-      localStorage.setItem('accessToken', tokens.accessToken);
-      localStorage.setItem('refreshToken', tokens.refreshToken);
-
-      // Redirect to dashboard
+      // Redirect to dashboard (cookies are already set by server action)
       window.location.href = '/dashboard';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');

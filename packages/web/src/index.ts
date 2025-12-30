@@ -22,6 +22,9 @@ export type {
   ActionRegistry,
   ActionResult,
   ActionSuccess,
+  // Auth bridge types
+  AuthActionOptions,
+  AuthCookieConfig,
   AuthenticatedActionContext,
   CallableAction,
   CallableFormAction,
@@ -36,8 +39,10 @@ export type {
   InferSchemaType,
   InferValidatedInput,
   InferValidatedOutput,
+  LoginResponse,
   RateLimitConfig,
   RegisteredAction,
+  TokenResponse,
   TrpcActionOptions,
   TrpcBridge,
   TrpcBridgeOptions,
@@ -56,6 +61,8 @@ export {
   AuthenticationError,
   AuthorizationError,
   action,
+  // Auth bridge for token-based authentication
+  authAction,
   CsrfError,
   // Action creation
   createAction,
