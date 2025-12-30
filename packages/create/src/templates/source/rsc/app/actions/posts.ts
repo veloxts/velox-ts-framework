@@ -35,7 +35,7 @@
  * ```
  */
 
-import { action } from '@veloxts/web';
+import { action } from '@veloxts/web/server';
 
 import { postProcedures } from '@/api/procedures/posts';
 

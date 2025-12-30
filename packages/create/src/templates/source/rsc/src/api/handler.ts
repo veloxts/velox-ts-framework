@@ -13,7 +13,7 @@
 import { veloxApp } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
 import { rest } from '@veloxts/router';
-import { createH3ApiHandler } from '@veloxts/web';
+import { createH3ApiHandler } from '@veloxts/web/server';
 
 import { db } from './database.js';
 import { healthProcedures } from './procedures/health.js';

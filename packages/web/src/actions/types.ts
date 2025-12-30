@@ -8,6 +8,17 @@
 
 import type { ZodSchema, ZodType } from 'zod';
 
+// Import browser-safe types for local use
+import type {
+  ActionError,
+  ActionErrorCode,
+  ActionResult,
+  ActionSuccess,
+} from '../types/actions.js';
+
+// Re-export from canonical source for consumers
+export type { ActionError, ActionErrorCode, ActionResult, ActionSuccess };
+
 /**
  * Context passed to server actions.
  * Can be extended via declaration merging to add custom properties.
@@ -65,48 +76,8 @@ export interface AuthenticatedActionContext extends ActionContext {
   };
 }
 
-/**
- * Result of a successful action.
- * @public
- */
-export interface ActionSuccess<T> {
-  success: true;
-  data: T;
-}
-
-/**
- * Result of a failed action.
- * @public
- */
-export interface ActionError {
-  success: false;
-  error: {
-    code: ActionErrorCode;
-    message: string;
-    details?: Record<string, unknown>;
-  };
-}
-
-/**
- * Union type for action results.
- * Use discriminated union pattern: `if (result.success) { ... }`.
- * @public
- */
-export type ActionResult<T> = ActionSuccess<T> | ActionError;
-
-/**
- * Standard action error codes.
- * @public
- */
-export type ActionErrorCode =
-  | 'VALIDATION_ERROR'
-  | 'UNAUTHORIZED'
-  | 'FORBIDDEN'
-  | 'NOT_FOUND'
-  | 'CONFLICT'
-  | 'INTERNAL_ERROR'
-  | 'BAD_REQUEST'
-  | 'RATE_LIMITED';
+// ActionSuccess, ActionError, ActionResult, ActionErrorCode are re-exported
+// from ../types/actions.js above to maintain a single source of truth
 
 /**
  * Options for creating a server action.

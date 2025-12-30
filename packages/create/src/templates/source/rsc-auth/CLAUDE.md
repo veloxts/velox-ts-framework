@@ -60,7 +60,7 @@ This template uses the **Procedure Bridge Pattern** for authentication:
 ```typescript
 // app/actions/auth.ts - Procedure Bridge Pattern
 'use server';
-import { authAction } from '@veloxts/web';
+import { authAction } from '@veloxts/web/server';
 import { authProcedures } from '@/api/procedures/auth';
 import { db } from '@/api/database';
 
@@ -129,7 +129,7 @@ Use the `validated()` helper for secure server actions:
 ```typescript
 // app/actions/users.ts
 'use server';
-import { validated, validatedMutation, validatedQuery } from '@veloxts/web';
+import { validated, validatedMutation, validatedQuery } from '@veloxts/web/server';
 import { z } from 'zod';
 
 // Public query (no auth required)

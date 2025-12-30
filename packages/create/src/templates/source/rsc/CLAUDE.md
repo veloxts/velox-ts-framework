@@ -52,7 +52,7 @@ Use `validated()` for secure server actions with built-in protection:
 ```typescript
 // app/actions/users.ts
 'use server';
-import { validated, validatedMutation, validatedQuery } from '@veloxts/web';
+import { validated, validatedMutation, validatedQuery } from '@veloxts/web/server';
 import { z } from 'zod';
 
 // Public query (no auth required)
@@ -106,7 +106,7 @@ Server actions can bridge to API procedures for code reuse:
 ```typescript
 // app/actions/posts.ts
 'use server';
-import { action } from '@veloxts/web';
+import { action } from '@veloxts/web/server';
 import { postProcedures } from '@/api/procedures/posts';
 
 export const createPost = action.fromProcedure(

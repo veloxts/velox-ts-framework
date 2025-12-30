@@ -2,9 +2,13 @@
  * Server Actions Module
  *
  * Type-safe server actions with tRPC bridge support for VeloxTS.
+ * This module contains server-only code and will throw if imported in a client bundle.
  *
  * @module @veloxts/web/actions
  */
+
+// This will throw at runtime if imported in client bundle
+import 'server-only';
 
 export type {
   Action,

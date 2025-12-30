@@ -27,7 +27,7 @@
  * ```
  */
 
-import { validated, validatedMutation, validatedQuery } from '@veloxts/web';
+import { validated, validatedMutation, validatedQuery } from '@veloxts/web/server';
 import { z } from 'zod';
 
 import { db } from '@/api/database';

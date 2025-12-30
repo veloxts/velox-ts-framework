@@ -11,7 +11,7 @@
 
 import { useCallback, useRef, useState, useTransition } from 'react';
 
-import type { ActionError, ActionResult } from '../actions/types.js';
+import type { ActionError, ActionResult } from '../types/actions.js';
 
 // ============================================================================
 // Types

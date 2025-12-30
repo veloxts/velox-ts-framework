@@ -25,7 +25,7 @@
  * ```
  */
 
-import { authAction, validated } from '@veloxts/web';
+import { authAction, validated } from '@veloxts/web/server';
 import { z } from 'zod';
 
 import { db } from '@/api/database';
