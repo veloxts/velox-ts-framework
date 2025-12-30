@@ -43,6 +43,7 @@ import type { ActionResult } from './types.js';
 
 /**
  * Configuration for auth cookies.
+ * @public
  */
 export interface AuthCookieConfig {
   /**
@@ -66,6 +67,7 @@ export interface AuthCookieConfig {
 
 /**
  * Options for creating an auth action from a procedure.
+ * @public
  */
 export interface AuthActionOptions extends ExecuteProcedureOptions {
   /**
@@ -82,6 +84,7 @@ export interface AuthActionOptions extends ExecuteProcedureOptions {
 
 /**
  * Standard token response from auth procedures.
+ * @public
  */
 export interface TokenResponse {
   accessToken: string;
@@ -93,6 +96,7 @@ export interface TokenResponse {
 /**
  * Sanitized login response returned to client.
  * Raw tokens are stripped for security (stored in httpOnly cookies).
+ * @public
  */
 export interface LoginResponse {
   success: boolean;
@@ -101,7 +105,8 @@ export interface LoginResponse {
 
 /**
  * Extended H3 context with refresh token available.
- * Used by beforeExecute hook in fromRefreshProcedure.
+ * Used internally by beforeExecute hook in fromRefreshProcedure.
+ * @internal
  */
 export interface H3ActionContextWithRefreshToken extends H3ActionContext {
   refreshToken?: string;
@@ -125,6 +130,8 @@ export interface H3ActionContextWithRefreshToken extends H3ActionContext {
  *   console.log(result.accessToken);
  * }
  * ```
+ *
+ * @public
  */
 export function isTokenResponse(result: unknown): result is TokenResponse {
   if (typeof result !== 'object' || result === null) {
@@ -142,6 +149,7 @@ export function isTokenResponse(result: unknown): result is TokenResponse {
 /**
  * Asserts that a result is a valid TokenResponse.
  * Throws a descriptive error if validation fails.
+ * @internal
  */
 function assertTokenResponse(result: unknown): asserts result is TokenResponse {
   if (!isTokenResponse(result)) {
@@ -156,6 +164,7 @@ function assertTokenResponse(result: unknown): asserts result is TokenResponse {
 // Default Cookie Configuration
 // ============================================================================
 
+/** @internal */
 const DEFAULT_COOKIE_OPTIONS: H3CookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
@@ -163,7 +172,9 @@ const DEFAULT_COOKIE_OPTIONS: H3CookieOptions = {
   path: '/',
 };
 
+/** @internal */
 const ACCESS_TOKEN_MAX_AGE = 15 * 60; // 15 minutes
+/** @internal */
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
 
 // ============================================================================
@@ -199,6 +210,8 @@ const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
  *   { contextExtensions: { db } }
  * );
  * ```
+ *
+ * @public
  */
 export const authAction = {
   /**

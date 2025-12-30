@@ -10,7 +10,28 @@ import type { ZodSchema, ZodType } from 'zod';
 
 /**
  * Context passed to server actions.
- * Can be extended via declaration merging.
+ * Can be extended via declaration merging to add custom properties.
+ *
+ * @example Extending ActionContext
+ * ```typescript
+ * // In your project's types.d.ts or similar
+ * declare module '@veloxts/web' {
+ *   interface ActionContext {
+ *     db: PrismaClient;
+ *     logger: Logger;
+ *   }
+ * }
+ *
+ * // Now db and logger are available in action handlers
+ * export const createUser = action()
+ *   .input(CreateUserSchema)
+ *   .run(async (input, ctx) => {
+ *     ctx.db.user.create({ data: input });
+ *     ctx.logger.info('User created');
+ *   });
+ * ```
+ *
+ * @public
  */
 export interface ActionContext {
   /**
@@ -30,7 +51,9 @@ export interface ActionContext {
 }
 
 /**
- * Extended action context with user info (when authenticated)
+ * Extended action context with user info (when authenticated).
+ * Available when using `.protected()` in the action builder.
+ * @public
  */
 export interface AuthenticatedActionContext extends ActionContext {
   /**
@@ -43,7 +66,8 @@ export interface AuthenticatedActionContext extends ActionContext {
 }
 
 /**
- * Result of a successful action
+ * Result of a successful action.
+ * @public
  */
 export interface ActionSuccess<T> {
   success: true;
@@ -51,7 +75,8 @@ export interface ActionSuccess<T> {
 }
 
 /**
- * Result of a failed action
+ * Result of a failed action.
+ * @public
  */
 export interface ActionError {
   success: false;
@@ -63,12 +88,15 @@ export interface ActionError {
 }
 
 /**
- * Union type for action results
+ * Union type for action results.
+ * Use discriminated union pattern: `if (result.success) { ... }`.
+ * @public
  */
 export type ActionResult<T> = ActionSuccess<T> | ActionError;
 
 /**
- * Standard action error codes
+ * Standard action error codes.
+ * @public
  */
 export type ActionErrorCode =
   | 'VALIDATION_ERROR'
@@ -81,7 +109,8 @@ export type ActionErrorCode =
   | 'RATE_LIMITED';
 
 /**
- * Options for creating a server action
+ * Options for creating a server action.
+ * @public
  */
 export interface CreateActionOptions<TInput, TOutput> {
   /**
@@ -107,7 +136,8 @@ export interface CreateActionOptions<TInput, TOutput> {
 }
 
 /**
- * Server action handler function type
+ * Server action handler function type.
+ * @public
  */
 export type ActionHandler<TInput, TOutput, TContext extends ActionContext = ActionContext> = (
   input: TInput,
@@ -115,7 +145,8 @@ export type ActionHandler<TInput, TOutput, TContext extends ActionContext = Acti
 ) => Promise<TOutput>;
 
 /**
- * Form action handler function type
+ * Form action handler function type.
+ * @public
  */
 export type FormActionHandler<TOutput, TContext extends ActionContext = ActionContext> = (
   formData: FormData,
@@ -123,17 +154,20 @@ export type FormActionHandler<TOutput, TContext extends ActionContext = ActionCo
 ) => Promise<TOutput>;
 
 /**
- * Callable server action (what gets exported)
+ * Callable server action (what gets exported from 'use server' files).
+ * @public
  */
 export type CallableAction<TInput, TOutput> = (input: TInput) => Promise<ActionResult<TOutput>>;
 
 /**
- * Callable form action (what gets exported)
+ * Callable form action (what gets exported from 'use server' files).
+ * @public
  */
 export type CallableFormAction<TOutput> = (formData: FormData) => Promise<ActionResult<TOutput>>;
 
 /**
- * Action metadata for registration and introspection
+ * Action metadata for registration and introspection.
+ * @public
  */
 export interface ActionMetadata {
   /**
@@ -163,7 +197,8 @@ export interface ActionMetadata {
 }
 
 /**
- * Registered action with metadata
+ * Registered action with metadata.
+ * @public
  */
 export interface RegisteredAction<TInput = unknown, TOutput = unknown> {
   /**
@@ -183,7 +218,8 @@ export interface RegisteredAction<TInput = unknown, TOutput = unknown> {
 }
 
 /**
- * Action registry for managing registered actions
+ * Action registry for managing registered actions.
+ * @public
  */
 export interface ActionRegistry {
   /**
@@ -215,7 +251,8 @@ export interface ActionRegistry {
 }
 
 /**
- * Options for the tRPC bridge
+ * Options for the tRPC bridge.
+ * @public
  */
 export interface TrpcBridgeOptions {
   /**
@@ -260,7 +297,8 @@ export interface TrpcBridgeOptions {
 }
 
 /**
- * tRPC procedure caller type
+ * tRPC procedure caller type.
+ * @public
  */
 export type ProcedureCaller<TRouter> = {
   [K in keyof TRouter]: TRouter[K] extends (...args: infer A) => infer R
@@ -269,7 +307,8 @@ export type ProcedureCaller<TRouter> = {
 };
 
 /**
- * Action builder for fluent API
+ * Action builder for fluent API.
+ * @public
  */
 export interface ActionBuilder<TInput, TOutput, TContext extends ActionContext> {
   /**

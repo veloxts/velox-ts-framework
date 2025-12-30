@@ -64,6 +64,7 @@ import type {
 /**
  * Handler function that receives validated input and returns output.
  * The context type varies based on whether the action is protected.
+ * @public
  */
 type ActionHandlerFn<TInput, TOutput, TContext extends ActionContext = ActionContext> = (
   input: TInput,
@@ -76,12 +77,14 @@ type ActionHandlerFn<TInput, TOutput, TContext extends ActionContext = ActionCon
  *
  * Note: Named `ValidatedAction` to distinguish from the simpler `ServerAction`
  * type in types.ts which does not wrap the output in ActionResult.
+ * @public
  */
 type ValidatedAction<TInput, TOutput> = (input: TInput) => Promise<ActionResult<TOutput>>;
 
 /**
  * Configuration options for action creation.
  * These are set via the fluent builder methods.
+ * @public
  */
 interface ActionConfig<TInput, TOutput, TContext extends ActionContext> {
   inputSchema?: ZodSchema<TInput>;
@@ -92,6 +95,7 @@ interface ActionConfig<TInput, TOutput, TContext extends ActionContext> {
 
 /**
  * Custom error handler type.
+ * @public
  */
 type ErrorHandler<TContext extends ActionContext = ActionContext> = (
   error: unknown,
@@ -100,6 +104,7 @@ type ErrorHandler<TContext extends ActionContext = ActionContext> = (
 
 /**
  * Options for creating an action from a procedure.
+ * @public
  */
 interface FromProcedureOptions extends ExecuteProcedureOptions {
   /**
@@ -162,6 +167,7 @@ interface FromProcedureOptions extends ExecuteProcedureOptions {
 /**
  * Builder for creating actions with fluent method chaining.
  * Each method returns a new builder with updated type parameters.
+ * @public
  */
 interface ActionBuilder<
   TInput = unknown,
@@ -255,6 +261,7 @@ interface ActionBuilder<
 
 /**
  * Creates a successful action result.
+ * @internal
  */
 function ok<T>(data: T): ActionSuccess<T> {
   return { success: true, data };
@@ -262,6 +269,7 @@ function ok<T>(data: T): ActionSuccess<T> {
 
 /**
  * Creates an error action result.
+ * @internal
  */
 function fail(
   code: ActionErrorCode,
@@ -280,6 +288,7 @@ function fail(
 
 /**
  * Formats a Zod error into an ActionError.
+ * @internal
  */
 function formatZodError(err: unknown): ActionError {
   if (err instanceof ZodError) {
@@ -302,6 +311,7 @@ function formatZodError(err: unknown): ActionError {
  * when the schema has async refinements.
  *
  * @see https://zod.dev/?id=parseasync - Zod async parsing docs
+ * @internal
  */
 async function validateWithSchema<T>(
   schema: ZodSchema<T>,
@@ -341,6 +351,7 @@ async function validateWithSchema<T>(
  *
  * Note: In production with Vinxi integration, this will be replaced
  * with real request context from the server.
+ * @internal
  */
 function createContext(): ActionContext {
   const headers = new Headers();
@@ -354,6 +365,7 @@ function createContext(): ActionContext {
 
 /**
  * Type guard to check if context has an authenticated user.
+ * @internal
  */
 function hasAuthenticatedUser(ctx: ActionContext): ctx is AuthenticatedActionContext {
   return 'user' in ctx && ctx.user !== undefined && ctx.user !== null;
@@ -370,6 +382,7 @@ function hasAuthenticatedUser(ctx: ActionContext): ctx is AuthenticatedActionCon
  * for consistent error handling across all action types.
  *
  * @see toActionError - The underlying classification function
+ * @internal
  */
 function handleError(err: unknown): ActionError {
   return toActionError(err);
@@ -381,6 +394,7 @@ function handleError(err: unknown): ActionError {
 
 /**
  * Creates a new builder instance with the given configuration.
+ * @internal
  */
 function createBuilder<
   TInput = unknown,
@@ -424,6 +438,7 @@ function createBuilder<
 
 /**
  * Creates the final validated action function from config and handler.
+ * @internal
  */
 function createValidatedAction<TInput, TOutput, TContext extends ActionContext>(
   config: ActionConfig<TInput, TOutput, TContext>,
@@ -481,6 +496,7 @@ function createValidatedAction<TInput, TOutput, TContext extends ActionContext>(
 
 /**
  * Action helper type - combines function signature with builder methods.
+ * @public
  */
 interface Action {
   /**
@@ -708,6 +724,8 @@ interface Action {
  * ```typescript
  * { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } }
  * ```
+ *
+ * @public
  */
 const action: Action = Object.assign(
   // Primary function signature: action(schema, handler)
