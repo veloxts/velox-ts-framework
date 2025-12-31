@@ -109,7 +109,7 @@ export async function migrate(options: MigrateOptions): Promise<MigrateResult> {
   const args = buildArgs(options);
 
   return new Promise((resolve) => {
-    const child = spawn('npx', ['velox', ...args], {
+    const child = spawn('npx', ['@veloxts/cli', ...args], {
       cwd: projectRoot,
       shell: true,
       stdio: ['pipe', 'pipe', 'pipe'],

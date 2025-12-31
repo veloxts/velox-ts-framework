@@ -76,7 +76,7 @@ describe('Generate Tool', () => {
 
       const result = await promise;
 
-      expect(spawn).toHaveBeenCalledWith('npx', ['velox', 'make', 'procedure', 'User'], {
+      expect(spawn).toHaveBeenCalledWith('npx', ['@veloxts/cli', 'make', 'procedure', 'User'], {
         cwd: '/project',
         shell: true,
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -100,7 +100,7 @@ describe('Generate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'make', 'resource', 'User', '--crud'],
+        ['@veloxts/cli', 'make', 'resource', 'User', '--crud'],
         expect.any(Object)
       );
     });
@@ -132,7 +132,7 @@ describe('Generate Tool', () => {
       expect(spawn).toHaveBeenCalledWith(
         'npx',
         [
-          'velox',
+          '@veloxts/cli',
           'make',
           'procedure',
           'User',
@@ -267,7 +267,7 @@ describe('Generate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'make', 'procedure', 'User', '--crud'],
+        ['@veloxts/cli', 'make', 'procedure', 'User', '--crud'],
         expect.any(Object)
       );
     });
@@ -288,7 +288,7 @@ describe('Generate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'make', 'schema', 'User'],
+        ['@veloxts/cli', 'make', 'schema', 'User'],
         expect.any(Object)
       );
     });
@@ -309,7 +309,7 @@ describe('Generate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'make', 'resource', 'User', '--crud', '--paginated'],
+        ['@veloxts/cli', 'make', 'resource', 'User', '--crud', '--paginated'],
         expect.any(Object)
       );
     });
@@ -379,7 +379,7 @@ describe('Migrate Tool', () => {
 
       const result = await promise;
 
-      expect(spawn).toHaveBeenCalledWith('npx', ['velox', 'migrate', 'status'], {
+      expect(spawn).toHaveBeenCalledWith('npx', ['@veloxts/cli', 'migrate', 'status'], {
         cwd: '/project',
         shell: true,
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -403,7 +403,7 @@ describe('Migrate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'migrate', 'run', '--dev'],
+        ['@veloxts/cli', 'migrate', 'run', '--dev'],
         expect.any(Object)
       );
     });
@@ -424,7 +424,7 @@ describe('Migrate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'migrate', 'run', '--dev', '--json', '--dry-run'],
+        ['@veloxts/cli', 'migrate', 'run', '--dev', '--json', '--dry-run'],
         expect.any(Object)
       );
     });
@@ -534,7 +534,7 @@ describe('Migrate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'migrate', 'status', '--json'],
+        ['@veloxts/cli', 'migrate', 'status', '--json'],
         expect.any(Object)
       );
     });
@@ -555,7 +555,7 @@ describe('Migrate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'migrate', 'run', '--dev', '--json'],
+        ['@veloxts/cli', 'migrate', 'run', '--dev', '--json'],
         expect.any(Object)
       );
     });
@@ -576,7 +576,7 @@ describe('Migrate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'migrate', 'rollback', '--json', '--dry-run'],
+        ['@veloxts/cli', 'migrate', 'rollback', '--json', '--dry-run'],
         expect.any(Object)
       );
     });
@@ -597,7 +597,7 @@ describe('Migrate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'migrate', 'fresh', '--json'],
+        ['@veloxts/cli', 'migrate', 'fresh', '--json'],
         expect.any(Object)
       );
     });
@@ -618,7 +618,7 @@ describe('Migrate Tool', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['velox', 'migrate', 'reset', '--json'],
+        ['@veloxts/cli', 'migrate', 'reset', '--json'],
         expect.any(Object)
       );
     });
