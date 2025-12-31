@@ -245,10 +245,10 @@ The MCP server auto-discovers VeloxTS projects:
 
 ```bash
 # Start the MCP server
-npx velox-mcp
+npx @veloxts/mcp
 
 # Or with debug logging
-npx velox-mcp --debug
+npx @veloxts/mcp --debug
 ```
 
 ### Setup for Claude Desktop
