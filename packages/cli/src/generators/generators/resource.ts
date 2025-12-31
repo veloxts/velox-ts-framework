@@ -30,10 +30,7 @@ import type {
   GeneratorOption,
   GeneratorOutput,
 } from '../types.js';
-import {
-  findAllSimilarFiles,
-  formatSimilarFilesWarning,
-} from '../utils/filesystem.js';
+import { findAllSimilarFiles, formatSimilarFilesWarning } from '../utils/filesystem.js';
 import { deriveEntityNames } from '../utils/naming.js';
 import { promptAndRunMigration } from '../utils/prisma-migration.js';
 import {

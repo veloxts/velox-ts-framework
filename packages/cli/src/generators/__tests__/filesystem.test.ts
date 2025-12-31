@@ -3,8 +3,8 @@
  */
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join, normalize } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join, normalize } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -202,7 +202,11 @@ describe('Similar File Detection', () => {
         {
           hasSimilar: true,
           files: [
-            { path: 'src/procedures/users.ts', reason: 'plural', targetPath: 'src/procedures/user.ts' },
+            {
+              path: 'src/procedures/users.ts',
+              reason: 'plural',
+              targetPath: 'src/procedures/user.ts',
+            },
           ],
         },
         'User'
@@ -236,7 +240,9 @@ describe('Similar File Detection', () => {
       const suffixResult = formatSimilarFilesWarning(
         {
           hasSimilar: true,
-          files: [{ path: 'src/user.schema.ts', reason: 'different-suffix', targetPath: 'src/user.ts' }],
+          files: [
+            { path: 'src/user.schema.ts', reason: 'different-suffix', targetPath: 'src/user.ts' },
+          ],
         },
         'User'
       );
@@ -248,8 +254,16 @@ describe('Similar File Detection', () => {
         {
           hasSimilar: true,
           files: [
-            { path: 'src/procedures/users.ts', reason: 'plural', targetPath: 'src/procedures/user.ts' },
-            { path: 'src/schemas/user.schema.ts', reason: 'different-suffix', targetPath: 'src/schemas/user.ts' },
+            {
+              path: 'src/procedures/users.ts',
+              reason: 'plural',
+              targetPath: 'src/procedures/user.ts',
+            },
+            {
+              path: 'src/schemas/user.schema.ts',
+              reason: 'different-suffix',
+              targetPath: 'src/schemas/user.ts',
+            },
           ],
         },
         'User'
