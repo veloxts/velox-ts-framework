@@ -8,6 +8,7 @@ import { EventEmitter } from 'node:events';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import type { ResolvedCLI } from '../../utils/cli.js';
 import { findProjectRoot } from '../../utils/project.js';
 import {
   formatGenerateResult,
@@ -34,6 +35,17 @@ vi.mock('node:child_process', () => ({
 // Mock project utilities
 vi.mock('../../utils/project.js', () => ({
   findProjectRoot: vi.fn(),
+}));
+
+// Mock CLI resolution to always use npx fallback for consistent test behavior
+vi.mock('../../utils/cli.js', () => ({
+  resolveVeloxCLI: vi.fn(
+    (_projectRoot: string, args: string[]): ResolvedCLI => ({
+      command: 'npx',
+      args: ['@veloxts/cli', ...args],
+      isNpx: true,
+    })
+  ),
 }));
 
 /**

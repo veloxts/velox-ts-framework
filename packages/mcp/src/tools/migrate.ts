@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process';
 
 import { z } from 'zod';
 
+import { resolveVeloxCLI } from '../utils/cli.js';
 import { findProjectRoot } from '../utils/project.js';
 
 // ============================================================================
@@ -107,11 +108,12 @@ export async function migrate(options: MigrateOptions): Promise<MigrateResult> {
   }
 
   const args = buildArgs(options);
+  const resolved = resolveVeloxCLI(projectRoot, args);
 
   return new Promise((resolve) => {
-    const child = spawn('npx', ['@veloxts/cli', ...args], {
+    const child = spawn(resolved.command, resolved.args, {
       cwd: projectRoot,
-      shell: true,
+      shell: resolved.isNpx, // Only use shell for npx fallback
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
