@@ -12,7 +12,8 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createMcpCommand } from '../mcp.js';
 
@@ -48,7 +49,13 @@ function getExpectedConfigPath(): string {
 
   switch (platformName) {
     case 'darwin':
-      return join(homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+      return join(
+        homedir(),
+        'Library',
+        'Application Support',
+        'Claude',
+        'claude_desktop_config.json'
+      );
     case 'win32':
       return join(process.env.APPDATA || '', 'Claude', 'claude_desktop_config.json');
     case 'linux':
@@ -56,26 +63,6 @@ function getExpectedConfigPath(): string {
     default:
       return '';
   }
-}
-
-/**
- * Mock stdout to capture output
- */
-function mockStdout(): { output: string[]; restore: () => void } {
-  const output: string[] = [];
-  const originalWrite = process.stdout.write.bind(process.stdout);
-
-  process.stdout.write = ((chunk: unknown): boolean => {
-    output.push(String(chunk));
-    return true;
-  }) as typeof process.stdout.write;
-
-  return {
-    output,
-    restore: () => {
-      process.stdout.write = originalWrite;
-    },
-  };
 }
 
 // ============================================================================
