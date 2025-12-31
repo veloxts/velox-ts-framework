@@ -93,6 +93,24 @@ velox make seeder user      # Scaffold database seeder
 velox make factory user     # Scaffold model factory
 ```
 
+### velox mcp init
+
+Set up Model Context Protocol (MCP) server for Claude Desktop:
+
+```bash
+velox mcp init             # Configure Claude Desktop for VeloxTS
+velox mcp init --dry-run   # Preview configuration changes
+velox mcp init --force     # Overwrite existing configuration
+velox mcp init --json      # Output as JSON for scripting
+```
+
+The MCP server exposes your VeloxTS project's context to Claude Desktop and other AI assistants that support the Model Context Protocol. After running this command, restart Claude Desktop to activate the integration.
+
+Supported platforms:
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+
 ## Database Seeding
 
 ### Creating Seeders

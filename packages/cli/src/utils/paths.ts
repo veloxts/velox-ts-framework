@@ -2,7 +2,8 @@
  * Path utilities for finding project files
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 /**
@@ -180,4 +181,27 @@ export async function detectProjectType(cwd: string = process.cwd()): Promise<Pr
     result.isVinxi = hasAppConfig;
     return result;
   }
+}
+
+/**
+ * Read and parse a JSON file
+ */
+export async function readJsonFile<T = unknown>(filePath: string): Promise<T> {
+  const content = await readFile(filePath, 'utf-8');
+  return JSON.parse(content) as T;
+}
+
+/**
+ * Write a JSON file with pretty formatting
+ */
+export async function writeJsonFile(filePath: string, data: unknown): Promise<void> {
+  const content = JSON.stringify(data, null, 2);
+  await writeFile(filePath, content, 'utf-8');
+}
+
+/**
+ * Create a directory recursively
+ */
+export function createDirectory(dirPath: string): void {
+  mkdirSync(dirPath, { recursive: true });
 }
