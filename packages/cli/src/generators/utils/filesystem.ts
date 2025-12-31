@@ -6,7 +6,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, relative } from 'node:path';
+import { dirname, join, normalize, relative } from 'node:path';
 
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
@@ -315,7 +315,7 @@ export interface SimilarFile {
   /** Path to the similar file */
   path: string;
   /** Why this is considered similar */
-  reason: 'singular' | 'plural' | 'different-suffix' | 'exact';
+  reason: 'singular' | 'plural' | 'different-suffix';
   /** The file we were looking for when we found this */
   targetPath: string;
 }
@@ -383,9 +383,8 @@ export function findSimilarFiles(
     `${pluralName}.schema`, // users.schema
   ]);
 
-  // Get the target filename without extension
-  const targetFilename = basename(targetPath);
-  const targetBase = targetFilename.replace(/\.(ts|js|tsx|jsx)$/, '');
+  // Normalize target path for consistent comparison across platforms
+  const normalizedTargetPath = normalize(targetPath);
 
   for (const file of filesInDir) {
     // Skip non-TS/JS files
@@ -395,35 +394,30 @@ export function findSimilarFiles(
 
     // Get base name without extension
     const fileBase = file.replace(/\.(ts|js|tsx|jsx)$/, '');
-    const filePath = join(dir, file);
-    const fullFilePath = join(projectRoot, filePath);
+    const filePath = normalize(join(dir, file));
 
     // Skip the exact target (will be handled by normal conflict detection)
-    if (filePath === targetPath) {
+    if (filePath === normalizedTargetPath) {
       continue;
     }
 
     // Check if this file matches any of our patterns
     if (patterns.has(fileBase)) {
-      // Determine the reason
-      let reason: SimilarFile['reason'];
-      if (fileBase === targetBase) {
-        reason = 'exact';
-      } else if (fileBase === singularName || fileBase === pluralName) {
-        reason = fileBase === singularName ? 'singular' : 'plural';
-      } else {
-        reason = 'different-suffix';
-      }
+      // Determine the reason: singular/plural or different naming convention
+      const reason: SimilarFile['reason'] =
+        fileBase === singularName
+          ? 'singular'
+          : fileBase === pluralName
+            ? 'plural'
+            : 'different-suffix';
 
-      // Only report if file actually exists
-      if (existsSync(fullFilePath)) {
-        result.files.push({
-          path: filePath,
-          reason,
-          targetPath,
-        });
-        result.hasSimilar = true;
-      }
+      // File exists since we got it from readdirSync
+      result.files.push({
+        path: filePath,
+        reason,
+        targetPath,
+      });
+      result.hasSimilar = true;
     }
   }
 
@@ -473,9 +467,7 @@ export function formatSimilarFilesWarning(result: SimilarFilesResult, entityName
         ? '(singular form)'
         : file.reason === 'plural'
           ? '(plural form)'
-          : file.reason === 'different-suffix'
-            ? '(different naming convention)'
-            : '';
+          : '(different naming convention)';
 
     lines.push(`  ${pc.cyan(file.path)} ${pc.dim(reasonText)}`);
   }
