@@ -228,3 +228,59 @@ JWT_REFRESH_SECRET="..."
 - `POST /api/users` - Create user
 - `PUT /api/users/:id` - Update user
 - `DELETE /api/users/:id` - Delete user
+
+## AI-Powered Development with MCP
+
+VeloxTS includes a **Model Context Protocol (MCP) server** that gives AI assistants like Claude direct access to your project structure. This enables intelligent code assistance with full awareness of your procedures, schemas, routes, and error codes.
+
+### What You Get
+
+- **Resources**: Real-time project introspection (procedures, routes, schemas, errors)
+- **Tools**: Code generation and database migration commands
+- **Prompts**: Best practice templates for common VeloxTS tasks
+
+### Setup for Claude Code (CLI)
+
+The MCP server auto-discovers VeloxTS projects:
+
+```bash
+# Start the MCP server
+npx velox-mcp
+
+# Or with debug logging
+npx velox-mcp --debug
+```
+
+### Setup for Claude Desktop
+
+Add this to your Claude Desktop configuration file:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "veloxts": {
+      "command": "npx",
+      "args": ["@veloxts/mcp"]
+    }
+  }
+}
+```
+
+Restart Claude Desktop after adding the configuration.
+
+### What Claude Can Do With MCP
+
+| Capability | Description |
+|------------|-------------|
+| Generate Code | Create procedures, schemas, models, resources, tests |
+| Run Migrations | Check status, run, rollback, fresh, reset |
+| Access Context | List procedures, routes, schemas, error codes |
+
+### Example Prompts
+
+1. **"Generate a complete CRUD resource for BlogPost with pagination"**
+2. **"Show me all my API procedures and their REST endpoints"**
+3. **"Run pending database migrations and show the status"**
