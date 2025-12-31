@@ -424,12 +424,11 @@ export class ResourceGenerator extends BaseGenerator<ResourceCliOptions> {
 
       // Step 3: Run Prisma migration (if model was injected and migration not skipped)
       if (result.prismaInjected && !flags.skipMigration) {
-        const migResult = await promptAndRunMigration({
+        result.migrationRun = await promptAndRunMigration({
           cwd: projectRoot,
           autoRun: flags.autoMigrate,
           skip: false,
         });
-        result.migrationRun = migResult;
       }
 
       return result;
