@@ -30,6 +30,10 @@ import type {
   GeneratorOption,
   GeneratorOutput,
 } from '../types.js';
+import {
+  findAllSimilarFiles,
+  formatSimilarFilesWarning,
+} from '../utils/filesystem.js';
 import { deriveEntityNames } from '../utils/naming.js';
 import { promptAndRunMigration } from '../utils/prisma-migration.js';
 import {
@@ -269,6 +273,45 @@ export class ResourceGenerator extends BaseGenerator<ResourceCliOptions> {
       project: config.project,
       options: templateOptions,
     };
+
+    // Check for similar files (singular/plural variants) before generating
+    // This helps prevent accidental duplicate entities like user.ts vs users.ts
+    if (!config.force && !config.dryRun) {
+      const targetPaths = [
+        `src/procedures/${ctx.entity.kebab}.ts`,
+        `src/schemas/${ctx.entity.kebab}.schema.ts`,
+      ];
+
+      const similarResult = findAllSimilarFiles(config.cwd, targetPaths, ctx.entity.kebab);
+
+      if (similarResult.hasSimilar) {
+        const warningMessage = formatSimilarFilesWarning(similarResult, config.entityName);
+        p.log.warn(warningMessage);
+
+        // In interactive mode, ask user to confirm
+        if (interactive) {
+          const shouldContinue = await p.confirm({
+            message: 'Do you want to continue anyway?',
+            initialValue: false,
+          });
+
+          if (p.isCancel(shouldContinue) || !shouldContinue) {
+            return {
+              files: [],
+              postInstructions: 'Generation cancelled due to similar existing files.',
+            };
+          }
+        } else {
+          // In non-interactive mode, abort and suggest --force
+          p.log.error('Use --force to generate anyway, or choose a different entity name.');
+          return {
+            files: [],
+            postInstructions:
+              'Generation aborted: similar files already exist. Use --force to override.',
+          };
+        }
+      }
+    }
 
     // Show spinner during actual file generation
     // Only show if we're in interactive mode (we collected fields or user opted to skip)

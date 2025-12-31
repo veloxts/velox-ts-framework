@@ -5,14 +5,15 @@
  * and interactive prompting support.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, relative } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join, relative } from 'node:path';
 
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 
 import type { ConflictStrategy, GeneratedFile } from '../types.js';
 import { GeneratorError, GeneratorErrorCode } from '../types.js';
+import { pluralize, singularize } from './naming.js';
 
 // ============================================================================
 // File Writing
@@ -301,4 +302,189 @@ export function formatWriteResultsJson(results: ReadonlyArray<WriteResult>): str
     null,
     2
   );
+}
+
+// ============================================================================
+// Similar File Detection
+// ============================================================================
+
+/**
+ * Information about a similar file that was found
+ */
+export interface SimilarFile {
+  /** Path to the similar file */
+  path: string;
+  /** Why this is considered similar */
+  reason: 'singular' | 'plural' | 'different-suffix' | 'exact';
+  /** The file we were looking for when we found this */
+  targetPath: string;
+}
+
+/**
+ * Result of checking for similar files
+ */
+export interface SimilarFilesResult {
+  /** Whether any similar files were found */
+  hasSimilar: boolean;
+  /** List of similar files found */
+  files: SimilarFile[];
+}
+
+/**
+ * Find similar files that might conflict with intended generation.
+ *
+ * This checks for naming variations that could indicate duplicate entities:
+ * - Singular vs plural forms (user.ts vs users.ts)
+ * - Different file suffixes (user.ts vs user.schema.ts)
+ *
+ * @example
+ * findSimilarFiles('/project', 'src/procedures/user.ts', 'user')
+ * // Might find: src/procedures/users.ts
+ *
+ * @param projectRoot - Project root directory
+ * @param targetPath - Path we intend to create
+ * @param entityKebab - Entity name in kebab-case (e.g., 'user', 'blog-post')
+ */
+export function findSimilarFiles(
+  projectRoot: string,
+  targetPath: string,
+  entityKebab: string
+): SimilarFilesResult {
+  const result: SimilarFilesResult = {
+    hasSimilar: false,
+    files: [],
+  };
+
+  const dir = dirname(targetPath);
+  const fullDir = join(projectRoot, dir);
+
+  // If directory doesn't exist, no similar files
+  if (!existsSync(fullDir)) {
+    return result;
+  }
+
+  // Get all files in the directory
+  let filesInDir: string[];
+  try {
+    filesInDir = readdirSync(fullDir);
+  } catch {
+    return result;
+  }
+
+  // Generate variants to check
+  const singularName = singularize(entityKebab);
+  const pluralName = pluralize(entityKebab);
+
+  // Patterns to match (without extension)
+  const patterns = new Set<string>([
+    singularName, // user
+    pluralName, // users
+    `${singularName}.schema`, // user.schema
+    `${pluralName}.schema`, // users.schema
+  ]);
+
+  // Get the target filename without extension
+  const targetFilename = basename(targetPath);
+  const targetBase = targetFilename.replace(/\.(ts|js|tsx|jsx)$/, '');
+
+  for (const file of filesInDir) {
+    // Skip non-TS/JS files
+    if (!/\.(ts|js|tsx|jsx)$/.test(file)) {
+      continue;
+    }
+
+    // Get base name without extension
+    const fileBase = file.replace(/\.(ts|js|tsx|jsx)$/, '');
+    const filePath = join(dir, file);
+    const fullFilePath = join(projectRoot, filePath);
+
+    // Skip the exact target (will be handled by normal conflict detection)
+    if (filePath === targetPath) {
+      continue;
+    }
+
+    // Check if this file matches any of our patterns
+    if (patterns.has(fileBase)) {
+      // Determine the reason
+      let reason: SimilarFile['reason'];
+      if (fileBase === targetBase) {
+        reason = 'exact';
+      } else if (fileBase === singularName || fileBase === pluralName) {
+        reason = fileBase === singularName ? 'singular' : 'plural';
+      } else {
+        reason = 'different-suffix';
+      }
+
+      // Only report if file actually exists
+      if (existsSync(fullFilePath)) {
+        result.files.push({
+          path: filePath,
+          reason,
+          targetPath,
+        });
+        result.hasSimilar = true;
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Check for similar files across multiple target paths
+ */
+export function findAllSimilarFiles(
+  projectRoot: string,
+  targetPaths: string[],
+  entityKebab: string
+): SimilarFilesResult {
+  const allFiles: SimilarFile[] = [];
+
+  for (const targetPath of targetPaths) {
+    const result = findSimilarFiles(projectRoot, targetPath, entityKebab);
+    allFiles.push(...result.files);
+  }
+
+  // Deduplicate by path
+  const uniqueFiles = Array.from(new Map(allFiles.map((f) => [f.path, f])).values());
+
+  return {
+    hasSimilar: uniqueFiles.length > 0,
+    files: uniqueFiles,
+  };
+}
+
+/**
+ * Format similar files warning message
+ */
+export function formatSimilarFilesWarning(result: SimilarFilesResult, entityName: string): string {
+  if (!result.hasSimilar) {
+    return '';
+  }
+
+  const lines: string[] = [
+    pc.yellow(`⚠ Found existing files that may conflict with "${entityName}":`),
+    '',
+  ];
+
+  for (const file of result.files) {
+    const reasonText =
+      file.reason === 'singular'
+        ? '(singular form)'
+        : file.reason === 'plural'
+          ? '(plural form)'
+          : file.reason === 'different-suffix'
+            ? '(different naming convention)'
+            : '';
+
+    lines.push(`  ${pc.cyan(file.path)} ${pc.dim(reasonText)}`);
+  }
+
+  lines.push('');
+  lines.push(pc.dim('This may indicate a duplicate entity. Options:'));
+  lines.push(pc.dim('  • Use --force to create anyway'));
+  lines.push(pc.dim('  • Rename your entity to avoid confusion'));
+  lines.push(pc.dim('  • Delete the existing files if they are unused'));
+
+  return lines.join('\n');
 }
