@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.53
+
+### Patch Changes
+
+- feat(cli): add duplicate file detection to resource generator
+- Updated dependencies
+  - @veloxts/auth@0.6.53
+  - @veloxts/client@0.6.53
+  - @veloxts/core@0.6.53
+  - @veloxts/router@0.6.53
+
 ## 0.6.52
 
 ### Patch Changes

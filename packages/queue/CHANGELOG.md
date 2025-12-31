@@ -1,5 +1,13 @@
 # @veloxts/queue
 
+## 0.6.53
+
+### Patch Changes
+
+- feat(cli): add duplicate file detection to resource generator
+- Updated dependencies
+  - @veloxts/core@0.6.53
+
 ## 0.6.52
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.53
+
+### Patch Changes
+
+- feat(cli): add duplicate file detection to resource generator
+
 ## 0.6.52
 
 ### Patch Changes
