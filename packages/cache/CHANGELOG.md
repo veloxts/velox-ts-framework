@@ -1,5 +1,13 @@
 # @veloxts/cache
 
+## 0.6.54
+
+### Patch Changes
+
+- feat(cli): add velox mcp init command for Claude Desktop setup
+- Updated dependencies
+  - @veloxts/core@0.6.54
+
 ## 0.6.53
 
 ### Patch Changes

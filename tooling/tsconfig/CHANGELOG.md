@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.54
+
+### Patch Changes
+
+- feat(cli): add velox mcp init command for Claude Desktop setup
+
 ## 0.6.53
 
 ### Patch Changes

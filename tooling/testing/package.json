@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/testing",
-  "version": "0.6.53",
+  "version": "0.6.54",
   "private": true,
   "description": "Internal testing utilities for VeloxTS framework packages",
   "type": "module",
