@@ -1,5 +1,13 @@
 # @veloxts/queue
 
+## 0.6.52
+
+### Patch Changes
+
+- feat(mcp): smart CLI resolution with fallbacks
+- Updated dependencies
+  - @veloxts/core@0.6.52
+
 ## 0.6.51
 
 ### Patch Changes

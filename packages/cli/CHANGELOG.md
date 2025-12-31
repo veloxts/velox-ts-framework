@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.52
+
+### Patch Changes
+
+- feat(mcp): smart CLI resolution with fallbacks
+- Updated dependencies
+  - @veloxts/auth@0.6.52
+  - @veloxts/core@0.6.52
+  - @veloxts/orm@0.6.52
+  - @veloxts/router@0.6.52
+  - @veloxts/validation@0.6.52
+
 ## 0.6.51
 
 ### Patch Changes

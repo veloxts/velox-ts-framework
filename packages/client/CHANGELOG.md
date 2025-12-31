@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.6.52
+
+### Patch Changes
+
+- feat(mcp): smart CLI resolution with fallbacks
+
 ## 0.6.51
 
 ### Patch Changes

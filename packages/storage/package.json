@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/storage",
-  "version": "0.6.51",
+  "version": "0.6.52",
   "description": "Multi-driver file storage abstraction for VeloxTS framework",
   "type": "module",
   "main": "./dist/index.js",
