@@ -24,7 +24,8 @@ describe('defineVeloxApp', () => {
       expect(app.config.name).toBe('velox-app');
       expect(app.config.server.port).toBe(3030);
       expect(app.config.server.host).toBe('localhost');
-      expect(app.config.routers).toHaveLength(3);
+      // 4 routers: API, Client, SSR, Server Functions
+      expect(app.config.routers).toHaveLength(4);
     });
 
     it('should create app with custom port and host', () => {
@@ -70,13 +71,14 @@ describe('defineVeloxApp', () => {
   });
 
   describe('router configuration', () => {
-    it('should create three routers', () => {
+    it('should create four routers (api, client, ssr, server-fns)', () => {
       const app = defineVeloxApp();
 
-      expect(app.config.routers).toHaveLength(3);
+      expect(app.config.routers).toHaveLength(4);
       expect(app.config.routers[0].name).toBe('api');
       expect(app.config.routers[1].name).toBe('client');
       expect(app.config.routers[2].name).toBe('ssr');
+      expect(app.config.routers[3].name).toBe('server-fns');
     });
 
     it('should configure API router correctly', () => {
@@ -220,7 +222,8 @@ describe('defineVeloxApp', () => {
       // We can't directly access them from the app config
       // but we can verify the app was created successfully
       expect(app).toBeDefined();
-      expect(app.config.routers).toHaveLength(3);
+      // 4 routers: API, Client, SSR, Server Functions
+      expect(app.config.routers).toHaveLength(4);
     });
 
     it('should accept custom directory paths', () => {
@@ -233,7 +236,8 @@ describe('defineVeloxApp', () => {
       });
 
       expect(app).toBeDefined();
-      expect(app.config.routers).toHaveLength(3);
+      // 4 routers: API, Client, SSR, Server Functions
+      expect(app.config.routers).toHaveLength(4);
     });
   });
 
