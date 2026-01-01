@@ -2,12 +2,14 @@
  * Procedures Resource
  *
  * Exposes VeloxTS procedure information to AI tools.
+ * Uses dynamic discovery when possible, falls back to static analysis for TypeScript files.
  */
 
 import type { ProcedureCollection } from '@veloxts/router';
-import { type DiscoveryResult, discoverProceduresVerbose, getRouteSummary } from '@veloxts/router';
+import { discoverProceduresVerbose, getRouteSummary } from '@veloxts/router';
 
 import { getProceduresPath } from '../utils/project.js';
+import { analyzeDirectory, type StaticAnalysisResult } from './static-analyzer.js';
 
 // ============================================================================
 // Types
@@ -109,51 +111,95 @@ function extractProcedureInfo(collections: ProcedureCollection[]): {
 
 /**
  * Discover and return procedure information for a project
+ *
+ * Uses static TypeScript analysis as primary method (works with uncompiled TS),
+ * falls back to dynamic discovery for compiled projects.
  */
 export async function getProcedures(projectRoot: string): Promise<ProceduresResourceResponse> {
   const proceduresPath = getProceduresPath(projectRoot);
 
   if (!proceduresPath) {
-    return {
-      procedures: [],
-      namespaces: [],
-      totalCount: 0,
-      queries: 0,
-      mutations: 0,
-    };
+    return emptyResponse();
   }
 
-  let result: DiscoveryResult;
+  // Primary: Static TypeScript analysis (works with uncompiled .ts files)
+  const staticResult = analyzeDirectory(proceduresPath);
+
+  if (staticResult.procedures.length > 0) {
+    return formatStaticResult(staticResult);
+  }
+
+  // Fallback: Dynamic discovery (works with compiled .js files or ts-node)
   try {
-    result = await discoverProceduresVerbose(proceduresPath, {
+    const dynamicResult = await discoverProceduresVerbose(proceduresPath, {
       recursive: true,
-      onInvalidExport: 'warn',
+      onInvalidExport: 'silent',
     });
-  } catch {
+
+    const { procedures, namespaces } = extractProcedureInfo(dynamicResult.collections);
+    const queries = procedures.filter((p) => p.type === 'query').length;
+    const mutations = procedures.filter((p) => p.type === 'mutation').length;
+
     return {
-      procedures: [],
-      namespaces: [],
-      totalCount: 0,
-      queries: 0,
-      mutations: 0,
+      procedures,
+      namespaces,
+      totalCount: procedures.length,
+      queries,
+      mutations,
+      discoveryInfo: {
+        scannedFiles: dynamicResult.scannedFiles.length,
+        loadedFiles: dynamicResult.loadedFiles.length,
+        warnings: dynamicResult.warnings.length,
+      },
     };
+  } catch {
+    // Dynamic discovery failed (expected for uncompiled TS projects)
   }
 
-  const { procedures, namespaces } = extractProcedureInfo(result.collections);
+  return emptyResponse();
+}
+
+/**
+ * Create empty response
+ */
+function emptyResponse(): ProceduresResourceResponse {
+  return {
+    procedures: [],
+    namespaces: [],
+    totalCount: 0,
+    queries: 0,
+    mutations: 0,
+  };
+}
+
+/**
+ * Format static analysis result as ProceduresResourceResponse
+ */
+function formatStaticResult(staticResult: StaticAnalysisResult): ProceduresResourceResponse {
+  const procedures: ProcedureInfo[] = staticResult.procedures.map((p) => ({
+    name: p.name,
+    namespace: p.namespace,
+    type: p.type === 'unknown' ? 'query' : p.type, // Default unknown to query
+    hasInputSchema: p.hasInputSchema,
+    hasOutputSchema: p.hasOutputSchema,
+    guardCount: p.hasGuards ? 1 : 0,
+    middlewareCount: p.hasMiddleware ? 1 : 0,
+    route: p.route,
+  }));
 
   const queries = procedures.filter((p) => p.type === 'query').length;
   const mutations = procedures.filter((p) => p.type === 'mutation').length;
 
   return {
     procedures,
-    namespaces,
+    namespaces: staticResult.namespaces,
     totalCount: procedures.length,
     queries,
     mutations,
     discoveryInfo: {
-      scannedFiles: result.scannedFiles.length,
-      loadedFiles: result.loadedFiles.length,
-      warnings: result.warnings.length,
+      scannedFiles: staticResult.files.length,
+      loadedFiles: staticResult.files.length,
+      warnings: staticResult.errors.length,
     },
   };
 }

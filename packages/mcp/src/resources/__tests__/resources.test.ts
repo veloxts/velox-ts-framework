@@ -13,6 +13,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { getProceduresPath, getSchemasPath } from '../../utils/project.js';
 import { getErrors, getErrorsByPrefix, searchErrors } from '../errors.js';
 import { getProcedures, getProceduresByNamespace, getProceduresByType } from '../procedures.js';
+import { analyzeDirectory } from '../static-analyzer.js';
 import { getRoutes, getRoutesByMethod, getRoutesByNamespace } from '../routes.js';
 import { getSchemas, searchSchemas } from '../schemas.js';
 
@@ -29,6 +30,15 @@ vi.mock('node:fs/promises', () => ({
 vi.mock('@veloxts/router', () => ({
   discoverProceduresVerbose: vi.fn(),
   getRouteSummary: vi.fn(),
+}));
+
+vi.mock('../static-analyzer.js', () => ({
+  analyzeDirectory: vi.fn().mockReturnValue({
+    procedures: [],
+    namespaces: [],
+    files: [],
+    errors: [],
+  }),
 }));
 
 vi.mock('@veloxts/cli', () => ({

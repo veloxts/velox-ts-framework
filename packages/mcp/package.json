@@ -34,7 +34,8 @@
     "@modelcontextprotocol/sdk": "1.25.1",
     "@veloxts/cli": "workspace:*",
     "@veloxts/router": "workspace:*",
-    "@veloxts/validation": "workspace:*"
+    "@veloxts/validation": "workspace:*",
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "zod": ">=3.25.0"
