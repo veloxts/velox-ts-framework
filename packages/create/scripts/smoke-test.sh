@@ -254,7 +254,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
     cd ../..
 
     # Cleanup test project for next template
-    rm -rf "$TEST_DIR/$project_name"
+    rm -rf "$TEST_DIR/$project_name" 2>/dev/null || true
     return 0
   fi
 
@@ -657,7 +657,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   echo ""
 
   # Cleanup test project for next template
-  rm -rf "$TEST_DIR/$project_name"
+  rm -rf "$TEST_DIR/$project_name" 2>/dev/null || true
 }
 
 # Test RSC template (Vinxi/RSC - different structure)
@@ -843,7 +843,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
     # Cleanup test project
     cd "$TEST_DIR"
-    rm -rf "$project_name"
+    rm -rf "$project_name" 2>/dev/null || true
     return 0
   fi
 
@@ -879,7 +879,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
     # Cleanup and exit successfully (structure validation passed)
     cd "$TEST_DIR"
-    rm -rf "$project_name"
+    rm -rf "$project_name" 2>/dev/null || true
     return 0
   fi
 
@@ -914,7 +914,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "✓ Template 'rsc' passed structure validation!"
     echo ""
     cd "$TEST_DIR"
-    rm -rf "$project_name"
+    rm -rf "$project_name" 2>/dev/null || true
     return 0
   fi
 
@@ -1593,6 +1593,8 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   echo "=== Cleaning up ==="
   kill $SERVER_PID 2>/dev/null || true
   wait $SERVER_PID 2>/dev/null || true
+  # Give processes time to fully terminate before cleanup
+  sleep 1
   echo "✓ Server stopped"
   echo ""
 
@@ -1608,9 +1610,9 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   echo "  - Client hydration: VERIFIED"
   echo ""
 
-  # Cleanup test project
+  # Cleanup test project (ignore errors - CI may have locked files)
   cd "$TEST_DIR"
-  rm -rf "$project_name"
+  rm -rf "$project_name" 2>/dev/null || true
 }
 
 # Test RSC Auth template (RSC + JWT Authentication)
@@ -1773,7 +1775,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "✓ Template 'rsc-auth' with PostgreSQL passed structure validation!"
     echo ""
     cd "$TEST_DIR"
-    rm -rf "$project_name"
+    rm -rf "$project_name" 2>/dev/null || true
     return 0
   fi
 
@@ -1792,7 +1794,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "✓ Template 'rsc-auth' passed structure validation!"
     echo ""
     cd "$TEST_DIR"
-    rm -rf "$project_name"
+    rm -rf "$project_name" 2>/dev/null || true
     return 0
   fi
 
@@ -1823,7 +1825,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "✓ Template 'rsc-auth' passed structure validation!"
     echo ""
     cd "$TEST_DIR"
-    rm -rf "$project_name"
+    rm -rf "$project_name" 2>/dev/null || true
     return 0
   fi
 
@@ -2058,9 +2060,9 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   echo "  - RSC pages: PASSED (home, login, register, users, dashboard)"
   echo ""
 
-  # Cleanup test project
+  # Cleanup test project (ignore errors - CI may have locked files)
   cd "$TEST_DIR"
-  rm -rf "$project_name"
+  rm -rf "$project_name" 2>/dev/null || true
 }
 
 # Main execution
