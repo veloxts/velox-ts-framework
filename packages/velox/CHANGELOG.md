@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.55
+
+### Patch Changes
+
+- feat(mcp): add static TypeScript analyzer for procedure discovery
+- Updated dependencies
+  - @veloxts/auth@0.6.55
+  - @veloxts/core@0.6.55
+  - @veloxts/orm@0.6.55
+  - @veloxts/router@0.6.55
+  - @veloxts/validation@0.6.55
+
 ## 0.6.54
 
 ### Patch Changes

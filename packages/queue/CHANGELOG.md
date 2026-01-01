@@ -1,5 +1,13 @@
 # @veloxts/queue
 
+## 0.6.55
+
+### Patch Changes
+
+- feat(mcp): add static TypeScript analyzer for procedure discovery
+- Updated dependencies
+  - @veloxts/core@0.6.55
+
 ## 0.6.54
 
 ### Patch Changes

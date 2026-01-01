@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.6.55
+
+### Patch Changes
+
+- feat(mcp): add static TypeScript analyzer for procedure discovery
+
 ## 0.6.54
 
 ### Patch Changes
