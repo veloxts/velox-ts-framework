@@ -6,6 +6,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { analyzeDirectory, formatStaticAnalysisAsText } from '../static-analyzer.js';
@@ -198,20 +199,11 @@ export const postProcedures = procedures('posts', {
         `export const internal = procedures('internal', {});`
       );
 
-      writeFileSync(
-        join(testDir, 'users.test.ts'),
-        `export const test = procedures('test', {});`
-      );
+      writeFileSync(join(testDir, 'users.test.ts'), `export const test = procedures('test', {});`);
 
-      writeFileSync(
-        join(testDir, 'users.d.ts'),
-        `export type User = { id: string };`
-      );
+      writeFileSync(join(testDir, 'users.d.ts'), `export type User = { id: string };`);
 
-      writeFileSync(
-        join(testDir, 'index.ts'),
-        `export * from './users';`
-      );
+      writeFileSync(join(testDir, 'index.ts'), `export * from './users';`);
 
       writeFileSync(
         join(testDir, 'users.ts'),

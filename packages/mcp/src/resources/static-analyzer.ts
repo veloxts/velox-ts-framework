@@ -8,6 +8,7 @@
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
+
 import ts from 'typescript';
 
 // ============================================================================
@@ -286,7 +287,9 @@ function extractProcedureInfo(node: ts.Node): Omit<ParsedProcedure, 'name'> {
 /**
  * Extract REST override configuration from .rest({ method, path }) call
  */
-function extractRestOverride(arg: ts.Node | undefined): { method?: string; path?: string } | undefined {
+function extractRestOverride(
+  arg: ts.Node | undefined
+): { method?: string; path?: string } | undefined {
   if (!arg || !ts.isObjectLiteralExpression(arg)) {
     return undefined;
   }
@@ -334,9 +337,9 @@ function analyzeFileWithRegex(filePath: string, content: string): ParsedCollecti
 
   // Extract procedure names using regex
   const procedurePattern = /(\w+)\s*:\s*procedure\s*[.(]/g;
-  let match: RegExpExecArray | null;
+  const matches = content.matchAll(procedurePattern);
 
-  while ((match = procedurePattern.exec(content)) !== null) {
+  for (const match of matches) {
     const name = match[1];
 
     // Determine type from naming convention
