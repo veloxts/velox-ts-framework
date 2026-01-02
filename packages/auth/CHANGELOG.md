@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.56
+
+### Patch Changes
+
+- fix(create): resolve TypeScript errors in RSC templates
+- Updated dependencies
+  - @veloxts/core@0.6.56
+  - @veloxts/router@0.6.56
+
 ## 0.6.55
 
 ### Patch Changes

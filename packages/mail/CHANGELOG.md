@@ -1,5 +1,13 @@
 # @veloxts/mail
 
+## 0.6.56
+
+### Patch Changes
+
+- fix(create): resolve TypeScript errors in RSC templates
+- Updated dependencies
+  - @veloxts/core@0.6.56
+
 ## 0.6.55
 
 ### Patch Changes
