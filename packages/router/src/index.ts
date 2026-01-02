@@ -285,54 +285,11 @@ export {
  * ```
  */
 
-export {
-  // Generator
-  generateOpenApiSpec,
-  getOpenApiRouteSummary,
-  validateOpenApiSpec,
-  // Plugin
-  createSwaggerUI,
-  getOpenApiSpec,
-  registerDocs,
-  swaggerUIPlugin,
-  // Schema converter
-  createStringSchema,
-  extractSchemaProperties,
-  mergeSchemas,
-  removeSchemaProperties,
-  schemaHasProperties,
-  zodSchemaToJsonSchema,
-  // Path extractor
-  buildParameters,
-  convertFromOpenAPIPath,
-  convertToOpenAPIPath,
-  extractPathParamNames,
-  extractQueryParameters,
-  extractResourceFromPath,
-  hasPathParameters,
-  joinPaths,
-  normalizePath,
-  parsePathParameters,
-  // Security mapper
-  createSecurityRequirement,
-  DEFAULT_GUARD_MAPPINGS,
-  DEFAULT_SECURITY_SCHEMES,
-  extractGuardScopes,
-  extractUsedSecuritySchemes,
-  filterUsedSecuritySchemes,
-  guardsRequireAuth,
-  guardsToSecurity,
-  mapGuardToSecurity,
-  mergeSecuritySchemes,
-} from './openapi/index.js';
-
 export type {
   // Generator options
   BuildParametersOptions,
   BuildParametersResult,
   GuardMappingOptions,
-  QueryParamExtractionOptions,
-  SchemaConversionOptions,
   // OpenAPI types
   JSONSchema,
   OpenAPIComponents,
@@ -360,8 +317,50 @@ export type {
   OpenAPISpec,
   OpenAPITag,
   ParameterIn,
+  QueryParamExtractionOptions,
   RouteInfo,
+  SchemaConversionOptions,
   SecuritySchemeType,
   SwaggerUIConfig,
   SwaggerUIPluginOptions,
+} from './openapi/index.js';
+export {
+  // Path extractor
+  buildParameters,
+  convertFromOpenAPIPath,
+  convertToOpenAPIPath,
+  // Security mapper
+  createSecurityRequirement,
+  // Schema converter
+  createStringSchema,
+  // Plugin
+  createSwaggerUI,
+  DEFAULT_GUARD_MAPPINGS,
+  DEFAULT_SECURITY_SCHEMES,
+  extractGuardScopes,
+  extractPathParamNames,
+  extractQueryParameters,
+  extractResourceFromPath,
+  extractSchemaProperties,
+  extractUsedSecuritySchemes,
+  filterUsedSecuritySchemes,
+  // Generator
+  generateOpenApiSpec,
+  getOpenApiRouteSummary,
+  getOpenApiSpec,
+  guardsRequireAuth,
+  guardsToSecurity,
+  hasPathParameters,
+  joinPaths,
+  mapGuardToSecurity,
+  mergeSchemas,
+  mergeSecuritySchemes,
+  normalizePath,
+  parsePathParameters,
+  registerDocs,
+  removeSchemaProperties,
+  schemaHasProperties,
+  swaggerUIPlugin,
+  validateOpenApiSpec,
+  zodSchemaToJsonSchema,
 } from './openapi/index.js';

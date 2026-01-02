@@ -6,8 +6,8 @@
  */
 
 import { existsSync, writeFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
 import { mkdir } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 
 import {
   type DiscoveryOptions,
@@ -210,9 +210,8 @@ function createGenerateCommand(): Command {
 
         // Write output
         await ensureDir(outputPath);
-        const jsonContent = options.pretty !== false
-          ? JSON.stringify(spec, null, 2)
-          : JSON.stringify(spec);
+        const jsonContent =
+          options.pretty !== false ? JSON.stringify(spec, null, 2) : JSON.stringify(spec);
         writeFileSync(outputPath, jsonContent, 'utf-8');
 
         // Print success message
