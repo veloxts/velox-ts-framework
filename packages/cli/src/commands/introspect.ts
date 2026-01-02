@@ -364,8 +364,10 @@ function printRoutes(routes: RouteIntrospection[]): void {
  */
 function printErrors(errors: ErrorIntrospection[]): void {
   console.log();
-  console.log(pc.bold('Error Catalog'));
+  console.log(pc.bold('Error Catalog') + pc.dim(' (reference documentation)'));
   console.log(pc.dim('─'.repeat(60)));
+  console.log(pc.dim('These are all possible CLI error codes, not errors in your project.'));
+  console.log();
 
   let currentCategory = '';
   for (const error of errors) {
@@ -401,7 +403,7 @@ function printSummary(result: IntrospectResult): void {
     parts.push(`${result.summary.routeCount} routes`);
   }
   if (result.summary.errorCount !== undefined) {
-    parts.push(`${result.summary.errorCount} error codes`);
+    parts.push(`${result.summary.errorCount} error codes in catalog`);
   }
   console.log(pc.bold(parts.join(' • ')));
 
