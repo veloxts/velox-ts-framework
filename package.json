@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/framework",
-  "version": "0.6.33",
+  "version": "0.6.55",
   "description": "A full-stack TypeScript framework with type-safe APIs, hybrid tRPC/REST architecture, with great DX",
   "main": "dist/index.js",
   "packageManager": "pnpm@10.26.1",
@@ -19,7 +19,7 @@
     "test:types": "turbo run test:types",
     "smoke": "pnpm packages/create/scripts/smoke-test.sh",
     "changeset": "changeset",
-    "version": "changeset version",
+    "version": "changeset version && node -e \"const fs=require('fs');const core=JSON.parse(fs.readFileSync('packages/core/package.json'));const root=JSON.parse(fs.readFileSync('package.json'));root.version=core.version;fs.writeFileSync('package.json',JSON.stringify(root,null,2)+'\\n')\"",
     "release": "turbo build && changeset publish",
     "ci:build": "turbo run build --color --no-daemon",
     "ci:test": "turbo run test --color --no-daemon && turbo run test:types",
