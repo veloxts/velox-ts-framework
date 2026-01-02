@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.58
+
+### Patch Changes
+
+- feat(router): add OpenAPI 3.0.3 specification generator
+- Updated dependencies
+  - @veloxts/cli@0.6.58
+  - @veloxts/router@0.6.58
+  - @veloxts/validation@0.6.58
+
 ## 0.6.57
 
 ### Patch Changes
