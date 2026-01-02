@@ -500,6 +500,18 @@ function formatDuration(ms: number): string {
 }
 
 // ============================================================================
+// Type Export
+// ============================================================================
+
+/**
+ * Type for the auth rate limiter instance returned by createAuthRateLimiter
+ *
+ * Provides rate limiting methods for login, register, password reset, and token refresh.
+ * Also includes utility methods for recording failures, resetting limits, and checking lockout status.
+ */
+export type AuthRateLimiter = ReturnType<typeof createAuthRateLimiter>;
+
+// ============================================================================
 // Convenience Export
 // ============================================================================
 

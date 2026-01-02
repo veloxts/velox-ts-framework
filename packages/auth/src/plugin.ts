@@ -6,12 +6,14 @@
 
 import { createRequire } from 'node:module';
 
-import type { VeloxPlugin } from '@veloxts/core';
+import type { Container, VeloxPlugin } from '@veloxts/core';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import { PasswordHasher } from './hash.js';
 import { JwtManager } from './jwt.js';
 import { authMiddleware } from './middleware.js';
+import { registerAuthProviders } from './providers.js';
+import { AUTH_SERVICE } from './tokens.js';
 import type { AuthConfig, AuthContext, TokenPair, User } from './types.js';
 
 // Read version from package.json dynamically
@@ -34,6 +36,33 @@ export interface AuthPluginOptions extends AuthConfig {
    * @default false
    */
   debug?: boolean;
+
+  /**
+   * DI container for service registration and resolution (optional)
+   *
+   * When provided, auth services are registered with the container and can be:
+   * - Resolved from the container directly
+   * - Mocked in tests by overriding registrations
+   * - Managed alongside other application services
+   *
+   * When not provided, services are created directly (legacy behavior).
+   *
+   * @example
+   * ```typescript
+   * import { Container } from '@veloxts/core';
+   * import { authPlugin, JWT_MANAGER } from '@veloxts/auth';
+   *
+   * const container = new Container();
+   * app.register(authPlugin({
+   *   jwt: { secret: '...' },
+   *   container,
+   * }));
+   *
+   * // Services now available from container
+   * const jwt = container.resolve(JWT_MANAGER);
+   * ```
+   */
+  container?: Container;
 }
 
 // ============================================================================
@@ -143,47 +172,58 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
 
     async register(server: FastifyInstance, _opts: AuthPluginOptions) {
       const config = { ...options, ..._opts };
-      const { debug = false } = config;
+      const { debug = false, container } = config;
 
       if (debug) {
         server.log.info('Registering @veloxts/auth plugin');
       }
 
-      // Create instances
-      const jwt = new JwtManager(config.jwt);
-      const hasher = new PasswordHasher(config.hash);
-      const authMw = authMiddleware(config);
+      let authService: AuthService;
 
-      // Create auth service
-      const authService: AuthService = {
-        jwt,
-        hasher,
+      if (container) {
+        // DI-enabled path: Register providers and resolve from container
+        if (debug) {
+          server.log.info('Using DI container for auth services');
+        }
 
-        createTokens(user: User, additionalClaims?: Record<string, unknown>): TokenPair {
-          return jwt.createTokenPair(user, additionalClaims);
-        },
+        registerAuthProviders(container, config);
+        authService = container.resolve(AUTH_SERVICE);
+      } else {
+        // Legacy path: Direct instantiation (backward compatible)
+        const jwt = new JwtManager(config.jwt);
+        const hasher = new PasswordHasher(config.hash);
+        const authMw = authMiddleware(config);
 
-        verifyToken(token: string): AuthContext {
-          const payload = jwt.verifyToken(token);
-          return {
-            user: {
-              id: payload.sub,
-              email: payload.email,
-            },
-            token: payload,
-            isAuthenticated: true,
-          };
-        },
+        authService = {
+          jwt,
+          hasher,
 
-        refreshTokens(refreshToken: string): Promise<TokenPair> | TokenPair {
-          if (config.userLoader) {
-            return jwt.refreshTokens(refreshToken, config.userLoader);
-          }
-          return jwt.refreshTokens(refreshToken);
-        },
+          createTokens(user: User, additionalClaims?: Record<string, unknown>): TokenPair {
+            return jwt.createTokenPair(user, additionalClaims);
+          },
 
-        middleware: authMw,
-      };
+          verifyToken(token: string): AuthContext {
+            const payload = jwt.verifyToken(token);
+            return {
+              user: {
+                id: payload.sub,
+                email: payload.email,
+              },
+              token: payload,
+              isAuthenticated: true,
+            };
+          },
+
+          refreshTokens(refreshToken: string): Promise<TokenPair> | TokenPair {
+            if (config.userLoader) {
+              return jwt.refreshTokens(refreshToken, config.userLoader);
+            }
+            return jwt.refreshTokens(refreshToken);
+          },
+
+          middleware: authMw,
+        };
+      }
 
       // Decorate server with auth service
       server.decorate('auth', authService);
@@ -196,11 +236,11 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
       if (config.autoExtract !== false) {
         server.addHook('preHandler', async (request: FastifyRequest) => {
           const authHeader = request.headers.authorization;
-          const token = jwt.extractFromHeader(authHeader);
+          const token = authService.jwt.extractFromHeader(authHeader);
 
           if (token) {
             try {
-              const payload = jwt.verifyToken(token);
+              const payload = authService.jwt.verifyToken(token);
 
               // Check if token is revoked
               if (config.isTokenRevoked && payload.jti) {
