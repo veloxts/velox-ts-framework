@@ -5,6 +5,8 @@
  * Demonstrates multi-level nested dynamic routes: /users/:id/posts
  */
 
+import type { Post } from '@prisma/client';
+
 import { db } from '../../../../../src/api/database.js';
 
 interface PageProps {
@@ -54,7 +56,7 @@ export default async function UserPostsPage({ params }: PageProps) {
         <p className="empty-state">No posts yet. Create the first one!</p>
       ) : (
         <ul className="posts-list">
-          {user.posts.map((post) => (
+          {user.posts.map((post: Post) => (
             <li key={post.id} className="post-item">
               <a href={`/users/${userId}/posts/${post.id}`}>
                 <h2>{post.title}</h2>

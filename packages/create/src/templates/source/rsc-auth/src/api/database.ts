@@ -51,7 +51,7 @@ dotenv.config({ path: resolve(projectRoot, '.env') });
 declare global {
   // Allow global `var` declarations for hot reload in development
   // eslint-disable-next-line no-var
-  var __db: PrismaClient | undefined;
+  var __db: PrismaClientType | undefined;
 }
 
 /* @if sqlite */
@@ -63,7 +63,7 @@ declare global {
  * - Must use driver adapters for direct database connections
  * - Validates that DATABASE_URL is set before creating the client
  */
-function createPrismaClient(): PrismaClient {
+function createPrismaClient(): PrismaClientType {
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {

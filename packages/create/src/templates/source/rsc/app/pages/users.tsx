@@ -5,6 +5,8 @@
  * Demonstrates direct database access from RSC.
  */
 
+import type { User } from '@prisma/client';
+
 import { db } from '../../src/api/database.js';
 
 export default async function UsersPage() {
@@ -23,7 +25,7 @@ export default async function UsersPage() {
         </p>
       ) : (
         <ul className="user-list">
-          {users.map((user) => (
+          {users.map((user: User) => (
             <li key={user.id} className="user-card">
               <a href={`/users/${user.id}`} className="user-link">
                 <span className="user-name">{user.name}</span>
