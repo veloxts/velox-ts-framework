@@ -127,6 +127,33 @@ export interface OrmPluginConfig<TClient extends DatabaseClient> {
    * @default '@veloxts/orm'
    */
   name?: string;
+
+  /**
+   * DI container for service registration and resolution (optional)
+   *
+   * When provided, ORM services are registered with the container and can be:
+   * - Resolved from the container directly
+   * - Mocked in tests by overriding registrations
+   * - Managed alongside other application services
+   *
+   * When not provided, services are created directly (legacy behavior).
+   *
+   * @example
+   * ```typescript
+   * import { Container } from '@veloxts/core';
+   * import { databasePlugin, DATABASE } from '@veloxts/orm';
+   *
+   * const container = new Container();
+   * app.register(databasePlugin({
+   *   client: prisma,
+   *   container,
+   * }));
+   *
+   * // Services now available from container
+   * const db = container.resolve(DATABASE);
+   * ```
+   */
+  container?: import('@veloxts/core').Container;
 }
 
 /**

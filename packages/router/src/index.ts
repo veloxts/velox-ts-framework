@@ -217,3 +217,45 @@ export { defineContract, defineRoutes } from './contracts.js';
 
 export type { ServeOptions } from './expose.js';
 export { serve } from './expose.js';
+
+// ============================================================================
+// Dependency Injection
+// ============================================================================
+
+/**
+ * DI tokens and providers for @veloxts/router
+ *
+ * Use these to integrate router services with the @veloxts/core DI container.
+ *
+ * @example
+ * ```typescript
+ * import { Container } from '@veloxts/core';
+ * import { registerRouterProviders, TRPC_INSTANCE, APP_ROUTER } from '@veloxts/router';
+ *
+ * const container = new Container();
+ * registerRouterProviders(container, {
+ *   procedures: [userProcedures, postProcedures],
+ * });
+ *
+ * const t = container.resolve(TRPC_INSTANCE);
+ * const router = container.resolve(APP_ROUTER);
+ * ```
+ */
+
+// Provider exports - factory functions for registering services
+export {
+  appRouterProvider,
+  registerRouterProviders,
+  trpcInstanceProvider,
+  trpcPluginOptionsProvider,
+} from './providers.js';
+// Token exports - unique identifiers for DI resolution
+export type { RestAdapterConfig, RouterConfig } from './tokens.js';
+export {
+  APP_ROUTER,
+  PROCEDURE_COLLECTIONS,
+  REST_ADAPTER_CONFIG,
+  ROUTER_CONFIG,
+  TRPC_INSTANCE,
+  TRPC_PLUGIN_OPTIONS,
+} from './tokens.js';

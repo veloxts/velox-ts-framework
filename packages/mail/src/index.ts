@@ -104,3 +104,33 @@ export {
   validateRecipients,
   validateTemplateName,
 } from './utils.js';
+
+// ============================================================================
+// Dependency Injection
+// ============================================================================
+
+/**
+ * DI tokens and providers for @veloxts/mail
+ *
+ * Use these to integrate mail services with the @veloxts/core DI container.
+ *
+ * @example
+ * ```typescript
+ * import { Container } from '@veloxts/core';
+ * import { registerMailProviders, MAIL_MANAGER } from '@veloxts/mail';
+ *
+ * const container = new Container();
+ * await registerMailProviders(container, {
+ *   driver: 'log',
+ *   from: { email: 'test@example.com' },
+ * });
+ *
+ * const mail = container.resolve(MAIL_MANAGER);
+ * await mail.send(WelcomeEmail, { to: 'user@example.com', data: {...} });
+ * ```
+ */
+
+// Provider exports - factory functions for registering services
+export { registerMailProviders } from './providers.js';
+// Token exports - unique identifiers for DI resolution
+export { MAIL_CONFIG, MAIL_MANAGER, MAIL_TRANSPORT } from './tokens.js';
