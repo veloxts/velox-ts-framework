@@ -100,15 +100,24 @@ The monorepo uses TypeScript project references for proper build ordering:
 
 ```
 tsconfig.json (root)
-├── packages/core
-├── packages/validation
-├── packages/orm
-├── packages/router
-├── packages/auth
-├── packages/client
-├── packages/cli
-├── packages/create
-└── apps/playground
+├── packages/core         # Foundation - no framework deps
+├── packages/validation   # Zod integration
+├── packages/orm          # Prisma wrapper
+├── packages/router       # tRPC + REST routing
+├── packages/auth         # Authentication & authorization
+├── packages/client       # Type-safe frontend client
+├── packages/cli          # Developer tooling
+├── packages/create       # Project scaffolder
+├── packages/web          # RSC + Vinxi integration
+├── packages/velox        # Meta-package (re-exports)
+├── packages/mcp          # Model Context Protocol server
+├── packages/cache        # Multi-driver caching
+├── packages/queue        # Background job processing
+├── packages/mail         # Email sending
+├── packages/storage      # File storage abstraction
+├── packages/scheduler    # Cron task scheduling
+├── packages/events       # Real-time broadcasting
+└── apps/playground       # Development testing
 ```
 
 ### Turborepo Task Configuration
