@@ -18,6 +18,7 @@ import { createIntrospectCommand } from './commands/introspect.js';
 import { createMakeCommand } from './commands/make.js';
 import { createMcpCommand } from './commands/mcp.js';
 import { createMigrateCommand } from './commands/migrate.js';
+import { createOpenApiCommand } from './commands/openapi.js';
 import { createProceduresCommand } from './commands/procedures.js';
 import { createScheduleCommand } from './commands/schedule.js';
 import { createTenantCommand } from './commands/tenant.js';
@@ -42,6 +43,7 @@ function createCLI(): Command {
   program.addCommand(createMakeCommand());
   program.addCommand(createMcpCommand());
   program.addCommand(createMigrateCommand());
+  program.addCommand(createOpenApiCommand());
   program.addCommand(createProceduresCommand());
   program.addCommand(createScheduleCommand());
   program.addCommand(createTenantCommand());

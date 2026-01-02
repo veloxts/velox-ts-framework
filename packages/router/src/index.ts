@@ -259,3 +259,109 @@ export {
   TRPC_INSTANCE,
   TRPC_PLUGIN_OPTIONS,
 } from './tokens.js';
+
+// ============================================================================
+// OpenAPI Generation
+// ============================================================================
+
+/**
+ * OpenAPI 3.0.3 specification generation from procedure collections.
+ *
+ * @example
+ * ```typescript
+ * import { generateOpenApiSpec, swaggerUIPlugin } from '@veloxts/router';
+ *
+ * // Generate spec programmatically
+ * const spec = generateOpenApiSpec([userProcedures], {
+ *   info: { title: 'My API', version: '1.0.0' },
+ * });
+ *
+ * // Or serve Swagger UI
+ * app.register(swaggerUIPlugin, {
+ *   routePrefix: '/docs',
+ *   collections: [userProcedures],
+ *   openapi: { info: { title: 'My API', version: '1.0.0' } },
+ * });
+ * ```
+ */
+
+export {
+  // Generator
+  generateOpenApiSpec,
+  getOpenApiRouteSummary,
+  validateOpenApiSpec,
+  // Plugin
+  createSwaggerUI,
+  getOpenApiSpec,
+  registerDocs,
+  swaggerUIPlugin,
+  // Schema converter
+  createStringSchema,
+  extractSchemaProperties,
+  mergeSchemas,
+  removeSchemaProperties,
+  schemaHasProperties,
+  zodSchemaToJsonSchema,
+  // Path extractor
+  buildParameters,
+  convertFromOpenAPIPath,
+  convertToOpenAPIPath,
+  extractPathParamNames,
+  extractQueryParameters,
+  extractResourceFromPath,
+  hasPathParameters,
+  joinPaths,
+  normalizePath,
+  parsePathParameters,
+  // Security mapper
+  createSecurityRequirement,
+  DEFAULT_GUARD_MAPPINGS,
+  DEFAULT_SECURITY_SCHEMES,
+  extractGuardScopes,
+  extractUsedSecuritySchemes,
+  filterUsedSecuritySchemes,
+  guardsRequireAuth,
+  guardsToSecurity,
+  mapGuardToSecurity,
+  mergeSecuritySchemes,
+} from './openapi/index.js';
+
+export type {
+  // Generator options
+  BuildParametersOptions,
+  BuildParametersResult,
+  GuardMappingOptions,
+  QueryParamExtractionOptions,
+  SchemaConversionOptions,
+  // OpenAPI types
+  JSONSchema,
+  OpenAPIComponents,
+  OpenAPIContact,
+  OpenAPIEncoding,
+  OpenAPIExample,
+  OpenAPIExternalDocs,
+  OpenAPIGeneratorOptions,
+  OpenAPIHeader,
+  OpenAPIHttpMethod,
+  OpenAPIInfo,
+  OpenAPILicense,
+  OpenAPILink,
+  OpenAPIMediaType,
+  OpenAPIOAuthFlow,
+  OpenAPIOAuthFlows,
+  OpenAPIOperation,
+  OpenAPIParameter,
+  OpenAPIPathItem,
+  OpenAPIRequestBody,
+  OpenAPIResponse,
+  OpenAPISecurityRequirement,
+  OpenAPISecurityScheme,
+  OpenAPIServer,
+  OpenAPISpec,
+  OpenAPITag,
+  ParameterIn,
+  RouteInfo,
+  SecuritySchemeType,
+  SwaggerUIConfig,
+  SwaggerUIPluginOptions,
+} from './openapi/index.js';
