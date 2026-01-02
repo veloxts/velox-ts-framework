@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.57
+
+### Patch Changes
+
+- feat: add DI support to ecosystem packages and main packages
+- Updated dependencies
+  - @veloxts/auth@0.6.57
+  - @veloxts/core@0.6.57
+  - @veloxts/orm@0.6.57
+  - @veloxts/router@0.6.57
+  - @veloxts/validation@0.6.57
+
 ## 0.6.56
 
 ### Patch Changes
