@@ -20,6 +20,8 @@ Full-stack TypeScript framework with end-to-end type safety—no code generation
 
 - **Built-in Authentication** - JWT and session-based auth with guards, rate limiting, CSRF protection, and token rotation.
 
+- **Complete Ecosystem** - Production-ready packages for caching, queues, email, storage, scheduling, and real-time events—all with full DI support.
+
 - **Modern Stack** - Built on proven technologies: Fastify, tRPC, Prisma, and Zod.
 
 - **Elegant, Expressive Syntax** - Fluent builder APIs with full IntelliSense support and minimal boilerplate.
@@ -85,12 +87,46 @@ export const userProcedures = procedures('users', {
 });
 ```
 
+## Ecosystem Features
+
+VeloxTS includes a complete set of infrastructure packages for common application needs:
+
+```typescript
+// Multi-driver caching with tag-based invalidation
+await ctx.cache.remember('user:123', '30m', () => fetchUser());
+await ctx.cache.tags(['users']).flush();
+
+// Background job processing
+await dispatch(SendWelcomeEmail, { userId: '123', email: 'user@example.com' });
+
+// Email with React templates
+await send({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  react: <WelcomeEmail name="John" />,
+});
+
+// File storage abstraction
+await ctx.storage.put('avatars/user-123.jpg', buffer);
+const url = await ctx.storage.url('avatars/user-123.jpg');
+
+// Fluent cron scheduling
+schedule('cleanup-sessions').call(cleanupExpiredSessions).daily().at('03:00');
+
+// Real-time broadcasting
+broadcast('orders', { event: 'order.created', data: { orderId: '123' } });
+```
+
+All ecosystem packages support **Dependency Injection** with symbol-based tokens, bulk provider registration, and service mocking for testing.
+
 ## Packages
+
+### Core Packages
 
 | Package | Description |
 |---------|-------------|
 | [`@veloxts/velox`](./packages/velox) | Umbrella package - all framework features in one import |
-| [`@veloxts/core`](./packages/core) | Fastify wrapper, plugin system, and application lifecycle |
+| [`@veloxts/core`](./packages/core) | Fastify wrapper, plugin system, DI container, and application lifecycle |
 | [`@veloxts/router`](./packages/router) | Procedure definitions with tRPC and REST routing |
 | [`@veloxts/validation`](./packages/validation) | Zod integration and common validation schemas |
 | [`@veloxts/orm`](./packages/orm) | Prisma wrapper with enhanced developer experience |
@@ -99,6 +135,19 @@ export const userProcedures = procedures('users', {
 | [`@veloxts/cli`](./packages/cli) | Development server with HMR and CLI commands |
 | [`@veloxts/mcp`](./packages/mcp) | Model Context Protocol server for AI tool integration |
 | [`create-velox-app`](./packages/create) | Interactive project scaffolder |
+
+### Ecosystem Packages
+
+All ecosystem packages support Dependency Injection with symbol-based tokens, bulk registration via `registerXxxProviders()`, and service mocking for testing.
+
+| Package | Description |
+|---------|-------------|
+| [`@veloxts/cache`](./packages/cache) | Multi-driver caching (memory, Redis) with tag-based invalidation |
+| [`@veloxts/queue`](./packages/queue) | Background job processing with sync and BullMQ drivers |
+| [`@veloxts/mail`](./packages/mail) | Email sending with SMTP, Resend, and React Email template support |
+| [`@veloxts/storage`](./packages/storage) | File storage abstraction for local filesystem and S3/R2 |
+| [`@veloxts/scheduler`](./packages/scheduler) | Fluent cron task scheduling with overlap protection |
+| [`@veloxts/events`](./packages/events) | Real-time broadcasting via WebSocket and SSE with Redis pub/sub |
 
 ## Documentation
 
@@ -179,6 +228,14 @@ The framework provides a solid foundation for building type-safe APIs:
 | MCP Server (AI integration) | ✅ Available |
 | CLI code generators | ✅ 16 generators available |
 | Database seeding | ✅ Seeder generator available |
+| **Ecosystem Packages** | |
+| Multi-driver caching | ✅ Available (memory, Redis) |
+| Background job processing | ✅ Available (sync, BullMQ) |
+| Email sending | ✅ Available (SMTP, Resend, React Email) |
+| File storage | ✅ Available (local, S3/R2) |
+| Cron task scheduling | ✅ Available |
+| Real-time broadcasting | ✅ Available (WebSocket, SSE) |
+| Dependency Injection | ✅ Full DI support across all ecosystem packages |
 
 ### What Works Well
 
@@ -191,6 +248,8 @@ The framework provides a solid foundation for building type-safe APIs:
 - Clean plugin system for extensibility
 - 16 code generators (`velox make <type>`) for rapid development
 - AI-native development with MCP server integration
+- Complete ecosystem packages (cache, queue, mail, storage, scheduler, events)
+- Symbol-based Dependency Injection with service mocking for testing
 
 ### Current Limitations
 
