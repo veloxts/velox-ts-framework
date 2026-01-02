@@ -1,34 +1,8 @@
 # @veloxts/queue
 
-> **Early Preview** - APIs may change before v1.0.
+> **Early Preview (v0.6.x)** - APIs are stabilizing but may still change. Use with caution in production.
 
-Background job processing with type-safe job definitions and multiple drivers.
-
-## Installation
-
-```bash
-npm install @veloxts/queue
-```
-
-## Quick Start
-
-```typescript
-import { queuePlugin, defineJob } from '@veloxts/queue';
-
-app.use(queuePlugin({ driver: 'sync' }));
-
-const sendEmail = defineJob({
-  name: 'email.send',
-  handler: async ({ data }) => {
-    await mailer.send(data.to, data.subject, data.body);
-  },
-});
-
-// Dispatch a job
-await ctx.queue.dispatch(sendEmail, { to: 'user@example.com', subject: 'Hello' });
-```
-
-See [GUIDE.md](./GUIDE.md) for detailed documentation.
+Background job processing for VeloxTS Framework - provides sync and BullMQ drivers with type-safe job definitions and reliable execution. Learn more at [@veloxts/velox](https://www.npmjs.com/package/@veloxts/velox).
 
 ## License
 
