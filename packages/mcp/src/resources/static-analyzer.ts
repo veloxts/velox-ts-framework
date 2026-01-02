@@ -74,6 +74,20 @@ const METHOD_PREFIXES: Record<string, { method: string; type: 'query' | 'mutatio
   remove: { method: 'DELETE', type: 'mutation' },
 };
 
+/**
+ * Infer procedure type from naming convention.
+ * Used when we can't analyze the procedure chain (e.g., shorthand properties).
+ */
+function inferTypeFromName(procedureName: string): 'query' | 'mutation' | 'unknown' {
+  const lowerName = procedureName.toLowerCase();
+  for (const [prefix, info] of Object.entries(METHOD_PREFIXES)) {
+    if (lowerName.startsWith(prefix)) {
+      return info.type;
+    }
+  }
+  return 'unknown';
+}
+
 // ============================================================================
 // Main Analysis Functions
 // ============================================================================
@@ -215,12 +229,28 @@ function tryExtractProcedureCollection(
   const procedures: ParsedProcedure[] = [];
 
   for (const prop of proceduresArg.properties) {
+    // Handle standard property assignment: { getUser: procedure()... }
     if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
       const procedureName = prop.name.text;
       const procedureInfo = extractProcedureInfo(prop.initializer);
       procedures.push({
         name: procedureName,
         ...procedureInfo,
+      });
+    }
+    // Handle shorthand property assignment: { getUser } (references external variable)
+    else if (ts.isShorthandPropertyAssignment(prop)) {
+      const procedureName = prop.name.text;
+      // For shorthand, we can't analyze the chain without type resolution
+      // Use naming convention to infer type
+      const inferredType = inferTypeFromName(procedureName);
+      procedures.push({
+        name: procedureName,
+        type: inferredType,
+        hasInput: false, // Unknown without type resolution
+        hasOutput: false,
+        hasGuard: false,
+        hasMiddleware: false,
       });
     }
   }

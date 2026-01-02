@@ -162,6 +162,56 @@ export const customProcedures = procedures('custom', {
       });
     });
 
+    it('should handle shorthand property assignment', () => {
+      writeFileSync(
+        join(testDir, 'shorthand.ts'),
+        `
+import { procedure, procedures } from '@veloxts/velox';
+
+// Procedures defined externally
+const getUser = procedure().query(async () => ({}));
+const createUser = procedure().mutation(async () => ({}));
+const doSomething = procedure().query(async () => ({}));
+
+// Shorthand property syntax
+export const userProcedures = procedures('users', {
+  getUser,      // shorthand for getUser: getUser
+  createUser,   // shorthand for createUser: createUser
+  doSomething,  // no naming convention match
+});
+      `
+      );
+
+      const result = analyzeDirectory(testDir);
+
+      expect(result.namespaces).toEqual(['users']);
+      expect(result.procedures).toHaveLength(3);
+
+      // getUser should infer 'query' from 'get' prefix
+      const getUser = result.procedures.find((p) => p.name === 'getUser');
+      expect(getUser).toMatchObject({
+        name: 'getUser',
+        namespace: 'users',
+        type: 'query',
+      });
+
+      // createUser should infer 'mutation' from 'create' prefix
+      const createUser = result.procedures.find((p) => p.name === 'createUser');
+      expect(createUser).toMatchObject({
+        name: 'createUser',
+        namespace: 'users',
+        type: 'mutation',
+      });
+
+      // doSomething has no naming convention, should be 'unknown'
+      const doSomething = result.procedures.find((p) => p.name === 'doSomething');
+      expect(doSomething).toMatchObject({
+        name: 'doSomething',
+        namespace: 'users',
+        type: 'unknown',
+      });
+    });
+
     it('should handle multiple files', () => {
       writeFileSync(
         join(testDir, 'users.ts'),
