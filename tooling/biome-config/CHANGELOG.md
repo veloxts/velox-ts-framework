@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.59
+
+### Patch Changes
+
+- refactor(ecosystem): Laravel-style API refinements & added missing unit tests
+
 ## 0.6.58
 
 ### Patch Changes

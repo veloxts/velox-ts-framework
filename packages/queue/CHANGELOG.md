@@ -1,5 +1,13 @@
 # @veloxts/queue
 
+## 0.6.59
+
+### Patch Changes
+
+- refactor(ecosystem): Laravel-style API refinements & added missing unit tests
+- Updated dependencies
+  - @veloxts/core@0.6.59
+
 ## 0.6.58
 
 ### Patch Changes

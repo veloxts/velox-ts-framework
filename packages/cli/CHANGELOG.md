@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.59
+
+### Patch Changes
+
+- refactor(ecosystem): Laravel-style API refinements & added missing unit tests
+- Updated dependencies
+  - @veloxts/auth@0.6.59
+  - @veloxts/core@0.6.59
+  - @veloxts/orm@0.6.59
+  - @veloxts/router@0.6.59
+  - @veloxts/validation@0.6.59
+
 ## 0.6.58
 
 ### Patch Changes
