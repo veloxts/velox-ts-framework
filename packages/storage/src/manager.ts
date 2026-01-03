@@ -274,6 +274,35 @@ export interface StorageManager {
   getVisibility(path: string): Promise<FileVisibility | null>;
 
   /**
+   * Make a file publicly accessible.
+   * Convenience method that calls setVisibility(path, 'public').
+   *
+   * @param path - File path/key
+   *
+   * @example
+   * ```typescript
+   * await storage.makePublic('uploads/avatar.jpg');
+   * const url = await storage.url('uploads/avatar.jpg');
+   * ```
+   */
+  makePublic(path: string): Promise<void>;
+
+  /**
+   * Make a file private (not publicly accessible).
+   * Convenience method that calls setVisibility(path, 'private').
+   *
+   * @param path - File path/key
+   *
+   * @example
+   * ```typescript
+   * await storage.makePrivate('documents/sensitive.pdf');
+   * // Use signedUrl() for temporary access
+   * const signedUrl = await storage.signedUrl('documents/sensitive.pdf');
+   * ```
+   */
+  makePrivate(path: string): Promise<void>;
+
+  /**
    * Close/cleanup the storage connection.
    */
   close(): Promise<void>;
@@ -364,6 +393,8 @@ export async function createStorageManager(
     signedUrl: (path, signedOptions) => store.signedUrl(path, signedOptions),
     setVisibility: (path, visibility) => store.setVisibility(path, visibility),
     getVisibility: (path) => store.getVisibility(path),
+    makePublic: (path) => store.setVisibility(path, 'public'),
+    makePrivate: (path) => store.setVisibility(path, 'private'),
     close: () => store.close(),
   };
 

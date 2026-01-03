@@ -73,7 +73,20 @@ export type {
   TaggableCacheStore,
   TTL,
 } from './types.js';
-// Utilities
+/**
+ * Utility functions for TTL parsing and formatting.
+ *
+ * @deprecated Import from '@veloxts/cache/utils' instead. Will be removed in v2.0.
+ *
+ * @example
+ * ```typescript
+ * // Old (deprecated):
+ * import { parseTtl, formatTtl } from '@veloxts/cache';
+ *
+ * // New:
+ * import { parseTtl, formatTtl } from '@veloxts/cache/utils';
+ * ```
+ */
 export {
   formatTtl,
   isDurationString,

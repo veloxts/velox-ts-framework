@@ -499,28 +499,78 @@ export function task(name: string, handler: TaskHandler): TaskBuilder {
 }
 
 /**
+ * Alias for task() - provides consistency with defineJob() and defineMail().
+ *
+ * @example
+ * ```typescript
+ * import { defineTask, defineSchedule } from '@veloxts/scheduler';
+ *
+ * const cleanup = defineTask('cleanup-expired-tokens', async () => {
+ *   await db.token.deleteMany({
+ *     where: { expiresAt: { lt: new Date() } }
+ *   });
+ * })
+ *   .daily()
+ *   .at('02:00')
+ *   .build();
+ * ```
+ */
+export const defineTask = task;
+
+/**
+ * Input type for defineSchedule - accepts either built tasks or builders.
+ */
+export type ScheduleInput = ScheduledTask | TaskBuilder;
+
+/**
+ * Type guard to check if value is a TaskBuilder (has build method).
+ */
+function isTaskBuilder(value: ScheduleInput): value is TaskBuilder {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'build' in value &&
+    typeof value.build === 'function'
+  );
+}
+
+/**
  * Define a schedule with multiple tasks.
  *
- * @param tasks - Array of scheduled tasks
+ * Auto-calls `.build()` on TaskBuilder instances, allowing either:
+ * - Pre-built ScheduledTask objects
+ * - TaskBuilder instances (build() called automatically)
+ *
+ * @param tasks - Array of scheduled tasks or task builders
  * @returns Array of scheduled tasks
  *
  * @example
  * ```typescript
+ * // .build() is now optional - defineSchedule calls it automatically
  * export const schedule = defineSchedule([
- *   task('cleanup', () => db.cleanup()).daily().at('02:00').build(),
- *   task('digest', () => sendDigest()).daily().at('09:00').build(),
- *   task('backup', () => runBackup()).weekly().sundays().at('03:00').build(),
+ *   defineTask('cleanup', () => db.cleanup()).daily().at('02:00'),
+ *   defineTask('digest', () => sendDigest()).daily().at('09:00'),
+ *   defineTask('backup', () => runBackup()).weekly().sundays().at('03:00'),
+ * ]);
+ *
+ * // Explicit .build() still works for backward compatibility
+ * export const schedule = defineSchedule([
+ *   defineTask('cleanup', () => db.cleanup()).daily().at('02:00').build(),
  * ]);
  * ```
  */
-export function defineSchedule(tasks: ScheduledTask[]): ScheduledTask[] {
+export function defineSchedule(tasks: ScheduleInput[]): ScheduledTask[] {
+  // Normalize: call build() on TaskBuilders, pass through ScheduledTasks
+  const builtTasks = tasks.map((t) => (isTaskBuilder(t) ? t.build() : t));
+
   // Validate unique names
   const names = new Set<string>();
-  for (const t of tasks) {
+  for (const t of builtTasks) {
     if (names.has(t.name)) {
       throw new Error(`Duplicate task name: "${t.name}". Task names must be unique.`);
     }
     names.add(t.name);
   }
-  return tasks;
+
+  return builtTasks;
 }

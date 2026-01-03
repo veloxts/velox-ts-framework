@@ -287,11 +287,35 @@ export interface EventsManager {
   /**
    * Broadcast to all subscribers except the sender.
    *
+   * @param channel - Target channel
+   * @param event - Event name
+   * @param data - Event payload
+   * @param except - Socket ID to exclude from broadcast
+   *
    * @example
    * ```typescript
-   * await events.toOthers('chat.room-1', 'message.sent', {
+   * await events.broadcastExcept('chat.room-1', 'message.sent', {
    *   text: 'Hello!',
    * }, senderSocketId);
+   * ```
+   */
+  broadcastExcept<T>(channel: string, event: string, data: T, except: string): Promise<void>;
+
+  /**
+   * Broadcast to all subscribers except the sender.
+   *
+   * @deprecated Use `broadcastExcept()` instead. Will be removed in v2.0.
+   * @param channel - Target channel
+   * @param event - Event name
+   * @param data - Event payload
+   * @param except - Socket ID to exclude from broadcast
+   *
+   * @example
+   * ```typescript
+   * // Deprecated - migrate to broadcastExcept:
+   * await events.toOthers('chat.room-1', 'message.sent', { text: 'Hello!' }, senderId);
+   * // New API:
+   * await events.broadcastExcept('chat.room-1', 'message.sent', { text: 'Hello!' }, senderId);
    * ```
    */
   toOthers<T>(channel: string, event: string, data: T, except: string): Promise<void>;

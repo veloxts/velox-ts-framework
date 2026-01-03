@@ -93,7 +93,20 @@ export type {
   SyncConfig,
   WorkerStore,
 } from './types.js';
-// Utilities
+/**
+ * Utility functions for job processing.
+ *
+ * @deprecated Import from '@veloxts/queue/utils' instead. Will be removed in v2.0.
+ *
+ * @example
+ * ```typescript
+ * // Old (deprecated):
+ * import { parseDelay, formatDuration } from '@veloxts/queue';
+ *
+ * // New:
+ * import { parseDelay, formatDuration } from '@veloxts/queue/utils';
+ * ```
+ */
 export { formatDuration, isDurationString, parseDelay, validateJobName } from './utils.js';
 
 // ============================================================================

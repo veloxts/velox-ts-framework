@@ -97,13 +97,31 @@ export function createManagerFromDriver(
       );
     },
 
-    async toOthers<T>(channel: string, event: string, data: T, except: string): Promise<void> {
+    async broadcastExcept<T>(
+      channel: string,
+      event: string,
+      data: T,
+      except: string
+    ): Promise<void> {
       await driver.broadcast({
         channel,
         event,
         data,
         except,
       });
+    },
+
+    /**
+     * @deprecated Use `broadcastExcept()` instead. Will be removed in v2.0.
+     */
+    async toOthers<T>(channel: string, event: string, data: T, except: string): Promise<void> {
+      // Runtime deprecation warning (development only)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          '[@veloxts/events] toOthers() is deprecated. Use broadcastExcept() instead.'
+        );
+      }
+      await this.broadcastExcept(channel, event, data, except);
     },
 
     async subscriberCount(channel: string): Promise<number> {

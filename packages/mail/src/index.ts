@@ -91,7 +91,20 @@ export type {
   SendResult,
   SmtpConfig,
 } from './types.js';
-// Utilities
+/**
+ * Utility functions for email processing.
+ *
+ * @deprecated Import from '@veloxts/mail/utils' instead. Will be removed in v2.0.
+ *
+ * @example
+ * ```typescript
+ * // Old (deprecated):
+ * import { formatAddress, isValidEmail } from '@veloxts/mail';
+ *
+ * // New:
+ * import { formatAddress, isValidEmail } from '@veloxts/mail/utils';
+ * ```
+ */
 export {
   escapeHtml,
   formatAddress,

@@ -91,7 +91,20 @@ export type {
   // Store interface
   StorageStore,
 } from './types.js';
-// Utilities
+/**
+ * Utility functions for storage operations.
+ *
+ * @deprecated Import from '@veloxts/storage/utils' instead. Will be removed in v2.0.
+ *
+ * @example
+ * ```typescript
+ * // Old (deprecated):
+ * import { formatBytes, detectMimeType } from '@veloxts/storage';
+ *
+ * // New:
+ * import { formatBytes, detectMimeType } from '@veloxts/storage/utils';
+ * ```
+ */
 export {
   basename,
   detectMimeType,

@@ -11,6 +11,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js"
+    },
     "./drivers/local": {
       "types": "./dist/drivers/local.d.ts",
       "import": "./dist/drivers/local.js"

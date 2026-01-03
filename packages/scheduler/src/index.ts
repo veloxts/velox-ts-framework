@@ -6,11 +6,11 @@
  *
  * @example
  * ```typescript
- * import { schedulerPlugin, task, defineSchedule } from '@veloxts/scheduler';
+ * import { schedulerPlugin, defineTask, defineSchedule } from '@veloxts/scheduler';
  *
- * // Define scheduled tasks with fluent API
+ * // Define scheduled tasks with fluent API - .build() is auto-called
  * const schedule = defineSchedule([
- *   task('cleanup-expired-tokens', async () => {
+ *   defineTask('cleanup-expired-tokens', async () => {
  *     await db.token.deleteMany({
  *       where: { expiresAt: { lt: new Date() } }
  *     });
@@ -21,26 +21,23 @@
  *     .withoutOverlapping()
  *     .onSuccess((ctx, duration) => {
  *       console.log(`Cleanup completed in ${duration}ms`);
- *     })
- *     .build(),
+ *     }),
  *
- *   task('send-daily-digest', async () => {
+ *   defineTask('send-daily-digest', async () => {
  *     await sendDailyDigest();
  *   })
  *     .daily()
  *     .at('09:00')
- *     .weekdays()
- *     .build(),
+ *     .weekdays(),
  *
- *   task('backup-database', async () => {
+ *   defineTask('backup-database', async () => {
  *     await runDatabaseBackup();
  *   })
  *     .weekly()
  *     .sundays()
  *     .at('03:00')
  *     .onSuccess(() => notifySlack('Backup complete'))
- *     .onFailure((ctx, error) => notifyPagerDuty(error))
- *     .build(),
+ *     .onFailure((ctx, error) => notifyPagerDuty(error)),
  * ]);
  *
  * // Register plugin
@@ -68,7 +65,8 @@ export {
   schedulerPlugin,
 } from './plugin.js';
 // Task builder
-export { defineSchedule, task } from './task.js';
+export { defineSchedule, defineTask, task } from './task.js';
+export type { ScheduleInput } from './task.js';
 // Types
 export type {
   DayOfWeek,
@@ -99,13 +97,13 @@ export type {
  * @example
  * ```typescript
  * import { Container } from '@veloxts/core';
- * import { registerSchedulerProviders, SCHEDULER_MANAGER, task } from '@veloxts/scheduler';
+ * import { registerSchedulerProviders, SCHEDULER_MANAGER, defineTask, defineSchedule } from '@veloxts/scheduler';
  *
  * const container = new Container();
  * registerSchedulerProviders(container, {
- *   tasks: [
- *     task('cleanup', () => db.cleanup()).daily().build(),
- *   ],
+ *   tasks: defineSchedule([
+ *     defineTask('cleanup', () => db.cleanup()).daily(),
+ *   ]),
  * });
  *
  * const scheduler = container.resolve(SCHEDULER_MANAGER);
