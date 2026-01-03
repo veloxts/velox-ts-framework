@@ -194,15 +194,15 @@ export interface DefineVeloxAppOptions {
  *
  * @example Minimal (all defaults)
  * ```typescript
- * import { defineVeloxApp } from '@veloxts/web';
- * export default defineVeloxApp();
+ * import { createVeloxApp } from '@veloxts/web';
+ * export default createVeloxApp();
  * ```
  *
  * @example Flat config (preferred, Laravel-style)
  * ```typescript
- * import { defineVeloxApp } from '@veloxts/web';
+ * import { createVeloxApp } from '@veloxts/web';
  *
- * export default defineVeloxApp({
+ * export default createVeloxApp({
  *   port: 3030,
  *   apiPrefix: '/api',
  *   pagesDir: 'app/pages',
@@ -211,15 +211,15 @@ export interface DefineVeloxAppOptions {
  *
  * @example Nested config (backward compatible)
  * ```typescript
- * import { defineVeloxApp } from '@veloxts/web';
+ * import { createVeloxApp } from '@veloxts/web';
  *
- * export default defineVeloxApp({
+ * export default createVeloxApp({
  *   server: { port: 3030 },
  *   api: { prefix: '/api' },
  * });
  * ```
  */
-export function defineVeloxApp(options: DefineVeloxAppOptions = {}): VinxiApp {
+export function createVeloxApp(options: DefineVeloxAppOptions = {}): VinxiApp {
   // Merge environment config with provided options
   const envConfig = getEnvConfig();
 
@@ -265,6 +265,25 @@ export function defineVeloxApp(options: DefineVeloxAppOptions = {}): VinxiApp {
     routers,
   });
 }
+
+/**
+ * @deprecated Use `createVeloxApp()` instead. Will be removed in v2.0.
+ *
+ * The naming `define*` is reserved for type/schema definitions in VeloxTS.
+ * Factory functions that create instances use `create*` naming.
+ *
+ * @example
+ * ```typescript
+ * // Old (deprecated):
+ * import { defineVeloxApp } from '@veloxts/web';
+ * export default defineVeloxApp({ port: 3030 });
+ *
+ * // New:
+ * import { createVeloxApp } from '@veloxts/web';
+ * export default createVeloxApp({ port: 3030 });
+ * ```
+ */
+export const defineVeloxApp = createVeloxApp;
 
 /**
  * Creates the four routers for the Vinxi application

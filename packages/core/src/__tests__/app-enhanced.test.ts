@@ -175,6 +175,8 @@ describe('VeloxApp - Enhanced Features', () => {
     });
 
     it('should handle async shutdown handlers', async () => {
+      vi.useFakeTimers();
+
       app = await veloxApp({ port: 0, logger: false });
 
       const events: string[] = [];
@@ -186,9 +188,13 @@ describe('VeloxApp - Enhanced Features', () => {
       });
 
       await app.start();
-      await app.stop();
+      const stopPromise = app.stop();
+      await vi.runAllTimersAsync();
+      await stopPromise;
 
       expect(events).toEqual(['start-cleanup', 'end-cleanup']);
+
+      vi.useRealTimers();
     });
 
     it('should continue shutdown even if handler fails', async () => {

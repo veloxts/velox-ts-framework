@@ -158,6 +158,8 @@ describe('LifecycleManager - Unit Tests', () => {
     });
 
     it('should execute handlers sequentially', async () => {
+      vi.useFakeTimers();
+
       const manager = new LifecycleManager();
       const events: string[] = [];
 
@@ -172,10 +174,14 @@ describe('LifecycleManager - Unit Tests', () => {
         events.push('end-2');
       });
 
-      await manager.executeShutdownHandlers();
+      const executePromise = manager.executeShutdownHandlers();
+      await vi.runAllTimersAsync();
+      await executePromise;
 
       // Handlers execute sequentially, not in parallel
       expect(events).toEqual(['start-1', 'end-1', 'start-2', 'end-2']);
+
+      vi.useRealTimers();
     });
 
     it('should continue executing handlers even if one fails', async () => {

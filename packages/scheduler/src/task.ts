@@ -574,3 +574,18 @@ export function defineSchedule(tasks: ScheduleInput[]): ScheduledTask[] {
 
   return builtTasks;
 }
+
+/**
+ * Alias for defineSchedule() - matches pattern of job/mail/task short aliases.
+ *
+ * @example
+ * ```typescript
+ * import { schedule, task } from '@veloxts/scheduler';
+ *
+ * const tasks = schedule([
+ *   task('cleanup', () => db.cleanup()).daily().at('02:00'),
+ *   task('digest', () => sendDigest()).daily().at('09:00'),
+ * ]);
+ * ```
+ */
+export const schedule = defineSchedule;

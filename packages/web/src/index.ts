@@ -14,7 +14,7 @@
  *
  * ```typescript
  * // Build-time configuration (app.config.ts) - runs in Node.js
- * import { defineVeloxApp } from '@veloxts/web';
+ * import { createVeloxApp } from '@veloxts/web';
  *
  * // Server action files ('use server') - runs in RSC context
  * import { authAction, validated } from '@veloxts/web/server';
@@ -28,7 +28,7 @@
  *
  * ## Why No server-only Guard Here?
  *
- * This module includes build-time configuration (`defineVeloxApp`) which runs
+ * This module includes build-time configuration (`createVeloxApp`) which runs
  * in Node.js context during Vinxi's config loading, NOT in React Server Component
  * context. The `server-only` package is designed to prevent client bundle inclusion,
  * but it incorrectly throws during legitimate Node.js build-time usage.
@@ -51,7 +51,9 @@ export {
 export {
   type ApiConfig,
   type BuildConfig,
+  createVeloxApp,
   type DefineVeloxAppOptions,
+  /** @deprecated Use createVeloxApp(). Will be removed in v2.0. */
   defineVeloxApp,
   type RoutingConfig,
   type ServerConfig,

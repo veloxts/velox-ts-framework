@@ -5,8 +5,8 @@
  * All options have sensible defaults - only specify what you need to change.
  */
 
-import { defineVeloxApp } from '@veloxts/web';
+import { createVeloxApp } from '@veloxts/web';
 
-export default defineVeloxApp({
+export default createVeloxApp({
   port: __API_PORT__,
 });

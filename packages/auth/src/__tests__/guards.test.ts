@@ -3,7 +3,7 @@
  */
 
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   allOf,
@@ -301,14 +301,20 @@ describe('Authorization Guards', () => {
     });
 
     it('should work with async check', async () => {
+      vi.useFakeTimers();
+
       const asyncGuard = userCan(async (user) => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         return user.id === '1';
       });
       const ctx = { user: { id: '1', email: 'test@example.com' } as User };
-      const result = await executeGuard(asyncGuard, ctx, mockRequest, mockReply);
+      const executePromise = executeGuard(asyncGuard, ctx, mockRequest, mockReply);
+      await vi.runAllTimersAsync();
+      const result = await executePromise;
 
       expect(result.passed).toBe(true);
+
+      vi.useRealTimers();
     });
   });
 

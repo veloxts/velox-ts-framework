@@ -66,7 +66,7 @@ export {
 } from './plugin.js';
 export type { ScheduleInput } from './task.js';
 // Task builder
-export { defineSchedule, defineTask, task } from './task.js';
+export { defineSchedule, defineTask, schedule, task } from './task.js';
 // Types
 export type {
   DayOfWeek,
