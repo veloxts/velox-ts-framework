@@ -24,8 +24,11 @@ Your web app is running at `http://localhost:8080`.
 For adding to an existing project:
 
 ```bash
-npm install @veloxts/velox zod
-npm install -D @veloxts/cli tsx typescript prisma @prisma/client
+# Runtime dependencies
+npm install @veloxts/velox @veloxts/cli @prisma/client zod
+
+# Development dependencies
+npm install -D tsx typescript prisma
 ```
 
 Note: Manual setup requires Prisma 7 configuration with driver adapters. See [@veloxts/orm](https://www.npmjs.com/package/@veloxts/orm) for details.
@@ -33,15 +36,35 @@ Note: Manual setup requires Prisma 7 configuration with driver adapters. See [@v
 ## What's Included
 
 This umbrella package re-exports:
-- `@veloxts/core` - App bootstrap, plugins, DI
-- `@veloxts/router` - Procedures, REST adapter, tRPC
-- `@veloxts/orm` - Prisma database plugin
-- `@veloxts/auth` - Authentication & authorization
-- `@veloxts/validation` - Zod integration
-- `@veloxts/mcp` - exposes project context to AI assistants
-- `@veloxts/web` - React Server Components for full-stack web apps
 
-Separate packages: `@veloxts/cli`, `@veloxts/client`, `create-velox-app`
+- `@veloxts/core` - App bootstrap, plugins, DI container
+- `@veloxts/router` - Procedures, REST adapter, tRPC integration
+- `@veloxts/orm` - Prisma database plugin with driver adapters
+- `@veloxts/auth` - JWT/session authentication, guards, rate limiting
+- `@veloxts/validation` - Zod schema utilities and integration
+
+## Separate Packages
+
+Install these separately based on your needs:
+
+| Package | Description |
+|---------|-------------|
+| `@veloxts/cli` | Developer CLI (`velox dev`, `velox make`, `velox migrate`) |
+| `@veloxts/client` | Type-safe frontend API client |
+| `@veloxts/web` | React Server Components with Vinxi |
+| `@veloxts/mcp` | Model Context Protocol server for AI assistants |
+| `create-velox-app` | Project scaffolder |
+
+## Ecosystem Add-ons (Experimental)
+
+| Package | Description |
+|---------|-------------|
+| `@veloxts/cache` | Multi-driver caching (memory, Redis) |
+| `@veloxts/queue` | Background job processing (sync, BullMQ) |
+| `@veloxts/mail` | Email sending (SMTP, Resend, React Email) |
+| `@veloxts/storage` | File storage abstraction (local, S3/R2) |
+| `@veloxts/scheduler` | Cron task scheduling |
+| `@veloxts/events` | Real-time broadcasting (WebSocket, SSE) |
 
 ## License
 
