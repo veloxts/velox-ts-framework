@@ -95,9 +95,15 @@ function buildArgs(options: MigrateOptions): string[] {
 
 /**
  * Execute velox migrate command
+ *
+ * @param options - Migration options
+ * @param serverProjectRoot - Optional project root from server context (takes precedence over auto-detection)
  */
-export async function migrate(options: MigrateOptions): Promise<MigrateResult> {
-  const projectRoot = findProjectRoot();
+export async function migrate(
+  options: MigrateOptions,
+  serverProjectRoot?: string
+): Promise<MigrateResult> {
+  const projectRoot = serverProjectRoot ?? findProjectRoot();
 
   if (!projectRoot) {
     return {

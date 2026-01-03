@@ -15,6 +15,8 @@ export interface ProcedureOptions {
   crud: boolean;
   /** Include pagination for list operation */
   paginated: boolean;
+  /** Skip auto-registering in router.ts */
+  skipRegistration: boolean;
 }
 
 // ============================================================================

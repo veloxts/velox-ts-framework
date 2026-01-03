@@ -337,13 +337,16 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
           };
         }
 
-        const result = await generate({
-          type: parsed.data.type as GeneratorType,
-          name: parsed.data.name,
-          crud: parsed.data.crud,
-          dryRun: parsed.data.dryRun,
-          json: true,
-        });
+        const result = await generate(
+          {
+            type: parsed.data.type as GeneratorType,
+            name: parsed.data.name,
+            crud: parsed.data.crud,
+            dryRun: parsed.data.dryRun,
+            json: true,
+          },
+          projectRoot
+        );
 
         return {
           content: [
@@ -372,12 +375,15 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
           };
         }
 
-        const result = await migrate({
-          action: parsed.data.action as MigrateAction,
-          dev: parsed.data.dev,
-          dryRun: parsed.data.dryRun,
-          json: true,
-        });
+        const result = await migrate(
+          {
+            action: parsed.data.action as MigrateAction,
+            dev: parsed.data.dev,
+            dryRun: parsed.data.dryRun,
+            json: true,
+          },
+          projectRoot
+        );
 
         return {
           content: [

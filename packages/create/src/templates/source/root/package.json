@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "25.0.3",
+    "@veloxts/cli": "__VELOXTS_VERSION__",
     "typescript": "5.9.3"
   }
 }

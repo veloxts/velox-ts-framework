@@ -100,9 +100,15 @@ function buildArgs(options: GenerateOptions): string[] {
 
 /**
  * Execute velox make command
+ *
+ * @param options - Generator options
+ * @param serverProjectRoot - Optional project root from server context (takes precedence over auto-detection)
  */
-export async function generate(options: GenerateOptions): Promise<GenerateResult> {
-  const projectRoot = findProjectRoot();
+export async function generate(
+  options: GenerateOptions,
+  serverProjectRoot?: string
+): Promise<GenerateResult> {
+  const projectRoot = serverProjectRoot ?? findProjectRoot();
 
   if (!projectRoot) {
     return {
