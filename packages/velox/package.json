@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/velox",
-  "version": "0.6.59",
+  "version": "0.6.60",
   "description": "Complete VeloxTS framework - batteries included",
   "type": "module",
   "main": "./dist/index.js",

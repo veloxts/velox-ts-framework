@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.60
+
+### Patch Changes
+
+- feat(create): add tRPC-specific CLAUDE.md and improve AI-native features
+- Updated dependencies
+  - @veloxts/auth@0.6.60
+  - @veloxts/client@0.6.60
+  - @veloxts/core@0.6.60
+  - @veloxts/router@0.6.60
+
 ## 0.6.59
 
 ### Patch Changes

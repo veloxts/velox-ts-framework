@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.6.60
+
+### Patch Changes
+
+- feat(create): add tRPC-specific CLAUDE.md and improve AI-native features
+
 ## 0.6.59
 
 ### Patch Changes

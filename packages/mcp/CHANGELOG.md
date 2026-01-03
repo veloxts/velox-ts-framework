@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.60
+
+### Patch Changes
+
+- feat(create): add tRPC-specific CLAUDE.md and improve AI-native features
+- Updated dependencies
+  - @veloxts/cli@0.6.60
+  - @veloxts/router@0.6.60
+  - @veloxts/validation@0.6.60
+
 ## 0.6.59
 
 ### Patch Changes
