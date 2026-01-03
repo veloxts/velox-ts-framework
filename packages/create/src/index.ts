@@ -40,8 +40,10 @@ export const CREATE_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 /** Timeout for exec commands (5 minutes) */
 const EXEC_TIMEOUT_MS = 5 * 60 * 1000;
 
-/** Reserved project names that could cause issues */
-const RESERVED_NAMES = new Set([
+/** Reserved project names that could cause issues
+ * @internal Exported for testing
+ */
+export const RESERVED_NAMES = new Set([
   'node_modules',
   'test',
   'tests',
@@ -74,8 +76,9 @@ interface ProjectConfig {
 
 /**
  * Check if a file path is safe (no path traversal attacks)
+ * @internal Exported for testing
  */
-function isPathSafe(baseDir: string, targetPath: string): boolean {
+export function isPathSafe(baseDir: string, targetPath: string): boolean {
   const resolved = path.resolve(baseDir, targetPath);
   const normalizedBase = path.normalize(baseDir);
   return resolved.startsWith(normalizedBase);
@@ -289,8 +292,9 @@ async function promptProjectConfig(
 
 /**
  * Detect which package manager is being used
+ * @internal Exported for testing
  */
-function detectPackageManager(): 'npm' | 'pnpm' | 'yarn' {
+export function detectPackageManager(): 'npm' | 'pnpm' | 'yarn' {
   const userAgent = process.env.npm_config_user_agent || '';
 
   if (userAgent.includes('pnpm')) return 'pnpm';
@@ -409,8 +413,9 @@ async function installDependencies(config: ProjectConfig): Promise<void> {
 
 /**
  * Get the install command for the package manager
+ * @internal Exported for testing
  */
-function getInstallCommand(packageManager: string): string {
+export function getInstallCommand(packageManager: string): string {
   switch (packageManager) {
     case 'pnpm':
       return 'pnpm install';

@@ -84,7 +84,8 @@ Examples:
 // Argument Parser
 // ============================================================================
 
-interface ParsedArgs {
+/** @internal Exported for testing */
+export interface ParsedArgs {
   projectName?: string;
   template?: TemplateType;
   database?: DatabaseType;
@@ -92,7 +93,8 @@ interface ParsedArgs {
   version: boolean;
 }
 
-function parseArgs(args: string[]): ParsedArgs {
+/** @internal Exported for testing */
+export function parseArgs(args: string[]): ParsedArgs {
   const result: ParsedArgs = {
     help: false,
     version: false,
