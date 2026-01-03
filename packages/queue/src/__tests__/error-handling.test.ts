@@ -534,4 +534,159 @@ describe('Job Definition Edge Cases', () => {
     // Default values should still be present
     expect(job.options.removeOnComplete).toBe(true);
   });
+
+  it('should accept timeout option', () => {
+    const job = defineJob({
+      name: 'timeout.job',
+      schema: z.object({}),
+      handler: async () => {},
+      options: {
+        timeout: 30000, // 30 seconds
+      },
+    });
+
+    expect(job.options.timeout).toBe(30000);
+  });
+});
+
+describe('Delayed Job Scheduling', () => {
+  it('should mark delayed jobs as delayed in stats', async () => {
+    const store = createSyncStore();
+
+    // Add a job with a long delay (1 hour)
+    await store.add('delayed.job', { value: 1 }, {
+      queue: 'default',
+      delay: 3600000, // 1 hour
+    });
+
+    // Add a job without delay
+    await store.add('immediate.job', { value: 2 }, {
+      queue: 'default',
+    });
+
+    const stats = await store.getStats('default');
+    expect(stats[0].delayed).toBe(1);
+    expect(stats[0].waiting).toBe(1);
+  });
+
+  it('should not process delayed jobs until delay has elapsed', async () => {
+    const store = createSyncStore({ throwOnError: false });
+    const worker = createSyncWorker(store);
+
+    let processedJobs: string[] = [];
+
+    worker.registerHandler(
+      'delayed.task',
+      async ({ data }) => {
+        processedJobs.push((data as { id: string }).id);
+      },
+      { queue: 'default' }
+    );
+
+    // Add job with future delay (won't be ready)
+    await store.add('delayed.task', { id: 'delayed' }, {
+      queue: 'default',
+      delay: 3600000, // 1 hour from now
+    });
+
+    // Add job without delay (ready immediately)
+    await store.add('delayed.task', { id: 'immediate' }, {
+      queue: 'default',
+    });
+
+    await worker.start();
+
+    // Only the immediate job should have been processed
+    expect(processedJobs).toEqual(['immediate']);
+  });
+
+  it('should process jobs when delay has elapsed', async () => {
+    const store = createSyncStore({ throwOnError: false });
+    const worker = createSyncWorker(store);
+
+    let processedJobs: string[] = [];
+
+    worker.registerHandler(
+      'past.delay',
+      async ({ data }) => {
+        processedJobs.push((data as { id: string }).id);
+      },
+      { queue: 'default' }
+    );
+
+    // Add job with 0 delay (should process immediately)
+    await store.add('past.delay', { id: 'zero-delay' }, {
+      queue: 'default',
+      delay: 0,
+    });
+
+    await worker.start();
+
+    expect(processedJobs).toContain('zero-delay');
+  });
+});
+
+describe('Job Timeout Behavior', () => {
+  it('should accept timeout in job definition', () => {
+    const timeoutJob = defineJob({
+      name: 'long.running',
+      schema: z.object({ taskId: z.string() }),
+      handler: async () => {
+        // Simulate long-running task
+      },
+      options: {
+        timeout: 60000, // 60 second timeout
+      },
+    });
+
+    expect(timeoutJob.options.timeout).toBe(60000);
+  });
+
+  it('should pass timeout to queue when dispatching', async () => {
+    const manager = await createQueueManager({ driver: 'sync' });
+
+    const longRunningJob = defineJob({
+      name: 'compute.heavy',
+      schema: z.object({ iterations: z.number() }),
+      handler: async () => {},
+      options: {
+        timeout: 120000, // 2 minutes
+      },
+    });
+
+    // Dispatching should not throw
+    await expect(
+      manager.dispatch(longRunningJob, { iterations: 1000 })
+    ).resolves.toBeDefined();
+
+    await manager.close();
+  });
+
+  it('should support timeout override at dispatch time', async () => {
+    const manager = await createQueueManager({ driver: 'sync' });
+
+    const flexibleJob = defineJob({
+      name: 'flexible.timeout',
+      schema: z.object({}),
+      handler: async () => {},
+      options: {
+        timeout: 10000, // Default 10s timeout
+      },
+    });
+
+    // Override timeout at dispatch
+    await expect(
+      manager.dispatch(flexibleJob, {}, {
+        jobOptions: {
+          timeout: 300000, // 5 minute override
+        },
+      })
+    ).resolves.toBeDefined();
+
+    await manager.close();
+  });
+
+  // Note: Actual timeout enforcement is driver-specific.
+  // BullMQ enforces timeouts; sync driver does not (for testing simplicity).
+  // See src/__integration__/bullmq.integration.test.ts for timeout enforcement tests.
 });
