@@ -7,7 +7,7 @@
 
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import type { Guard, JwtConfig, TokenPayload, User } from '../auth.js';
+import type { GuardFunction, JwtConfig, TokenPayload, User } from '../auth.js';
 // Import from subpath exports
 import * as auth from '../auth.js';
 // Type imports for expectTypeOf tests
@@ -357,9 +357,9 @@ describe('Type exports', () => {
       expectTypeOf<JwtConfig>().toBeObject();
     });
 
-    it('should export Guard type', () => {
-      // Guard is a function type
-      expectTypeOf<Guard>().toBeFunction();
+    it('should export GuardFunction type', () => {
+      // GuardFunction is a function type
+      expectTypeOf<GuardFunction>().toBeFunction();
     });
   });
 
