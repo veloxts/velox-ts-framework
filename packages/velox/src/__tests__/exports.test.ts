@@ -5,15 +5,20 @@
  * and that the re-export mechanism works correctly.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import type { Guard, JwtConfig, TokenPayload, User } from '../auth.js';
 // Import from subpath exports
 import * as auth from '../auth.js';
+// Type imports for expectTypeOf tests
+import type { BaseContext, Container, InjectionToken, VeloxApp } from '../core.js';
 import * as core from '../core.js';
 // Import everything from main entry point
 import * as velox from '../index.js';
 import * as orm from '../orm.js';
+import type { CompiledProcedure, ProcedureCollection } from '../router.js';
 import * as router from '../router.js';
+import type { InferOutput, SafeParseResult } from '../validation.js';
 import * as validation from '../validation.js';
 
 // ============================================================================
@@ -312,5 +317,209 @@ describe('Export completeness', () => {
     expect(velox.databasePlugin).toBeDefined(); // orm
     expect(velox.procedure).toBeDefined(); // router
     expect(velox.jwtManager).toBeDefined(); // auth
+  });
+});
+
+// ============================================================================
+// Type Export Tests (compile-time verification with expectTypeOf)
+// ============================================================================
+
+describe('Type exports', () => {
+  describe('Core types', () => {
+    it('should export VeloxApp type', () => {
+      expectTypeOf<VeloxApp>().toBeObject();
+    });
+
+    it('should export Container type', () => {
+      expectTypeOf<Container>().toBeObject();
+    });
+
+    it('should export BaseContext type', () => {
+      expectTypeOf<BaseContext>().toBeObject();
+    });
+
+    it('should export InjectionToken type', () => {
+      // InjectionToken is a union type
+      expectTypeOf<InjectionToken<string>>().not.toBeNever();
+    });
+  });
+
+  describe('Auth types', () => {
+    it('should export User type', () => {
+      expectTypeOf<User>().toBeObject();
+    });
+
+    it('should export TokenPayload type', () => {
+      expectTypeOf<TokenPayload>().toBeObject();
+    });
+
+    it('should export JwtConfig type', () => {
+      expectTypeOf<JwtConfig>().toBeObject();
+    });
+
+    it('should export Guard type', () => {
+      // Guard is a function type
+      expectTypeOf<Guard>().toBeFunction();
+    });
+  });
+
+  describe('Router types', () => {
+    it('should export CompiledProcedure type', () => {
+      expectTypeOf<CompiledProcedure>().toBeObject();
+    });
+
+    it('should export ProcedureCollection type', () => {
+      expectTypeOf<ProcedureCollection>().toBeObject();
+    });
+  });
+
+  describe('Validation types', () => {
+    it('should export InferOutput type utility', () => {
+      // InferOutput extracts the output type from a schema
+      const schema = velox.z.object({ id: velox.z.string() });
+      type Output = InferOutput<typeof schema>;
+      expectTypeOf<Output>().toEqualTypeOf<{ id: string }>();
+    });
+
+    it('should export SafeParseResult type', () => {
+      expectTypeOf<SafeParseResult<string>>().not.toBeNever();
+    });
+  });
+});
+
+// ============================================================================
+// Export Count Per Submodule (Regression Protection)
+// ============================================================================
+
+describe('Export count per submodule', () => {
+  // These counts serve as regression protection - if exports are accidentally
+  // removed, these tests will fail and alert developers.
+
+  it('should have expected number of core exports', () => {
+    const coreExportCount = Object.keys(core).length;
+    // Core has ~50+ exports (classes, functions, types, decorators)
+    expect(coreExportCount).toBeGreaterThanOrEqual(45);
+  });
+
+  it('should have expected number of validation exports', () => {
+    const validationExportCount = Object.keys(validation).length;
+    // Validation has ~35+ exports (z, schemas, utilities)
+    expect(validationExportCount).toBeGreaterThanOrEqual(30);
+  });
+
+  it('should have expected number of orm exports', () => {
+    const ormExportCount = Object.keys(orm).length;
+    // ORM has ~25+ exports (plugin, utilities, types)
+    expect(ormExportCount).toBeGreaterThanOrEqual(20);
+  });
+
+  it('should have expected number of router exports', () => {
+    const routerExportCount = Object.keys(router).length;
+    // Router has ~70+ exports (procedures, REST, tRPC, OpenAPI)
+    expect(routerExportCount).toBeGreaterThanOrEqual(65);
+  });
+
+  it('should have expected number of auth exports', () => {
+    const authExportCount = Object.keys(auth).length;
+    // Auth has ~70+ exports (JWT, sessions, guards, CSRF, rate limiting)
+    expect(authExportCount).toBeGreaterThanOrEqual(65);
+  });
+
+  it('should log export counts for debugging', () => {
+    // This test always passes but logs counts for visibility
+    const counts = {
+      core: Object.keys(core).length,
+      validation: Object.keys(validation).length,
+      orm: Object.keys(orm).length,
+      router: Object.keys(router).length,
+      auth: Object.keys(auth).length,
+      total: Object.keys(velox).length,
+    };
+    // Log to help debug if thresholds need adjustment
+    console.log('Export counts:', counts);
+    expect(true).toBe(true);
+  });
+});
+
+// ============================================================================
+// Negative Tests (Verify Internals NOT Exported)
+// ============================================================================
+
+describe('Internal implementation details should NOT be exported', () => {
+  describe('Core internals', () => {
+    it('should not expose internal container implementation details', () => {
+      // These are implementation details that should not be public API
+      expect((velox as Record<string, unknown>).ContainerImpl).toBeUndefined();
+      expect((velox as Record<string, unknown>)._internalContainer).toBeUndefined();
+      expect((velox as Record<string, unknown>).__private).toBeUndefined();
+    });
+
+    it('should not expose internal metadata keys', () => {
+      expect((velox as Record<string, unknown>).INJECTABLE_METADATA).toBeUndefined();
+      expect((velox as Record<string, unknown>).INJECT_METADATA).toBeUndefined();
+    });
+  });
+
+  describe('Router internals', () => {
+    it('should not expose internal procedure building utilities', () => {
+      expect((velox as Record<string, unknown>)._buildProcedure).toBeUndefined();
+      expect((velox as Record<string, unknown>).InternalBuilder).toBeUndefined();
+    });
+
+    it('should not expose internal REST adapter internals', () => {
+      expect((velox as Record<string, unknown>)._restAdapterInternal).toBeUndefined();
+    });
+  });
+
+  describe('Auth internals', () => {
+    it('should not expose internal token handling', () => {
+      expect((velox as Record<string, unknown>)._signToken).toBeUndefined();
+      expect((velox as Record<string, unknown>)._verifyToken).toBeUndefined();
+    });
+
+    it('should not expose internal session store implementation', () => {
+      expect((velox as Record<string, unknown>).SessionStoreImpl).toBeUndefined();
+      expect((velox as Record<string, unknown>)._sessionStorage).toBeUndefined();
+    });
+  });
+
+  describe('ORM internals', () => {
+    it('should not expose internal database connection handling', () => {
+      expect((velox as Record<string, unknown>)._dbConnection).toBeUndefined();
+      expect((velox as Record<string, unknown>).InternalPrismaClient).toBeUndefined();
+    });
+  });
+
+  describe('Validation internals', () => {
+    it('should not expose internal schema utilities', () => {
+      expect((velox as Record<string, unknown>)._schemaRegistry).toBeUndefined();
+      expect((velox as Record<string, unknown>).InternalValidator).toBeUndefined();
+    });
+  });
+
+  describe('General naming conventions', () => {
+    it('should not have any exports starting with underscore', () => {
+      const underscoreExports = Object.keys(velox).filter((key) => key.startsWith('_'));
+      expect(underscoreExports).toEqual([]);
+    });
+
+    it('should not have any exports containing "Internal" (case-insensitive)', () => {
+      const internalExports = Object.keys(velox).filter((key) =>
+        key.toLowerCase().includes('internal')
+      );
+      expect(internalExports).toEqual([]);
+    });
+
+    it('should not have any exports containing "Private" (case-insensitive)', () => {
+      const privateExports = Object.keys(velox).filter((key) =>
+        key.toLowerCase().includes('private')
+      );
+      expect(privateExports).toEqual([]);
+    });
+
+    it('should not have any exports containing "Impl" suffix', () => {
+      const implExports = Object.keys(velox).filter((key) => key.endsWith('Impl'));
+      expect(implExports).toEqual([]);
+    });
   });
 });
