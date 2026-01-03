@@ -117,9 +117,7 @@ export function createManagerFromDriver(
     async toOthers<T>(channel: string, event: string, data: T, except: string): Promise<void> {
       // Runtime deprecation warning (development only)
       if (process.env.NODE_ENV === 'development') {
-        console.warn(
-          '[@veloxts/events] toOthers() is deprecated. Use broadcastExcept() instead.'
-        );
+        console.warn('[@veloxts/events] toOthers() is deprecated. Use broadcastExcept() instead.');
       }
       await this.broadcastExcept(channel, event, data, except);
     },
