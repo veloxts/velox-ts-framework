@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.61
+
+### Patch Changes
+
+- fix(mcp,cli): improve workspace support and add procedure auto-registration
+
 ## 0.6.60
 
 ### Patch Changes

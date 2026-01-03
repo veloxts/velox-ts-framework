@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/core",
-  "version": "0.6.60",
+  "version": "0.6.61",
   "description": "Fastify wrapper, DI container, and plugin system for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",

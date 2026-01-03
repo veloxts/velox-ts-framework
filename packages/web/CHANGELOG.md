@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.61
+
+### Patch Changes
+
+- fix(mcp,cli): improve workspace support and add procedure auto-registration
+- Updated dependencies
+  - @veloxts/auth@0.6.61
+  - @veloxts/client@0.6.61
+  - @veloxts/core@0.6.61
+  - @veloxts/router@0.6.61
+
 ## 0.6.60
 
 ### Patch Changes
