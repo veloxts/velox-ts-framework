@@ -5,7 +5,6 @@
  * These tests validate protection against path traversal attacks.
  */
 
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { isPathSafe, RESERVED_NAMES } from '../index.js';
@@ -103,7 +102,7 @@ describe('Path Safety (isPathSafe)', () => {
     it('should handle trailing slashes', () => {
       expect(isPathSafe(baseDir, 'src/')).toBe(true);
       expect(isPathSafe(baseDir, 'src/api/')).toBe(true);
-      expect(isPathSafe(baseDir + '/', 'src')).toBe(true);
+      expect(isPathSafe(`${baseDir}/`, 'src')).toBe(true);
     });
 
     it('should handle double slashes', () => {

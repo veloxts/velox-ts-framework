@@ -21,7 +21,7 @@ function createMockDriver(): BroadcastDriver & {
   const broadcastedEvents: BroadcastEvent[] = [];
   const subscribers = new Map<string, string[]>();
   const presenceMembers = new Map<string, PresenceMember[]>();
-  let broadcastDelay = 0;
+  const broadcastDelay = 0;
 
   return {
     broadcastedEvents,
@@ -82,7 +82,7 @@ describe('Concurrent Access', () => {
 
       expect(mockDriver.broadcastedEvents).toHaveLength(50);
       // Verify all events were broadcast to the correct channel
-      mockDriver.broadcastedEvents.forEach((event, i) => {
+      mockDriver.broadcastedEvents.forEach((event) => {
         expect(event.channel).toBe('orders.updates');
         expect(event.event).toBe('order.created');
       });
@@ -150,7 +150,9 @@ describe('Concurrent Access', () => {
       }
 
       // Query all in parallel
-      const promises = Array.from({ length: 10 }, (_, i) => manager.subscriberCount(`channel-${i}`));
+      const promises = Array.from({ length: 10 }, (_, i) =>
+        manager.subscriberCount(`channel-${i}`)
+      );
       const counts = await Promise.all(promises);
 
       // Verify correct counts
@@ -188,7 +190,9 @@ describe('Concurrent Access', () => {
         mockDriver.presenceMembers.set(`presence-${i}`, members);
       }
 
-      const promises = Array.from({ length: 5 }, (_, i) => manager.presenceMembers(`presence-${i}`));
+      const promises = Array.from({ length: 5 }, (_, i) =>
+        manager.presenceMembers(`presence-${i}`)
+      );
       const results = await Promise.all(promises);
 
       results.forEach((members, i) => {
@@ -248,7 +252,7 @@ describe('Concurrent Access', () => {
       await Promise.all(promises);
 
       // Verify all events have the correct except value
-      mockDriver.broadcastedEvents.forEach((event, i) => {
+      mockDriver.broadcastedEvents.forEach((event) => {
         expect(event.except).toBeDefined();
       });
 
@@ -266,7 +270,7 @@ describe('Concurrent Access', () => {
       await Promise.all(promises);
 
       expect(mockDriver.broadcastedEvents).toHaveLength(15);
-      mockDriver.broadcastedEvents.forEach((event, i) => {
+      mockDriver.broadcastedEvents.forEach((event) => {
         expect(event.channel).toBe('typing.room');
         expect(event.event).toBe('user.typing');
         expect(event.except).toBeDefined();
@@ -282,9 +286,7 @@ describe('Concurrent Access', () => {
 
       // 100 broadcasts
       for (let i = 0; i < 100; i++) {
-        operations.push(
-          manager.broadcast('stress.channel', 'stress.event', { iteration: i })
-        );
+        operations.push(manager.broadcast('stress.channel', 'stress.event', { iteration: i }));
       }
 
       // 50 subscriber queries
@@ -328,7 +330,9 @@ describe('Concurrent Access', () => {
       // Verify data integrity
       for (const channel of Object.keys(expectedData)) {
         const channelEvents = mockDriver.broadcastedEvents.filter((e) => e.channel === channel);
-        const receivedValues = channelEvents.map((e) => (e.data as { value: number }).value).sort((a, b) => a - b);
+        const receivedValues = channelEvents
+          .map((e) => (e.data as { value: number }).value)
+          .sort((a, b) => a - b);
         const expectedValues = expectedData[channel].sort((a, b) => a - b);
         expect(receivedValues).toEqual(expectedValues);
       }

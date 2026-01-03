@@ -39,8 +39,7 @@ describe('Template Rendering', () => {
       const DynamicSubjectEmail = defineMail({
         name: 'dynamic-subject',
         schema: z.object({ userName: z.string(), orderCount: z.number() }),
-        subject: ({ userName, orderCount }) =>
-          `${userName}, you have ${orderCount} new orders!`,
+        subject: ({ userName, orderCount }) => `${userName}, you have ${orderCount} new orders!`,
         template: () => ({ type: 'div', props: {} }) as never,
       });
 
@@ -380,8 +379,7 @@ describe('Template Rendering', () => {
         }),
         subject: 'Your Order',
         template: () => ({ type: 'div', props: {} }) as never,
-        text: ({ items }) =>
-          items.map((item) => `- ${item.name} x${item.qty}`).join('\n'),
+        text: ({ items }) => items.map((item) => `- ${item.name} x${item.qty}`).join('\n'),
       });
 
       if (ComplexTextEmail.text) {

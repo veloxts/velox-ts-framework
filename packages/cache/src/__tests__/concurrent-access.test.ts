@@ -4,7 +4,7 @@
  * Tests for race conditions, parallel operations, and concurrent access patterns.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createMemoryCache } from '../drivers/memory.js';
 import { type CacheManager, createCacheManager } from '../manager.js';

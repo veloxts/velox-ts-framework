@@ -4,7 +4,7 @@
  * Tests for storage error handling, edge cases, and failure scenarios.
  */
 
-import { chmod, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -207,11 +207,7 @@ describe('Storage Error Paths', () => {
       await store.put('temp.txt', 'temporary content');
 
       // Start multiple operations where file may be deleted
-      const operations = [
-        store.get('temp.txt'),
-        store.delete('temp.txt'),
-        store.get('temp.txt'),
-      ];
+      const operations = [store.get('temp.txt'), store.delete('temp.txt'), store.get('temp.txt')];
 
       const results = await Promise.allSettled(operations);
 
@@ -332,7 +328,7 @@ describe('Storage Error Paths', () => {
 
   describe('large content handling', () => {
     it('should handle very large file paths', async () => {
-      const longName = 'a'.repeat(200) + '.txt';
+      const longName = `${'a'.repeat(200)}.txt`;
       await store.put(longName, 'content');
       expect(await store.exists(longName)).toBe(true);
       const content = await store.get(longName);
@@ -345,7 +341,7 @@ describe('Storage Error Paths', () => {
 
       const retrieved = await store.get('binary.bin');
       expect(retrieved).not.toBeNull();
-      expect(Buffer.compare(retrieved!, binaryContent)).toBe(0);
+      expect(Buffer.compare(retrieved as Buffer, binaryContent)).toBe(0);
     });
 
     it('should handle empty content', async () => {

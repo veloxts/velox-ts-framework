@@ -178,11 +178,7 @@ describe('SSE driver (integration)', () => {
   }, 10000);
 
   it('should handle multiple concurrent SSE connections', async () => {
-    const clients = await Promise.all([
-      createSseClient(),
-      createSseClient(),
-      createSseClient(),
-    ]);
+    const clients = await Promise.all([createSseClient(), createSseClient(), createSseClient()]);
 
     try {
       const ids = clients.map((c) => c.connectionId);
@@ -286,11 +282,7 @@ describe('SSE driver (integration)', () => {
   // ==========================================================================
 
   it('should broadcast to multiple SSE clients', async () => {
-    const clients = await Promise.all([
-      createSseClient(),
-      createSseClient(),
-      createSseClient(),
-    ]);
+    const clients = await Promise.all([createSseClient(), createSseClient(), createSseClient()]);
 
     try {
       // Subscribe all

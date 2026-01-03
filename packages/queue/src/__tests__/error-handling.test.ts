@@ -4,7 +4,7 @@
  * Tests for job failure scenarios, retry strategies, and error recovery.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { createSyncStore, createSyncWorker } from '../drivers/sync.js';
@@ -327,11 +327,7 @@ describe('Error Handling', () => {
         { queue: 'queue-a', jobOptions: { attempts: 1 } }
       );
 
-      worker.registerHandler(
-        'success.job',
-        async () => 'ok',
-        { queue: 'queue-b' }
-      );
+      worker.registerHandler('success.job', async () => 'ok', { queue: 'queue-b' });
 
       await store.add('fail.job', {}, { queue: 'queue-a' });
       await store.add('success.job', {}, { queue: 'queue-b' });
@@ -393,7 +389,7 @@ describe('Error Handling', () => {
         { queue: 'default' }
       );
 
-      const jobId = await store.add('mutate.job', { value: 42 }, { queue: 'default' });
+      await store.add('mutate.job', { value: 42 }, { queue: 'default' });
       await worker.start();
 
       // Original data in store should be unchanged
@@ -554,15 +550,23 @@ describe('Delayed Job Scheduling', () => {
     const store = createSyncStore();
 
     // Add a job with a long delay (1 hour)
-    await store.add('delayed.job', { value: 1 }, {
-      queue: 'default',
-      delay: 3600000, // 1 hour
-    });
+    await store.add(
+      'delayed.job',
+      { value: 1 },
+      {
+        queue: 'default',
+        delay: 3600000, // 1 hour
+      }
+    );
 
     // Add a job without delay
-    await store.add('immediate.job', { value: 2 }, {
-      queue: 'default',
-    });
+    await store.add(
+      'immediate.job',
+      { value: 2 },
+      {
+        queue: 'default',
+      }
+    );
 
     const stats = await store.getStats('default');
     expect(stats[0].delayed).toBe(1);
@@ -573,7 +577,7 @@ describe('Delayed Job Scheduling', () => {
     const store = createSyncStore({ throwOnError: false });
     const worker = createSyncWorker(store);
 
-    let processedJobs: string[] = [];
+    const processedJobs: string[] = [];
 
     worker.registerHandler(
       'delayed.task',
@@ -584,15 +588,23 @@ describe('Delayed Job Scheduling', () => {
     );
 
     // Add job with future delay (won't be ready)
-    await store.add('delayed.task', { id: 'delayed' }, {
-      queue: 'default',
-      delay: 3600000, // 1 hour from now
-    });
+    await store.add(
+      'delayed.task',
+      { id: 'delayed' },
+      {
+        queue: 'default',
+        delay: 3600000, // 1 hour from now
+      }
+    );
 
     // Add job without delay (ready immediately)
-    await store.add('delayed.task', { id: 'immediate' }, {
-      queue: 'default',
-    });
+    await store.add(
+      'delayed.task',
+      { id: 'immediate' },
+      {
+        queue: 'default',
+      }
+    );
 
     await worker.start();
 
@@ -604,7 +616,7 @@ describe('Delayed Job Scheduling', () => {
     const store = createSyncStore({ throwOnError: false });
     const worker = createSyncWorker(store);
 
-    let processedJobs: string[] = [];
+    const processedJobs: string[] = [];
 
     worker.registerHandler(
       'past.delay',
@@ -615,10 +627,14 @@ describe('Delayed Job Scheduling', () => {
     );
 
     // Add job with 0 delay (should process immediately)
-    await store.add('past.delay', { id: 'zero-delay' }, {
-      queue: 'default',
-      delay: 0,
-    });
+    await store.add(
+      'past.delay',
+      { id: 'zero-delay' },
+      {
+        queue: 'default',
+        delay: 0,
+      }
+    );
 
     await worker.start();
 
@@ -655,9 +671,7 @@ describe('Job Timeout Behavior', () => {
     });
 
     // Dispatching should not throw
-    await expect(
-      manager.dispatch(longRunningJob, { iterations: 1000 })
-    ).resolves.toBeDefined();
+    await expect(manager.dispatch(longRunningJob, { iterations: 1000 })).resolves.toBeDefined();
 
     await manager.close();
   });
@@ -676,11 +690,15 @@ describe('Job Timeout Behavior', () => {
 
     // Override timeout at dispatch
     await expect(
-      manager.dispatch(flexibleJob, {}, {
-        jobOptions: {
-          timeout: 300000, // 5 minute override
-        },
-      })
+      manager.dispatch(
+        flexibleJob,
+        {},
+        {
+          jobOptions: {
+            timeout: 300000, // 5 minute override
+          },
+        }
+      )
     ).resolves.toBeDefined();
 
     await manager.close();

@@ -164,7 +164,7 @@ describe('Concurrent Access', () => {
       const streams = await Promise.all(streamPromises);
 
       // Read all streams in parallel
-      const readPromises = streams.map(async (stream, i) => {
+      const readPromises = streams.map(async (stream) => {
         if (!stream) return null;
         const chunks: Buffer[] = [];
         for await (const chunk of stream) {
@@ -202,7 +202,7 @@ describe('Concurrent Access', () => {
 
       // Reads should return content
       const reads = results.filter((_, i) => i % 2 === 1);
-      reads.forEach((result, idx) => {
+      reads.forEach((result) => {
         expect(result).not.toBeNull();
         expect(result?.toString()).toMatch(/Content \d+/);
       });
@@ -219,7 +219,7 @@ describe('Concurrent Access', () => {
         store.get('source.txt'),
       ];
 
-      const results = await Promise.all(operations);
+      await Promise.all(operations);
 
       // All copies should succeed
       expect(await store.exists('copy1.txt')).toBe(true);

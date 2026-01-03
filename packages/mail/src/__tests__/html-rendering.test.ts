@@ -5,7 +5,18 @@
  * converted to valid HTML with correct structure and attributes.
  */
 
-import { Body, Button, Container, Head, Heading, Hr, Html, Link, Section, Text } from '@react-email/components';
+import {
+  Body,
+  Button,
+  Container,
+  Head,
+  Heading,
+  Hr,
+  Html,
+  Link,
+  Section,
+  Text,
+} from '@react-email/components';
 import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -56,11 +67,7 @@ describe('HTML Rendering Verification', () => {
           React.createElement(
             Html,
             null,
-            React.createElement(
-              Body,
-              null,
-              React.createElement(Heading, { as: 'h1' }, title)
-            )
+            React.createElement(Body, null, React.createElement(Heading, { as: 'h1' }, title))
           ),
       });
 
@@ -152,11 +159,7 @@ describe('HTML Rendering Verification', () => {
           React.createElement(
             Html,
             null,
-            React.createElement(
-              Body,
-              null,
-              React.createElement(Link, { href: linkUrl }, linkText)
-            )
+            React.createElement(Body, null, React.createElement(Link, { href: linkUrl }, linkText))
           ),
       });
 
@@ -378,11 +381,7 @@ describe('HTML Rendering Verification', () => {
               null,
               React.createElement(Heading, { as: 'h2' }, 'Order Items'),
               ...items.map((item, index) =>
-                React.createElement(
-                  Text,
-                  { key: index },
-                  `${item.name}: $${item.price.toFixed(2)}`
-                )
+                React.createElement(Text, { key: index }, `${item.name}: $${item.price.toFixed(2)}`)
               )
             )
           ),
@@ -603,11 +602,7 @@ describe('HTML Rendering Verification', () => {
           React.createElement(
             Html,
             null,
-            React.createElement(
-              Body,
-              null,
-              React.createElement(Text, null, `Code: ${code}`)
-            )
+            React.createElement(Body, null, React.createElement(Text, null, `Code: ${code}`))
           ),
       });
 
@@ -816,11 +811,7 @@ describe('HTML Rendering Verification', () => {
                   `Total: $${total.toFixed(2)}`
                 ),
                 trackingUrl
-                  ? React.createElement(
-                      Button,
-                      { href: trackingUrl },
-                      'Track Your Order'
-                    )
+                  ? React.createElement(Button, { href: trackingUrl }, 'Track Your Order')
                   : null
               )
             )

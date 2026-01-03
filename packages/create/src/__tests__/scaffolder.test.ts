@@ -5,7 +5,7 @@
  * version constants, and install commands.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   CREATE_VERSION,
@@ -181,12 +181,9 @@ describe('Project Name Validation', () => {
       { name: '', reason: 'empty string' },
     ];
 
-    it.each(invalidPatterns)(
-      'should reject $name because of $reason',
-      ({ name }) => {
-        expect(/^[a-z0-9-]+$/.test(name)).toBe(false);
-      }
-    );
+    it.each(invalidPatterns)('should reject $name because of $reason', ({ name }) => {
+      expect(/^[a-z0-9-]+$/.test(name)).toBe(false);
+    });
   });
 
   describe('reserved names', () => {
@@ -326,19 +323,18 @@ describe('Template-Specific Behavior', () => {
 
 describe('Success Message Content', () => {
   describe('package manager commands', () => {
+    const getRunCommand = (pm: string) => (pm === 'npm' ? 'npm run' : pm);
+
     it('should use npm run for npm', () => {
-      const runCmd = 'npm' === 'npm' ? 'npm run' : 'npm';
-      expect(runCmd).toBe('npm run');
+      expect(getRunCommand('npm')).toBe('npm run');
     });
 
     it('should use pnpm directly for pnpm', () => {
-      const runCmd = 'pnpm' === 'npm' ? 'npm run' : 'pnpm';
-      expect(runCmd).toBe('pnpm');
+      expect(getRunCommand('pnpm')).toBe('pnpm');
     });
 
     it('should use yarn directly for yarn', () => {
-      const runCmd = 'yarn' === 'npm' ? 'npm run' : 'yarn';
-      expect(runCmd).toBe('yarn');
+      expect(getRunCommand('yarn')).toBe('yarn');
     });
   });
 

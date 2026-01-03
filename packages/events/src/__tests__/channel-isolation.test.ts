@@ -185,9 +185,7 @@ describe('Channel Isolation', () => {
         { id: 'user-a', info: { name: 'Alice' } },
         { id: 'user-b', info: { name: 'Bob' } },
       ]);
-      driver.presenceMembers.set('presence-room-2', [
-        { id: 'user-c', info: { name: 'Charlie' } },
-      ]);
+      driver.presenceMembers.set('presence-room-2', [{ id: 'user-c', info: { name: 'Charlie' } }]);
 
       const room1Members = await manager.presenceMembers('presence-room-1');
       const room2Members = await manager.presenceMembers('presence-room-2');
@@ -285,9 +283,7 @@ describe('Channel Isolation', () => {
       ];
 
       await Promise.all(
-        specialChannels.map((channel) =>
-          manager.broadcast(channel, 'event', { channel })
-        )
+        specialChannels.map((channel) => manager.broadcast(channel, 'event', { channel }))
       );
 
       for (const channel of specialChannels) {
@@ -314,9 +310,15 @@ describe('Channel Isolation', () => {
       expect(driver.getEventsForChannel('channel')).toHaveLength(1);
       expect(driver.getEventsForChannel('CHANNEL')).toHaveLength(1);
 
-      expect((driver.getEventsForChannel('Channel')[0].data as { case: string }).case).toBe('capital');
-      expect((driver.getEventsForChannel('channel')[0].data as { case: string }).case).toBe('lower');
-      expect((driver.getEventsForChannel('CHANNEL')[0].data as { case: string }).case).toBe('upper');
+      expect((driver.getEventsForChannel('Channel')[0].data as { case: string }).case).toBe(
+        'capital'
+      );
+      expect((driver.getEventsForChannel('channel')[0].data as { case: string }).case).toBe(
+        'lower'
+      );
+      expect((driver.getEventsForChannel('CHANNEL')[0].data as { case: string }).case).toBe(
+        'upper'
+      );
     });
   });
 
@@ -376,8 +378,12 @@ describe('Channel Isolation', () => {
       expect(driver.getEventsForChannel('tenant-ab')).toHaveLength(1);
 
       // Verify no leakage
-      expect((driver.getEventsForChannel('tenant-a')[0].data as { tenant: string }).tenant).toBe('a');
-      expect((driver.getEventsForChannel('tenant-a-admin')[0].data as { tenant: string }).tenant).toBe('a-admin');
+      expect((driver.getEventsForChannel('tenant-a')[0].data as { tenant: string }).tenant).toBe(
+        'a'
+      );
+      expect(
+        (driver.getEventsForChannel('tenant-a-admin')[0].data as { tenant: string }).tenant
+      ).toBe('a-admin');
     });
   });
 });

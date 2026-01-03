@@ -7,7 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { parseArgs, type ParsedArgs } from '../cli.js';
+import { type ParsedArgs, parseArgs } from '../cli.js';
 
 // ============================================================================
 // Test Utilities
@@ -213,9 +213,7 @@ describe('CLI Argument Parsing', () => {
       });
 
       it('should exit for duplicate template flags', () => {
-        expect(() => parseArgs(['--template=spa', '--template=auth'])).toThrow(
-          'process.exit(1)'
-        );
+        expect(() => parseArgs(['--template=spa', '--template=auth'])).toThrow('process.exit(1)');
         expect(consoleErrorSpy).toHaveBeenCalledWith(
           expect.stringContaining('--template flag specified multiple times')
         );
@@ -295,9 +293,7 @@ describe('CLI Argument Parsing', () => {
 
       it('should exit for unavailable database (mysql)', () => {
         expect(() => parseArgs(['--database=mysql'])).toThrow('process.exit(1)');
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          expect.stringContaining('not yet available')
-        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('not yet available'));
       });
 
       it('should exit for duplicate database flags', () => {
@@ -324,11 +320,7 @@ describe('CLI Argument Parsing', () => {
 
   describe('combined arguments', () => {
     it('should parse all arguments together', () => {
-      const result = parseArgs([
-        'my-app',
-        '--template=auth',
-        '--database=postgresql',
-      ]);
+      const result = parseArgs(['my-app', '--template=auth', '--database=postgresql']);
       expect(result.projectName).toBe('my-app');
       expect(result.template).toBe('auth');
       expect(result.database).toBe('postgresql');
@@ -351,12 +343,7 @@ describe('CLI Argument Parsing', () => {
     });
 
     it('should parse help with all other flags', () => {
-      const result = parseArgs([
-        '--help',
-        'my-app',
-        '--template=auth',
-        '--database=sqlite',
-      ]);
+      const result = parseArgs(['--help', 'my-app', '--template=auth', '--database=sqlite']);
       expect(result.help).toBe(true);
       expect(result.projectName).toBe('my-app');
       expect(result.template).toBe('auth');
