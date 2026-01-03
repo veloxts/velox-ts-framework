@@ -5,13 +5,81 @@ This is a VeloxTS full-stack TypeScript application.
 ## Project Type
 
 - **Framework**: VeloxTS (Laravel-inspired TypeScript framework)
+/* @if rsc */
+- **Architecture**: React Server Components with Vinxi
+- **Backend**: Fastify embedded in Vinxi (/api/* routes)
+- **Frontend**: React 19 + RSC + file-based routing
+/* @endif rsc */
+/* @if !rsc */
 - **Backend**: Fastify + VeloxTS procedures (apps/api)
 - **Frontend**: React + Vite + TanStack Router (apps/web)
+/* @endif !rsc */
 - **Database**: Prisma with SQLite
 - **Validation**: Zod schemas
 
 ## Architecture Rules
 
+/* @if rsc */
+### RSC Architecture (Single App)
+
+This project uses React Server Components with a unified structure:
+
+```
+app/
+├── pages/           # File-based routing (RSC pages)
+│   ├── index.tsx    # / (home)
+│   ├── users.tsx    # /users
+│   └── [id].tsx     # Dynamic routes
+├── layouts/         # Layout components
+│   └── root.tsx     # Root layout
+└── actions/         # Server actions
+    └── users.ts     # User actions with validated()
+
+src/
+├── api/             # API layer
+│   ├── handler.ts   # Fastify API handler
+│   ├── procedures/  # Procedure definitions
+│   └── schemas/     # Zod schemas
+└── entry.server.tsx # Server entry
+```
+
+### Server Actions
+
+Use `validated()` for secure server actions:
+
+```typescript
+// app/actions/users.ts
+'use server';
+import { validated, validatedMutation, validatedQuery } from '@veloxts/web/server';
+import { z } from 'zod';
+
+// Public query
+export const searchUsers = validatedQuery(
+  z.object({ query: z.string().optional() }),
+  async (input) => {
+    return db.user.findMany({ where: { name: { contains: input.query } } });
+  }
+);
+
+// Protected mutation
+export const updateUser = validatedMutation(
+  z.object({ id: z.string(), name: z.string() }),
+  async (input, ctx) => {
+    return db.user.update({ where: { id: input.id }, data: input });
+  }
+);
+```
+
+### File-Based Routing
+
+- `app/pages/index.tsx` → `/`
+- `app/pages/users.tsx` → `/users`
+- `app/pages/users/[id].tsx` → `/users/:id` (dynamic)
+- `app/pages/[...slug].tsx` → catch-all route
+- `app/pages/(group)/page.tsx` → route groups (no URL segment)
+/* @endif rsc */
+
+/* @if !rsc */
 ### Backend (apps/api)
 
 Procedures in `src/procedures/` define API endpoints. Naming conventions determine HTTP methods:
@@ -25,19 +93,23 @@ Procedures in `src/procedures/` define API endpoints. Naming conventions determi
 
 Schemas in `src/schemas/` use Zod for validation.
 
-Context available in procedures:
+### Frontend (apps/web)
+
+Routes in `src/routes/` use TanStack Router file-based routing.
+API calls use `@veloxts/client` hooks: `useQuery`, `useMutation`.
+Types flow from backend automatically - no codegen needed.
+/* @endif !rsc */
+
+### Context Object
+
+Available in all procedures via `ctx`:
+
 - `ctx.db` - Prisma client
 - `ctx.request` - Fastify request
 - `ctx.reply` - Fastify reply
 /* @if auth */
 - `ctx.user` - Authenticated user (if logged in)
 /* @endif auth */
-
-### Frontend (apps/web)
-
-Routes in `src/routes/` use TanStack Router file-based routing.
-API calls use `@veloxts/client` hooks: `useQuery`, `useMutation`.
-Types flow from backend automatically - no codegen needed.
 
 ## Code Style
 
@@ -135,10 +207,19 @@ __RUN_CMD__ db:studio                # Open Prisma Studio
 
 ## File Naming Conventions
 
-- Procedures: `src/procedures/{entity}.ts` (plural, kebab-case for multi-word)
-- Schemas: `src/schemas/{entity}.ts` (singular, kebab-case)
-- Routes: `src/routes/{path}.tsx`
-- Components: `src/components/{Name}.tsx` (PascalCase)
+/* @if rsc */
+- Pages: `app/pages/{path}.tsx` (kebab-case)
+- Layouts: `app/layouts/{name}.tsx`
+- Actions: `app/actions/{entity}.ts`
+- Procedures: `src/api/procedures/{entity}.ts`
+- Schemas: `src/api/schemas/{entity}.ts`
+/* @endif rsc */
+/* @if !rsc */
+- Procedures: `apps/api/src/procedures/{entity}.ts` (plural, kebab-case)
+- Schemas: `apps/api/src/schemas/{entity}.ts` (singular, kebab-case)
+- Routes: `apps/web/src/routes/{path}.tsx`
+- Components: `apps/web/src/components/{Name}.tsx` (PascalCase)
+/* @endif !rsc */
 
 ## Import Conventions
 
@@ -150,7 +231,12 @@ import { authenticated, hasRole } from '@veloxts/auth';
 /* @endif auth */
 
 // Database client from config
+/* @if rsc */
+import { db } from '@/api/database';
+/* @endif rsc */
+/* @if !rsc */
 import { db } from '../config/database';
+/* @endif !rsc */
 
 // Local schemas
 import { UserSchema, CreateUserSchema } from '../schemas/user';
@@ -176,7 +262,21 @@ throw VeloxError.unauthorized('Login required');
 throw VeloxError.forbidden('Cannot access this resource');
 ```
 
-## JSON Output
+## AI-Powered Development
+
+### MCP Integration
+
+VeloxTS includes an MCP server for AI assistants:
+
+```bash
+# Start MCP server
+npx @veloxts/mcp
+
+# With debug logging
+npx @veloxts/mcp --debug
+```
+
+### JSON Output for AI
 
 All CLI commands support `--json` for AI tooling:
 
@@ -184,4 +284,18 @@ All CLI commands support `--json` for AI tooling:
 velox migrate status --json
 velox make resource Post --json --dry-run
 velox procedures list --json
+velox introspect --json
+```
+
+### Introspection
+
+```bash
+# Full project introspection
+velox introspect all --json
+
+# List all procedures
+velox procedures list --json
+
+# List all routes
+velox routes list
 ```

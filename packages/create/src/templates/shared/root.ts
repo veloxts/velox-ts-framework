@@ -50,8 +50,28 @@ export function generateRootReadme(config: TemplateConfig): string {
   return compileTemplate('root/README.md', config);
 }
 
-export function generateRootClaudeMd(config: TemplateConfig, isAuthTemplate: boolean): string {
-  const sourceFile = isAuthTemplate ? 'root/CLAUDE.auth.md' : 'root/CLAUDE.default.md';
+export type TemplateVariant = 'default' | 'auth' | 'trpc';
+
+export function generateRootClaudeMd(
+  config: TemplateConfig,
+  variant: TemplateVariant | boolean
+): string {
+  // Support legacy boolean parameter for backwards compatibility
+  let sourceFile: string;
+  if (typeof variant === 'boolean') {
+    sourceFile = variant ? 'root/CLAUDE.auth.md' : 'root/CLAUDE.default.md';
+  } else {
+    switch (variant) {
+      case 'auth':
+        sourceFile = 'root/CLAUDE.auth.md';
+        break;
+      case 'trpc':
+        sourceFile = 'root/CLAUDE.trpc.md';
+        break;
+      default:
+        sourceFile = 'root/CLAUDE.default.md';
+    }
+  }
   return compileTemplate(sourceFile, config);
 }
 
@@ -63,14 +83,17 @@ export function generateRootCursorrules(config: TemplateConfig): string {
 // Generate All Root Files
 // ============================================================================
 
-export function generateRootFiles(config: TemplateConfig, isAuthTemplate: boolean): TemplateFile[] {
+export function generateRootFiles(
+  config: TemplateConfig,
+  variant: TemplateVariant | boolean = 'default'
+): TemplateFile[] {
   return [
     { path: 'package.json', content: generateRootPackageJson(config) },
     { path: 'pnpm-workspace.yaml', content: generatePnpmWorkspaceYaml() },
     { path: 'tsconfig.json', content: generateRootTsConfig() },
     { path: '.gitignore', content: generateRootGitignore() },
     { path: 'README.md', content: generateRootReadme(config) },
-    { path: 'CLAUDE.md', content: generateRootClaudeMd(config, isAuthTemplate) },
+    { path: 'CLAUDE.md', content: generateRootClaudeMd(config, variant) },
     { path: '.cursorrules', content: generateRootCursorrules(config) },
   ];
 }

@@ -137,8 +137,8 @@ export function generateTrpcTemplate(config: TemplateConfig): TemplateFile[] {
     });
   }
 
-  // Add root workspace files (use false for isAuthTemplate)
-  const rootFiles = generateRootFiles(config, false);
+  // Add root workspace files (use 'trpc' variant for tRPC-specific CLAUDE.md)
+  const rootFiles = generateRootFiles(config, 'trpc');
 
   // Add web package files (use false for isAuthTemplate)
   const webBaseFiles = generateWebBaseFiles(config, false);
