@@ -854,7 +854,7 @@ When encountering issues, verify:
 
 If you encounter issues not covered in this guide:
 
-1. Check the [VeloxTS GitHub Issues](https://github.com/veloxts/veloxts/issues)
+1. Check the [VeloxTS GitHub Issues](https://github.com/veloxts/velox-ts-framework/issues)
 2. Review the [Prisma Community Discussions](https://github.com/prisma/prisma/discussions)
 3. Open a new issue with:
    - Prisma version: `pnpm list prisma`
