@@ -66,6 +66,43 @@ const QUERY_PREFIXES = ['get', 'list', 'find'] as const;
 const MUTATION_PREFIXES = ['create', 'add', 'update', 'edit', 'patch', 'delete', 'remove'] as const;
 
 /**
+ * Map of common alternative prefixes to their standard equivalents
+ * Used to provide helpful suggestions when non-standard names are detected.
+ */
+const SIMILAR_PATTERNS: Record<string, { type: 'query' | 'mutation'; suggest: string }> = {
+  fetch: { type: 'query', suggest: 'list or get' },
+  retrieve: { type: 'query', suggest: 'get' },
+  obtain: { type: 'query', suggest: 'get' },
+  load: { type: 'query', suggest: 'list or get' },
+  read: { type: 'query', suggest: 'get' },
+  query: { type: 'query', suggest: 'list, get, or find' },
+  search: { type: 'query', suggest: 'find' },
+  new: { type: 'mutation', suggest: 'create' },
+  insert: { type: 'mutation', suggest: 'create' },
+  make: { type: 'mutation', suggest: 'create' },
+  modify: { type: 'mutation', suggest: 'update or patch' },
+  change: { type: 'mutation', suggest: 'update or patch' },
+  set: { type: 'mutation', suggest: 'update' },
+  destroy: { type: 'mutation', suggest: 'delete' },
+  drop: { type: 'mutation', suggest: 'delete' },
+  erase: { type: 'mutation', suggest: 'delete' },
+  trash: { type: 'mutation', suggest: 'delete' },
+};
+
+/**
+ * Detects if a procedure name uses a similar (non-standard) pattern
+ * @returns The similar pattern info if found, null otherwise
+ */
+function detectSimilarPattern(procedureName: string): { prefix: string; type: 'query' | 'mutation'; suggest: string } | null {
+  for (const [prefix, info] of Object.entries(SIMILAR_PATTERNS)) {
+    if (procedureName.toLowerCase().startsWith(prefix)) {
+      return { prefix, ...info };
+    }
+  }
+  return null;
+}
+
+/**
  * Determines if a procedure is a query based on naming convention
  *
  * Matches the logic in @veloxts/router for consistency.
@@ -84,7 +121,32 @@ function isQueryProcedure(procedureName: string): boolean {
 }
 
 /**
+ * Extracts the entity name from a procedure name by stripping common prefixes
+ * @example extractEntityName('fetchUsers') returns 'Users'
+ */
+function extractEntityName(procedureName: string): string {
+  // Check for standard prefixes first
+  for (const prefix of [...QUERY_PREFIXES, ...MUTATION_PREFIXES]) {
+    if (procedureName.startsWith(prefix)) {
+      return procedureName.slice(prefix.length);
+    }
+  }
+  // Check for similar patterns
+  for (const prefix of Object.keys(SIMILAR_PATTERNS)) {
+    if (procedureName.toLowerCase().startsWith(prefix)) {
+      return procedureName.slice(prefix.length);
+    }
+  }
+  // Capitalize first letter for generic case
+  return procedureName.charAt(0).toUpperCase() + procedureName.slice(1);
+}
+
+/**
  * Creates a helpful error message for naming convention violations
+ *
+ * Provides context-aware suggestions based on:
+ * - Whether the procedure uses a similar (non-standard) pattern like 'fetch'
+ * - What the developer likely intended based on the method they called
  *
  * @param procedureName - The procedure name that was accessed incorrectly
  * @param attemptedMethod - The method that was called (e.g., 'useQuery', 'useMutation')
@@ -97,10 +159,12 @@ function createNamingConventionError(
 ): Error {
   const queryMethods = 'useQuery, useSuspenseQuery, getQueryKey, invalidate, prefetch, setData, getData';
   const mutationMethods = 'useMutation';
+  const similarPattern = detectSimilarPattern(procedureName);
+  const entityName = extractEntityName(procedureName);
 
   if (isQuery) {
     // Called mutation method on a query procedure
-    const suggestions = MUTATION_PREFIXES.map((p) => `${p}${procedureName.charAt(0).toUpperCase()}${procedureName.slice(1)}`);
+    const suggestions = MUTATION_PREFIXES.slice(0, 3).map((p) => `${p}${entityName}`);
     return new Error(
       `Cannot call ${attemptedMethod}() on query procedure "${procedureName}".\n\n` +
         `VeloxTS Naming Convention:\n` +
@@ -109,12 +173,35 @@ function createNamingConventionError(
         `"${procedureName}" starts with a query prefix, so only these methods are available:\n` +
         `  ${queryMethods}\n\n` +
         `If this should be a mutation, rename it to one of:\n` +
-        `  ${suggestions.slice(0, 3).join(', ')}`
+        `  ${suggestions.join(', ')}`
     );
   }
 
   // Called query method on a mutation procedure
-  const suggestions = QUERY_PREFIXES.map((p) => `${p}${procedureName.charAt(0).toUpperCase()}${procedureName.slice(1)}`);
+  // Check if using a similar pattern (e.g., 'fetchUsers' instead of 'listUsers')
+  if (similarPattern) {
+    const querySuggestions = similarPattern.suggest.split(/,?\s+or\s+|,\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((prefix) => `${prefix}${entityName}`);
+
+    return new Error(
+      `Cannot call ${attemptedMethod}() on procedure "${procedureName}".\n\n` +
+        `The prefix "${similarPattern.prefix}" is not a standard VeloxTS naming convention.\n\n` +
+        `Did you mean to use "${similarPattern.suggest}" instead?\n` +
+        `  Suggested name${querySuggestions.length > 1 ? 's' : ''}: ${querySuggestions.join(', ')}\n\n` +
+        `VeloxTS Naming Convention:\n` +
+        `  • Query procedures: ${QUERY_PREFIXES.join(', ')}\n` +
+        `  • Mutation procedures: ${MUTATION_PREFIXES.join(', ')}\n\n` +
+        `This matters because procedure names determine REST routes:\n` +
+        `  • "listUsers" → GET /users (collection)\n` +
+        `  • "getUser" → GET /users/:id (single resource)\n` +
+        `  • "fetchUsers" → POST /users (treated as mutation!)`
+    );
+  }
+
+  // Generic mutation procedure, no similar pattern detected
+  const querySuggestions = QUERY_PREFIXES.map((p) => `${p}${entityName}`);
   return new Error(
     `Cannot call ${attemptedMethod}() on mutation procedure "${procedureName}".\n\n` +
       `VeloxTS Naming Convention:\n` +
@@ -123,7 +210,7 @@ function createNamingConventionError(
       `"${procedureName}" does not start with a query prefix, so only these methods are available:\n` +
       `  ${mutationMethods}\n\n` +
       `If this should be a query, rename it to one of:\n` +
-      `  ${suggestions.join(', ')}`
+      `  ${querySuggestions.join(', ')}`
   );
 }
 

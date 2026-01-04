@@ -86,10 +86,6 @@ function generateHealthSchema(): string {
   return compileTemplate('api/schemas/health.ts', AUTH_CONFIG);
 }
 
-function generateRoutes(): string {
-  return compileTemplate('api/routes.auth.ts', AUTH_CONFIG);
-}
-
 function generateApiTypesDts(): string {
   return compileTemplate('api/types.d.ts', AUTH_CONFIG);
 }
@@ -131,7 +127,6 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
     { path: 'apps/api/src/schemas/auth.ts', content: generateAuthSchema() },
     { path: 'apps/api/src/schemas/health.ts', content: generateHealthSchema() },
-    { path: 'apps/api/src/routes.ts', content: generateRoutes() },
     { path: 'apps/api/src/types.d.ts', content: generateApiTypesDts() },
     { path: 'apps/api/src/utils/auth.ts', content: generateAuthUtils() },
   ];

@@ -17,6 +17,8 @@ export interface NamespaceOptions {
   skipRegistration: boolean;
   /** Include example procedure */
   withExample: boolean;
+  /** Generate test file */
+  withTests: boolean;
 }
 
 // ============================================================================
@@ -225,6 +227,194 @@ export type Update${entity.pascal}InputType = z.infer<typeof Update${entity.pasc
 }
 
 // ============================================================================
+// Test Template
+// ============================================================================
+
+/**
+ * Generate test file for the namespace procedures
+ */
+export function namespaceTestTemplate(ctx: TemplateContext<NamespaceOptions>): string {
+  const { entity, options } = ctx;
+
+  if (options.withExample) {
+    return generateTestWithCrud(entity);
+  }
+
+  return `/**
+ * ${entity.pascal} Procedures - Tests
+ *
+ * Unit tests for ${entity.humanReadable} API procedures.
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+// import { ${entity.camel}Procedures } from '../${entity.plural}.js';
+
+// ============================================================================
+// Test Setup
+// ============================================================================
+
+describe('${entity.pascal} Procedures', () => {
+  const mockCtx = {
+    db: {
+      ${entity.camel}: {
+        findUnique: vi.fn(),
+        findMany: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Add your tests here
+  // Example:
+  //
+  // describe('get${entity.pascal}', () => {
+  //   it('should return a ${entity.humanReadable} by id', async () => {
+  //     const mock${entity.pascal} = { id: 'test-uuid' };
+  //     mockCtx.db.${entity.camel}.findUnique.mockResolvedValue(mock${entity.pascal});
+  //
+  //     // TODO: Implement test
+  //   });
+  // });
+
+  it('should have mock context ready', () => {
+    expect(mockCtx.db.${entity.camel}).toBeDefined();
+  });
+});
+`;
+}
+
+/**
+ * Generate test file with CRUD tests for --example flag
+ */
+function generateTestWithCrud(entity: TemplateContext<NamespaceOptions>['entity']): string {
+  return `/**
+ * ${entity.pascal} Procedures - Tests
+ *
+ * Unit tests for ${entity.humanReadable} API procedures.
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+// import { ${entity.camel}Procedures } from '../${entity.plural}.js';
+
+// ============================================================================
+// Test Setup
+// ============================================================================
+
+describe('${entity.pascal} Procedures', () => {
+  const mockCtx = {
+    db: {
+      ${entity.camel}: {
+        findUnique: vi.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // ============================================================================
+  // Query Tests
+  // ============================================================================
+
+  describe('get${entity.pascal}', () => {
+    it('should return a ${entity.humanReadable} by id', async () => {
+      const mock${entity.pascal} = {
+        id: 'test-uuid',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockCtx.db.${entity.camel}.findUnique.mockResolvedValue(mock${entity.pascal});
+
+      // TODO: Call procedure and assert
+      // const result = await ${entity.camel}Procedures.procedures.get${entity.pascal}.handler({
+      //   input: { id: 'test-uuid' },
+      //   ctx: mockCtx,
+      // });
+      // expect(result).toEqual(mock${entity.pascal});
+      expect(mockCtx.db.${entity.camel}.findUnique).toBeDefined();
+    });
+
+    it('should return null for non-existent ${entity.humanReadable}', async () => {
+      mockCtx.db.${entity.camel}.findUnique.mockResolvedValue(null);
+
+      // TODO: Call procedure and assert
+      expect(mockCtx.db.${entity.camel}.findUnique).toBeDefined();
+    });
+  });
+
+  describe('list${entity.pascalPlural}', () => {
+    it('should return all ${entity.humanReadablePlural}', async () => {
+      const mock${entity.pascalPlural} = [
+        { id: 'uuid-1', createdAt: new Date(), updatedAt: new Date() },
+        { id: 'uuid-2', createdAt: new Date(), updatedAt: new Date() },
+      ];
+      mockCtx.db.${entity.camel}.findMany.mockResolvedValue(mock${entity.pascalPlural});
+
+      // TODO: Call procedure and assert
+      expect(mockCtx.db.${entity.camel}.findMany).toBeDefined();
+    });
+  });
+
+  // ============================================================================
+  // Mutation Tests
+  // ============================================================================
+
+  describe('create${entity.pascal}', () => {
+    it('should create a new ${entity.humanReadable}', async () => {
+      const input = { /* TODO: Add fields */ };
+      const created = {
+        id: 'new-uuid',
+        ...input,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockCtx.db.${entity.camel}.create.mockResolvedValue(created);
+
+      // TODO: Call procedure and assert
+      expect(mockCtx.db.${entity.camel}.create).toBeDefined();
+    });
+  });
+
+  describe('update${entity.pascal}', () => {
+    it('should update an existing ${entity.humanReadable}', async () => {
+      const input = { id: 'test-uuid', /* TODO: Add fields */ };
+      const updated = {
+        id: 'test-uuid',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockCtx.db.${entity.camel}.update.mockResolvedValue(updated);
+
+      // TODO: Call procedure and assert
+      expect(mockCtx.db.${entity.camel}.update).toBeDefined();
+    });
+  });
+
+  describe('delete${entity.pascal}', () => {
+    it('should delete a ${entity.humanReadable}', async () => {
+      mockCtx.db.${entity.camel}.delete.mockResolvedValue(undefined);
+
+      // TODO: Call procedure and assert
+      expect(mockCtx.db.${entity.camel}.delete).toBeDefined();
+    });
+  });
+});
+`;
+}
+
+// ============================================================================
 // Path Helpers
 // ============================================================================
 
@@ -233,6 +423,13 @@ export type Update${entity.pascal}InputType = z.infer<typeof Update${entity.pasc
  */
 export function getNamespaceProcedurePath(entityPlural: string): string {
   return `src/procedures/${entityPlural}.ts`;
+}
+
+/**
+ * Get the file path for the test file
+ */
+export function getNamespaceTestPath(entityPlural: string): string {
+  return `src/procedures/__tests__/${entityPlural}.test.ts`;
 }
 
 /**

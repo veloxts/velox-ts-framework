@@ -17,9 +17,11 @@ import {
   getNamespaceInstructions,
   getNamespaceProcedurePath,
   getNamespaceSchemaPath,
+  getNamespaceTestPath,
   type NamespaceOptions,
   namespaceSchemaTemplate,
   namespaceTemplate,
+  namespaceTestTemplate,
 } from '../templates/namespace.js';
 import type {
   GeneratedFile,
@@ -52,8 +54,9 @@ Use this when you already have a Prisma model or are working with external data.
 For new database entities, use "velox make resource" instead (recommended).
 
 Creates:
-  • Procedure file (src/procedures/{plural}.ts)
   • Schema file (src/schemas/{kebab}.ts)
+  • Procedure file (src/procedures/{plural}.ts)
+  • Test file (src/procedures/__tests__/{plural}.test.ts)
   • Auto-registers in router.ts
 
 When to use:
@@ -89,6 +92,13 @@ Examples:
       default: false,
     },
     {
+      name: 'with-tests',
+      short: 't',
+      description: 'Generate test file (default: true)',
+      type: 'boolean',
+      default: true,
+    },
+    {
       name: 'skip-registration',
       short: 'S',
       description: 'Skip auto-registering the procedure in router.ts',
@@ -103,6 +113,7 @@ Examples:
   validateOptions(raw: Record<string, unknown>): NamespaceOptions {
     return {
       withExample: Boolean(raw.example ?? raw.withExample ?? false),
+      withTests: raw['with-tests'] !== false && raw.withTests !== false,
       skipRegistration: Boolean(raw['skip-registration'] ?? raw.skipRegistration ?? false),
     };
   }
@@ -115,19 +126,31 @@ Examples:
     const { entity } = context;
     const { options } = config;
 
-    // Generate procedure file
-    const procedureContent = namespaceTemplate(context);
-    const procedureFile: GeneratedFile = {
-      path: getNamespaceProcedurePath(entity.plural),
-      content: procedureContent,
-    };
+    // Collect files to generate
+    const files: GeneratedFile[] = [];
 
     // Generate schema file
     const schemaContent = namespaceSchemaTemplate(context);
-    const schemaFile: GeneratedFile = {
+    files.push({
       path: getNamespaceSchemaPath(entity.kebab),
       content: schemaContent,
-    };
+    });
+
+    // Generate procedure file
+    const procedureContent = namespaceTemplate(context);
+    files.push({
+      path: getNamespaceProcedurePath(entity.plural),
+      content: procedureContent,
+    });
+
+    // Generate test file (default: true)
+    if (options.withTests) {
+      const testContent = namespaceTestTemplate(context);
+      files.push({
+        path: getNamespaceTestPath(entity.plural),
+        content: testContent,
+      });
+    }
 
     // Try auto-registration if not skipped
     let registrationResult: {
@@ -160,7 +183,7 @@ Examples:
     const postInstructions = this.buildPostInstructions(entity, options, registrationResult);
 
     return {
-      files: [schemaFile, procedureFile],
+      files,
       postInstructions,
     };
   }
@@ -178,22 +201,30 @@ Examples:
     // If registration was successful
     if (registrationResult?.success) {
       const modifiedFiles = registrationResult.modifiedFiles.map((f) => `    - ${f}`).join('\n');
+      const testFileInfo = options.withTests
+        ? `
+    - src/procedures/__tests__/${entity.plural}.test.ts`
+        : '';
       let instructions = `
   ✓ Namespace ${procedureVar} auto-registered!
 
   Created files:
     - src/schemas/${entity.kebab}.ts
-    - src/procedures/${entity.plural}.ts
+    - src/procedures/${entity.plural}.ts${testFileInfo}
 
   Modified files:
 ${modifiedFiles}`;
 
+      const nextStep = options.withExample
+        ? 'Customize the example procedures'
+        : 'Add procedures to src/procedures/' + entity.plural + '.ts';
+      const testStep = options.withTests ? '\n  4. Run tests: pnpm test' : '';
       instructions += `
 
   Next steps:
   1. Add fields to your schema in src/schemas/${entity.kebab}.ts
   2. Add the ${entity.pascal} model to your Prisma schema
-  3. ${options.withExample ? 'Customize the example procedures' : 'Add procedures to src/procedures/' + entity.plural + '.ts'}`;
+  3. ${nextStep}${testStep}`;
 
       return instructions;
     }

@@ -72,6 +72,7 @@ describe('NamespaceGenerator', () => {
       const options = generator.validateOptions({});
 
       expect(options.withExample).toBe(false);
+      expect(options.withTests).toBe(true); // Tests enabled by default
       expect(options.skipRegistration).toBe(false);
     });
 
@@ -79,6 +80,12 @@ describe('NamespaceGenerator', () => {
       const options = generator.validateOptions({ example: true });
 
       expect(options.withExample).toBe(true);
+    });
+
+    it('should accept with-tests option', () => {
+      const options = generator.validateOptions({ 'with-tests': false });
+
+      expect(options.withTests).toBe(false);
     });
 
     it('should accept skip-registration option', () => {
@@ -95,10 +102,43 @@ describe('NamespaceGenerator', () => {
   });
 
   describe('generate', () => {
-    it('should generate both procedure and schema files', async () => {
+    it('should generate schema, procedure, and test files by default', async () => {
       const config: GeneratorConfig = {
         entityName: 'product',
-        options: { withExample: false, skipRegistration: true },
+        options: { withExample: false, withTests: true, skipRegistration: true },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+
+      expect(output.files).toHaveLength(3);
+
+      // Should have schema file
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+      expect(schemaFile).toBeDefined();
+      expect(schemaFile?.path).toBe('src/schemas/product.ts');
+
+      // Should have procedure file
+      const procedureFile = output.files.find((f) =>
+        f.path.includes('procedures') && !f.path.includes('__tests__')
+      );
+      expect(procedureFile).toBeDefined();
+      expect(procedureFile?.path).toBe('src/procedures/products.ts');
+
+      // Should have test file
+      const testFile = output.files.find((f) => f.path.includes('__tests__'));
+      expect(testFile).toBeDefined();
+      expect(testFile?.path).toBe('src/procedures/__tests__/products.test.ts');
+    });
+
+    it('should skip test file when withTests is false', async () => {
+      const config: GeneratorConfig = {
+        entityName: 'product',
+        options: { withExample: false, withTests: false, skipRegistration: true },
         cwd: '/test',
         project: mockProject,
         dryRun: true,
@@ -110,21 +150,15 @@ describe('NamespaceGenerator', () => {
 
       expect(output.files).toHaveLength(2);
 
-      // Should have schema file
-      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
-      expect(schemaFile).toBeDefined();
-      expect(schemaFile?.path).toBe('src/schemas/product.ts');
-
-      // Should have procedure file
-      const procedureFile = output.files.find((f) => f.path.includes('procedures'));
-      expect(procedureFile).toBeDefined();
-      expect(procedureFile?.path).toBe('src/procedures/products.ts');
+      // Should NOT have test file
+      const testFile = output.files.find((f) => f.path.includes('__tests__'));
+      expect(testFile).toBeUndefined();
     });
 
     it('should generate empty namespace without --example', async () => {
       const config: GeneratorConfig = {
         entityName: 'order',
-        options: { withExample: false, skipRegistration: true },
+        options: { withExample: false, withTests: true, skipRegistration: true },
         cwd: '/test',
         project: mockProject,
         dryRun: true,
@@ -133,7 +167,9 @@ describe('NamespaceGenerator', () => {
       };
 
       const output = await generator.generate(config);
-      const procedureFile = output.files.find((f) => f.path.includes('procedures'));
+      const procedureFile = output.files.find(
+        (f) => f.path.includes('procedures') && !f.path.includes('__tests__')
+      );
 
       expect(procedureFile?.content).toContain('// Add your procedures here');
       expect(procedureFile?.content).toContain('// Examples:');
@@ -146,7 +182,7 @@ describe('NamespaceGenerator', () => {
     it('should generate CRUD examples with --example', async () => {
       const config: GeneratorConfig = {
         entityName: 'order',
-        options: { withExample: true, skipRegistration: true },
+        options: { withExample: true, withTests: true, skipRegistration: true },
         cwd: '/test',
         project: mockProject,
         dryRun: true,
@@ -155,7 +191,9 @@ describe('NamespaceGenerator', () => {
       };
 
       const output = await generator.generate(config);
-      const procedureFile = output.files.find((f) => f.path.includes('procedures'));
+      const procedureFile = output.files.find(
+        (f) => f.path.includes('procedures') && !f.path.includes('__tests__')
+      );
 
       // Should have CRUD operations
       expect(procedureFile?.content).toContain('getOrder');
@@ -167,10 +205,54 @@ describe('NamespaceGenerator', () => {
       expect(procedureFile?.content).toContain('ctx.db.order.findUnique');
     });
 
+    it('should generate test file with minimal scaffold when withExample is false', async () => {
+      const config: GeneratorConfig = {
+        entityName: 'report',
+        options: { withExample: false, withTests: true, skipRegistration: true },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const testFile = output.files.find((f) => f.path.includes('__tests__'));
+
+      expect(testFile).toBeDefined();
+      expect(testFile?.content).toContain("describe('Report Procedures'");
+      expect(testFile?.content).toContain('mockCtx');
+      expect(testFile?.content).toContain('vi.clearAllMocks');
+      expect(testFile?.content).toContain('// Add your tests here');
+    });
+
+    it('should generate test file with CRUD tests when withExample is true', async () => {
+      const config: GeneratorConfig = {
+        entityName: 'invoice',
+        options: { withExample: true, withTests: true, skipRegistration: true },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const testFile = output.files.find((f) => f.path.includes('__tests__'));
+
+      expect(testFile).toBeDefined();
+      expect(testFile?.content).toContain("describe('Invoice Procedures'");
+      expect(testFile?.content).toContain("describe('getInvoice'");
+      expect(testFile?.content).toContain("describe('listInvoices'");
+      expect(testFile?.content).toContain("describe('createInvoice'");
+      expect(testFile?.content).toContain("describe('updateInvoice'");
+      expect(testFile?.content).toContain("describe('deleteInvoice'");
+    });
+
     it('should generate schema with base and input schemas', async () => {
       const config: GeneratorConfig = {
         entityName: 'category',
-        options: { withExample: false, skipRegistration: true },
+        options: { withExample: false, withTests: true, skipRegistration: true },
         cwd: '/test',
         project: mockProject,
         dryRun: true,
@@ -193,7 +275,7 @@ describe('NamespaceGenerator', () => {
     it('should import schema in procedure file', async () => {
       const config: GeneratorConfig = {
         entityName: 'tag',
-        options: { withExample: true, skipRegistration: true },
+        options: { withExample: true, withTests: true, skipRegistration: true },
         cwd: '/test',
         project: mockProject,
         dryRun: true,
@@ -202,7 +284,9 @@ describe('NamespaceGenerator', () => {
       };
 
       const output = await generator.generate(config);
-      const procedureFile = output.files.find((f) => f.path.includes('procedures'));
+      const procedureFile = output.files.find(
+        (f) => f.path.includes('procedures') && !f.path.includes('__tests__')
+      );
 
       // Should import from schema file
       expect(procedureFile?.content).toContain("from '../schemas/tag.js'");
@@ -214,7 +298,7 @@ describe('NamespaceGenerator', () => {
     it('should use kebab-case for schema filename', async () => {
       const config: GeneratorConfig = {
         entityName: 'UserProfile',
-        options: { withExample: false, skipRegistration: true },
+        options: { withExample: false, withTests: true, skipRegistration: true },
         cwd: '/test',
         project: mockProject,
         dryRun: true,
@@ -231,7 +315,7 @@ describe('NamespaceGenerator', () => {
     it('should use plural for procedure filename', async () => {
       const config: GeneratorConfig = {
         entityName: 'inventory',
-        options: { withExample: false, skipRegistration: true },
+        options: { withExample: false, withTests: true, skipRegistration: true },
         cwd: '/test',
         project: mockProject,
         dryRun: true,
@@ -240,7 +324,9 @@ describe('NamespaceGenerator', () => {
       };
 
       const output = await generator.generate(config);
-      const procedureFile = output.files.find((f) => f.path.includes('procedures'));
+      const procedureFile = output.files.find(
+        (f) => f.path.includes('procedures') && !f.path.includes('__tests__')
+      );
 
       expect(procedureFile?.path).toBe('src/procedures/inventories.ts');
     });
@@ -248,7 +334,7 @@ describe('NamespaceGenerator', () => {
     it('should include post-generation instructions', async () => {
       const config: GeneratorConfig = {
         entityName: 'customer',
-        options: { withExample: false, skipRegistration: true },
+        options: { withExample: false, withTests: true, skipRegistration: true },
         cwd: '/test',
         project: mockProject,
         dryRun: true,
@@ -266,7 +352,7 @@ describe('NamespaceGenerator', () => {
     it('should use PascalCase for type names', async () => {
       const config: GeneratorConfig = {
         entityName: 'order-item',
-        options: { withExample: true, skipRegistration: true },
+        options: { withExample: true, withTests: true, skipRegistration: true },
         cwd: '/test',
         project: mockProject,
         dryRun: true,
@@ -280,9 +366,28 @@ describe('NamespaceGenerator', () => {
       expect(schemaFile?.content).toContain('OrderItemSchema');
       expect(schemaFile?.content).toContain('CreateOrderItemInput');
 
-      const procedureFile = output.files.find((f) => f.path.includes('procedures'));
+      const procedureFile = output.files.find(
+        (f) => f.path.includes('procedures') && !f.path.includes('__tests__')
+      );
       expect(procedureFile?.content).toContain('getOrderItem');
       expect(procedureFile?.content).toContain('orderItemProcedures');
+    });
+
+    it('should use plural for test filename', async () => {
+      const config: GeneratorConfig = {
+        entityName: 'widget',
+        options: { withExample: false, withTests: true, skipRegistration: true },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const testFile = output.files.find((f) => f.path.includes('__tests__'));
+
+      expect(testFile?.path).toBe('src/procedures/__tests__/widgets.test.ts');
     });
   });
 });
