@@ -32,7 +32,7 @@ function createCLI(): Command {
 
   program
     .name('velox')
-    .description('VeloxTS Framework - Laravel-inspired TypeScript full-stack framework')
+    .description('VeloxTS Framework - TypeScript full-stack framework')
     .version(CLI_VERSION, '-v, --version', 'Output the current version')
     .helpOption('-h, --help', 'Display help for command');
 

@@ -16,11 +16,14 @@
     "db:studio": "__WS_API__ db:studio"
   },
   "dependencies": {
-    "@prisma/client-runtime-utils": "7.2.0"
+    "@prisma/client-runtime-utils": "7.2.0",
+    "@veloxts/velox": "__VELOXTS_VERSION__"
   },
   "devDependencies": {
     "@types/node": "25.0.3",
     "@veloxts/cli": "__VELOXTS_VERSION__",
+    "@veloxts/mcp": "__VELOXTS_VERSION__",
+    "tsx": "4.21.0",
     "typescript": "5.9.3"
   }
 }
