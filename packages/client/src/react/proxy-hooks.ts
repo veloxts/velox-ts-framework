@@ -34,6 +34,7 @@ import {
   useSuspenseQuery as useReactSuspenseQuery,
 } from '@tanstack/react-query';
 
+import type { RouteEntry, RouteMap } from '../types.js';
 import { useVeloxContext } from './provider.js';
 import type {
   AutoInvalidationConfig,
@@ -446,6 +447,36 @@ function createMutationProcedureProxy<TInput, TOutput>(
 // ============================================================================
 
 /**
+ * Determines procedure type using routes metadata or naming convention
+ *
+ * Priority:
+ * 1. If routes has explicit `kind` for this procedure, use it
+ * 2. Otherwise, fall back to naming convention heuristic
+ *
+ * @param namespace - The procedure namespace
+ * @param procedureName - The procedure name
+ * @param routes - Optional route metadata from backend
+ * @returns true if the procedure is a query, false for mutation
+ */
+function isProcedureQuery(
+  namespace: string,
+  procedureName: string,
+  routes?: RouteMap
+): boolean {
+  // Check routes for explicit kind first
+  const routeEntry = routes?.[namespace]?.[procedureName];
+  if (routeEntry) {
+    // RouteEntry can be object with kind, or legacy string (path only)
+    if (typeof routeEntry === 'object' && 'kind' in routeEntry) {
+      return (routeEntry as RouteEntry).kind === 'query';
+    }
+  }
+
+  // Fall back to naming convention
+  return isQueryProcedure(procedureName);
+}
+
+/**
  * Creates a proxy for a namespace that returns procedure proxies
  *
  * Each property access on the namespace proxy creates a procedure proxy
@@ -453,10 +484,12 @@ function createMutationProcedureProxy<TInput, TOutput>(
  *
  * @param namespace - The namespace name (e.g., 'users')
  * @param getClient - Factory function to get the client
+ * @param routes - Optional route metadata for explicit kind detection
  */
 function createNamespaceProxy<TRouter>(
   namespace: string,
-  getClient: ClientGetter<TRouter>
+  getClient: ClientGetter<TRouter>,
+  routes?: RouteMap
 ): Record<
   string,
   VeloxQueryProcedure<unknown, unknown> | VeloxMutationProcedure<unknown, unknown>
@@ -480,8 +513,8 @@ function createNamespaceProxy<TRouter>(
           return cached;
         }
 
-        // Create new procedure proxy based on naming convention
-        const procedureProxy = isQueryProcedure(procedureName)
+        // Create new procedure proxy based on routes metadata or naming convention
+        const procedureProxy = isProcedureQuery(namespace, procedureName, routes)
           ? createQueryProcedureProxy(namespace, procedureName, getClient as ClientGetter<unknown>)
           : createMutationProcedureProxy(
               namespace,
@@ -573,6 +606,9 @@ export function createVeloxHooks<TRouter>(config?: VeloxHooksConfig<TRouter>): V
     return config?.client ?? contextClient;
   };
 
+  // Extract routes for explicit kind detection
+  const routes = config?.routes;
+
   // Create the root proxy
   return new Proxy({} as VeloxHooks<TRouter>, {
     get(_target, namespace: string) {
@@ -582,8 +618,8 @@ export function createVeloxHooks<TRouter>(config?: VeloxHooksConfig<TRouter>): V
         return cached;
       }
 
-      // Create new namespace proxy
-      const namespaceProxy = createNamespaceProxy<TRouter>(namespace, getClient);
+      // Create new namespace proxy with routes for kind detection
+      const namespaceProxy = createNamespaceProxy<TRouter>(namespace, getClient, routes);
 
       // Cache for future access
       namespaceCache.set(namespace, namespaceProxy);

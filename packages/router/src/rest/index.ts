@@ -21,5 +21,5 @@ export {
   parseNamingConvention,
 } from './naming.js';
 // Route extraction - for frontend client configuration
-export type { ExtractRoutesType, RouteMap } from './routes.js';
+export type { ExtractRoutesType, RouteEntry, RouteMap } from './routes.js';
 export { extractRoutes } from './routes.js';

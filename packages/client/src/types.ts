@@ -133,11 +133,25 @@ export type ClientFromRouter<TRouter> = {
 // ============================================================================
 
 /**
- * A single route entry with method and path
+ * A single route entry with method, path, and procedure kind
+ *
+ * The `kind` field enables explicit query/mutation type annotation,
+ * overriding the naming convention heuristic when procedures don't
+ * follow standard prefixes (get*, list*, create*, etc.).
  */
 export interface RouteEntry {
   method: HttpMethod;
   path: string;
+  /**
+   * Explicit procedure type annotation
+   *
+   * When provided, this overrides the naming convention detection:
+   * - `'query'` → enables useQuery, useSuspenseQuery, getQueryKey, etc.
+   * - `'mutation'` → enables useMutation
+   *
+   * Use when procedure names don't follow conventions (e.g., `fetchUsers`, `process`)
+   */
+  kind?: 'query' | 'mutation';
 }
 
 /**

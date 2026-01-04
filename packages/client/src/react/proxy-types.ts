@@ -22,6 +22,7 @@ import type {
   ClientProcedure,
   ProcedureCollection,
   ProcedureRecord,
+  RouteMap,
 } from '../types.js';
 import type { VeloxQueryKey } from './types.js';
 
@@ -462,6 +463,33 @@ export interface VeloxHooksConfig<TRouter = unknown> {
    * ```
    */
   client?: ClientFromRouter<TRouter>;
+
+  /**
+   * Optional: route metadata from backend
+   *
+   * When provided, the `kind` field in route entries overrides the naming
+   * convention heuristic for determining query vs mutation. This is useful
+   * for procedures that don't follow naming conventions.
+   *
+   * Generate this using `extractRoutes()` from `@veloxts/router`:
+   *
+   * @example
+   * ```typescript
+   * // Backend: api/index.ts
+   * import { extractRoutes } from '@veloxts/router';
+   * export const routes = extractRoutes([userProcedures, authProcedures]);
+   *
+   * // Frontend: api.ts
+   * import { createVeloxHooks } from '@veloxts/client/react';
+   * import { routes } from '../../api/src/index.js';
+   *
+   * export const api = createVeloxHooks<AppRouter>({ routes });
+   *
+   * // Now non-conventional procedures work correctly:
+   * api.health.check.useQuery({});  // Works even though 'check' is not a query prefix
+   * ```
+   */
+  routes?: RouteMap;
 }
 
 // ============================================================================
