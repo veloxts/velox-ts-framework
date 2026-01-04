@@ -1,15 +1,44 @@
 # VeloxTS Generators Guide
 
+## AI Agent Recommended Workflow
+
+When creating new entities, the **recommended approach** is:
+
+1. **Design and add the Prisma model** directly to `prisma/schema.prisma`
+2. **Run `velox make namespace EntityName`** to generate procedures
+
+This ensures complete, production-ready code because the AI can design the full schema based on requirements.
+
+```bash
+# Example: Creating a Post entity
+
+# Step 1: AI adds model to prisma/schema.prisma
+model Post {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  published Boolean  @default(false)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("posts")
+}
+
+# Step 2: Generate procedures for the existing model
+velox make namespace Post --example
+```
+
 ## Decision Tree: Which Generator?
 
 ```
 Do you need a new database entity?
-├── YES → Is this a completely new entity?
-│         ├── YES → velox make resource [RECOMMENDED]
-│         │         Creates: Prisma model + Schema + Procedures + Tests
-│         │
-│         └── NO (existing Prisma model) → velox make namespace
-│                   Creates: Schema + Procedures (no Prisma injection)
+├── YES (AI workflow) → 1. Design Prisma model in schema.prisma
+│                       2. velox make namespace EntityName --example
+│                       Creates: Schema + Procedures for existing model
+│
+├── YES (Interactive) → velox make resource EntityName -i
+│                       Prompts for fields, creates everything
 │
 └── NO → What do you need?
          ├── Single API endpoint → velox make procedure
@@ -29,31 +58,63 @@ Do you need a new database entity?
 
 | Generator | Creates | Use When |
 |-----------|---------|----------|
-| `resource` | Prisma + Schema + Procedures + Tests | **New database entity** (recommended default) |
-| `namespace` | Schema + Procedures | Existing model or external API |
+| `namespace` | Schema + Procedures + Tests | **AI agents** or existing Prisma model |
+| `resource -i` | Prisma + Schema + Procedures + Tests | **Human interactive** field definition |
+| `resource` | Scaffolds with TODOs | Quick start (fields needed manually) |
 | `procedure` | Procedures (inline schemas) | Single endpoint, quick prototype |
 | `schema` | Zod schema file | Standalone validation |
 | `model` | Prisma model | Database-only change |
 
-## Resource Generator [RECOMMENDED]
+## Namespace Generator [AI RECOMMENDED]
 
-The full-stack generator for new entities. Like Laravel's `make:model -a`.
+Best choice for AI agents. Works with models you've already defined.
 
 ```bash
-# Basic usage
-velox make resource Post
+# After adding model to schema.prisma:
+velox make namespace Post --example
 
-# Full CRUD with pagination
-velox make resource Post --crud --paginated
+# With tests
+velox make namespace Order --example --with-tests
 
-# Interactive field definition
+# Short form
+velox m ns Product -e -t
+```
+
+### What It Creates
+
+```
+src/
+├── procedures/
+│   ├── posts.ts              # CRUD procedures
+│   └── __tests__/
+│       └── posts.test.ts     # Unit tests
+└── schemas/
+    └── post.ts               # Zod validation
+```
+
+### Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--example` | `-e` | Include example CRUD procedures |
+| `--with-tests` | `-t` | Generate test file (default: true) |
+| `--skip-registration` | `-S` | Don't auto-register in router |
+
+## Resource Generator [HUMAN INTERACTIVE]
+
+Best for humans defining fields interactively via `-i` flag.
+
+**Important:** Without `-i`, creates scaffolds with TODO placeholders that require manual completion.
+
+```bash
+# RECOMMENDED: Interactive mode (prompts for fields)
 velox make resource Product -i
 
-# With soft delete
-velox make resource Comment --soft-delete
+# Without -i: Creates TODOs (not recommended)
+velox make resource Post
 
-# Auto-run migration
-velox make resource Order --auto-migrate
+# With all features
+velox make resource Order -i --soft-delete --auto-migrate
 
 # Preview without writing
 velox make resource Post --dry-run
@@ -77,55 +138,16 @@ src/
 
 | Option | Short | Description |
 |--------|-------|-------------|
+| `--interactive` | `-i` | **Define fields interactively (recommended)** |
 | `--crud` | `-c` | Generate full CRUD operations |
 | `--paginated` | `-P` | Include pagination for list |
 | `--soft-delete` | `-s` | Add soft delete support |
 | `--timestamps` | `-t` | Include timestamps (default: true) |
 | `--with-tests` | `-W` | Generate tests (default: true) |
-| `--interactive` | `-i` | Define fields interactively |
 | `--skip-registration` | | Don't auto-register in router |
 | `--auto-migrate` | | Run migration automatically |
 | `--dry-run` | `-d` | Preview changes only |
 | `--force` | `-f` | Overwrite existing files |
-
-## Namespace Generator
-
-For existing Prisma models or external data sources.
-
-```bash
-# Empty namespace (add procedures manually)
-velox make namespace products
-
-# With example CRUD
-velox make namespace orders --example
-
-# Short form
-velox m ns inventory -e
-```
-
-### What It Creates
-
-```
-src/
-├── procedures/
-│   └── products.ts           # Procedure namespace
-└── schemas/
-    └── product.ts            # Zod schema
-```
-
-### When to Use
-
-- You already have a Prisma model defined
-- You're calling an external API (no database)
-- You want separate schema files (not inline)
-- You don't need Prisma model injection
-
-### Options
-
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--example` | `-e` | Include example CRUD procedures |
-| `--skip-registration` | `-S` | Don't auto-register in router |
 
 ## Procedure Generator
 
@@ -238,25 +260,45 @@ velox make task SendDailyDigest --cron="0 9 * * *"
 
 ## Common Workflows
 
-### New Feature: Blog Posts
+### New Feature: Blog Posts (AI Agent)
 
 ```bash
-# 1. Generate complete resource
-velox make resource Post --crud --paginated -i
+# 1. Design Prisma model directly in schema.prisma
+model Post {
+  id        String   @id @default(uuid())
+  title     String
+  slug      String   @unique
+  content   String
+  excerpt   String?
+  published Boolean  @default(false)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("posts")
+}
 
-# 2. (Optional) Add related resources
-velox make resource Comment --crud
-velox make resource Tag --crud
+# 2. Generate procedures for the model
+velox make namespace Post --example
 
-# 3. Run migration
+# 3. Push database changes
 pnpm db:push
 
-# 4. Seed sample data
+# 4. (Optional) Seed sample data
 velox make seeder PostSeeder
-pnpm velox db seed
 ```
 
-### Adding to Existing Model
+### New Feature: Blog Posts (Human Interactive)
+
+```bash
+# 1. Interactive field definition
+velox make resource Post -i --auto-migrate
+
+# 2. Follow prompts to define fields
+# 3. Migration runs automatically
+```
+
+### Adding Procedures for Existing Model
 
 ```bash
 # Model already exists in Prisma
