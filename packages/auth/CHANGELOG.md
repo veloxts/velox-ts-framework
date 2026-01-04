@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.65
+
+### Patch Changes
+
+- improve ai integration and simplify api router definition
+- Updated dependencies
+  - @veloxts/core@0.6.65
+  - @veloxts/router@0.6.65
+
 ## 0.6.64
 
 ### Patch Changes

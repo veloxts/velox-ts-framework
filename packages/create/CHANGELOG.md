@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.65
+
+### Patch Changes
+
+- improve ai integration and simplify api router definition
+
 ## 0.6.64
 
 ### Patch Changes
