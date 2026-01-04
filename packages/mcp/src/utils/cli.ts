@@ -20,67 +20,79 @@ export interface ResolvedCLI {
 }
 
 /**
+ * Common locations to search for CLI binary in workspace projects
+ */
+const WORKSPACE_BIN_LOCATIONS = [
+  // Root node_modules (CLI installed at workspace root - recommended)
+  ['node_modules', '.bin'],
+  // Legacy: apps/api (older templates had CLI in apps/api)
+  ['apps', 'api', 'node_modules', '.bin'],
+];
+
+/**
+ * Common locations to search for @veloxts/cli package
+ */
+const WORKSPACE_PKG_LOCATIONS = [
+  // Root node_modules
+  ['node_modules', '@veloxts', 'cli'],
+  // Legacy: apps/api
+  ['apps', 'api', 'node_modules', '@veloxts', 'cli'],
+];
+
+/**
  * Resolve the VeloxTS CLI binary path with smart fallbacks
  *
  * Resolution order:
  * 1. Local node_modules/.bin/velox (fastest, respects local version)
- * 2. Windows .cmd wrapper (node_modules/.bin/velox.cmd)
- * 3. Resolve @veloxts/cli package and find bin entry
- * 4. Fallback to npx @veloxts/cli (slowest, downloads if needed)
+ * 2. Workspace locations (apps/api for legacy projects)
+ * 3. Windows .cmd wrapper variants
+ * 4. Resolve @veloxts/cli package and find bin entry
+ * 5. Fallback to npx @veloxts/cli (slowest, downloads if needed)
  */
 export function resolveVeloxCLI(projectRoot: string, args: string[]): ResolvedCLI {
   const isWindows = process.platform === 'win32';
+  const binName = isWindows ? 'velox.cmd' : 'velox';
 
-  // 1. Try local .bin/velox (Unix)
-  if (!isWindows) {
-    const localBin = join(projectRoot, 'node_modules', '.bin', 'velox');
-    if (existsSync(localBin)) {
+  // 1-3. Try all workspace bin locations
+  for (const location of WORKSPACE_BIN_LOCATIONS) {
+    const binPath = join(projectRoot, ...location, binName);
+    if (existsSync(binPath)) {
       return {
-        command: localBin,
+        command: binPath,
         args,
         isNpx: false,
       };
     }
   }
 
-  // 2. Try Windows .cmd wrapper
-  if (isWindows) {
-    const localBinCmd = join(projectRoot, 'node_modules', '.bin', 'velox.cmd');
-    if (existsSync(localBinCmd)) {
-      return {
-        command: localBinCmd,
-        args,
-        isNpx: false,
-      };
-    }
-  }
+  // 4. Try resolving @veloxts/cli package directly from workspace locations
+  for (const location of WORKSPACE_PKG_LOCATIONS) {
+    try {
+      const cliPackageJson = join(projectRoot, ...location, 'package.json');
+      if (existsSync(cliPackageJson)) {
+        const pkg = JSON.parse(readFileSync(cliPackageJson, 'utf-8')) as {
+          bin?: string | { velox?: string };
+        };
 
-  // 3. Try resolving @veloxts/cli package directly
-  try {
-    const cliPackageJson = join(projectRoot, 'node_modules', '@veloxts', 'cli', 'package.json');
-    if (existsSync(cliPackageJson)) {
-      const pkg = JSON.parse(readFileSync(cliPackageJson, 'utf-8')) as {
-        bin?: string | { velox?: string };
-      };
+        const binRelative = typeof pkg.bin === 'string' ? pkg.bin : pkg.bin?.velox;
 
-      const binRelative = typeof pkg.bin === 'string' ? pkg.bin : pkg.bin?.velox;
-
-      if (binRelative) {
-        const binPath = join(projectRoot, 'node_modules', '@veloxts', 'cli', binRelative);
-        if (existsSync(binPath)) {
-          return {
-            command: 'node',
-            args: [binPath, ...args],
-            isNpx: false,
-          };
+        if (binRelative) {
+          const binPath = join(projectRoot, ...location, binRelative);
+          if (existsSync(binPath)) {
+            return {
+              command: 'node',
+              args: [binPath, ...args],
+              isNpx: false,
+            };
+          }
         }
       }
+    } catch {
+      // Ignore resolution errors, try next location
     }
-  } catch {
-    // Ignore resolution errors, fall through to npx
   }
 
-  // 4. Fallback to npx (works even if not installed locally)
+  // 5. Fallback to npx (works even if not installed locally)
   return {
     command: 'npx',
     args: ['@veloxts/cli', ...args],
