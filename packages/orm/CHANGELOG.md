@@ -1,5 +1,13 @@
 # @veloxts/orm
 
+## 0.6.63
+
+### Patch Changes
+
+- feat(create): add dynamic database display name to CLAUDE.md templates
+- Updated dependencies
+  - @veloxts/core@0.6.63
+
 ## 0.6.62
 
 ### Patch Changes
