@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.66
+
+### Patch Changes
+
+- docs(skills): recommend namespace generator for AI agents
+- Updated dependencies
+  - @veloxts/core@0.6.66
+  - @veloxts/validation@0.6.66
+
 ## 0.6.65
 
 ### Patch Changes

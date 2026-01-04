@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.66
+
+### Patch Changes
+
+- docs(skills): recommend namespace generator for AI agents
+
 ## 0.6.65
 
 ### Patch Changes
