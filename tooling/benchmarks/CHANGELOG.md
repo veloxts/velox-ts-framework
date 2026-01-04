@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.64
+
+### Patch Changes
+
+- fix(create): add @veloxts/velox and @veloxts/mcp to root package.json
+
 ## 0.6.63
 
 ### Patch Changes

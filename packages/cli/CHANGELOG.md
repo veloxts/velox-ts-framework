@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.64
+
+### Patch Changes
+
+- fix(create): add @veloxts/velox and @veloxts/mcp to root package.json
+- Updated dependencies
+  - @veloxts/auth@0.6.64
+  - @veloxts/core@0.6.64
+  - @veloxts/orm@0.6.64
+  - @veloxts/router@0.6.64
+  - @veloxts/validation@0.6.64
+
 ## 0.6.63
 
 ### Patch Changes
