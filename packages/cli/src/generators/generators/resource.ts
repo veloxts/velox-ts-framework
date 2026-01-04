@@ -60,7 +60,37 @@ import {
 
 const metadata: GeneratorMetadata = {
   name: 'resource',
-  description: 'Generate complete resource (model, schema, procedures, tests)',
+  description: 'Generate complete resource (model, schema, procedures, tests) [RECOMMENDED]',
+  longDescription: `
+RECOMMENDED: The resource generator is the preferred way to create new entities.
+
+This is VeloxTS's equivalent to Laravel's "php artisan make:model -a" - it scaffolds
+everything you need for a new entity in one command.
+
+Creates:
+  • Prisma model (auto-injected into schema.prisma)
+  • Zod validation schemas (src/schemas/{name}.schema.ts)
+  • CRUD procedures (src/procedures/{name}.ts)
+  • Test file (src/procedures/__tests__/{name}.test.ts)
+  • Auto-registers in router.ts
+  • Optional: runs Prisma migration
+
+When to use:
+  ✓ Creating a new database entity (users, posts, products, etc.)
+  ✓ You want the full VeloxTS stack with tests
+  ✓ Default choice for most scenarios
+
+When NOT to use:
+  • You have an existing Prisma model → use "namespace" instead
+  • You're calling an external API (no database) → use "namespace" instead
+  • Adding a single procedure to existing namespace → use "procedure" instead
+
+Examples:
+  velox make resource Post                     # Full stack for Post entity
+  velox make resource Comment -i               # Interactive field definition
+  velox make resource Order --soft-delete      # With soft delete support
+  velox m r Product --auto-migrate             # Auto-run migration
+`,
   category: 'resource',
   aliases: ['r', 'res'],
 };

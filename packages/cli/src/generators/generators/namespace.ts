@@ -44,21 +44,37 @@ import {
 export class NamespaceGenerator extends BaseGenerator<NamespaceOptions> {
   readonly metadata: GeneratorMetadata = {
     name: 'namespace',
-    description: 'Generate a procedure namespace with corresponding schema',
+    description: 'Generate procedure namespace + schema (for existing models or external APIs)',
     longDescription: `
-Scaffold a VeloxTS procedure namespace (collection) with a matching schema file.
+Scaffold a procedure namespace with a separate Zod schema file.
 
-This creates:
-- A procedure file with the namespace/collection structure
-- A schema file with base entity and input schemas
-- Auto-registration in your router.ts (if detected)
+Use this when you already have a Prisma model or are working with external data.
+For new database entities, use "velox make resource" instead (recommended).
 
-Use --example to include sample CRUD procedures, or leave empty to add your own.
+Creates:
+  • Procedure file (src/procedures/{plural}.ts)
+  • Schema file (src/schemas/{kebab}.ts)
+  • Auto-registers in router.ts
+
+When to use:
+  ✓ You have an EXISTING Prisma model and need procedures for it
+  ✓ Calling an external API (no database model needed)
+  ✓ You want separate schema files (cleaner than inline)
+  ✓ Need procedure collection without Prisma injection
+
+When NOT to use:
+  • Creating a new database entity → use "resource" instead (recommended)
+  • Adding a single procedure → use "procedure" instead
+
+Comparison:
+  • "resource" = Prisma model + schema + procedures + tests (RECOMMENDED)
+  • "namespace" = schema + procedures (no Prisma injection)
+  • "procedure" = procedures only (inline schemas)
 
 Examples:
-  velox make namespace products           # Empty namespace ready for procedures
+  velox make namespace products           # Empty namespace for existing model
   velox make namespace orders --example   # With example CRUD procedures
-  velox m ns inventory -e                 # Short form with examples
+  velox m ns external-api -e              # For external API integration
 `,
     aliases: ['ns'],
     category: 'resource',

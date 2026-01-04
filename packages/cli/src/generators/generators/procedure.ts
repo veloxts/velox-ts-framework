@@ -43,17 +43,35 @@ import {
 export class ProcedureGenerator extends BaseGenerator<ProcedureOptions> {
   readonly metadata: GeneratorMetadata = {
     name: 'procedure',
-    description: 'Generate a procedure file for API endpoints',
+    description: 'Generate a procedure file (for single or additional procedures)',
     longDescription: `
-Scaffold a VeloxTS procedure file that defines API endpoints.
+Scaffold a standalone procedure file with inline schemas.
 
-By default, scaffolds a simple procedure with just a get operation.
-Use --crud to scaffold full CRUD operations (get, list, create, update, patch, delete).
+Use this for adding individual procedures or extending existing namespaces.
+For new database entities, use "velox make resource" instead (recommended).
+
+Creates:
+  • Procedure file (src/procedures/{plural}.ts) with inline Zod schemas
+  • Auto-registers in router.ts
+
+When to use:
+  ✓ Adding a single procedure to your API
+  ✓ Quick prototyping (inline schemas, no separate files)
+  ✓ Extending an existing namespace with additional procedures
+
+When NOT to use:
+  • Creating a new database entity → use "resource" instead (recommended)
+  • Want separate schema files → use "namespace" instead
+
+Comparison:
+  • "resource" = Prisma model + schema + procedures + tests (RECOMMENDED)
+  • "namespace" = schema + procedures (separate files)
+  • "procedure" = procedures only (inline schemas, self-contained)
 
 Examples:
-  velox make procedure users           # Simple get procedure
-  velox make procedure posts --crud    # Full CRUD procedures
-  velox m p comments --crud --paginated    # CRUD with pagination
+  velox make procedure health            # Single health check procedure
+  velox make procedure users --crud      # CRUD with inline schemas
+  velox m p analytics                    # Quick procedure for analytics
 `,
     aliases: ['p', 'proc'],
     category: 'resource',
