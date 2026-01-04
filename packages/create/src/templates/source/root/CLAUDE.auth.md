@@ -142,6 +142,110 @@ JWT_REFRESH_SECRET=<64+ chars>   # Generate: openssl rand -base64 64
 | `patchUser` | PATCH | `/users/:id` |
 | `deleteUser` | DELETE | `/users/:id` |
 
+## Common Gotchas (IMPORTANT)
+
+These patterns prevent common mistakes when building VeloxTS applications.
+
+### Procedure Builder Syntax
+
+**Always call `procedure()` with parentheses:**
+
+```typescript
+// ✅ Correct
+getCampaign: procedure()
+  .guard(authenticated)
+  .input(schema)
+  .query(...)
+
+// ❌ Wrong - causes "procedure.guard is not a function"
+getCampaign: procedure
+  .guard(authenticated)
+```
+
+### Custom REST Routes
+
+When using `.rest()` to override routes, do NOT include the API prefix:
+
+```typescript
+// ✅ Correct - prefix is applied automatically
+.rest({ method: 'POST', path: '/campaigns/:id/activate' })
+
+// ❌ Wrong - results in /api/api/campaigns/:id/activate
+.rest({ method: 'POST', path: '/api/campaigns/:id/activate' })
+```
+
+**Note:** Path parameters (`:id`) are NOT auto-extracted into input. Pass them in the request body.
+
+### Handling Prisma Decimals in Zod Schemas
+
+Prisma returns `Decimal` objects for decimal fields. Standard Zod validation fails.
+
+**Input schemas** - use `z.coerce.number()`:
+```typescript
+bidAmount: z.coerce.number().positive().max(1000)
+```
+
+**Output schemas** - use `z.any().transform()`:
+```typescript
+bidAmount: z.any().transform((val) => Number(val))
+balance: z.any().transform((val) => Number(val))
+```
+
+**Dates** - use `z.coerce.date()`:
+```typescript
+createdAt: z.coerce.date()
+updatedAt: z.coerce.date()
+```
+
+### Extending User Context
+
+The `ctx.user` object is populated by `userLoader` in `src/config/auth.ts`.
+
+To add fields to `ctx.user` (e.g., `organizationId`):
+
+1. Update `userLoader`:
+```typescript
+async function userLoader(userId: string) {
+  const user = await db.user.findUnique({ where: { id: userId } });
+  return {
+    id: user.id,
+    email: user.email,
+    roles: parseUserRoles(user.roles),
+    organizationId: user.organizationId, // Add new fields here
+  };
+}
+```
+
+2. Update related schemas (`UserSchema`, `UpdateUserInput`, etc.).
+
+### Role Configuration
+
+Roles are stored as a JSON string array in the database (e.g., `["ADMIN"]`).
+
+When changing roles, update ALL locations:
+- `prisma/schema.prisma` - Role enum
+- `src/config/auth.ts` - `ALLOWED_ROLES` and `parseUserRoles`
+- `src/utils/auth.ts` - `ALLOWED_ROLES` (if duplicated)
+- `src/schemas/auth.ts` - Role validation schemas
+
+### MCP Project Path
+
+For Claude Desktop, specify the project path explicitly in `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "velox": {
+      "command": "npx",
+      "args": ["@veloxts/mcp"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+CLI fallback: `__RUN_CMD__ velox make procedure Posts --crud`
+
 ## Guards and Policies
 
 ### Using Guards

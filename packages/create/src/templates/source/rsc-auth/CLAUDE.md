@@ -229,6 +229,106 @@ JWT_REFRESH_SECRET="..."
 - `PUT /api/users/:id` - Update user
 - `DELETE /api/users/:id` - Delete user
 
+## Common Gotchas (IMPORTANT)
+
+These patterns prevent common mistakes when building VeloxTS applications.
+
+### Procedure Builder Syntax
+
+**Always call `procedure()` with parentheses:**
+
+```typescript
+// ✅ Correct
+getUser: procedure()
+  .guard(authenticated)
+  .input(schema)
+  .query(...)
+
+// ❌ Wrong - causes "procedure.guard is not a function"
+getUser: procedure
+  .guard(authenticated)
+```
+
+### Custom REST Routes
+
+When using `.rest()` to override routes, do NOT include the API prefix:
+
+```typescript
+// ✅ Correct - prefix is applied automatically
+.rest({ method: 'POST', path: '/users/:id/activate' })
+
+// ❌ Wrong - results in /api/api/users/:id/activate
+.rest({ method: 'POST', path: '/api/users/:id/activate' })
+```
+
+### Handling Prisma Decimals in Zod Schemas
+
+Prisma returns `Decimal` objects for decimal fields. Standard Zod validation fails.
+
+**Input schemas** - use `z.coerce.number()`:
+```typescript
+price: z.coerce.number().positive()
+```
+
+**Output schemas** - use `z.any().transform()`:
+```typescript
+price: z.any().transform((val) => Number(val))
+```
+
+**Dates** - use `z.coerce.date()`:
+```typescript
+createdAt: z.coerce.date()
+updatedAt: z.coerce.date()
+```
+
+### Extending User Context
+
+The `ctx.user` object is populated by `userLoader` in `src/api/utils/auth.ts`.
+
+To add fields to `ctx.user` (e.g., `organizationId`):
+
+1. Update `userLoader`:
+```typescript
+async function userLoader(userId: string) {
+  const user = await db.user.findUnique({ where: { id: userId } });
+  return {
+    id: user.id,
+    email: user.email,
+    roles: parseUserRoles(user.roles),
+    organizationId: user.organizationId, // Add new fields here
+  };
+}
+```
+
+2. Update related schemas (`UserSchema`, `UpdateUserInput`, etc.).
+
+### Role Configuration
+
+Roles are stored as a JSON string array in the database (e.g., `["ADMIN"]`).
+
+When changing roles, update ALL locations:
+- `prisma/schema.prisma` - Role enum
+- `src/api/utils/auth.ts` - `ALLOWED_ROLES` and `parseUserRoles`
+- `src/api/schemas/auth.ts` - Role validation schemas
+
+### MCP Project Path
+
+For Claude Desktop, specify the project path explicitly in `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "velox": {
+      "command": "npx",
+      "args": ["@veloxts/mcp"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+CLI fallback: `__RUN_CMD__ velox make procedure Posts --crud`
+
 ## AI-Powered Development with MCP
 
 VeloxTS includes a **Model Context Protocol (MCP) server** that gives AI assistants like Claude direct access to your project structure. This enables intelligent code assistance with full awareness of your procedures, schemas, routes, and error codes.

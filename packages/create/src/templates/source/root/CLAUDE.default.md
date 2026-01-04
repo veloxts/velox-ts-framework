@@ -122,6 +122,77 @@ VeloxTS provides end-to-end type safety without code generation:
 | `patchUser` | PATCH | `/users/:id` |
 | `deleteUser` | DELETE | `/users/:id` |
 
+## Common Gotchas (IMPORTANT)
+
+These patterns prevent common mistakes when building VeloxTS applications.
+
+### Procedure Builder Syntax
+
+**Always call `procedure()` with parentheses:**
+
+```typescript
+// ✅ Correct
+getPost: procedure()
+  .input(schema)
+  .query(...)
+
+// ❌ Wrong - causes "procedure.input is not a function"
+getPost: procedure
+  .input(schema)
+```
+
+### Custom REST Routes
+
+When using `.rest()` to override routes, do NOT include the API prefix:
+
+```typescript
+// ✅ Correct - prefix is applied automatically
+.rest({ method: 'POST', path: '/posts/:id/publish' })
+
+// ❌ Wrong - results in /api/api/posts/:id/publish
+.rest({ method: 'POST', path: '/api/posts/:id/publish' })
+```
+
+**Note:** Path parameters (`:id`) are NOT auto-extracted into input. Pass them in the request body.
+
+### Handling Prisma Decimals in Zod Schemas
+
+Prisma returns `Decimal` objects for decimal fields. Standard Zod validation fails.
+
+**Input schemas** - use `z.coerce.number()`:
+```typescript
+price: z.coerce.number().positive()
+```
+
+**Output schemas** - use `z.any().transform()`:
+```typescript
+price: z.any().transform((val) => Number(val))
+```
+
+**Dates** - use `z.coerce.date()`:
+```typescript
+createdAt: z.coerce.date()
+updatedAt: z.coerce.date()
+```
+
+### MCP Project Path
+
+For Claude Desktop, specify the project path explicitly in `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "velox": {
+      "command": "npx",
+      "args": ["@veloxts/mcp"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+CLI fallback: `__RUN_CMD__ velox make procedure Posts --crud`
+
 ## Database
 
 After schema changes:

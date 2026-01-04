@@ -181,6 +181,63 @@ This auto-generates REST endpoints from procedure names:
 - `posts.byId` → `GET /api/posts/:id`
 - `posts.create` → `POST /api/posts`
 
+## Common Gotchas (IMPORTANT)
+
+These patterns prevent common mistakes when building VeloxTS applications.
+
+### Procedure Builder Syntax
+
+**Always call `procedure()` with parentheses:**
+
+```typescript
+// ✅ Correct
+list: procedure()
+  .output(schema)
+  .query(...)
+
+// ❌ Wrong - causes "procedure.output is not a function"
+list: procedure
+  .output(schema)
+```
+
+### Handling Prisma Decimals in Zod Schemas
+
+Prisma returns `Decimal` objects for decimal fields. Standard Zod validation fails.
+
+**Input schemas** - use `z.coerce.number()`:
+```typescript
+price: z.coerce.number().positive()
+```
+
+**Output schemas** - use `z.any().transform()`:
+```typescript
+price: z.any().transform((val) => Number(val))
+```
+
+**Dates** - use `z.coerce.date()`:
+```typescript
+createdAt: z.coerce.date()
+updatedAt: z.coerce.date()
+```
+
+### MCP Project Path
+
+For Claude Desktop, specify the project path explicitly in `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "velox": {
+      "command": "npx",
+      "args": ["@veloxts/mcp"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+CLI fallback: `__RUN_CMD__ velox make procedure Posts`
+
 ## Database
 
 After schema changes:
