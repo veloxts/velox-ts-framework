@@ -217,7 +217,7 @@ ${modifiedFiles}`;
 
       const nextStep = options.withExample
         ? 'Customize the example procedures'
-        : 'Add procedures to src/procedures/' + entity.plural + '.ts';
+        : `Add procedures to src/procedures/${entity.plural}.ts`;
       const testStep = options.withTests ? '\n  4. Run tests: pnpm test' : '';
       instructions += `
 

@@ -123,8 +123,8 @@ describe('NamespaceGenerator', () => {
       expect(schemaFile?.path).toBe('src/schemas/product.ts');
 
       // Should have procedure file
-      const procedureFile = output.files.find((f) =>
-        f.path.includes('procedures') && !f.path.includes('__tests__')
+      const procedureFile = output.files.find(
+        (f) => f.path.includes('procedures') && !f.path.includes('__tests__')
       );
       expect(procedureFile).toBeDefined();
       expect(procedureFile?.path).toBe('src/procedures/products.ts');

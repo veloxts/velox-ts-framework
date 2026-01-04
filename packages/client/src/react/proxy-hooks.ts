@@ -93,7 +93,9 @@ const SIMILAR_PATTERNS: Record<string, { type: 'query' | 'mutation'; suggest: st
  * Detects if a procedure name uses a similar (non-standard) pattern
  * @returns The similar pattern info if found, null otherwise
  */
-function detectSimilarPattern(procedureName: string): { prefix: string; type: 'query' | 'mutation'; suggest: string } | null {
+function detectSimilarPattern(
+  procedureName: string
+): { prefix: string; type: 'query' | 'mutation'; suggest: string } | null {
   for (const [prefix, info] of Object.entries(SIMILAR_PATTERNS)) {
     if (procedureName.toLowerCase().startsWith(prefix)) {
       return { prefix, ...info };
@@ -157,7 +159,8 @@ function createNamingConventionError(
   attemptedMethod: string,
   isQuery: boolean
 ): Error {
-  const queryMethods = 'useQuery, useSuspenseQuery, getQueryKey, invalidate, prefetch, setData, getData';
+  const queryMethods =
+    'useQuery, useSuspenseQuery, getQueryKey, invalidate, prefetch, setData, getData';
   const mutationMethods = 'useMutation';
   const similarPattern = detectSimilarPattern(procedureName);
   const entityName = extractEntityName(procedureName);
@@ -180,7 +183,8 @@ function createNamingConventionError(
   // Called query method on a mutation procedure
   // Check if using a similar pattern (e.g., 'fetchUsers' instead of 'listUsers')
   if (similarPattern) {
-    const querySuggestions = similarPattern.suggest.split(/,?\s+or\s+|,\s*/)
+    const querySuggestions = similarPattern.suggest
+      .split(/,?\s+or\s+|,\s*/)
       .map((s) => s.trim())
       .filter(Boolean)
       .map((prefix) => `${prefix}${entityName}`);
@@ -381,7 +385,9 @@ function createQueryProcedureProxy<TInput, TOutput>(
       });
     },
 
-    useSuspenseQuery(...args: Parameters<VeloxQueryProcedure<TInput, TOutput>['useSuspenseQuery']>) {
+    useSuspenseQuery(
+      ...args: Parameters<VeloxQueryProcedure<TInput, TOutput>['useSuspenseQuery']>
+    ) {
       const [input, options] = args;
       const client = getClient() as GenericClient;
       const queryKey = buildQueryKey(namespace, procedureName, input);
@@ -545,11 +551,7 @@ function createMutationProcedureProxy<TInput, TOutput>(
  * @param routes - Optional route metadata from backend
  * @returns true if the procedure is a query, false for mutation
  */
-function isProcedureQuery(
-  namespace: string,
-  procedureName: string,
-  routes?: RouteMap
-): boolean {
+function isProcedureQuery(namespace: string, procedureName: string, routes?: RouteMap): boolean {
   // Check routes for explicit kind first
   const routeEntry = routes?.[namespace]?.[procedureName];
   if (routeEntry) {

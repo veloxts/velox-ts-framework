@@ -5,7 +5,7 @@
  * use incorrect hook types on procedures.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // We need to test the internal functions, so we'll test via the exported behavior
 // The error messages are thrown by the proxy hooks when wrong methods are called
@@ -59,8 +59,25 @@ describe('Naming Convention Error Messages', () => {
     function extractEntityName(procedureName: string): string {
       const QUERY_PREFIXES = ['get', 'list', 'find'];
       const MUTATION_PREFIXES = ['create', 'add', 'update', 'edit', 'patch', 'delete', 'remove'];
-      const SIMILAR_PREFIXES = ['fetch', 'retrieve', 'obtain', 'load', 'read', 'query', 'search',
-        'new', 'insert', 'make', 'modify', 'change', 'set', 'destroy', 'drop', 'erase', 'trash'];
+      const SIMILAR_PREFIXES = [
+        'fetch',
+        'retrieve',
+        'obtain',
+        'load',
+        'read',
+        'query',
+        'search',
+        'new',
+        'insert',
+        'make',
+        'modify',
+        'change',
+        'set',
+        'destroy',
+        'drop',
+        'erase',
+        'trash',
+      ];
 
       for (const prefix of [...QUERY_PREFIXES, ...MUTATION_PREFIXES]) {
         if (procedureName.startsWith(prefix)) {
@@ -103,7 +120,7 @@ describe('Naming Convention Error Messages', () => {
     // Simulate the error message format for testing
     function simulateErrorMessage(procedureName: string, attemptedMethod: string): string {
       const QUERY_PREFIXES = ['get', 'list', 'find'];
-      const isQuery = QUERY_PREFIXES.some(p => procedureName.startsWith(p));
+      const isQuery = QUERY_PREFIXES.some((p) => procedureName.startsWith(p));
 
       const SIMILAR_PATTERNS: Record<string, { type: 'query' | 'mutation'; suggest: string }> = {
         fetch: { type: 'query', suggest: 'list or get' },
@@ -113,10 +130,12 @@ describe('Naming Convention Error Messages', () => {
       };
 
       // Check for similar patterns
-      for (const [prefix, info] of Object.entries(SIMILAR_PATTERNS)) {
+      for (const [prefix, _info] of Object.entries(SIMILAR_PATTERNS)) {
         if (procedureName.toLowerCase().startsWith(prefix)) {
-          return `Cannot call ${attemptedMethod}() on procedure "${procedureName}".\n\n` +
-            `The prefix "${prefix}" is not a standard VeloxTS naming convention.`;
+          return (
+            `Cannot call ${attemptedMethod}() on procedure "${procedureName}".\n\n` +
+            `The prefix "${prefix}" is not a standard VeloxTS naming convention.`
+          );
         }
       }
 
