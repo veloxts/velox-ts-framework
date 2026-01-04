@@ -16,6 +16,7 @@ import { createMailGenerator } from './mail.js';
 import { createMiddlewareGenerator } from './middleware.js';
 import { createMigrationGenerator } from './migration.js';
 import { createModelGenerator } from './model.js';
+import { createNamespaceGenerator } from './namespace.js';
 import { createPageGenerator } from './page.js';
 import { createPolicyGenerator } from './policy.js';
 import { createProcedureGenerator } from './procedure.js';
@@ -42,6 +43,7 @@ export { createMailGenerator, MailGenerator } from './mail.js';
 export { createMiddlewareGenerator, MiddlewareGenerator } from './middleware.js';
 export { createMigrationGenerator, MigrationGenerator } from './migration.js';
 export { createModelGenerator, ModelGenerator } from './model.js';
+export { createNamespaceGenerator, NamespaceGenerator } from './namespace.js';
 export { createPageGenerator, PageGenerator } from './page.js';
 export { createPolicyGenerator, PolicyGenerator } from './policy.js';
 export { createProcedureGenerator, ProcedureGenerator } from './procedure.js';
@@ -67,6 +69,9 @@ export function registerBuiltinGenerators(): void {
 
   // Register model generator
   registerGenerator(createModelGenerator());
+
+  // Register namespace generator
+  registerGenerator(createNamespaceGenerator());
 
   // Register migration generator
   registerGenerator(createMigrationGenerator());
