@@ -80,6 +80,39 @@ export function generateRootCursorrules(config: TemplateConfig): string {
 }
 
 // ============================================================================
+// Claude Code Skills
+// ============================================================================
+
+/**
+ * Generate VeloxTS skill files for Claude Code
+ *
+ * These skills provide project-aware guidance to Claude when working on
+ * VeloxTS projects. Skills are Markdown files with YAML frontmatter.
+ */
+export function generateClaudeSkillFiles(config: TemplateConfig): TemplateFile[] {
+  const skillPath = '.claude/skills/veloxts';
+
+  return [
+    {
+      path: `${skillPath}/SKILL.md`,
+      content: compileTemplate('root/.claude/skills/veloxts/SKILL.md', config),
+    },
+    {
+      path: `${skillPath}/GENERATORS.md`,
+      content: compileTemplate('root/.claude/skills/veloxts/GENERATORS.md', config),
+    },
+    {
+      path: `${skillPath}/PROCEDURES.md`,
+      content: compileTemplate('root/.claude/skills/veloxts/PROCEDURES.md', config),
+    },
+    {
+      path: `${skillPath}/TROUBLESHOOTING.md`,
+      content: compileTemplate('root/.claude/skills/veloxts/TROUBLESHOOTING.md', config),
+    },
+  ];
+}
+
+// ============================================================================
 // Generate All Root Files
 // ============================================================================
 
@@ -95,5 +128,7 @@ export function generateRootFiles(
     { path: 'README.md', content: generateRootReadme(config) },
     { path: 'CLAUDE.md', content: generateRootClaudeMd(config, variant) },
     { path: '.cursorrules', content: generateRootCursorrules(config) },
+    // Claude Code skills for project-specific guidance
+    ...generateClaudeSkillFiles(config),
   ];
 }
