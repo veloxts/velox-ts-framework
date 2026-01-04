@@ -7,7 +7,7 @@ This file provides guidance to Claude Code and other AI assistants.
 **__PROJECT_NAME__** is a VeloxTS full-stack application with:
 - **Backend**: Fastify + VeloxTS (apps/api)
 - **Frontend**: React + Vite + TanStack Router (apps/web)
-- **Database**: Prisma with SQLite
+- **Database**: Prisma with __DATABASE_DISPLAY__
 
 ## Commands
 

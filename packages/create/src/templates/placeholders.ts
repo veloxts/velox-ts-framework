@@ -39,6 +39,8 @@ export const PLACEHOLDERS = {
   DATABASE_PROVIDER: '__DATABASE_PROVIDER__',
   /** Database URL for .env files */
   DATABASE_URL: '__DATABASE_URL__',
+  /** Display-friendly database name (SQLite, PostgreSQL) */
+  DATABASE_DISPLAY: '__DATABASE_DISPLAY__',
 } as const;
 
 /**
@@ -157,6 +159,18 @@ function getDatabaseUrl(database: TemplateConfig['database']): string {
 }
 
 /**
+ * Get the display-friendly database name.
+ */
+function getDatabaseDisplay(database: TemplateConfig['database']): string {
+  const displayNames: Record<TemplateConfig['database'], string> = {
+    sqlite: 'SQLite',
+    postgresql: 'PostgreSQL',
+    mysql: 'MySQL',
+  };
+  return displayNames[database];
+}
+
+/**
  * Apply placeholder replacements to template content.
  *
  * Uses replaceAll for fast, simple string replacement.
@@ -179,6 +193,7 @@ export function applyPlaceholders(content: string, config: TemplateConfig): stri
     [PLACEHOLDERS.WEB_PORT]: '8080',
     [PLACEHOLDERS.DATABASE_PROVIDER]: config.database,
     [PLACEHOLDERS.DATABASE_URL]: getDatabaseUrl(config.database),
+    [PLACEHOLDERS.DATABASE_DISPLAY]: getDatabaseDisplay(config.database),
   };
 
   let result = content;

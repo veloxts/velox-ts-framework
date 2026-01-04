@@ -7,7 +7,7 @@ This file provides guidance to Claude Code and other AI assistants.
 **__PROJECT_NAME__** is a VeloxTS full-stack application using **tRPC-only** architecture:
 - **Backend**: Fastify + VeloxTS + tRPC (apps/api)
 - **Frontend**: React + Vite + TanStack Router (apps/web)
-- **Database**: Prisma with SQLite
+- **Database**: Prisma with __DATABASE_DISPLAY__
 
 This template uses tRPC exclusively for type-safe internal communication. No REST adapter is included.
 
