@@ -200,8 +200,8 @@ apps/
 
 ```bash
 # Development
-pnpm dev                    # Start dev server (HMR enabled)
-pnpm velox dev --verbose    # With timing metrics
+pnpm dev                    # Start API (3030) + Web (8080) with HMR
+pnpm velox dev --verbose    # API only with timing metrics
 
 # Database
 pnpm db:push                # Apply schema changes
