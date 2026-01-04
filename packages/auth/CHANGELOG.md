@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.62
+
+### Patch Changes
+
+- add Common Gotchas section to all template CLAUDE.md files + add dynamic database display name to CLAUDE.md templates
+- Updated dependencies
+  - @veloxts/core@0.6.62
+  - @veloxts/router@0.6.62
+
 ## 0.6.61
 
 ### Patch Changes

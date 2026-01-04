@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.62
+
+### Patch Changes
+
+- add Common Gotchas section to all template CLAUDE.md files + add dynamic database display name to CLAUDE.md templates
+- Updated dependencies
+  - @veloxts/cli@0.6.62
+  - @veloxts/router@0.6.62
+  - @veloxts/validation@0.6.62
+
 ## 0.6.61
 
 ### Patch Changes
