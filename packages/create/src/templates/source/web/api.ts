@@ -23,13 +23,12 @@
 import { createVeloxHooks } from '@veloxts/client/react';
 
 /**
- * AppRouter type imported from the type-only router file.
+ * AppRouter type imported from the router definition.
  *
- * The router.types.ts file contains ONLY type imports and declarations,
- * which are completely erased at compile time. This means Vite never
- * scans the @veloxts/* packages when building the frontend.
+ * Using `import type` ensures this is erased at compile time.
+ * Vite never bundles @veloxts/* packages in the frontend build.
  */
-import type { AppRouter } from '../../api/src/router.types.js';
+import type { AppRouter } from '../../api/src/router.js';
 
 /**
  * Type-safe API hooks with full autocomplete

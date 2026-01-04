@@ -200,6 +200,26 @@ list: procedure
   .output(schema)
 ```
 
+### Procedure Naming Conventions
+
+VeloxTS uses naming conventions to determine procedure type in REST adapter mode. Even in tRPC-only mode, follow these conventions for consistency and potential future REST migration:
+
+**Query procedures** (read operations):
+- Prefixes: `get*`, `list*`, `find*`
+- Use `.query()` builder
+
+**Mutation procedures** (write operations):
+- Prefixes: `create*`, `add*`, `update*`, `edit*`, `patch*`, `delete*`, `remove*`
+- Use `.mutation()` builder
+
+```typescript
+// Good - clear intent from naming
+listPosts: procedure().query(...)      // Query
+getPostById: procedure().query(...)    // Query
+createPost: procedure().mutation(...)  // Mutation
+updatePost: procedure().mutation(...)  // Mutation
+```
+
 ### Handling Prisma Decimals in Zod Schemas
 
 Prisma returns `Decimal` objects for decimal fields. Standard Zod validation fails.

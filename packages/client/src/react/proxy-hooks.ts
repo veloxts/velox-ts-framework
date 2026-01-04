@@ -53,6 +53,18 @@ import { buildQueryKey } from './utils.js';
 // ============================================================================
 
 /**
+ * Query procedure naming prefixes
+ * Procedures starting with these prefixes are treated as queries.
+ */
+const QUERY_PREFIXES = ['get', 'list', 'find'] as const;
+
+/**
+ * Mutation procedure naming prefixes
+ * Procedures starting with these prefixes are treated as mutations.
+ */
+const MUTATION_PREFIXES = ['create', 'add', 'update', 'edit', 'patch', 'delete', 'remove'] as const;
+
+/**
  * Determines if a procedure is a query based on naming convention
  *
  * Matches the logic in @veloxts/router for consistency.
@@ -67,8 +79,51 @@ import { buildQueryKey } from './utils.js';
  * @returns true if the procedure is a query, false for mutation
  */
 function isQueryProcedure(procedureName: string): boolean {
-  const queryPrefixes = ['get', 'list', 'find'];
-  return queryPrefixes.some((prefix) => procedureName.startsWith(prefix));
+  return QUERY_PREFIXES.some((prefix) => procedureName.startsWith(prefix));
+}
+
+/**
+ * Creates a helpful error message for naming convention violations
+ *
+ * @param procedureName - The procedure name that was accessed incorrectly
+ * @param attemptedMethod - The method that was called (e.g., 'useQuery', 'useMutation')
+ * @param isQuery - Whether the procedure is detected as a query
+ */
+function createNamingConventionError(
+  procedureName: string,
+  attemptedMethod: string,
+  isQuery: boolean
+): Error {
+  const queryMethods = 'useQuery, useSuspenseQuery, getQueryKey, invalidate, prefetch, setData, getData';
+  const mutationMethods = 'useMutation';
+
+  if (isQuery) {
+    // Called mutation method on a query procedure
+    const suggestions = MUTATION_PREFIXES.map((p) => `${p}${procedureName.charAt(0).toUpperCase()}${procedureName.slice(1)}`);
+    return new Error(
+      `Cannot call ${attemptedMethod}() on query procedure "${procedureName}".\n\n` +
+        `VeloxTS Naming Convention:\n` +
+        `  • Query procedures must start with: ${QUERY_PREFIXES.join(', ')}\n` +
+        `  • Mutation procedures must start with: ${MUTATION_PREFIXES.join(', ')}\n\n` +
+        `"${procedureName}" starts with a query prefix, so only these methods are available:\n` +
+        `  ${queryMethods}\n\n` +
+        `If this should be a mutation, rename it to one of:\n` +
+        `  ${suggestions.slice(0, 3).join(', ')}`
+    );
+  }
+
+  // Called query method on a mutation procedure
+  const suggestions = QUERY_PREFIXES.map((p) => `${p}${procedureName.charAt(0).toUpperCase()}${procedureName.slice(1)}`);
+  return new Error(
+    `Cannot call ${attemptedMethod}() on mutation procedure "${procedureName}".\n\n` +
+      `VeloxTS Naming Convention:\n` +
+      `  • Query procedures must start with: ${QUERY_PREFIXES.join(', ')}\n` +
+      `  • Mutation procedures must start with: ${MUTATION_PREFIXES.join(', ')}\n\n` +
+      `"${procedureName}" does not start with a query prefix, so only these methods are available:\n` +
+      `  ${mutationMethods}\n\n` +
+      `If this should be a query, rename it to one of:\n` +
+      `  ${suggestions.join(', ')}`
+  );
 }
 
 // ============================================================================
@@ -220,8 +275,9 @@ function createQueryProcedureProxy<TInput, TOutput>(
   procedureName: string,
   getClient: ClientGetter<unknown>
 ): VeloxQueryProcedure<TInput, TOutput> {
-  return {
-    useQuery(...args) {
+  // Add useMutation stub that throws helpful error
+  const proxy = {
+    useQuery(...args: Parameters<VeloxQueryProcedure<TInput, TOutput>['useQuery']>) {
       const [input, options] = args;
       const client = getClient() as GenericClient;
       const queryKey = buildQueryKey(namespace, procedureName, input);
@@ -237,7 +293,7 @@ function createQueryProcedureProxy<TInput, TOutput>(
       });
     },
 
-    useSuspenseQuery(...args) {
+    useSuspenseQuery(...args: Parameters<VeloxQueryProcedure<TInput, TOutput>['useSuspenseQuery']>) {
       const [input, options] = args;
       const client = getClient() as GenericClient;
       const queryKey = buildQueryKey(namespace, procedureName, input);
@@ -253,18 +309,18 @@ function createQueryProcedureProxy<TInput, TOutput>(
       });
     },
 
-    getQueryKey(input) {
+    getQueryKey(input: TInput) {
       return buildQueryKey(namespace, procedureName, input);
     },
 
-    invalidate(input, queryClient) {
+    invalidate(input: TInput | undefined, queryClient: QueryClient) {
       const queryKey = input
         ? buildQueryKey(namespace, procedureName, input)
         : [namespace, procedureName];
       return queryClient.invalidateQueries({ queryKey });
     },
 
-    prefetch(...args) {
+    prefetch(...args: Parameters<VeloxQueryProcedure<TInput, TOutput>['prefetch']>) {
       const [input, queryClient] = args;
       const client = getClient() as GenericClient;
       const queryKey = buildQueryKey(namespace, procedureName, input);
@@ -279,16 +335,23 @@ function createQueryProcedureProxy<TInput, TOutput>(
       });
     },
 
-    setData(input, data, queryClient) {
+    setData(input: TInput, data: TOutput, queryClient: QueryClient) {
       const queryKey = buildQueryKey(namespace, procedureName, input);
       queryClient.setQueryData(queryKey, data);
     },
 
-    getData(input, queryClient) {
+    getData(input: TInput, queryClient: QueryClient) {
       const queryKey = buildQueryKey(namespace, procedureName, input);
       return queryClient.getQueryData(queryKey) as TOutput | undefined;
     },
+
+    // Stub that throws helpful error when called on a query procedure
+    useMutation() {
+      throw createNamingConventionError(procedureName, 'useMutation', true);
+    },
   };
+
+  return proxy as VeloxQueryProcedure<TInput, TOutput>;
 }
 
 /**
@@ -308,14 +371,14 @@ function createMutationProcedureProxy<TInput, TOutput>(
   procedureName: string,
   getClient: ClientGetter<unknown>
 ): VeloxMutationProcedure<TInput, TOutput> {
-  return {
-    useMutation(options) {
+  // Add query method stubs that throw helpful errors
+  const proxy = {
+    useMutation(options?: VeloxMutationOptions<TOutput, TInput>) {
       const client = getClient() as GenericClient;
       const queryClient = useReactQueryClient();
 
       // Extract auto-invalidation configuration
-      const typedOptions = options as VeloxMutationOptions<TOutput, TInput> | undefined;
-      const autoInvalidateOption = typedOptions?.autoInvalidate;
+      const autoInvalidateOption = options?.autoInvalidate;
       const autoInvalidateEnabled = autoInvalidateOption !== false;
       const autoInvalidateConfig =
         typeof autoInvalidateOption === 'object' ? autoInvalidateOption : undefined;
@@ -350,7 +413,32 @@ function createMutationProcedureProxy<TInput, TOutput>(
         },
       });
     },
+
+    // Stubs that throw helpful errors when called on a mutation procedure
+    useQuery() {
+      throw createNamingConventionError(procedureName, 'useQuery', false);
+    },
+    useSuspenseQuery() {
+      throw createNamingConventionError(procedureName, 'useSuspenseQuery', false);
+    },
+    getQueryKey() {
+      throw createNamingConventionError(procedureName, 'getQueryKey', false);
+    },
+    invalidate() {
+      throw createNamingConventionError(procedureName, 'invalidate', false);
+    },
+    prefetch() {
+      throw createNamingConventionError(procedureName, 'prefetch', false);
+    },
+    setData() {
+      throw createNamingConventionError(procedureName, 'setData', false);
+    },
+    getData() {
+      throw createNamingConventionError(procedureName, 'getData', false);
+    },
   };
+
+  return proxy as VeloxMutationProcedure<TInput, TOutput>;
 }
 
 // ============================================================================

@@ -197,21 +197,6 @@ export {
 } from './discovery/index.js';
 
 // ============================================================================
-// Contract Utilities (Browser-Safe Type Inference)
-// ============================================================================
-
-export type {
-  ContractDefinition,
-  ContractEntry,
-  HttpMethodRoute,
-  InferContract,
-  InferRouterFromContracts,
-  RouteDefinition,
-  RoutesDefinition,
-} from './contracts.js';
-export { defineContract, defineRoutes } from './contracts.js';
-
-// ============================================================================
 // Unified API Registration
 // ============================================================================
 

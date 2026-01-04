@@ -2,7 +2,7 @@ import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
 /* @if auth */
 import { useQuery } from '@veloxts/client/react';
 
-import type { AppRouter } from '../../../api/src/router.types.js';
+import type { AppRouter } from '../../../api/src/router.js';
 /* @endif auth */
 import styles from '@/App.module.css';
 

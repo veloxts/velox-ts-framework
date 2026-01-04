@@ -46,10 +46,6 @@ function generateRouterTs(): string {
   return compileTemplate('api/router.default.ts', DEFAULT_CONFIG);
 }
 
-function generateRouterTypesTs(): string {
-  return compileTemplate('api/router.types.default.ts', DEFAULT_CONFIG);
-}
-
 function generateIndexTs(): string {
   return compileTemplate('api/index.default.ts', DEFAULT_CONFIG);
 }
@@ -109,7 +105,6 @@ export function generateSpaTemplate(config: TemplateConfig): TemplateFile[] {
 
     // API Source files
     { path: 'apps/api/src/router.ts', content: generateRouterTs() },
-    { path: 'apps/api/src/router.types.ts', content: generateRouterTypesTs() },
     { path: 'apps/api/src/index.ts', content: generateIndexTs() },
     { path: 'apps/api/src/config/app.ts', content: generateConfigApp(config) },
     { path: 'apps/api/src/config/database.ts', content: generateConfigDatabase(config) },

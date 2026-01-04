@@ -52,10 +52,6 @@ function generateRouterTs(): string {
   return compileTemplate('api/router.trpc.ts', TRPC_CONFIG);
 }
 
-function generateRouterTypesTs(): string {
-  return compileTemplate('api/router.types.trpc.ts', TRPC_CONFIG);
-}
-
 function generateIndexTs(): string {
   // Use tRPC-specific entry point
   return compileTemplate('api/index.trpc.ts', TRPC_CONFIG);
@@ -117,7 +113,6 @@ export function generateTrpcTemplate(config: TemplateConfig): TemplateFile[] {
 
     // API Source files
     { path: 'apps/api/src/router.ts', content: generateRouterTs() },
-    { path: 'apps/api/src/router.types.ts', content: generateRouterTypesTs() },
     { path: 'apps/api/src/index.ts', content: generateIndexTs() },
     { path: 'apps/api/src/config/app.ts', content: generateConfigApp(config) },
     { path: 'apps/api/src/config/database.ts', content: generateConfigDatabase(config) },

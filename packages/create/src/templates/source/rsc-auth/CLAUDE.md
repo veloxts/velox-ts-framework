@@ -249,6 +249,25 @@ getUser: procedure
   .guard(authenticated)
 ```
 
+### Procedure Naming Conventions
+
+VeloxTS uses naming conventions to determine HTTP methods for REST endpoints:
+
+| Procedure Name | HTTP Method | Route |
+|----------------|-------------|-------|
+| `getUser` | GET | `/users/:id` |
+| `listUsers` | GET | `/users` |
+| `findUsers` | GET | `/users` (search) |
+| `createUser` | POST | `/users` |
+| `addUser` | POST | `/users` |
+| `updateUser` | PUT | `/users/:id` |
+| `editUser` | PUT | `/users/:id` |
+| `patchUser` | PATCH | `/users/:id` |
+| `deleteUser` | DELETE | `/users/:id` |
+| `removeUser` | DELETE | `/users/:id` |
+
+Follow these conventions for consistency across procedures and server actions.
+
 ### Custom REST Routes
 
 When using `.rest()` to override routes, do NOT include the API prefix:

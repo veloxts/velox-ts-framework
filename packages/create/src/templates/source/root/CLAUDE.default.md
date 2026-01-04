@@ -111,16 +111,48 @@ VeloxTS provides end-to-end type safety without code generation:
 3. **Import in frontend** via `@veloxts/client` hooks
 4. Types flow automatically from backend to frontend
 
-## Procedure Naming Conventions
+## Procedure Naming Conventions (CRITICAL)
+
+VeloxTS uses naming conventions to determine both HTTP methods and React Query hook types.
+
+### HTTP Method Mapping
 
 | Procedure Name | HTTP Method | Route |
 |----------------|-------------|-------|
 | `getUser` | GET | `/users/:id` |
 | `listUsers` | GET | `/users` |
+| `findUsers` | GET | `/users` (search) |
 | `createUser` | POST | `/users` |
+| `addUser` | POST | `/users` |
 | `updateUser` | PUT | `/users/:id` |
+| `editUser` | PUT | `/users/:id` |
 | `patchUser` | PATCH | `/users/:id` |
 | `deleteUser` | DELETE | `/users/:id` |
+| `removeUser` | DELETE | `/users/:id` |
+
+### React Query Hook Mapping
+
+**Query procedures** (use `useQuery`, `useSuspenseQuery`):
+- Prefixes: `get*`, `list*`, `find*`
+- Example: `api.users.getUser.useQuery({ id })` ✅
+- Example: `api.users.listUsers.useSuspenseQuery({})` ✅
+
+**Mutation procedures** (use `useMutation`):
+- Prefixes: `create*`, `add*`, `update*`, `edit*`, `patch*`, `delete*`, `remove*`
+- Example: `api.users.createUser.useMutation()` ✅
+- Example: `api.posts.updatePost.useMutation()` ✅
+
+### Common Mistake
+
+If you see "useSuspenseQuery is not a function" or similar errors, your procedure name doesn't follow the convention:
+
+```typescript
+// ❌ Wrong - "fetchUsers" is not a query prefix, treated as mutation
+const { data } = api.users.fetchUsers.useQuery({});  // Error!
+
+// ✅ Correct - "listUsers" is a query prefix
+const { data } = api.users.listUsers.useQuery({});
+```
 
 ## Common Gotchas (IMPORTANT)
 

@@ -6,8 +6,8 @@ import { createRoot } from 'react-dom/client';
 import { routeTree } from './routeTree.gen';
 import './styles/global.css';
 
-// Import router type from browser-safe types file
-import type { AppRouter } from '../../api/src/router.types.js';
+// Import router type (type-only import is erased at compile time)
+import type { AppRouter } from '../../api/src/router.js';
 /* @if auth */
 // Import routes from browser-safe routes file
 import { routes } from '../../api/src/routes.js';
