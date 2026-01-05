@@ -9,7 +9,7 @@ import './styles/global.css';
 // Import router type (type-only import is erased at compile time)
 import type { AppRouter } from '../../api/src/router.js';
 /* @if auth */
-// Import routes from browser-safe routes file
+// Import routes from browser-safe routes file (no server-side code)
 import { routes } from '../../api/src/routes.js';
 
 /* @endif auth */

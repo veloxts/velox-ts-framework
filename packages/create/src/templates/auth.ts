@@ -66,6 +66,10 @@ function generateRouterTs(): string {
   return compileTemplate('api/router.auth.ts', AUTH_CONFIG);
 }
 
+function generateRoutesTs(): string {
+  return compileTemplate('api/routes.auth.ts', AUTH_CONFIG);
+}
+
 function generateConfigDatabase(config: TemplateConfig): string {
   return compileTemplate('api/config/database.ts', config);
 }
@@ -117,6 +121,7 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
 
     // API Source files
     { path: 'apps/api/src/router.ts', content: generateRouterTs() },
+    { path: 'apps/api/src/routes.ts', content: generateRoutesTs() },
     { path: 'apps/api/src/index.ts', content: generateIndexTs() },
     { path: 'apps/api/src/config/app.ts', content: generateConfigApp(config) },
     { path: 'apps/api/src/config/auth.ts', content: generateAuthConfig() },
