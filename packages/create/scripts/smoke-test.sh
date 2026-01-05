@@ -198,7 +198,8 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   echo "=== Testing CLI commands ==="
 
   # Test velox procedures list (requires tsx shebang to resolve .js -> .ts imports)
-  PROCEDURES_OUTPUT=$(npx velox procedures list 2>&1)
+  # Use || true to prevent set -e from exiting before we can check the output
+  PROCEDURES_OUTPUT=$(npx velox procedures list 2>&1) || true
   if echo "$PROCEDURES_OUTPUT" | grep -q "Discovered Procedures"; then
     echo "✓ velox procedures list working"
     # Show brief output
