@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/tsconfig",
-  "version": "0.6.67",
+  "version": "0.6.68",
   "description": "Shared TypeScript configurations for VeloxTS framework",
   "dependencies": {},
   "devDependencies": {},

@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.68
+
+### Patch Changes
+
+- ci: add Claude code review and security review workflows, add GitHub release workflow, remove npm publish job
+- Updated dependencies
+  - @veloxts/core@0.6.68
+  - @veloxts/router@0.6.68
+
 ## 0.6.67
 
 ### Patch Changes

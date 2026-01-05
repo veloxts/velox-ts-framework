@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.68
+
+### Patch Changes
+
+- ci: add Claude code review and security review workflows, add GitHub release workflow, remove npm publish job
+
 ## 0.6.67
 
 ### Patch Changes
