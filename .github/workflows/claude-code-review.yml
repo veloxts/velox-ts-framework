@@ -1,0 +1,51 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    name: Code Review
+    runs-on: ubuntu-latest
+    # Only run for non-draft PRs from trusted sources
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review this pull request for the VeloxTS TypeScript framework.
+
+            Focus on:
+            1. TypeScript type safety - ensure no `any`, `as any`, `@ts-ignore`, or `@ts-expect-error`
+            2. Code quality and maintainability
+            3. Adherence to conventions documented in CLAUDE.md
+            4. API design consistency with Laravel-inspired patterns
+            5. Proper error handling
+            6. Test coverage for new functionality
+
+            The project uses:
+            - TypeScript strict mode
+            - Zod for validation
+            - Prisma 7 with driver adapters
+            - tRPC + auto-generated REST endpoints
+            - Fastify as the HTTP server
+
+            Provide actionable feedback with specific line references.
