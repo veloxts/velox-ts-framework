@@ -12,11 +12,27 @@
       "@veloxts/auth",
       "@veloxts/client",
       "@veloxts/cli",
+      "@veloxts/velox",
+      "@veloxts/web",
+      "@veloxts/mcp",
+      "@veloxts/cache",
+      "@veloxts/queue",
+      "@veloxts/mail",
+      "@veloxts/storage",
+      "@veloxts/scheduler",
+      "@veloxts/events",
       "create-velox-app"
     ]
   ],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@veloxts/playground", "@veloxts/docs"]
+  "ignore": [
+    "@veloxts/playground",
+    "@veloxts/benchmarks",
+    "@veloxts/biome-config",
+    "@veloxts/testing",
+    "@veloxts/tsconfig",
+    "@veloxts/docs"
+  ]
 }
