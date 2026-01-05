@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.67
+
+### Patch Changes
+
+- fix(create): add browser-safe routes.ts for auth template, prevent set -e from hiding CLI errors in smoke tests, add tsx to scaffolded project devDependencies
+- Updated dependencies
+  - @veloxts/auth@0.6.67
+  - @veloxts/core@0.6.67
+  - @veloxts/orm@0.6.67
+  - @veloxts/router@0.6.67
+  - @veloxts/validation@0.6.67
+
 ## 0.6.66
 
 ### Patch Changes
