@@ -20,11 +20,11 @@ import 'dotenv/config';
 import path from 'node:path';
 
 import fastifyStatic from '@fastify/static';
-import type { FastifyReply, FastifyRequest } from 'fastify';
 import { authPlugin } from '@veloxts/auth';
-import { veloxApp, VELOX_VERSION } from '@veloxts/core';
+import { VELOX_VERSION, veloxApp } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
 import { getRouteSummary, registerRestRoutes, registerTRPCPlugin } from '@veloxts/router';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { authConfig, config } from './config/index.js';
 import { createMockPrismaClient, prisma } from './database/index.js';
