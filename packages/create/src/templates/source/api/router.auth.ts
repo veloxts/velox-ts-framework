@@ -9,21 +9,18 @@
  * The server entry point (index.ts) handles environment setup.
  */
 
-import { extractRoutes } from '@veloxts/velox';
+import { createRouter, extractRoutes } from '@veloxts/velox';
 
 import { authProcedures } from './procedures/auth.js';
 import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
 
-// Procedure collections for routing
-export const collections = [healthProcedures, authProcedures, userProcedures];
-
-// Router definition for frontend type safety
-export const router = {
-  auth: authProcedures,
-  health: healthProcedures,
-  users: userProcedures,
-};
+// Create router and collections from procedure definitions
+export const { collections, router } = createRouter(
+  healthProcedures,
+  authProcedures,
+  userProcedures
+);
 
 export type AppRouter = typeof router;
 

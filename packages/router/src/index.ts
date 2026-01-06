@@ -109,6 +109,11 @@ export {
   procedure,
   procedures, // Short alias for defineProcedures
 } from './procedure/builder.js';
+
+// ============================================================================
+// Router Utilities
+// ============================================================================
+
 // Typed procedure factory
 export { createProcedure, typedProcedure } from './procedure/factory.js';
 export type {
@@ -121,6 +126,8 @@ export type {
   ProcedureDefinitions,
   ValidSchema,
 } from './procedure/types.js';
+export type { RouterResult } from './router-utils.js';
+export { createRouter, toRouter } from './router-utils.js';
 
 // ============================================================================
 // Naming Convention Warnings

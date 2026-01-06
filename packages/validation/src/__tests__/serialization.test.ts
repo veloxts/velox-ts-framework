@@ -12,6 +12,12 @@ import {
   dateToISOString,
   dateToISOStringNullable,
   dateToISOStringOptional,
+  dateToIso,
+  dateToIsoNullable,
+  dateToIsoOptional,
+  prismaDecimal,
+  prismaDecimalNullable,
+  prismaDecimalOptional,
   timestamps,
   timestampsWithSoftDelete,
   withTimestamps,
@@ -573,5 +579,224 @@ describe('Serialization Edge Cases', () => {
 
       expect(value.createdAt).toBe('2024-01-15T10:30:00.000Z');
     });
+  });
+});
+
+// ============================================================================
+// Prisma Decimal Helper Tests
+// ============================================================================
+
+/**
+ * Mock Prisma Decimal class for testing
+ * Simulates the Decimal type returned by Prisma for decimal fields
+ */
+class MockDecimal {
+  constructor(private value: string) {}
+  toNumber(): number {
+    return Number.parseFloat(this.value);
+  }
+  toString(): string {
+    return this.value;
+  }
+}
+
+describe('prismaDecimal', () => {
+  it('should convert Prisma Decimal to number', () => {
+    const schema = prismaDecimal();
+    const decimal = new MockDecimal('99.99');
+
+    const result = schema.parse(decimal);
+
+    expect(result).toBe(99.99);
+    expect(typeof result).toBe('number');
+  });
+
+  it('should pass through regular numbers', () => {
+    const schema = prismaDecimal();
+
+    expect(schema.parse(42.5)).toBe(42.5);
+    expect(schema.parse(0)).toBe(0);
+    expect(schema.parse(-123.45)).toBe(-123.45);
+  });
+
+  it('should convert string numbers', () => {
+    const schema = prismaDecimal();
+
+    expect(schema.parse('123.45')).toBe(123.45);
+    expect(schema.parse('0')).toBe(0);
+    expect(schema.parse('-99.99')).toBe(-99.99);
+  });
+
+  it('should throw on null input', () => {
+    const schema = prismaDecimal();
+
+    expect(() => schema.parse(null)).toThrow('Expected Decimal, got null/undefined');
+  });
+
+  it('should throw on undefined input', () => {
+    const schema = prismaDecimal();
+
+    expect(() => schema.parse(undefined)).toThrow('Expected Decimal, got null/undefined');
+  });
+
+  it('should throw on invalid string', () => {
+    const schema = prismaDecimal();
+
+    expect(() => schema.parse('not-a-number')).toThrow('Cannot convert "not-a-number" to number');
+  });
+
+  it('should throw on invalid types', () => {
+    const schema = prismaDecimal();
+
+    expect(() => schema.parse({})).toThrow('Cannot convert object to number');
+    expect(() => schema.parse([])).toThrow('Cannot convert object to number');
+  });
+
+  it('should handle high precision decimals', () => {
+    const schema = prismaDecimal();
+    const decimal = new MockDecimal('1234567890.123456789');
+
+    const result = schema.parse(decimal);
+
+    // biome-ignore lint/correctness/noPrecisionLoss: Intentionally testing JS number precision limits
+    expect(result).toBeCloseTo(1234567890.123456789);
+  });
+});
+
+describe('prismaDecimalNullable', () => {
+  it('should convert Prisma Decimal to number', () => {
+    const schema = prismaDecimalNullable();
+    const decimal = new MockDecimal('99.99');
+
+    const result = schema.parse(decimal);
+
+    expect(result).toBe(99.99);
+  });
+
+  it('should return null for null input', () => {
+    const schema = prismaDecimalNullable();
+
+    expect(schema.parse(null)).toBeNull();
+  });
+
+  it('should return null for undefined input', () => {
+    const schema = prismaDecimalNullable();
+
+    expect(schema.parse(undefined)).toBeNull();
+  });
+
+  it('should pass through regular numbers', () => {
+    const schema = prismaDecimalNullable();
+
+    expect(schema.parse(42.5)).toBe(42.5);
+  });
+
+  it('should convert string numbers', () => {
+    const schema = prismaDecimalNullable();
+
+    expect(schema.parse('123.45')).toBe(123.45);
+  });
+});
+
+describe('prismaDecimalOptional', () => {
+  it('should convert Prisma Decimal to number', () => {
+    const schema = prismaDecimalOptional();
+    const decimal = new MockDecimal('99.99');
+
+    const result = schema.parse(decimal);
+
+    expect(result).toBe(99.99);
+  });
+
+  it('should return undefined for null input', () => {
+    const schema = prismaDecimalOptional();
+
+    expect(schema.parse(null)).toBeUndefined();
+  });
+
+  it('should return undefined for undefined input', () => {
+    const schema = prismaDecimalOptional();
+
+    expect(schema.parse(undefined)).toBeUndefined();
+  });
+
+  it('should pass through regular numbers', () => {
+    const schema = prismaDecimalOptional();
+
+    expect(schema.parse(42.5)).toBe(42.5);
+  });
+});
+
+describe('prismaDecimal in schema composition', () => {
+  it('should work in object schemas', () => {
+    const ProductSchema = z.object({
+      id: z.string(),
+      name: z.string(),
+      price: prismaDecimal(),
+      discount: prismaDecimalNullable(),
+      tax: prismaDecimalOptional(),
+    });
+
+    const product = {
+      id: 'prod-123',
+      name: 'Widget',
+      price: new MockDecimal('29.99'),
+      discount: new MockDecimal('5.00'),
+      tax: null,
+    };
+
+    const result = ProductSchema.parse(product);
+
+    expect(result.price).toBe(29.99);
+    expect(result.discount).toBe(5);
+    expect(result.tax).toBeUndefined();
+  });
+
+  it('should work with timestamps', () => {
+    const ProductSchema = withTimestamps(
+      z.object({
+        id: z.string(),
+        price: prismaDecimal(),
+      })
+    );
+
+    const now = new Date();
+    const product = {
+      id: 'prod-123',
+      price: new MockDecimal('99.99'),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = ProductSchema.parse(product);
+
+    expect(result.price).toBe(99.99);
+    expect(typeof result.createdAt).toBe('string');
+  });
+});
+
+// ============================================================================
+// Date Alias Tests (dateToIso)
+// ============================================================================
+
+describe('dateToIso aliases', () => {
+  it('dateToIso should be identical to dateToISOString', () => {
+    const date = new Date('2024-01-15T10:30:00.000Z');
+
+    expect(dateToIso().parse(date)).toBe(dateToISOString().parse(date));
+  });
+
+  it('dateToIsoNullable should be identical to dateToISOStringNullable', () => {
+    const date = new Date('2024-01-15T10:30:00.000Z');
+
+    expect(dateToIsoNullable().parse(date)).toBe(dateToISOStringNullable().parse(date));
+    expect(dateToIsoNullable().parse(null)).toBe(dateToISOStringNullable().parse(null));
+  });
+
+  it('dateToIsoOptional should be identical to dateToISOStringOptional', () => {
+    const date = new Date('2024-01-15T10:30:00.000Z');
+
+    expect(dateToIsoOptional().parse(date)).toBe(dateToISOStringOptional().parse(date));
+    expect(dateToIsoOptional().parse(undefined)).toBe(dateToISOStringOptional().parse(undefined));
   });
 });

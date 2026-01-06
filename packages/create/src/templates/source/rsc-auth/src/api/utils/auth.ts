@@ -5,34 +5,13 @@
  * These are safe to import from procedures without pulling in server-only code.
  */
 
-// ============================================================================
-// Role Parsing
-// ============================================================================
+import { createEnhancedTokenStore, jwtManager } from '@veloxts/auth';
 
-const ALLOWED_ROLES = ['user', 'admin', 'moderator', 'editor'] as const;
-
-export function parseUserRoles(rolesJson: string | null): string[] {
-  if (!rolesJson) return ['user'];
-
-  try {
-    const parsed: unknown = JSON.parse(rolesJson);
-
-    if (!Array.isArray(parsed)) {
-      return ['user'];
-    }
-
-    const validRoles = parsed
-      .filter((role): role is string => typeof role === 'string')
-      .filter((role) => ALLOWED_ROLES.includes(role as (typeof ALLOWED_ROLES)[number]));
-
-    return validRoles.length > 0 ? validRoles : ['user'];
-  } catch {
-    return ['user'];
-  }
-}
+// Re-export from @veloxts/auth for convenience
+export { createEnhancedTokenStore, parseUserRoles } from '@veloxts/auth';
 
 // ============================================================================
-// Token Revocation Store
+// Token Store
 // ============================================================================
 
 /**
@@ -42,63 +21,7 @@ export function parseUserRoles(rolesJson: string | null): string[] {
  * - Persistence across server restarts
  * - Horizontal scaling (multiple server instances)
  */
-class InMemoryTokenStore {
-  private revokedTokens: Map<string, number> = new Map();
-  private usedRefreshTokens: Map<string, string> = new Map();
-  private cleanupInterval: NodeJS.Timeout | null = null;
-
-  constructor() {
-    this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
-  }
-
-  revoke(jti: string, expiresInMs: number = 7 * 24 * 60 * 60 * 1000): void {
-    this.revokedTokens.set(jti, Date.now() + expiresInMs);
-  }
-
-  isRevoked(jti: string): boolean {
-    const expiry = this.revokedTokens.get(jti);
-    if (!expiry) return false;
-    if (Date.now() > expiry) {
-      this.revokedTokens.delete(jti);
-      return false;
-    }
-    return true;
-  }
-
-  markRefreshTokenUsed(jti: string, userId: string): void {
-    this.usedRefreshTokens.set(jti, userId);
-    setTimeout(() => this.usedRefreshTokens.delete(jti), 7 * 24 * 60 * 60 * 1000);
-  }
-
-  isRefreshTokenUsed(jti: string): string | undefined {
-    return this.usedRefreshTokens.get(jti);
-  }
-
-  revokeAllUserTokens(userId: string): void {
-    console.warn(
-      `[Security] Token reuse detected for user ${userId}. ` +
-        'All tokens should be revoked. Implement proper user->token mapping for production.'
-    );
-  }
-
-  private cleanup(): void {
-    const now = Date.now();
-    for (const [jti, expiry] of this.revokedTokens.entries()) {
-      if (now > expiry) {
-        this.revokedTokens.delete(jti);
-      }
-    }
-  }
-
-  destroy(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
-  }
-}
-
-export const tokenStore = new InMemoryTokenStore();
+export const tokenStore = createEnhancedTokenStore();
 
 // ============================================================================
 // JWT Configuration Helper
@@ -155,3 +78,24 @@ export function getJwtSecrets(): { jwtSecret: string; refreshSecret: string } {
 
   return { jwtSecret, refreshSecret };
 }
+
+// ============================================================================
+// JWT Manager Singleton
+// ============================================================================
+
+const { jwtSecret, refreshSecret } = getJwtSecrets();
+
+/**
+ * Shared JWT manager instance for the application.
+ *
+ * Use this singleton instead of creating new jwtManager instances.
+ * Configured with environment variables via getJwtSecrets().
+ */
+export const jwt = jwtManager({
+  secret: jwtSecret,
+  refreshSecret: refreshSecret,
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d',
+  issuer: 'velox-app',
+  audience: 'velox-app-client',
+});

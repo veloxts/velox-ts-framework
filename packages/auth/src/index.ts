@@ -59,6 +59,29 @@ export {
 } from './jwt.js';
 
 // ============================================================================
+// Enhanced Token Store (with Revocation + Reuse Detection)
+// ============================================================================
+
+export type { EnhancedTokenStore, EnhancedTokenStoreOptions } from './token-store.js';
+export {
+  createEnhancedTokenStore,
+  DEFAULT_ALLOWED_ROLES,
+  parseUserRoles,
+} from './token-store.js';
+
+// ============================================================================
+// Narrowing Guards (Experimental)
+// ============================================================================
+
+export type {
+  AuthenticatedContext,
+  InferNarrowedContext,
+  NarrowingGuard,
+  RoleNarrowedContext,
+} from './guards-narrowing.js';
+export { authenticatedNarrow, hasRoleNarrow } from './guards-narrowing.js';
+
+// ============================================================================
 // Password Hashing
 // ============================================================================
 

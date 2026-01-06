@@ -49,6 +49,104 @@ export type WithOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>
 export type OmitTimestamps<T> = Omit<T, 'createdAt' | 'updatedAt' | 'deletedAt'>;
 
 // ============================================================================
+// Prisma Decimal Helpers
+// ============================================================================
+
+/**
+ * Creates a field that accepts Prisma Decimal and transforms to number
+ *
+ * Use in OUTPUT schemas where Prisma returns Decimal objects.
+ * Handles Prisma Decimal, regular numbers, and string representations.
+ *
+ * @example
+ * ```typescript
+ * const ProductSchema = z.object({
+ *   id: z.string(),
+ *   price: prismaDecimal(),          // Decimal -> number
+ *   discount: prismaDecimalNullable() // Decimal | null -> number | null
+ * });
+ * ```
+ */
+export function prismaDecimal() {
+  return z.any().transform((val): number => {
+    if (val === null || val === undefined) {
+      throw new Error('Expected Decimal, got null/undefined');
+    }
+    // Prisma Decimal has toNumber() method
+    if (typeof val === 'object' && 'toNumber' in val && typeof val.toNumber === 'function') {
+      return val.toNumber();
+    }
+    // Already a number
+    if (typeof val === 'number') {
+      return val;
+    }
+    // String (from JSON)
+    if (typeof val === 'string') {
+      const num = Number.parseFloat(val);
+      if (Number.isNaN(num)) {
+        throw new Error(`Cannot convert "${val}" to number`);
+      }
+      return num;
+    }
+    throw new Error(`Cannot convert ${typeof val} to number`);
+  });
+}
+
+/**
+ * Nullable version of prismaDecimal
+ *
+ * Returns null for null/undefined inputs, otherwise converts to number.
+ */
+export function prismaDecimalNullable() {
+  return z.any().transform((val): number | null => {
+    if (val === null || val === undefined) {
+      return null;
+    }
+    if (typeof val === 'object' && 'toNumber' in val && typeof val.toNumber === 'function') {
+      return val.toNumber();
+    }
+    if (typeof val === 'number') {
+      return val;
+    }
+    if (typeof val === 'string') {
+      const num = Number.parseFloat(val);
+      if (Number.isNaN(num)) {
+        throw new Error(`Cannot convert "${val}" to number`);
+      }
+      return num;
+    }
+    throw new Error(`Cannot convert ${typeof val} to number`);
+  });
+}
+
+/**
+ * Optional version of prismaDecimal
+ *
+ * Returns undefined for null/undefined inputs, otherwise converts to number.
+ */
+export function prismaDecimalOptional() {
+  return z.any().transform((val): number | undefined => {
+    if (val === null || val === undefined) {
+      return undefined;
+    }
+    if (typeof val === 'object' && 'toNumber' in val && typeof val.toNumber === 'function') {
+      return val.toNumber();
+    }
+    if (typeof val === 'number') {
+      return val;
+    }
+    if (typeof val === 'string') {
+      const num = Number.parseFloat(val);
+      if (Number.isNaN(num)) {
+        throw new Error(`Cannot convert "${val}" to number`);
+      }
+      return num;
+    }
+    throw new Error(`Cannot convert ${typeof val} to number`);
+  });
+}
+
+// ============================================================================
 // Date Field Helpers
 // ============================================================================
 
@@ -90,6 +188,24 @@ export function dateToISOStringOptional() {
     .optional()
     .transform((date) => (date ? date.toISOString() : undefined));
 }
+
+/**
+ * Alias for dateToISOString for naming consistency
+ * @alias dateToISOString
+ */
+export const dateToIso = dateToISOString;
+
+/**
+ * Alias for dateToISOStringNullable for naming consistency
+ * @alias dateToISOStringNullable
+ */
+export const dateToIsoNullable = dateToISOStringNullable;
+
+/**
+ * Alias for dateToISOStringOptional for naming consistency
+ * @alias dateToISOStringOptional
+ */
+export const dateToIsoOptional = dateToISOStringOptional;
 
 // ============================================================================
 // Timestamp Schema Presets
