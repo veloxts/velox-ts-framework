@@ -89,6 +89,8 @@ export function createRouter<T extends ProcedureCollection<ProcedureRecord>[]>(
   ) as RouterFromCollections<T>;
 
   return {
+    // Cast required: rest params are typed as T[] but we need to preserve
+    // the exact tuple type T for proper namespace inference in RouterResult
     collections: collections as unknown as T,
     router,
   };

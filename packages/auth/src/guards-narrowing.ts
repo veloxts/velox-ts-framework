@@ -100,6 +100,8 @@ export const authenticatedNarrow: NarrowingGuard<
   AuthenticatedContext
 > = {
   ...authenticated,
+  // Phantom type: value is never used at runtime, only carries type info.
+  // The `undefined as unknown as T` pattern is standard for phantom types.
   _narrows: undefined as unknown as AuthenticatedContext,
 };
 
@@ -129,6 +131,7 @@ export function hasRoleNarrow(
   const baseGuard = hasRoleBase(roles);
   return {
     ...baseGuard,
+    // Phantom type: carries type info for guardNarrow() context narrowing
     _narrows: undefined as unknown as RoleNarrowedContext,
   };
 }
