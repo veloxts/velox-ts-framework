@@ -10,6 +10,7 @@ import { expectAssignable, expectType } from 'tsd';
 
 // Import from the compiled dist folder directly
 import type {
+  AdapterAuthContext,
   AuthConfig,
   AuthContext,
   AuthMiddlewareOptions,
@@ -17,6 +18,7 @@ import type {
   GuardFunction,
   HashConfig,
   JwtConfig,
+  NativeAuthContext,
   PolicyAction,
   PolicyDefinition,
   TokenPair,
@@ -72,14 +74,16 @@ const userWithRoles: User = {
 expectType<string[] | undefined>(userWithRoles.roles);
 expectType<string[] | undefined>(userWithRoles.permissions);
 
-// User allows additional properties via index signature
-const extendedUser: User = {
-  id: '123',
-  email: 'test@example.com',
-  customField: 'value',
-  anotherField: 123,
-};
-expectType<unknown>(extendedUser.customField);
+// User is strictly typed - no index signature
+// Additional properties should be added via declaration merging:
+//
+// declare module '@veloxts/auth' {
+//   interface User {
+//     customField?: string;
+//   }
+// }
+//
+// This provides better type safety than an index signature
 
 // ============================================================================
 // TokenPayload Type Tests
@@ -426,12 +430,15 @@ const adminOnlyPolicy = createAdminOnlyPolicy<Article>();
 expectType<PolicyDefinition<User & { role?: string }, Article>>(adminOnlyPolicy);
 
 // ============================================================================
-// AuthContext Type Tests
+// AuthContext Type Tests (Discriminated Union)
 // ============================================================================
 
-const authContext: AuthContext = {
+// NativeAuthContext for built-in JWT auth
+const nativeAuthContext: NativeAuthContext = {
+  authMode: 'native',
   user: { id: '1', email: 'test@example.com' },
-  token: {
+  token: 'jwt.token.here',
+  payload: {
     sub: '1',
     email: 'test@example.com',
     type: 'access',
@@ -441,9 +448,42 @@ const authContext: AuthContext = {
   isAuthenticated: true,
 };
 
-expectType<User | undefined>(authContext.user);
-expectType<TokenPayload | undefined>(authContext.token);
+expectType<'native'>(nativeAuthContext.authMode);
+expectType<User | undefined>(nativeAuthContext.user);
+expectType<string | undefined>(nativeAuthContext.token);
+expectType<TokenPayload | undefined>(nativeAuthContext.payload);
+expectType<boolean>(nativeAuthContext.isAuthenticated);
+
+// AdapterAuthContext for external providers (Clerk, Auth0, etc.)
+const adapterAuthContext: AdapterAuthContext = {
+  authMode: 'adapter',
+  user: { id: '2', email: 'adapter@example.com' },
+  providerId: 'clerk',
+  session: { clerkSessionId: 'sess_123' },
+  isAuthenticated: true,
+};
+
+expectType<'adapter'>(adapterAuthContext.authMode);
+expectType<User | undefined>(adapterAuthContext.user);
+expectType<string>(adapterAuthContext.providerId);
+expectType<unknown>(adapterAuthContext.session);
+expectType<boolean>(adapterAuthContext.isAuthenticated);
+
+// AuthContext is discriminated union - type narrows based on authMode
+declare const authContext: AuthContext;
 expectType<boolean>(authContext.isAuthenticated);
+expectType<User | undefined>(authContext.user);
+
+// Type narrowing via authMode discriminant
+if (authContext.authMode === 'native') {
+  expectType<NativeAuthContext>(authContext);
+  expectType<string | undefined>(authContext.token);
+  expectType<TokenPayload | undefined>(authContext.payload);
+} else {
+  expectType<AdapterAuthContext>(authContext);
+  expectType<string>(authContext.providerId);
+  expectType<unknown>(authContext.session);
+}
 
 // ============================================================================
 // AuthMiddlewareOptions Type Tests
