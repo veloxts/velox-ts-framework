@@ -9,8 +9,8 @@
 
 import type { AuthPluginOptions } from '@veloxts/velox';
 
-import { db } from './database.js';
 import { getJwtSecrets, parseUserRoles, tokenStore } from '../utils/auth.js';
+import { db } from './database.js';
 
 // ============================================================================
 // User Loader
@@ -59,4 +59,4 @@ export function createAuthConfig(): AuthPluginOptions {
 export const authConfig = createAuthConfig();
 
 // Re-export for convenience
-export { tokenStore, parseUserRoles } from '../utils/auth.js';
+export { parseUserRoles, tokenStore } from '../utils/auth.js';
