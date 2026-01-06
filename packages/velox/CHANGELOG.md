@@ -1,5 +1,48 @@
 # @veloxts/velox
 
+## 0.6.70
+
+### Patch Changes
+
+- ### feat(auth): Unified Adapter-Only Architecture
+
+  **New Features:**
+
+  - Add `JwtAdapter` implementing the `AuthAdapter` interface for unified JWT authentication
+  - Add `jwtAuth()` convenience function for direct adapter usage with optional built-in routes (`/api/auth/refresh`, `/api/auth/logout`)
+  - Add `AuthContext` discriminated union (`NativeAuthContext | AdapterAuthContext`) for type-safe auth mode handling
+  - Add double-registration protection to prevent conflicting auth system setups
+  - Add shared decoration utilities (`decorateAuth`, `setRequestAuth`, `checkDoubleRegistration`)
+
+  **Architecture Changes:**
+
+  - `authPlugin` now uses `JwtAdapter` internally - all authentication flows through the adapter pattern
+  - Single code path for authentication (no more dual native/adapter modes)
+  - `authContext.authMode` is now always `'adapter'` with `providerId='jwt'` when using `authPlugin`
+
+  **Breaking Changes:**
+
+  - Remove deprecated `LegacySessionConfig` interface (use `sessionMiddleware` instead)
+  - Remove deprecated `session` field from `AuthConfig`
+  - `User` interface no longer has index signature (extend via declaration merging)
+
+  **Type Safety Improvements:**
+
+  - `AuthContext` discriminated union enables exhaustive type narrowing based on `authMode`
+  - Export `NativeAuthContext` and `AdapterAuthContext` types for explicit typing
+
+  **Migration:**
+
+  - Existing `authPlugin` usage remains backward-compatible
+  - If checking `authContext.token`, use `authContext.session` instead (token stored in session for adapter mode)
+
+- Updated dependencies
+  - @veloxts/auth@0.6.70
+  - @veloxts/core@0.6.70
+  - @veloxts/orm@0.6.70
+  - @veloxts/router@0.6.70
+  - @veloxts/validation@0.6.70
+
 ## 0.6.69
 
 ### Patch Changes
