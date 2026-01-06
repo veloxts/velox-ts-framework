@@ -32,6 +32,19 @@ import { authConfig, parseUserRoles, tokenStore } from '../config/index.js';
 import { prisma } from '../database/index.js';
 
 // ============================================================================
+// Extend User Type
+// ============================================================================
+
+/**
+ * Extend the User interface with playground-specific properties
+ */
+declare module '@veloxts/auth' {
+  interface User {
+    name?: string;
+  }
+}
+
+// ============================================================================
 // Rate Limiter Instance
 // ============================================================================
 
@@ -399,7 +412,12 @@ export const authProcedures = defineProcedures('auth', {
     .output(LogoutResponse)
     .mutation(async ({ ctx }) => {
       // Get the token ID from the auth context
-      const tokenId = ctx.auth?.token?.jti;
+      // authPlugin uses adapter mode internally, so check for adapter's session.payload.jti
+      let tokenId: string | undefined;
+      if (ctx.auth?.authMode === 'adapter') {
+        const session = ctx.auth.session as { payload?: { jti?: string } } | undefined;
+        tokenId = session?.payload?.jti;
+      }
 
       if (tokenId) {
         // Revoke the token (15 minutes = access token lifetime)
@@ -431,7 +449,7 @@ export const authProcedures = defineProcedures('auth', {
 
       return {
         id: user.id,
-        name: (user.name as string) || '',
+        name: user.name ?? '',
         email: user.email,
         roles: Array.isArray(user.roles) ? user.roles : ['user'],
       };
