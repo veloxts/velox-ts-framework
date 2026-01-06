@@ -178,7 +178,16 @@ export class JwtAdapter extends BaseAuthAdapter<JwtAdapterConfig> {
     // Initialize JWT manager
     this.jwt = new JwtManager(config.jwt);
 
-    // Initialize token store (default: in-memory with warning)
+    /**
+     * Initialize token store (default: in-memory with warning)
+     *
+     * @example Production Redis store passed in config:
+     * ```typescript
+     * import { createRedisTokenStore } from '@veloxts/auth/redis';
+     * …
+     * tokenStore: createRedisTokenStore({ url: process.env.REDIS_URL })
+     * ```
+     */
     this.tokenStore = config.tokenStore ?? createInMemoryTokenStore();
     if (!config.tokenStore) {
       this.debug('Using in-memory token store. Use Redis in production.');
@@ -240,7 +249,7 @@ export class JwtAdapter extends BaseAuthAdapter<JwtAdapterConfig> {
       }
 
       // Load user if loader provided
-      let user: User | null = null;
+      let user: User | null;
       if (this.userLoader) {
         user = await this.userLoader(payload.sub);
         if (!user) {
@@ -294,7 +303,7 @@ export class JwtAdapter extends BaseAuthAdapter<JwtAdapterConfig> {
       return [];
     }
 
-    const routes: AdapterRoute[] = [
+    return [
       // Refresh token endpoint
       {
         path: `${this.routePrefix}/refresh`,
@@ -310,8 +319,6 @@ export class JwtAdapter extends BaseAuthAdapter<JwtAdapterConfig> {
         description: 'Revoke current access token',
       },
     ];
-
-    return routes;
   }
 
   /**
