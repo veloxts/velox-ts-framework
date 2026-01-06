@@ -1,5 +1,51 @@
 # @veloxts/storage
 
+## 0.6.69
+
+### Patch Changes
+
+- implement user feedback improvements across packages
+
+  ## Summary
+
+  Addresses 9 user feedback items to improve DX, reduce boilerplate, and eliminate template duplications.
+
+  ### Phase 1: Validation Helpers (`@veloxts/validation`)
+
+  - Add `prismaDecimal()`, `prismaDecimalNullable()`, `prismaDecimalOptional()` for Prisma Decimal → number conversion
+  - Add `dateToIso`, `dateToIsoNullable`, `dateToIsoOptional` aliases for consistency
+
+  ### Phase 2: Template Deduplication (`@veloxts/auth`)
+
+  - Export `createEnhancedTokenStore()` with token revocation and refresh token reuse detection
+  - Export `parseUserRoles()` and `DEFAULT_ALLOWED_ROLES`
+  - Fix memory leak: track pending timeouts for proper cleanup on `destroy()`
+  - Update templates to import from `@veloxts/auth` instead of duplicating code
+  - Fix jwtManager singleton pattern in templates
+
+  ### Phase 3: Router Helpers (`@veloxts/router`)
+
+  - Add `createRouter()` returning `{ collections, router }` for DRY setup
+  - Add `toRouter()` for router-only use cases
+  - Update all router templates to use `createRouter()`
+
+  ### Phase 4: Guard Type Narrowing - Experimental (`@veloxts/auth`, `@veloxts/router`)
+
+  - Add `NarrowingGuard` interface with phantom `_narrows` type
+  - Add `authenticatedNarrow` and `hasRoleNarrow()` guards
+  - Add `guardNarrow()` method to `ProcedureBuilder` for context narrowing
+  - Enables `ctx.user` to be non-null after guard passes
+
+  ### Phase 5: Documentation (`@veloxts/router`)
+
+  - Document `.rest()` override patterns
+  - Document `createRouter()` helper usage
+  - Document `guardNarrow()` experimental API
+  - Add schema browser-safety patterns for RSC apps
+
+- Updated dependencies
+  - @veloxts/core@0.6.69
+
 ## 0.6.68
 
 ### Patch Changes
