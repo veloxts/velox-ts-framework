@@ -18,7 +18,6 @@ jobs:
   claude-review:
     name: Code Review
     runs-on: ubuntu-latest
-    # Only run for non-draft PRs from trusted sources
     if: github.event.pull_request.draft == false
     steps:
       - name: Checkout
@@ -29,9 +28,12 @@ jobs:
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            
             Review this pull request for the VeloxTS TypeScript framework.
 
             Focus on:

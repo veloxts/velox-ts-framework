@@ -34,7 +34,14 @@ import {
   JWT_MANAGER,
   PASSWORD_HASHER,
 } from './tokens.js';
-import type { AuthConfig, AuthContext, HashConfig, JwtConfig, TokenPair, User } from './types.js';
+import type {
+  AdapterAuthContext,
+  AuthConfig,
+  HashConfig,
+  JwtConfig,
+  TokenPair,
+  User,
+} from './types.js';
 
 // ============================================================================
 // Service Providers
@@ -125,15 +132,17 @@ export function authServiceProvider(): FactoryProvider<AuthService> {
           return jwt.createTokenPair(user, additionalClaims);
         },
 
-        verifyToken(token: string): AuthContext {
+        verifyToken(token: string): AdapterAuthContext {
           const payload = jwt.verifyToken(token);
           return {
+            authMode: 'adapter',
             user: {
               id: payload.sub,
               email: payload.email,
             },
-            token: payload,
             isAuthenticated: true,
+            providerId: 'jwt',
+            session: { token, payload },
           };
         },
 

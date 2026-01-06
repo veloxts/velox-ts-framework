@@ -207,10 +207,12 @@ describe('Auth Plugin', () => {
         const authContext = server.auth.verifyToken(tokens.accessToken);
 
         expect(authContext.isAuthenticated).toBe(true);
+        expect(authContext.authMode).toBe('adapter');
+        expect(authContext.providerId).toBe('jwt');
         expect(authContext.user).toBeDefined();
         expect(authContext.user?.id).toBe('test-user');
         expect(authContext.user?.email).toBe('test@example.com');
-        expect(authContext.token).toBeDefined();
+        expect(authContext.session).toBeDefined();
       });
 
       it('should throw for invalid token', () => {
@@ -617,7 +619,7 @@ describe('Auth Plugin', () => {
       await server.ready();
 
       // Check that info was called during registration
-      expect(mockLog.info).toHaveBeenCalledWith('Registering @veloxts/auth plugin');
+      expect(mockLog.info).toHaveBeenCalledWith('Registering @veloxts/auth plugin (adapter-based)');
       expect(mockLog.info).toHaveBeenCalledWith('@veloxts/auth plugin registered successfully');
     });
 

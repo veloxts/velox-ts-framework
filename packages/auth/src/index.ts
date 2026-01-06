@@ -19,19 +19,20 @@ export { AUTH_VERSION } from './plugin.js';
 // ============================================================================
 
 export type {
+  // Auth context discriminated union
+  AdapterAuthContext,
   AuthConfig,
   AuthContext,
   AuthMiddlewareOptions,
+  BaseAuthContext,
   GuardDefinition,
   // Guard types
   GuardFunction,
   HashConfig,
   // Configuration types
   JwtConfig,
-  /**
-   * @deprecated Use SessionConfig from session.ts for full session management
-   */
-  LegacySessionConfig,
+  // Auth mode-specific contexts
+  NativeAuthContext,
   // Policy types
   PolicyAction,
   PolicyDefinition,
@@ -42,6 +43,19 @@ export type {
   User,
 } from './types.js';
 export { AuthError } from './types.js';
+
+// ============================================================================
+// Decoration Utilities
+// ============================================================================
+
+export {
+  AUTH_REGISTERED,
+  checkDoubleRegistration,
+  decorateAuth,
+  getRequestAuth,
+  getRequestUser,
+  setRequestAuth,
+} from './decoration.js';
 
 // ============================================================================
 // JWT Authentication
@@ -167,10 +181,11 @@ export {
 // Plugin
 // ============================================================================
 
-export type { AuthPluginOptions, AuthService } from './plugin.js';
+export type { AuthPluginOptions, AuthService, JwtAuthOptions } from './plugin.js';
 export {
   authPlugin,
   defaultAuthPlugin,
+  jwtAuth,
 } from './plugin.js';
 
 // ============================================================================
@@ -230,10 +245,10 @@ export {
 // ============================================================================
 
 export type {
-  // Middleware types
-  AdapterAuthContext,
   // Route types
   AdapterHttpMethod,
+  // Middleware types
+  AdapterMiddlewareContext,
   AdapterMiddlewareOptions,
   AdapterRoute,
   // Session result types
@@ -278,6 +293,13 @@ export type {
   BetterAuthUser,
 } from './adapters/better-auth.js';
 export { BetterAuthAdapter, createBetterAuthAdapter } from './adapters/better-auth.js';
+
+// ============================================================================
+// JWT Adapter
+// ============================================================================
+
+export type { JwtAdapterConfig } from './adapters/jwt-adapter.js';
+export { createJwtAdapter, JwtAdapter } from './adapters/jwt-adapter.js';
 
 // ============================================================================
 // Password Policy

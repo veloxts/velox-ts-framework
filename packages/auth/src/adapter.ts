@@ -31,7 +31,8 @@ import type { BaseContext, VeloxPlugin } from '@veloxts/core';
 import type { MiddlewareFunction } from '@veloxts/router';
 import type { FastifyInstance, FastifyReply, FastifyRequest, RouteHandlerMethod } from 'fastify';
 
-import type { AuthContext, User } from './types.js';
+import { checkDoubleRegistration, decorateAuth, setRequestAuth } from './decoration.js';
+import type { AuthContext, AdapterAuthContext as TypesAdapterAuthContext, User } from './types.js';
 import { AuthError } from './types.js';
 
 // ============================================================================
@@ -744,6 +745,9 @@ export function createAuthAdapterPlugin<TConfig extends AuthAdapterConfig>(
     async register(server: FastifyInstance, _opts: AuthAdapterPluginOptions<TConfig>) {
       const mergedConfig = { ...config, ..._opts.config };
 
+      // Prevent double-registration of auth systems
+      checkDoubleRegistration(server, `adapter:${adapter.name}`);
+
       if (debug) {
         server.log.info(`Registering auth adapter: ${adapter.name}`);
       }
@@ -768,8 +772,7 @@ export function createAuthAdapterPlugin<TConfig extends AuthAdapterConfig>(
       }
 
       // Decorate requests with auth context
-      server.decorateRequest('auth', undefined);
-      server.decorateRequest('user', undefined);
+      decorateAuth(server);
 
       // Mount adapter routes
       const routes = adapter.getRoutes();
@@ -864,16 +867,16 @@ export function createAuthAdapterPlugin<TConfig extends AuthAdapterConfig>(
               );
             }
 
-            // Set auth context on request
-            const authContext: AuthContext = {
+            // Set auth context on request using AdapterAuthContext
+            const authContext: TypesAdapterAuthContext = {
+              authMode: 'adapter',
               user,
               isAuthenticated: true,
-              // Token payload is not available from adapters
-              // (they use sessions, not JWTs internally)
+              providerId: adapter.name,
+              session: sessionResult.session.providerData,
             };
 
-            request.auth = authContext;
-            request.user = user;
+            setRequestAuth(request, authContext, user);
           }
         } catch (error) {
           // Handle adapter errors
@@ -953,9 +956,15 @@ export interface AdapterMiddlewareOptions {
 }
 
 /**
- * Context extension for adapter-based authentication
+ * Context extension for adapter-based authentication middleware
+ *
+ * This interface extends the procedure context with auth-related properties
+ * when using `createAdapterAuthMiddleware()`.
+ *
+ * Note: This is different from `AdapterAuthContext` in types.ts, which represents
+ * the discriminated union variant for adapter-based authentication on requests.
  */
-export interface AdapterAuthContext {
+export interface AdapterMiddlewareContext {
   /** Authenticated user (undefined if optional and not authenticated) */
   user?: User;
 
@@ -1000,7 +1009,7 @@ export function createAdapterAuthMiddleware() {
    */
   function middleware<TInput, TContext extends BaseContext, TOutput>(
     options: AdapterMiddlewareOptions = {}
-  ): MiddlewareFunction<TInput, TContext, TContext & AdapterAuthContext, TOutput> {
+  ): MiddlewareFunction<TInput, TContext, TContext & AdapterMiddlewareContext, TOutput> {
     return async ({ ctx, next }) => {
       const request = ctx.request;
 
@@ -1011,9 +1020,13 @@ export function createAdapterAuthMiddleware() {
       if (!user || !auth?.isAuthenticated) {
         if (options.optional) {
           // Optional auth - continue without user
-          const authContext: AuthContext = {
+          // Create a minimal adapter auth context for unauthenticated state
+          const authContext: TypesAdapterAuthContext = {
+            authMode: 'adapter',
             user: undefined,
             isAuthenticated: false,
+            providerId: 'unknown',
+            session: undefined,
           };
 
           return next({
@@ -1229,10 +1242,10 @@ export abstract class BaseAuthAdapter<TConfig extends AuthAdapterConfig = AuthAd
   }
 
   /**
-   * Log an info message
+   * Log an info message (if debug is enabled)
    */
   protected info(message: string): void {
-    if (this.fastify) {
+    if (this.config?.debug && this.fastify) {
       this.fastify.log.info(`[${this.name}] ${message}`);
     }
   }
