@@ -216,6 +216,42 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<TInput, TOutput, TContext>;
 
   /**
+   * Adds an authorization guard with type narrowing (EXPERIMENTAL)
+   *
+   * Unlike `.guard()`, this method narrows the context type based on
+   * what the guard guarantees. For example, `authenticatedNarrow` narrows
+   * `ctx.user` from `User | undefined` to `User`.
+   *
+   * **EXPERIMENTAL**: This API may change. Consider using middleware
+   * for context type extension as the current stable alternative.
+   *
+   * @template TNarrowedContext - The context type guaranteed by the guard
+   * @param guard - Narrowing guard definition with `_narrows` type
+   * @returns New builder with narrowed context type
+   *
+   * @example
+   * ```typescript
+   * import { authenticatedNarrow, hasRoleNarrow } from '@veloxts/auth';
+   *
+   * // ctx.user is guaranteed non-null after guard passes
+   * procedure()
+   *   .guardNarrow(authenticatedNarrow)
+   *   .query(({ ctx }) => {
+   *     return { email: ctx.user.email }; // No null check needed!
+   *   });
+   *
+   * // Chain multiple narrowing guards
+   * procedure()
+   *   .guardNarrow(authenticatedNarrow)
+   *   .guardNarrow(hasRoleNarrow('admin'))
+   *   .mutation(({ ctx }) => { ... });
+   * ```
+   */
+  guardNarrow<TNarrowedContext>(
+    guard: GuardLike<Partial<TContext>> & { readonly _narrows: TNarrowedContext }
+  ): ProcedureBuilder<TInput, TOutput, TContext & TNarrowedContext>;
+
+  /**
    * Configures REST route override
    *
    * By default, REST routes are auto-generated from procedure names.

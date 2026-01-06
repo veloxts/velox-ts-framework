@@ -16,7 +16,6 @@ import {
   authenticated,
   createAuthRateLimiter,
   hashPassword,
-  jwtManager,
   procedure,
   procedures,
   verifyPassword,
@@ -30,7 +29,7 @@ import {
   TokenResponse,
   UserResponse,
 } from '../schemas/auth.js';
-import { getJwtSecrets, parseUserRoles, tokenStore } from '../utils/auth.js';
+import { jwt, parseUserRoles, tokenStore } from '../utils/auth.js';
 
 // ============================================================================
 // Rate Limiter
@@ -80,21 +79,6 @@ const EnhancedRegisterInput = RegisterInput.extend({
       (pwd) => !COMMON_PASSWORDS.has(pwd.toLowerCase()),
       'Password is too common. Please choose a stronger password.'
     ),
-});
-
-// ============================================================================
-// JWT Manager
-// ============================================================================
-
-const { jwtSecret, refreshSecret } = getJwtSecrets();
-
-const jwt = jwtManager({
-  secret: jwtSecret,
-  refreshSecret: refreshSecret,
-  accessTokenExpiry: '15m',
-  refreshTokenExpiry: '7d',
-  issuer: 'velox-app',
-  audience: 'velox-app-client',
 });
 
 // Dummy hash for timing attack prevention

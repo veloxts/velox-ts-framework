@@ -48,6 +48,81 @@ Procedure names auto-map to HTTP methods:
 | `patch*` | PATCH | `/:id` |
 | `delete*`, `remove*` | DELETE | `/:id` |
 
+## REST Overrides with `.rest()`
+
+When naming conventions don't fit your use case, use `.rest()` as an escape hatch:
+
+```typescript
+const userProcedures = procedures('users', {
+  // Override method only
+  activateUser: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .rest({ method: 'POST' })  // Would be PUT by default
+    .mutation(async ({ input, ctx }) => {
+      return ctx.db.user.update({ where: { id: input.id }, data: { active: true } });
+    }),
+
+  // Override path with parameters
+  getUserByEmail: procedure()
+    .input(z.object({ email: z.string().email() }))
+    .rest({ method: 'GET', path: '/users/by-email/:email' })
+    .query(async ({ input, ctx }) => {
+      return ctx.db.user.findUnique({ where: { email: input.email } });
+    }),
+
+  // Custom action endpoint
+  sendPasswordReset: procedure()
+    .input(z.object({ userId: z.string().uuid() }))
+    .rest({ method: 'POST', path: '/users/:userId/password-reset' })
+    .mutation(async ({ input, ctx }) => {
+      // ...
+    }),
+});
+```
+
+**Important**: Do NOT include the API prefix in `.rest()` paths:
+
+```typescript
+// Correct - prefix is added automatically
+.rest({ method: 'POST', path: '/users/:id/activate' })
+
+// Wrong - results in /api/api/users/:id/activate
+.rest({ method: 'POST', path: '/api/users/:id/activate' })
+```
+
+## Router Helper (`createRouter`)
+
+Use `createRouter()` to eliminate redundancy when defining both collections and router:
+
+```typescript
+import { createRouter, extractRoutes } from '@veloxts/router';
+
+// Before (redundant):
+// export const collections = [healthProcedures, userProcedures];
+// export const router = {
+//   health: healthProcedures,
+//   users: userProcedures,
+// };
+
+// After (DRY):
+export const { collections, router } = createRouter(
+  healthProcedures,
+  userProcedures
+);
+
+export type AppRouter = typeof router;
+export const routes = extractRoutes(collections);
+```
+
+If you only need the router object (not collections), use `toRouter()`:
+
+```typescript
+import { toRouter } from '@veloxts/router';
+
+export const router = toRouter(healthProcedures, userProcedures);
+// Result: { health: healthProcedures, users: userProcedures }
+```
+
 ## Registering Routes
 
 ```typescript
@@ -318,6 +393,109 @@ const getUser = procedure()
     return next();
   })
   .query(handler);
+```
+
+## Guard Type Narrowing (Experimental)
+
+When using guards like `authenticated`, TypeScript doesn't know that `ctx.user` is guaranteed non-null after the guard passes. Use `guardNarrow()` to narrow the context type:
+
+```typescript
+import { authenticatedNarrow, hasRoleNarrow } from '@veloxts/auth';
+
+// ctx.user is guaranteed non-null after guard passes
+const getProfile = procedure()
+  .guardNarrow(authenticatedNarrow)
+  .query(({ ctx }) => {
+    return { email: ctx.user.email }; // No null check needed!
+  });
+
+// Chain multiple narrowing guards
+const adminAction = procedure()
+  .guardNarrow(authenticatedNarrow)
+  .guardNarrow(hasRoleNarrow('admin'))
+  .mutation(({ ctx }) => {
+    // ctx.user is non-null with roles
+  });
+```
+
+**Note**: This API is experimental. The current stable alternative is to use middleware for context extension:
+
+```typescript
+const getProfile = procedure()
+  .guard(authenticated)
+  .use(async ({ ctx, next }) => {
+    if (!ctx.user) throw new Error('Unreachable');
+    return next({ ctx: { user: ctx.user } });
+  })
+  .query(({ ctx }) => {
+    // ctx.user is non-null via middleware
+  });
+```
+
+## Schema Browser-Safety
+
+When building full-stack apps, schemas may be imported on both server and client. Avoid importing server-only dependencies in schema files:
+
+### Safe Pattern: Pure Zod Schemas
+
+```typescript
+// src/schemas/user.ts - Safe for browser import
+import { z } from '@veloxts/validation';
+
+export const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+  createdAt: z.string().datetime(),
+});
+
+export type User = z.infer<typeof UserSchema>;
+```
+
+### Unsafe Pattern: Server Dependencies in Schemas
+
+```typescript
+// DO NOT import server-only modules in schema files
+import { db } from '@/database'; // BAD - pulls Prisma into client bundle
+
+export const UserSchema = z.object({
+  // ...
+});
+```
+
+### Separating Input/Output Schemas
+
+Keep input schemas (for mutations) separate from output schemas (with transforms):
+
+```typescript
+// src/schemas/user.input.ts - For mutations
+export const CreateUserInput = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+// src/schemas/user.output.ts - May have transforms
+import { dateToIso, prismaDecimal } from '@veloxts/validation';
+
+export const UserOutput = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+  balance: prismaDecimal(),      // Transforms Prisma Decimal
+  createdAt: dateToIso(),        // Transforms Date to string
+});
+```
+
+### Type-Only Imports
+
+In server actions, use type-only imports to avoid bundling server code:
+
+```typescript
+// GOOD - Type stripped at build time
+import type { User } from '@/schemas/user';
+
+// BAD - Pulls in full module graph
+import { User } from '@/schemas/user';
 ```
 
 ## Learn More

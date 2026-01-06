@@ -231,6 +231,21 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
+     * Adds an authorization guard with type narrowing (EXPERIMENTAL)
+     *
+     * Unlike `guard()`, this method narrows the context type based on
+     * what the guard guarantees after it passes.
+     */
+    guardNarrow<TNarrowedContext>(
+      guardDef: GuardLike<Partial<TContext>> & { readonly _narrows: TNarrowedContext }
+    ): ProcedureBuilder<TInput, TOutput, TContext & TNarrowedContext> {
+      return createBuilder<TInput, TOutput, TContext & TNarrowedContext>({
+        ...state,
+        guards: [...state.guards, guardDef as GuardLike<unknown>],
+      });
+    },
+
+    /**
      * Sets REST route override
      */
     rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext> {

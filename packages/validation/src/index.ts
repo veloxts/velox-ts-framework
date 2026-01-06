@@ -139,9 +139,19 @@ export type {
   WithOptional,
 } from './schemas/serialization.js';
 export {
+  // Date serialization
   dateToISOString,
   dateToISOStringNullable,
   dateToISOStringOptional,
+  // Date aliases (shorter names)
+  dateToIso,
+  dateToIsoNullable,
+  dateToIsoOptional,
+  // Prisma Decimal helpers
+  prismaDecimal,
+  prismaDecimalNullable,
+  prismaDecimalOptional,
+  // Timestamp presets
   timestamps,
   timestampsWithSoftDelete,
   withTimestamps,
