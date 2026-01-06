@@ -21,9 +21,10 @@ import path from 'node:path';
 
 import fastifyStatic from '@fastify/static';
 import { authPlugin } from '@veloxts/auth';
-import { createVeloxApp, VELOX_VERSION } from '@veloxts/core';
+import { VELOX_VERSION, veloxApp } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
-import { createRoutesRegistrar, getRouteSummary, registerTRPCPlugin } from '@veloxts/router';
+import { getRouteSummary, registerRestRoutes, registerTRPCPlugin } from '@veloxts/router';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { authConfig, config } from './config/index.js';
 import { createMockPrismaClient, prisma } from './database/index.js';
@@ -153,7 +154,7 @@ function sanitizeErrorForProduction(
  */
 async function createApp() {
   // Create the VeloxTS app with configuration
-  const app = await createVeloxApp({
+  const app = await veloxApp({
     port: config.port,
     host: config.host,
     logger: config.logger,
@@ -162,12 +163,12 @@ async function createApp() {
   // Register database plugin
   // Use mock database for testing or real Prisma for development
   const dbClient = USE_MOCK_DB ? createMockPrismaClient() : prisma;
-  await app.use(databasePlugin({ client: dbClient }));
+  await app.register(databasePlugin({ client: dbClient }));
 
   console.log(`[Database] Using ${USE_MOCK_DB ? 'mock in-memory' : 'Prisma SQLite'} database`);
 
   // Register auth plugin
-  await app.use(authPlugin(authConfig));
+  await app.register(authPlugin(authConfig));
   console.log('[Auth] JWT authentication enabled');
 
   // ============================================================================
@@ -185,7 +186,7 @@ async function createApp() {
   // Enable with ENFORCE_CSRF=true for production deployments.
   // ============================================================================
   if (ENFORCE_CSRF) {
-    app.server.addHook('onRequest', async (request, reply) => {
+    app.server.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
       // Only check state-changing methods
       if (!CSRF_PROTECTED_METHODS.includes(request.method)) {
         return;
@@ -240,7 +241,7 @@ async function createApp() {
   // - Removes internal error codes and guard names
   // - Logs full errors server-side for debugging
   // ============================================================================
-  app.server.setErrorHandler(async (error, request, reply) => {
+  app.server.setErrorHandler(async (error: Error, request: FastifyRequest, reply: FastifyReply) => {
     const isProduction = config.env === 'production';
 
     // Extract error properties safely
@@ -303,7 +304,7 @@ async function createApp() {
 
   // Register REST API routes at /api
   const collections = [authProcedures, userProcedures, healthProcedures];
-  app.routes(createRoutesRegistrar(collections, { prefix: config.apiPrefix }));
+  registerRestRoutes(app.server, collections, { prefix: config.apiPrefix });
 
   return { app, collections };
 }
