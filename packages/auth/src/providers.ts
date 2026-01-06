@@ -35,10 +35,10 @@ import {
   PASSWORD_HASHER,
 } from './tokens.js';
 import type {
+  AdapterAuthContext,
   AuthConfig,
   HashConfig,
   JwtConfig,
-  AdapterAuthContext,
   TokenPair,
   User,
 } from './types.js';
