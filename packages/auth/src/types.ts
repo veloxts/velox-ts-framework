@@ -161,26 +161,6 @@ export interface HashConfig {
 }
 
 /**
- * Legacy session cookie configuration (used by AuthConfig)
- *
- * @deprecated Use SessionConfig from session.ts for full session management
- */
-export interface LegacySessionConfig {
-  /** Cookie name (default: 'velox.session') */
-  cookieName?: string;
-  /** Session expiration in seconds (default: 86400 = 24h) */
-  maxAge?: number;
-  /** Cookie path (default: '/') */
-  path?: string;
-  /** HTTP only flag (default: true) */
-  httpOnly?: boolean;
-  /** Secure flag - use HTTPS only (default: true in production) */
-  secure?: boolean;
-  /** SameSite policy (default: 'lax') */
-  sameSite?: 'strict' | 'lax' | 'none';
-}
-
-/**
  * Rate limiting configuration
  */
 export interface RateLimitConfig {
@@ -204,11 +184,6 @@ export interface AuthConfig {
   jwt: JwtConfig;
   /** Password hashing configuration */
   hash?: HashConfig;
-  /**
-   * Legacy session cookie configuration
-   * @deprecated Use createSessionMiddleware from session.ts for full session management
-   */
-  session?: LegacySessionConfig;
   /** Rate limiting configuration */
   rateLimit?: RateLimitConfig;
   /**

@@ -31,10 +31,6 @@ export type {
   HashConfig,
   // Configuration types
   JwtConfig,
-  /**
-   * @deprecated Use SessionConfig from session.ts for full session management
-   */
-  LegacySessionConfig,
   // Auth mode-specific contexts
   NativeAuthContext,
   // Policy types
