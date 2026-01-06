@@ -11,8 +11,8 @@
  * @module auth/guards-narrowing
  */
 
-import type { AuthContext, GuardFunction, User } from './types.js';
 import { authenticated, hasRole as hasRoleBase } from './guards.js';
+import type { AuthContext, GuardFunction, User } from './types.js';
 
 // ============================================================================
 // Narrowing Guard Types
@@ -95,10 +95,7 @@ export interface RoleNarrowedContext {
  *   });
  * ```
  */
-export const authenticatedNarrow: NarrowingGuard<
-  { auth?: AuthContext },
-  AuthenticatedContext
-> = {
+export const authenticatedNarrow: NarrowingGuard<{ auth?: AuthContext }, AuthenticatedContext> = {
   ...authenticated,
   // Phantom type: value is never used at runtime, only carries type info.
   // The `undefined as unknown as T` pattern is standard for phantom types.

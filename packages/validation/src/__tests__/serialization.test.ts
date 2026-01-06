@@ -658,6 +658,7 @@ describe('prismaDecimal', () => {
 
     const result = schema.parse(decimal);
 
+    // biome-ignore lint/correctness/noPrecisionLoss: Intentionally testing JS number precision limits
     expect(result).toBeCloseTo(1234567890.123456789);
   });
 });
