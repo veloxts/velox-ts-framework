@@ -38,7 +38,7 @@ import type {
   AuthConfig,
   HashConfig,
   JwtConfig,
-  NativeAuthContext,
+  AdapterAuthContext,
   TokenPair,
   User,
 } from './types.js';
@@ -132,17 +132,17 @@ export function authServiceProvider(): FactoryProvider<AuthService> {
           return jwt.createTokenPair(user, additionalClaims);
         },
 
-        verifyToken(token: string): NativeAuthContext {
+        verifyToken(token: string): AdapterAuthContext {
           const payload = jwt.verifyToken(token);
           return {
-            authMode: 'native',
+            authMode: 'adapter',
             user: {
               id: payload.sub,
               email: payload.email,
             },
-            token,
-            payload,
             isAuthenticated: true,
+            providerId: 'jwt',
+            session: { token, payload },
           };
         },
 

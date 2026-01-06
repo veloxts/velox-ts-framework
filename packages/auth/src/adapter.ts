@@ -1242,10 +1242,10 @@ export abstract class BaseAuthAdapter<TConfig extends AuthAdapterConfig = AuthAd
   }
 
   /**
-   * Log an info message
+   * Log an info message (if debug is enabled)
    */
   protected info(message: string): void {
-    if (this.fastify) {
+    if (this.config?.debug && this.fastify) {
       this.fastify.log.info(`[${this.name}] ${message}`);
     }
   }
