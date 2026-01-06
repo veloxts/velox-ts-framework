@@ -1,8 +1,12 @@
 name: Claude Code Review
 
 on:
-  pull_request:
-    types: [opened, synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
 
 permissions:
   contents: read
@@ -10,15 +14,10 @@ permissions:
   issues: read
   id-token: write
 
-concurrency:
-  group: claude-review-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   claude-review:
     name: Code Review
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,8 +31,8 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
-            
+            PR NUMBER: ${{ inputs.pr_number }}
+
             Review this pull request for the VeloxTS TypeScript framework.
 
             Focus on:
