@@ -219,6 +219,7 @@ export interface AuthConfig {
   /**
    * Token blacklist checker - check if token is revoked
    * Called on every authenticated request
+   * @deprecated Use `tokenStore` with TokenStore interface instead
    */
   isTokenRevoked?: (tokenId: string) => Promise<boolean>;
   /**
