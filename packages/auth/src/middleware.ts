@@ -10,9 +10,9 @@ import { executeGuards } from './guards.js';
 import { JwtManager } from './jwt.js';
 import type {
   AuthConfig,
-  AuthContext,
   AuthMiddlewareOptions,
   GuardDefinition,
+  NativeAuthContext,
   TokenPayload,
   User,
 } from './types.js';
@@ -67,7 +67,12 @@ export function authMiddleware(config: AuthConfig) {
    */
   function middleware<TInput, TContext extends BaseContext, TOutput>(
     options: AuthMiddlewareOptions = {}
-  ): MiddlewareFunction<TInput, TContext, TContext & { user?: User; auth: AuthContext }, TOutput> {
+  ): MiddlewareFunction<
+    TInput,
+    TContext,
+    TContext & { user?: User; auth: NativeAuthContext },
+    TOutput
+  > {
     return async ({ ctx, next }) => {
       const request = ctx.request;
 
@@ -79,9 +84,11 @@ export function authMiddleware(config: AuthConfig) {
       if (!token) {
         if (options.optional) {
           // Optional auth - continue without user
-          const authContext: AuthContext = {
+          const authContext: NativeAuthContext = {
+            authMode: 'native',
             user: undefined,
             token: undefined,
+            payload: undefined,
             isAuthenticated: false,
           };
 
@@ -105,9 +112,11 @@ export function authMiddleware(config: AuthConfig) {
       } catch (error) {
         if (options.optional) {
           // Invalid token with optional auth - continue without user
-          const authContext: AuthContext = {
+          const authContext: NativeAuthContext = {
+            authMode: 'native',
             user: undefined,
             token: undefined,
+            payload: undefined,
             isAuthenticated: false,
           };
 
@@ -147,9 +156,11 @@ export function authMiddleware(config: AuthConfig) {
       }
 
       // Create auth context
-      const authContext: AuthContext = {
+      const authContext: NativeAuthContext = {
+        authMode: 'native',
         user: user ?? undefined,
-        token: payload,
+        token,
+        payload,
         isAuthenticated: !!user,
       };
 
@@ -195,11 +206,16 @@ export function authMiddleware(config: AuthConfig) {
    */
   function requireAuth<TInput, TContext extends BaseContext, TOutput>(
     guards?: Array<GuardDefinition | string>
-  ): MiddlewareFunction<TInput, TContext, TContext & { user: User; auth: AuthContext }, TOutput> {
+  ): MiddlewareFunction<
+    TInput,
+    TContext,
+    TContext & { user: User; auth: NativeAuthContext },
+    TOutput
+  > {
     return middleware({ optional: false, guards }) as MiddlewareFunction<
       TInput,
       TContext,
-      TContext & { user: User; auth: AuthContext },
+      TContext & { user: User; auth: NativeAuthContext },
       TOutput
     >;
   }
@@ -210,7 +226,7 @@ export function authMiddleware(config: AuthConfig) {
   function optionalAuth<TInput, TContext extends BaseContext, TOutput>(): MiddlewareFunction<
     TInput,
     TContext,
-    TContext & { user?: User; auth: AuthContext },
+    TContext & { user?: User; auth: NativeAuthContext },
     TOutput
   > {
     return middleware({ optional: true });

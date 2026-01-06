@@ -44,25 +44,36 @@ export class AuthError extends Error {
 /**
  * Base user interface for authenticated requests
  *
- * Applications should extend this via declaration merging:
+ * Applications should extend this via declaration merging to add
+ * custom properties without using index signatures:
+ *
  * @example
  * ```typescript
  * declare module '@veloxts/auth' {
  *   interface User {
- *     roles: ('admin' | 'user')[];
- *     permissions: string[];
+ *     name?: string;
+ *     avatarUrl?: string;
+ *     tenantId?: string;
  *   }
  * }
  * ```
+ *
+ * This approach provides:
+ * - Full type safety (no implicit `unknown` properties)
+ * - Better IDE autocomplete
+ * - Compile-time errors for typos
  */
 export interface User {
+  /** Unique user identifier */
   id: string;
+  /** User email address */
   email: string;
+  /** Whether the user's email has been verified */
+  emailVerified?: boolean;
   /** User roles for authorization */
   roles?: string[];
   /** User permissions for fine-grained access control */
   permissions?: string[];
-  [key: string]: unknown;
 }
 
 /**
@@ -289,17 +300,73 @@ export interface AuthMiddlewareOptions {
   guards?: Array<GuardDefinition | string>;
 }
 
+// ============================================================================
+// Auth Context Types (Discriminated Union)
+// ============================================================================
+
 /**
- * Authenticated request context extension
+ * Base auth context shared by all auth modes
  */
-export interface AuthContext {
-  /** Authenticated user (undefined if optional auth and no token) */
-  user?: User;
-  /** Decoded token payload */
-  token?: TokenPayload;
-  /** Check if user is authenticated */
+export interface BaseAuthContext {
+  /** Whether the request is authenticated */
   isAuthenticated: boolean;
 }
+
+/**
+ * Auth context for native JWT authentication (authPlugin)
+ *
+ * This context is set when using the built-in authPlugin with JWT tokens.
+ * Provides access to the decoded token payload.
+ */
+export interface NativeAuthContext extends BaseAuthContext {
+  /** Discriminant for native JWT auth mode */
+  authMode: 'native';
+  /** Authenticated user (undefined if optional auth and no token) */
+  user?: User;
+  /** Raw JWT token string (if extracted from request) */
+  token?: string;
+  /** Decoded token payload */
+  payload?: TokenPayload;
+}
+
+/**
+ * Auth context for external authentication adapters
+ *
+ * This context is set when using an AuthAdapter (BetterAuth, Clerk, Auth0, etc.).
+ * Provides access to the provider's session data.
+ */
+export interface AdapterAuthContext extends BaseAuthContext {
+  /** Discriminant for adapter auth mode */
+  authMode: 'adapter';
+  /** Authenticated user (undefined if not authenticated) */
+  user?: User;
+  /** Provider identifier (e.g., 'better-auth', 'clerk', 'auth0') */
+  providerId: string;
+  /** Provider-specific session data */
+  session?: unknown;
+}
+
+/**
+ * Authenticated request context extension
+ *
+ * This is a discriminated union based on `authMode`:
+ * - `'native'`: Built-in JWT authentication via authPlugin
+ * - `'adapter'`: External provider via AuthAdapter
+ *
+ * Use the `authMode` discriminant for type-safe access to mode-specific properties:
+ *
+ * @example
+ * ```typescript
+ * if (ctx.auth?.authMode === 'native') {
+ *   // Access JWT-specific properties
+ *   console.log(ctx.auth.payload?.sub);
+ * } else if (ctx.auth?.authMode === 'adapter') {
+ *   // Access adapter-specific properties
+ *   console.log(ctx.auth.providerId);
+ * }
+ * ```
+ */
+export type AuthContext = NativeAuthContext | AdapterAuthContext;
 
 // ============================================================================
 // Context Declaration Merging

@@ -50,6 +50,7 @@ function createMockReply(): FastifyReply {
 function createMockFastify(): FastifyInstance {
   const hooks: Map<string, Array<(...args: unknown[]) => Promise<void>>> = new Map();
   const decorations: Map<string, unknown> = new Map();
+  const requestDecorations: Set<string> = new Set();
 
   return {
     decorate: vi.fn((name: string, value: unknown) => {
@@ -57,6 +58,10 @@ function createMockFastify(): FastifyInstance {
     }),
     decorateRequest: vi.fn((name: string, value: unknown) => {
       decorations.set(`request.${name}`, value);
+      requestDecorations.add(name);
+    }),
+    hasRequestDecorator: vi.fn((name: string) => {
+      return requestDecorations.has(name);
     }),
     addHook: vi.fn((hookName: string, handler: (...args: unknown[]) => Promise<void>) => {
       if (!hooks.has(hookName)) {

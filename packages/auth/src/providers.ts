@@ -34,7 +34,14 @@ import {
   JWT_MANAGER,
   PASSWORD_HASHER,
 } from './tokens.js';
-import type { AuthConfig, AuthContext, HashConfig, JwtConfig, TokenPair, User } from './types.js';
+import type {
+  AuthConfig,
+  HashConfig,
+  JwtConfig,
+  NativeAuthContext,
+  TokenPair,
+  User,
+} from './types.js';
 
 // ============================================================================
 // Service Providers
@@ -125,14 +132,16 @@ export function authServiceProvider(): FactoryProvider<AuthService> {
           return jwt.createTokenPair(user, additionalClaims);
         },
 
-        verifyToken(token: string): AuthContext {
+        verifyToken(token: string): NativeAuthContext {
           const payload = jwt.verifyToken(token);
           return {
+            authMode: 'native',
             user: {
               id: payload.sub,
               email: payload.email,
             },
-            token: payload,
+            token,
+            payload,
             isAuthenticated: true,
           };
         },

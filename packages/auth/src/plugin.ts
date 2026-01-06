@@ -9,12 +9,17 @@ import { createRequire } from 'node:module';
 import type { Container, VeloxPlugin } from '@veloxts/core';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
+import type { AuthAdapterPluginOptions } from './adapter.js';
+import { createAuthAdapterPlugin } from './adapter.js';
+import type { JwtAdapterConfig } from './adapters/jwt-adapter.js';
+import { createJwtAdapter } from './adapters/jwt-adapter.js';
+import { checkDoubleRegistration, decorateAuth, setRequestAuth } from './decoration.js';
 import { PasswordHasher } from './hash.js';
 import { JwtManager } from './jwt.js';
 import { authMiddleware } from './middleware.js';
 import { registerAuthProviders } from './providers.js';
 import { AUTH_SERVICE } from './tokens.js';
-import type { AuthConfig, AuthContext, TokenPair, User } from './types.js';
+import type { AuthConfig, NativeAuthContext, TokenPair, User } from './types.js';
 
 // Read version from package.json dynamically
 const require = createRequire(import.meta.url);
@@ -90,9 +95,9 @@ export interface AuthService {
   createTokens(user: User, additionalClaims?: Record<string, unknown>): TokenPair;
 
   /**
-   * Verifies an access token and returns the auth context
+   * Verifies an access token and returns the native auth context
    */
-  verifyToken(token: string): AuthContext;
+  verifyToken(token: string): NativeAuthContext;
 
   /**
    * Refreshes tokens using a refresh token
@@ -108,6 +113,8 @@ export interface AuthService {
 // ============================================================================
 // Fastify Type Extensions
 // ============================================================================
+
+import type { AuthContext } from './types.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -174,6 +181,9 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
       const config = { ...options, ..._opts };
       const { debug = false, container } = config;
 
+      // Prevent double-registration of auth systems
+      checkDoubleRegistration(server, 'authPlugin');
+
       if (debug) {
         server.log.info('Registering @veloxts/auth plugin');
       }
@@ -202,14 +212,16 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
             return jwt.createTokenPair(user, additionalClaims);
           },
 
-          verifyToken(token: string): AuthContext {
+          verifyToken(token: string): NativeAuthContext {
             const payload = jwt.verifyToken(token);
             return {
+              authMode: 'native',
               user: {
                 id: payload.sub,
                 email: payload.email,
               },
-              token: payload,
+              token,
+              payload,
               isAuthenticated: true,
             };
           },
@@ -229,8 +241,7 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
       server.decorate('auth', authService);
 
       // Decorate requests with auth context (undefined initial value)
-      server.decorateRequest('auth', undefined);
-      server.decorateRequest('user', undefined);
+      decorateAuth(server);
 
       // Add preHandler hook to extract auth from headers (optional)
       if (config.autoExtract !== false) {
@@ -263,12 +274,14 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
               }
 
               if (user) {
-                request.auth = {
+                const authContext: NativeAuthContext = {
+                  authMode: 'native',
                   user,
-                  token: payload,
+                  token,
+                  payload,
                   isAuthenticated: true,
                 };
-                request.user = user;
+                setRequestAuth(request, authContext, user);
               }
             } catch {
               // Invalid token - silently ignore (optional auth)
@@ -322,4 +335,78 @@ export function defaultAuthPlugin(): VeloxPlugin<AuthPluginOptions> {
   return authPlugin({
     jwt: { secret },
   });
+}
+
+// ============================================================================
+// JWT Auth (Adapter-based)
+// ============================================================================
+
+/**
+ * Options for jwtAuth convenience function
+ *
+ * Omits the 'name' field since it's auto-set to 'jwt'.
+ */
+export type JwtAuthOptions = Omit<JwtAdapterConfig, 'name'>;
+
+/**
+ * Creates JWT auth using the adapter pattern
+ *
+ * This is the recommended way to use JWT authentication for consistency
+ * with other auth providers. It wraps the JwtAdapter in a VeloxPlugin
+ * that can be registered with your app.
+ *
+ * **Why use this over authPlugin?**
+ * - Unified architecture: All auth providers (JWT, BetterAuth, Clerk, etc.)
+ *   follow the same adapter interface
+ * - Easy swapping: Change auth providers by swapping the plugin
+ * - Built-in routes: Optional `/api/auth/refresh` and `/api/auth/logout` endpoints
+ * - Future-proof: New adapter features work automatically
+ *
+ * **When to use authPlugin instead?**
+ * - You need the `authMiddleware` factory for fine-grained control
+ * - You're using DI container integration
+ * - You need backward compatibility with existing code
+ *
+ * @param options - JWT adapter configuration
+ * @returns VeloxPlugin ready for registration
+ *
+ * @example
+ * ```typescript
+ * import { jwtAuth } from '@veloxts/auth';
+ *
+ * // Basic usage
+ * app.use(jwtAuth({
+ *   jwt: {
+ *     secret: process.env.JWT_SECRET!,
+ *     accessTokenExpiry: '15m',
+ *     refreshTokenExpiry: '7d',
+ *   },
+ * }));
+ *
+ * // With user loader and token store
+ * app.use(jwtAuth({
+ *   jwt: {
+ *     secret: process.env.JWT_SECRET!,
+ *     accessTokenExpiry: '15m',
+ *     refreshTokenExpiry: '7d',
+ *   },
+ *   userLoader: async (userId) => {
+ *     return db.user.findUnique({ where: { id: userId } });
+ *   },
+ *   tokenStore: redisTokenStore, // Custom token store for revocation
+ *   enableRoutes: true, // Mount /api/auth/refresh and /api/auth/logout
+ *   routePrefix: '/api/auth', // Custom route prefix
+ *   debug: process.env.NODE_ENV === 'development',
+ * }));
+ *
+ * // After registration, access JWT utilities via fastify
+ * const tokens = fastify.jwtManager!.createTokenPair(user);
+ * await fastify.tokenStore!.revoke(tokenId);
+ * ```
+ */
+export function jwtAuth(
+  options: JwtAuthOptions
+): VeloxPlugin<AuthAdapterPluginOptions<JwtAdapterConfig>> {
+  const { adapter, config } = createJwtAdapter(options);
+  return createAuthAdapterPlugin({ adapter, config });
 }
