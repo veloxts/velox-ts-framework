@@ -149,9 +149,6 @@ export type {
 } from './utils/config.js';
 export { isValidHost, isValidPort } from './utils/config.js';
 
-// Re-export Fastify types needed by user code
-export type { FastifyLoggerOptions, FastifyRequest, FastifyReply } from 'fastify';
-
 // ============================================================================
 // Typed Context Utilities
 // ============================================================================
