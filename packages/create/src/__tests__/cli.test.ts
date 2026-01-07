@@ -183,6 +183,71 @@ describe('CLI Argument Parsing', () => {
       });
     });
 
+    describe('template shorthand flags', () => {
+      it('should parse --spa shorthand', () => {
+        const result = parseArgs(['my-app', '--spa']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('spa');
+      });
+
+      it('should parse --auth shorthand', () => {
+        const result = parseArgs(['my-app', '--auth']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('auth');
+      });
+
+      it('should parse --trpc shorthand', () => {
+        const result = parseArgs(['my-app', '--trpc']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('trpc');
+      });
+
+      it('should parse --rsc shorthand', () => {
+        const result = parseArgs(['my-app', '--rsc']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('rsc');
+      });
+
+      it('should parse --rsc-auth shorthand', () => {
+        const result = parseArgs(['my-app', '--rsc-auth']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('rsc-auth');
+      });
+
+      it('should parse --default shorthand (alias for spa)', () => {
+        const result = parseArgs(['my-app', '--default']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('spa');
+      });
+
+      it('should parse --fullstack shorthand (alias for rsc)', () => {
+        const result = parseArgs(['my-app', '--fullstack']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('rsc');
+      });
+
+      it('should work with database flag', () => {
+        const result = parseArgs(['my-app', '--auth', '-d=postgresql']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('auth');
+        expect(result.database).toBe('postgresql');
+      });
+
+      it('should exit for duplicate shorthand and --template flags', () => {
+        expect(() => parseArgs(['--auth', '--template=spa'])).toThrow('process.exit(1)');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('--template flag specified multiple times')
+        );
+      });
+
+      it('should exit for duplicate shorthand flags', () => {
+        expect(() => parseArgs(['--auth', '--rsc'])).toThrow('process.exit(1)');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Template specified multiple times')
+        );
+      });
+    });
+
     describe('template validation errors', () => {
       it('should exit for invalid template', () => {
         expect(() => parseArgs(['--template=invalid'])).toThrow('process.exit(1)');
