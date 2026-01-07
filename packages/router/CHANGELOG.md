@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.71
+
+### Patch Changes
+
+- feat(create): add template shorthand flags (--auth, --rsc, etc.) (#20)
+- Updated dependencies
+  - @veloxts/core@0.6.71
+  - @veloxts/validation@0.6.71
+
 ## 0.6.70
 
 ### Patch Changes
