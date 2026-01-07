@@ -57,27 +57,25 @@ Options:
   -h, --help             Show this help message
   -v, --version          Show version number
 
-Templates:
-  spa        ${TEMPLATE_METADATA.spa.description}
-  auth       ${TEMPLATE_METADATA.auth.description}
-  trpc       ${TEMPLATE_METADATA.trpc.description}
-  rsc        ${TEMPLATE_METADATA.rsc.description}
-  rsc-auth   ${TEMPLATE_METADATA['rsc-auth'].description}
+Template Shortcuts:
+  --spa        ${TEMPLATE_METADATA.spa.description}
+  --auth       ${TEMPLATE_METADATA.auth.description}
+  --trpc       ${TEMPLATE_METADATA.trpc.description}
+  --rsc        ${TEMPLATE_METADATA.rsc.description}
+  --rsc-auth   ${TEMPLATE_METADATA['rsc-auth'].description}
+  --default    Alias for --spa
+  --fullstack  Alias for --rsc
 
 Databases:
   sqlite     ${DATABASE_METADATA.sqlite.hint}
   postgresql ${DATABASE_METADATA.postgresql.hint}
 
-Aliases:
-  default    → spa (backward compatible)
-  fullstack  → rsc (backward compatible)
-
 Examples:
   npx create-velox-app my-app                        # Interactive mode
+  npx create-velox-app my-app --auth                 # Auth template (shortcut)
+  npx create-velox-app my-app --rsc -d postgresql    # RSC with PostgreSQL
   npx create-velox-app my-app --template=spa         # SPA + API template
-  npx create-velox-app my-app --database=postgresql  # Use PostgreSQL
-  npx create-velox-app my-app -t rsc -d postgresql   # RSC with PostgreSQL
-  npx create-velox-app                               # Prompt for name
+  npx create-velox-app                               # Prompt for all options
 `;
 
 // ============================================================================
@@ -92,6 +90,17 @@ export interface ParsedArgs {
   help: boolean;
   version: boolean;
 }
+
+/** Template shorthand flags (--auth, --spa, etc.) */
+const TEMPLATE_FLAGS = new Set([
+  '--spa',
+  '--auth',
+  '--trpc',
+  '--rsc',
+  '--rsc-auth',
+  '--default', // alias for spa
+  '--fullstack', // alias for rsc
+]);
 
 /** @internal Exported for testing */
 export function parseArgs(args: string[]): ParsedArgs {
@@ -110,6 +119,22 @@ export function parseArgs(args: string[]): ParsedArgs {
     // Handle --help / -h
     if (arg === '-h' || arg === '--help') {
       result.help = true;
+      continue;
+    }
+
+    // Handle template shorthand flags (--auth, --spa, --rsc, etc.)
+    if (TEMPLATE_FLAGS.has(arg)) {
+      if (templateFlagSeen) {
+        console.error('Error: Template specified multiple times');
+        process.exit(1);
+      }
+      templateFlagSeen = true;
+
+      const templateName = arg.slice(2); // Remove '--' prefix
+      const resolved = resolveTemplateAlias(templateName);
+      if (resolved) {
+        result.template = resolved;
+      }
       continue;
     }
 
