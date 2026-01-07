@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.72
+
+### Patch Changes
+
+- fix(create): prompt for database and package manager when template is passed
+- Updated dependencies
+  - @veloxts/core@0.6.72
+  - @veloxts/router@0.6.72
+
 ## 0.6.71
 
 ### Patch Changes

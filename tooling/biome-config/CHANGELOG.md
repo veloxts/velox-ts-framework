@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.72
+
+### Patch Changes
+
+- fix(create): prompt for database and package manager when template is passed
+
 ## 0.6.71
 
 ### Patch Changes
