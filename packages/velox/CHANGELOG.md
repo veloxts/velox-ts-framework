@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.73
+
+### Patch Changes
+
+- fix(create): add @veloxts/auth as explicit dependency in auth template
+- Updated dependencies
+  - @veloxts/auth@0.6.73
+  - @veloxts/core@0.6.73
+  - @veloxts/orm@0.6.73
+  - @veloxts/router@0.6.73
+  - @veloxts/validation@0.6.73
+
 ## 0.6.72
 
 ### Patch Changes
