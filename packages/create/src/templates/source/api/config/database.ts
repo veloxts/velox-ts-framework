@@ -39,7 +39,7 @@ const { PrismaClient } = require('@prisma/client') as {
 declare global {
   // Allow global `var` declarations for hot reload in development
   // eslint-disable-next-line no-var
-  var __db: PrismaClient | undefined;
+  var __db: PrismaClientType | undefined;
 }
 
 /* @if sqlite */
@@ -47,7 +47,7 @@ declare global {
  * Create a Prisma client instance using the SQLite adapter.
  * Validates that DATABASE_URL is set before creating the client.
  */
-function createPrismaClient(): PrismaClient {
+function createPrismaClient(): PrismaClientType {
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
@@ -70,7 +70,7 @@ function createPrismaClient(): PrismaClient {
  * - PrismaPg now takes connectionString directly (not a Pool instance)
  * - Pool management is handled internally by the adapter
  */
-function createPrismaClient(): PrismaClient {
+function createPrismaClient(): PrismaClientType {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString) {

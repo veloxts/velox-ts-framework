@@ -7,7 +7,7 @@
  * IMPORTANT: Keep this file browser-safe - no Node.js imports or side effects.
  */
 
-import type { RouteMap } from '@veloxts/router';
+import type { RouteMap } from '@veloxts/velox';
 
 /**
  * Route mappings for the VeloxTS client

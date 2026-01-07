@@ -214,7 +214,8 @@ export const authProcedures = procedures('auth', {
     .guard(authenticated)
     .output(LogoutResponse)
     .mutation(async ({ ctx }) => {
-      const tokenId = ctx.auth?.token?.jti;
+      // Narrow the discriminated union to access native JWT payload
+      const tokenId = ctx.auth?.authMode === 'native' ? ctx.auth.payload?.jti : undefined;
 
       if (tokenId) {
         tokenStore.revoke(tokenId, 15 * 60 * 1000);
@@ -239,7 +240,7 @@ export const authProcedures = procedures('auth', {
 
       return {
         id: user.id,
-        name: (user.name as string) || '',
+        name: user.name ?? '',
         email: user.email,
         roles: Array.isArray(user.roles) ? user.roles : ['user'],
       };

@@ -238,7 +238,7 @@ export const authProcedures = procedures('auth', {
 
       return {
         id: user.id,
-        name: (user.name as string) || '',
+        name: user.name ?? '',
         email: user.email,
         roles: Array.isArray(user.roles) ? user.roles : ['user'],
       };
