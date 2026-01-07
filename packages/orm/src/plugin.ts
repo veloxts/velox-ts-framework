@@ -20,35 +20,15 @@ import { isDatabaseClient } from './types.js';
 // ============================================================================
 
 /**
- * Extend BaseContext to include the database client
+ * BaseContext Extension for Database
  *
  * After registering the database plugin, `ctx.db` will be available
- * in all procedure handlers with full type information.
+ * in all procedure handlers. To get full type inference for your
+ * specific Prisma schema, add this to your app's declaration file:
  *
  * @example
  * ```typescript
- * // In your app setup
- * import { PrismaClient } from '@prisma/client';
- * import { databasePlugin } from '@veloxts/orm';
- *
- * const prisma = new PrismaClient();
- * await app.use(databasePlugin({ client: prisma }));
- *
- * // In your procedure handlers
- * getUser: procedure()
- *   .input(z.object({ id: z.string() }))
- *   .query(async ({ input, ctx }) => {
- *     // ctx.db is typed as your PrismaClient
- *     return ctx.db.user.findUnique({ where: { id: input.id } });
- *   })
- * ```
- *
- * To get full type inference for your specific Prisma schema,
- * add this to your app's declaration file:
- *
- * @example
- * ```typescript
- * // In your app's types.d.ts or similar
+ * // In your app's types.d.ts
  * import type { PrismaClient } from '@prisma/client';
  *
  * declare module '@veloxts/core' {
@@ -57,18 +37,23 @@ import { isDatabaseClient } from './types.js';
  *   }
  * }
  * ```
+ *
+ * This enables full autocomplete for ctx.db in procedure handlers:
+ *
+ * @example
+ * ```typescript
+ * getUser: procedure()
+ *   .input(z.object({ id: z.string() }))
+ *   .query(async ({ input, ctx }) => {
+ *     // ctx.db is typed as your PrismaClient with all models
+ *     return ctx.db.user.findUnique({ where: { id: input.id } });
+ *   })
+ * ```
+ *
+ * NOTE: We intentionally do NOT declare `db: DatabaseClient` on BaseContext
+ * here, as that would conflict with user type declarations. The user's
+ * declaration merging should be the authoritative source for the `db` type.
  */
-declare module '@veloxts/core' {
-  interface BaseContext {
-    /**
-     * Database client for executing queries
-     *
-     * This property is added by the @veloxts/orm plugin.
-     * The actual type depends on your Prisma schema.
-     */
-    db: DatabaseClient;
-  }
-}
 
 // ============================================================================
 // Plugin Implementation

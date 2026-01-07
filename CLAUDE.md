@@ -25,6 +25,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+**IMPORTANT (macOS):** The `timeout` command is NOT available on macOS (it's Linux-only). Do NOT use `timeout 300 pnpm ...` in bash commands. Instead, run commands directly without timeout, or use `gtimeout` from GNU coreutils (`brew install coreutils`) if timeout is truly needed.
+
 ### Build
 ```bash
 pnpm build             # Compile TypeScript to dist/ (uses Turborepo)

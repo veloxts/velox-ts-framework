@@ -194,6 +194,16 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   fi
   echo ""
 
+  # Type check (critical - catch template type errors early)
+  echo "=== Type checking API ==="
+  if npx tsc --noEmit 2>&1; then
+    echo "✓ API type check passed"
+  else
+    echo "✗ API type check failed"
+    exit 1
+  fi
+  echo ""
+
   # Test CLI commands
   echo "=== Testing CLI commands ==="
 

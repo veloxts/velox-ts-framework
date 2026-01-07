@@ -8,27 +8,21 @@
 import { z } from 'zod';
 
 // ============================================================================
-// Timestamp Helper
-// ============================================================================
-
-/**
- * Schema that accepts Date or string and outputs ISO string.
- * Handles Prisma Date objects → JSON-safe strings.
- */
-const dateToString = z
-  .union([z.date(), z.string()])
-  .transform((val) => (val instanceof Date ? val.toISOString() : val));
-
-// ============================================================================
 // User Schema
 // ============================================================================
 
+/**
+ * User response schema.
+ * Uses z.coerce.date() to safely handle both:
+ * - Date objects from Prisma (output)
+ * - ISO strings from JSON (input validation)
+ */
 export const UserSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(100),
   email: z.string().email(),
-  createdAt: dateToString,
-  updatedAt: dateToString,
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
 });
 
 export type User = z.infer<typeof UserSchema>;

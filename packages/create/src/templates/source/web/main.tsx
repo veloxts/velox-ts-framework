@@ -26,7 +26,7 @@ declare module '@tanstack/react-router' {
 
 /* @if auth */
 // Dynamic headers for auth - fetches token on each request
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
