@@ -399,7 +399,7 @@ test_combination() {
   if ! npx --registry "$REGISTRY" "create-velox-app@${VERSION}" "$project_name" \
     --template "$template" \
     --database "$database" \
-    --skip-install 2>&1; then
+    --pm npm 2>&1; then
     echo -e "${RED}✗ Failed to create project${NC}"
     ((FAILED++))
     return 1

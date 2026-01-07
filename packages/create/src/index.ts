@@ -94,7 +94,8 @@ export function isPathSafe(baseDir: string, targetPath: string): boolean {
 export async function createVeloxApp(
   initialProjectName?: string,
   initialTemplate?: TemplateType,
-  initialDatabase?: DatabaseType
+  initialDatabase?: DatabaseType,
+  initialPackageManager?: 'npm' | 'pnpm' | 'yarn'
 ): Promise<void> {
   // Print welcome banner
   console.log('');
@@ -105,7 +106,7 @@ export async function createVeloxApp(
 
   try {
     // Collect project configuration
-    const config = await promptProjectConfig(initialProjectName, initialTemplate, initialDatabase);
+    const config = await promptProjectConfig(initialProjectName, initialTemplate, initialDatabase, initialPackageManager);
     projectDirectory = config.directory;
 
     // Show configuration summary
@@ -178,7 +179,8 @@ export async function createVeloxApp(
 async function promptProjectConfig(
   initialName?: string,
   initialTemplate?: TemplateType,
-  initialDatabase?: DatabaseType
+  initialDatabase?: DatabaseType,
+  initialPackageManager?: 'npm' | 'pnpm' | 'yarn'
 ): Promise<ProjectConfig> {
   // Project name
   const name = initialName
@@ -261,11 +263,12 @@ async function promptProjectConfig(
     }
   }
 
-  // Package manager selection (prompt unless running in CI/non-interactive mode)
-  let packageManager: 'npm' | 'pnpm' | 'yarn' = detectPackageManager();
+  // Package manager selection (prompt unless provided via CLI or running in CI/non-interactive mode)
+  let packageManager: 'npm' | 'pnpm' | 'yarn' = initialPackageManager ?? detectPackageManager();
 
+  // Only show package manager prompt if not provided via CLI
   // SKIP_INSTALL is set in smoke tests to skip interactive prompts
-  if (process.env.SKIP_INSTALL !== 'true') {
+  if (!initialPackageManager && process.env.SKIP_INSTALL !== 'true') {
     const selectedPackageManager = await p.select({
       message: 'Choose a package manager',
       initialValue: packageManager,

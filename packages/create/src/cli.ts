@@ -54,6 +54,8 @@ Options:
                          Available: ${getTemplateNames()}
   -d, --database <name>  Database to use (default: "sqlite")
                          Available: ${getDatabaseNames()}
+  --pm <manager>         Package manager to use (npm, pnpm, yarn)
+                         Skips interactive prompt if specified
   -h, --help             Show this help message
   -v, --version          Show version number
 
@@ -75,6 +77,7 @@ Examples:
   npx create-velox-app my-app --auth                 # Auth template (shortcut)
   npx create-velox-app my-app --rsc -d postgresql    # RSC with PostgreSQL
   npx create-velox-app my-app --template=spa         # SPA + API template
+  npx create-velox-app my-app --pm npm               # Non-interactive (npm)
   npx create-velox-app                               # Prompt for all options
 `;
 
@@ -82,14 +85,21 @@ Examples:
 // Argument Parser
 // ============================================================================
 
+/** Valid package manager types */
+export type PackageManagerType = 'npm' | 'pnpm' | 'yarn';
+
 /** @internal Exported for testing */
 export interface ParsedArgs {
   projectName?: string;
   template?: TemplateType;
   database?: DatabaseType;
+  packageManager?: PackageManagerType;
   help: boolean;
   version: boolean;
 }
+
+/** Valid package managers */
+const VALID_PACKAGE_MANAGERS = new Set<PackageManagerType>(['npm', 'pnpm', 'yarn']);
 
 /** Template shorthand flags (--auth, --spa, etc.) */
 const TEMPLATE_FLAGS = new Set([
@@ -252,6 +262,39 @@ export function parseArgs(args: string[]): ParsedArgs {
       continue;
     }
 
+    // Handle --pm=<value>
+    if (arg.startsWith('--pm=')) {
+      const value = arg.split('=')[1];
+      if (!value) {
+        console.error('Error: --pm requires a value. Available: npm, pnpm, yarn');
+        process.exit(1);
+      }
+      if (VALID_PACKAGE_MANAGERS.has(value as PackageManagerType)) {
+        result.packageManager = value as PackageManagerType;
+      } else {
+        console.error(`Invalid package manager: ${value}. Available: npm, pnpm, yarn`);
+        process.exit(1);
+      }
+      continue;
+    }
+
+    // Handle --pm <value>
+    if (arg === '--pm') {
+      const value = args[i + 1];
+      if (!value || value.startsWith('-')) {
+        console.error('Error: --pm requires a value. Available: npm, pnpm, yarn');
+        process.exit(1);
+      }
+      if (VALID_PACKAGE_MANAGERS.has(value as PackageManagerType)) {
+        result.packageManager = value as PackageManagerType;
+        i++; // Skip next arg
+      } else {
+        console.error(`Invalid package manager: ${value}. Available: npm, pnpm, yarn`);
+        process.exit(1);
+      }
+      continue;
+    }
+
     // Non-flag argument
     if (!arg.startsWith('-')) {
       if (!result.projectName) {
@@ -296,7 +339,7 @@ async function main() {
     }
 
     // Run scaffolder
-    await createVeloxApp(parsed.projectName, parsed.template, parsed.database);
+    await createVeloxApp(parsed.projectName, parsed.template, parsed.database, parsed.packageManager);
   } catch (error) {
     // Handle unexpected errors with actionable guidance
     if (error instanceof Error) {

@@ -380,6 +380,93 @@ describe('CLI Argument Parsing', () => {
   });
 
   // ============================================================================
+  // Package Manager Flag
+  // ============================================================================
+
+  describe('package manager flag', () => {
+    describe('equals format (--pm=value)', () => {
+      it('should parse --pm=npm', () => {
+        const result = parseArgs(['--pm=npm']);
+        expect(result.packageManager).toBe('npm');
+      });
+
+      it('should parse --pm=pnpm', () => {
+        const result = parseArgs(['--pm=pnpm']);
+        expect(result.packageManager).toBe('pnpm');
+      });
+
+      it('should parse --pm=yarn', () => {
+        const result = parseArgs(['--pm=yarn']);
+        expect(result.packageManager).toBe('yarn');
+      });
+    });
+
+    describe('space format (--pm value)', () => {
+      it('should parse --pm npm', () => {
+        const result = parseArgs(['--pm', 'npm']);
+        expect(result.packageManager).toBe('npm');
+      });
+
+      it('should parse --pm pnpm', () => {
+        const result = parseArgs(['--pm', 'pnpm']);
+        expect(result.packageManager).toBe('pnpm');
+      });
+
+      it('should parse --pm yarn', () => {
+        const result = parseArgs(['--pm', 'yarn']);
+        expect(result.packageManager).toBe('yarn');
+      });
+    });
+
+    describe('package manager validation errors', () => {
+      it('should exit for invalid package manager', () => {
+        expect(() => parseArgs(['--pm=bun'])).toThrow('process.exit(1)');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Invalid package manager: bun')
+        );
+      });
+
+      it('should exit for empty pm value in equals format', () => {
+        expect(() => parseArgs(['--pm='])).toThrow('process.exit(1)');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('--pm requires a value')
+        );
+      });
+
+      it('should exit when pm value is missing', () => {
+        expect(() => parseArgs(['--pm'])).toThrow('process.exit(1)');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('--pm requires a value')
+        );
+      });
+
+      it('should exit when pm value looks like a flag', () => {
+        expect(() => parseArgs(['--pm', '--template=spa'])).toThrow('process.exit(1)');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('--pm requires a value')
+        );
+      });
+    });
+
+    describe('package manager with other flags', () => {
+      it('should work with template and database flags', () => {
+        const result = parseArgs(['my-app', '--auth', '-d=postgresql', '--pm=npm']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('auth');
+        expect(result.database).toBe('postgresql');
+        expect(result.packageManager).toBe('npm');
+      });
+
+      it('should work in any order', () => {
+        const result = parseArgs(['--pm', 'pnpm', 'my-app', '--rsc']);
+        expect(result.projectName).toBe('my-app');
+        expect(result.template).toBe('rsc');
+        expect(result.packageManager).toBe('pnpm');
+      });
+    });
+  });
+
+  // ============================================================================
   // Combined Arguments
   // ============================================================================
 
@@ -471,11 +558,12 @@ describe('ParsedArgs interface', () => {
   });
 
   it('should have correct shape for full result', () => {
-    const result = parseArgs(['my-app', '-t=auth', '-d=postgresql']);
+    const result = parseArgs(['my-app', '-t=auth', '-d=postgresql', '--pm=npm']);
     const expected: ParsedArgs = {
       projectName: 'my-app',
       template: 'auth',
       database: 'postgresql',
+      packageManager: 'npm',
       help: false,
       version: false,
     };
@@ -486,5 +574,6 @@ describe('ParsedArgs interface', () => {
     const result = parseArgs(['my-app']);
     expect(result.template).toBeUndefined();
     expect(result.database).toBeUndefined();
+    expect(result.packageManager).toBeUndefined();
   });
 });
