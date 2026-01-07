@@ -7,4 +7,7 @@ export default defineConfig({
   clean: true,
   dts: false,
   sourcemap: true,
+  // Don't bundle dependencies - let Node.js resolve them at runtime
+  // This avoids issues with native modules and dynamic requires
+  skipNodeModulesBundle: true,
 });
