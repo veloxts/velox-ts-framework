@@ -76,18 +76,24 @@ getUser: procedure().input(z.object({ id: z.string() }))
 
 **Cause**: Procedure not registered in router.
 
-**Fix**:
-1. Check `src/procedures/index.ts` exports your procedure
-2. Check `src/index.ts` includes it in collections array
+**Fix**: Add procedure to `createRouter()` in `src/router.ts`:
 
 ```typescript
-// src/procedures/index.ts
-export * from './users.js';
-export * from './posts.js';  // Add this
+// src/router.ts
+import { createRouter, extractRoutes } from '@veloxts/velox';
 
-// src/index.ts
-import { userProcedures, postProcedures } from './procedures/index.js';
-const collections = [userProcedures, postProcedures];  // Add here
+import { healthProcedures } from './procedures/health.js';
+import { userProcedures } from './procedures/users.js';
+import { postProcedures } from './procedures/posts.js';  // Add import
+
+export const { collections, router } = createRouter(
+  healthProcedures,
+  userProcedures,
+  postProcedures  // Add here
+);
+
+export type AppRouter = typeof router;
+export const routes = extractRoutes(collections);
 ```
 
 ### "Input validation failed"

@@ -146,6 +146,12 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
           description: 'VeloxTS project information and structure',
           mimeType: 'text/plain',
         },
+        {
+          uri: 'velox://auth-context',
+          name: 'Authentication Context Guide',
+          description: 'How ctx.user is populated by userLoader and how to extend it',
+          mimeType: 'text/plain',
+        },
       ],
     };
   });
@@ -227,6 +233,108 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
               .filter(Boolean)
               .join('\n')
           : 'No VeloxTS project detected in current directory.';
+
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'text/plain',
+              text,
+            },
+          ],
+        };
+      }
+
+      case 'velox://auth-context': {
+        const text = `# Authentication Context (ctx.user)
+
+## Overview
+
+\`ctx.user\` is populated by the \`userLoader\` function, NOT directly from the database.
+Only fields you explicitly return from \`userLoader\` will be available on \`ctx.user\`.
+
+## How ctx.user Gets Populated
+
+1. JWT token is validated from cookie/header
+2. User ID is extracted from token payload
+3. Your \`userLoader(userId)\` function is called
+4. The returned object becomes \`ctx.user\`
+
+## Default userLoader Returns
+
+The scaffolded templates return:
+\`\`\`typescript
+{
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
+}
+\`\`\`
+
+## Where to Find userLoader
+
+- **API template (\`--auth\`)**: \`src/config/auth.ts\`
+- **RSC template (\`--rsc-auth\`)**: \`src/api/handler.ts\` (inline in \`createAuthConfig()\`)
+
+## Adding Fields to ctx.user
+
+### Step 1: Update userLoader
+
+\`\`\`typescript
+// In your userLoader function:
+async function userLoader(userId: string) {
+  const user = await db.user.findUnique({ where: { id: userId } });
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    roles: parseUserRoles(user.roles),
+    organizationId: user.organizationId, // Add new field here
+  };
+}
+\`\`\`
+
+### Step 2: Extend TypeScript Type (Optional)
+
+\`\`\`typescript
+declare module '@veloxts/auth' {
+  interface User {
+    organizationId: string;
+  }
+}
+\`\`\`
+
+## Alternative: Fetch Full User
+
+If you only occasionally need extra fields, use the \`getFullUser\` helper:
+
+\`\`\`typescript
+import { getFullUser } from '@/utils/auth';
+
+// In a procedure:
+.query(async ({ ctx }) => {
+  const fullUser = await getFullUser(ctx);
+  return { organizationId: fullUser.organizationId };
+})
+\`\`\`
+
+## Common Mistake
+
+\`\`\`typescript
+// ❌ WRONG - undefined if not returned by userLoader
+const orgId = ctx.user.organizationId;
+
+// ✅ CORRECT - After adding to userLoader
+const orgId = ctx.user.organizationId;
+
+// ✅ ALTERNATIVE - Fetch full user when needed
+const fullUser = await getFullUser(ctx);
+const orgId = fullUser.organizationId;
+\`\`\`
+`;
 
         return {
           contents: [

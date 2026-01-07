@@ -42,26 +42,70 @@ export class AuthError extends Error {
 // ============================================================================
 
 /**
- * Base user interface for authenticated requests
+ * Base user interface available on `ctx.user` after authentication.
  *
- * Applications should extend this via declaration merging to add
- * custom properties without using index signatures:
+ * **IMPORTANT:** `ctx.user` is NOT the raw database user. It only contains
+ * fields explicitly returned by your `userLoader` function passed to `authPlugin()`.
  *
- * @example
+ * ## How ctx.user Gets Populated
+ *
+ * 1. JWT token is validated from cookie/header
+ * 2. User ID is extracted from token payload
+ * 3. Your `userLoader(userId)` function is called
+ * 4. Only fields returned by `userLoader` are available on `ctx.user`
+ *
+ * ## Default Fields
+ *
+ * The scaffolded templates return:
+ * - `id`: User's unique identifier
+ * - `email`: User's email address
+ * - `name`: User's display name
+ * - `roles`: Array of role names
+ *
+ * ## Adding Custom Fields
+ *
+ * To add fields like `organizationId` to `ctx.user`:
+ *
+ * 1. Update your `userLoader` to return the field:
+ * ```typescript
+ * async function userLoader(userId: string) {
+ *   const user = await db.user.findUnique({ where: { id: userId } });
+ *   return {
+ *     id: user.id,
+ *     email: user.email,
+ *     organizationId: user.organizationId, // Add field here
+ *   };
+ * }
+ * ```
+ *
+ * 2. Extend this interface via declaration merging:
  * ```typescript
  * declare module '@veloxts/auth' {
  *   interface User {
- *     name?: string;
- *     avatarUrl?: string;
- *     tenantId?: string;
+ *     organizationId: string;
  *   }
  * }
+ * ```
+ *
+ * ## Common Mistake
+ *
+ * ```typescript
+ * // ❌ WRONG - undefined if not returned by userLoader
+ * const orgId = ctx.user.organizationId;
+ *
+ * // ✅ CORRECT - After adding to userLoader
+ * const orgId = ctx.user.organizationId;
+ *
+ * // ✅ ALTERNATIVE - Fetch full user when needed
+ * const fullUser = await db.user.findUnique({ where: { id: ctx.user.id } });
  * ```
  *
  * This approach provides:
  * - Full type safety (no implicit `unknown` properties)
  * - Better IDE autocomplete
  * - Compile-time errors for typos
+ *
+ * @see userLoader option in authPlugin configuration
  */
 export interface User {
   /** Unique user identifier */
@@ -187,8 +231,32 @@ export interface AuthConfig {
   /** Rate limiting configuration */
   rateLimit?: RateLimitConfig;
   /**
-   * User loader function - fetches user from database by ID
-   * Called on every authenticated request to populate ctx.user
+   * User loader function - fetches user from database by ID.
+   *
+   * Called on every authenticated request to populate `ctx.user`.
+   *
+   * **IMPORTANT:** Only fields you return here will be available on `ctx.user`.
+   * The returned object is NOT the raw database user - you control exactly
+   * which fields are exposed.
+   *
+   * @example
+   * ```typescript
+   * userLoader: async (userId) => {
+   *   const user = await db.user.findUnique({ where: { id: userId } });
+   *   if (!user) return null;
+   *
+   *   return {
+   *     id: user.id,
+   *     email: user.email,
+   *     name: user.name,
+   *     roles: parseUserRoles(user.roles),
+   *     // Add custom fields here to make them available on ctx.user
+   *     organizationId: user.organizationId,
+   *   };
+   * }
+   * ```
+   *
+   * @see User interface for extending the type via declaration merging
    */
   userLoader?: (userId: string) => Promise<User | null>;
   /**

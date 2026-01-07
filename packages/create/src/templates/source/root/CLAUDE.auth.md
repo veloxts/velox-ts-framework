@@ -67,7 +67,19 @@ export const postProcedures = procedures('posts', {
 });
 ```
 
-Then register in `src/procedures/index.ts` and add to collections in `src/index.ts`.
+Then register in `src/router.ts` by importing and adding to `createRouter()`:
+
+```typescript
+// src/router.ts
+import { postProcedures } from './procedures/posts.js';
+
+export const { collections, router } = createRouter(
+  healthProcedures,
+  authProcedures,
+  userProcedures,
+  postProcedures  // Add here
+);
+```
 
 ## Prisma 7 Configuration
 
@@ -229,19 +241,41 @@ createdAt: z.coerce.date()
 updatedAt: z.coerce.date()
 ```
 
-### Extending User Context
+### Authentication Context (`ctx.user`)
 
-The `ctx.user` object is populated by `userLoader` in `src/config/auth.ts`.
+**Important:** `ctx.user` is NOT the raw database user - it only contains fields explicitly returned by `userLoader` in `src/config/auth.ts`.
 
-To add fields to `ctx.user` (e.g., `organizationId`):
+#### How ctx.user Gets Populated
 
-1. Update `userLoader`:
+1. JWT token is validated from cookie/header
+2. User ID is extracted from token payload
+3. `userLoader(userId)` is called to fetch user data
+4. Only the fields returned by `userLoader` are available on `ctx.user`
+
+#### Default Fields
+
+The default `userLoader` returns:
+```typescript
+{
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
+}
+```
+
+#### Adding Fields to ctx.user
+
+To add a field like `organizationId`:
+
+1. Update `userLoader` in `src/config/auth.ts`:
 ```typescript
 async function userLoader(userId: string) {
   const user = await db.user.findUnique({ where: { id: userId } });
   return {
     id: user.id,
     email: user.email,
+    name: user.name,
     roles: parseUserRoles(user.roles),
     organizationId: user.organizationId, // Add new fields here
   };
@@ -250,15 +284,36 @@ async function userLoader(userId: string) {
 
 2. Update related schemas (`UserSchema`, `UpdateUserInput`, etc.).
 
+#### Common Mistake
+
+```typescript
+// ❌ WRONG - organizationId is undefined (not in userLoader)
+const orgId = ctx.user.organizationId;
+
+// ✅ CORRECT - After adding to userLoader in src/config/auth.ts
+const orgId = ctx.user.organizationId;
+
+// ✅ ALTERNATIVE - Use getFullUser helper when you need extra fields
+import { getFullUser } from '@/utils/auth';
+const fullUser = await getFullUser(ctx);
+const orgId = fullUser.organizationId;
+```
+
 ### Role Configuration
 
-Roles are stored as a JSON string array in the database (e.g., `["ADMIN"]`).
+Roles are stored as a JSON string array in the database (e.g., `["user"]`, `["admin"]`).
 
-When changing roles, update ALL locations:
-- `prisma/schema.prisma` - Role enum
-- `src/config/auth.ts` - `ALLOWED_ROLES` and `parseUserRoles`
-- `src/utils/auth.ts` - `ALLOWED_ROLES` (if duplicated)
-- `src/schemas/auth.ts` - Role validation schemas
+The `parseUserRoles()` function from `@veloxts/auth` safely parses the JSON string:
+```typescript
+// Imported and used in src/config/auth.ts
+import { parseUserRoles } from '@veloxts/auth';
+roles: parseUserRoles(user.roles),  // Converts '["user"]' to ['user']
+```
+
+When adding new roles, update:
+- `prisma/schema.prisma` - Default value in the roles field
+- `src/schemas/auth.ts` - Role validation schemas (if using enum validation)
+- Any guards that check for specific roles (e.g., `hasRole('admin')`)
 
 ### MCP Project Path
 

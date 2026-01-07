@@ -122,6 +122,44 @@ await logout();  // Clears cookies server-side
 - At least one number
 - Not a common password
 
+### Authentication Context (`ctx.user`)
+
+**Important:** `ctx.user` is NOT the raw database user - it only contains fields explicitly returned by `userLoader` in `src/api/handler.ts`.
+
+#### How ctx.user Gets Populated
+
+1. JWT token is validated from cookie/header
+2. User ID is extracted from token payload
+3. `userLoader(userId)` is called to fetch user data
+4. Only the fields returned by `userLoader` are available on `ctx.user`
+
+#### Default Fields
+
+The default `userLoader` returns:
+```typescript
+{
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
+}
+```
+
+#### Common Mistake
+
+```typescript
+// ❌ WRONG - organizationId is undefined (not in userLoader)
+const orgId = ctx.user.organizationId;
+
+// ✅ CORRECT - After adding to userLoader in src/api/handler.ts
+const orgId = ctx.user.organizationId;
+
+// ✅ ALTERNATIVE - Use getFullUser helper when you need extra fields
+import { getFullUser } from '@/api/utils/auth';
+const fullUser = await getFullUser(ctx);
+const orgId = fullUser.organizationId;
+```
+
 ## Server Actions with validated()
 
 Use the `validated()` helper for secure server actions:
@@ -302,33 +340,41 @@ updatedAt: z.coerce.date()
 
 ### Extending User Context
 
-The `ctx.user` object is populated by `userLoader` in `src/api/utils/auth.ts`.
+The `ctx.user` object is populated by `userLoader` in `src/api/handler.ts` (inline in `createAuthConfig()`).
 
 To add fields to `ctx.user` (e.g., `organizationId`):
 
-1. Update `userLoader`:
+1. Update `userLoader` in `src/api/handler.ts`:
 ```typescript
-async function userLoader(userId: string) {
+userLoader: async (userId: string) => {
   const user = await db.user.findUnique({ where: { id: userId } });
   return {
     id: user.id,
     email: user.email,
+    name: user.name,
     roles: parseUserRoles(user.roles),
     organizationId: user.organizationId, // Add new fields here
   };
-}
+},
 ```
 
 2. Update related schemas (`UserSchema`, `UpdateUserInput`, etc.).
 
 ### Role Configuration
 
-Roles are stored as a JSON string array in the database (e.g., `["ADMIN"]`).
+Roles are stored as a JSON string array in the database (e.g., `["user"]`, `["admin"]`).
 
-When changing roles, update ALL locations:
-- `prisma/schema.prisma` - Role enum
-- `src/api/utils/auth.ts` - `ALLOWED_ROLES` and `parseUserRoles`
-- `src/api/schemas/auth.ts` - Role validation schemas
+The `parseUserRoles()` function from `@veloxts/auth` safely parses the JSON string:
+```typescript
+// Imported and used in src/api/handler.ts
+import { parseUserRoles } from '@veloxts/auth';
+roles: parseUserRoles(user.roles),  // Converts '["user"]' to ['user']
+```
+
+When adding new roles, update:
+- `prisma/schema.prisma` - Default value in the roles field
+- `src/api/schemas/auth.ts` - Role validation schemas (if using enum validation)
+- Any guards or server actions that check for specific roles
 
 ### MCP Project Path
 

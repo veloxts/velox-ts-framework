@@ -66,7 +66,18 @@ export const postProcedures = procedures('posts', {
 });
 ```
 
-Then register in `src/procedures/index.ts` and add to collections in `src/index.ts`.
+Then register in `src/router.ts` by importing and adding to `createRouter()`:
+
+```typescript
+// src/router.ts
+import { postProcedures } from './procedures/posts.js';
+
+export const { collections, router } = createRouter(
+  healthProcedures,
+  userProcedures,
+  postProcedures  // Add here
+);
+```
 
 ## Prisma 7 Configuration
 

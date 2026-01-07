@@ -99,3 +99,36 @@ export const jwt = jwtManager({
   issuer: 'velox-app',
   audience: 'velox-app-client',
 });
+
+// ============================================================================
+// Full User Helper
+// ============================================================================
+
+/**
+ * Fetch full user from database when ctx.user doesn't have all fields.
+ *
+ * `ctx.user` only contains fields returned by `userLoader` (id, email, name, roles).
+ * Use this helper when you need additional fields like `organizationId`.
+ *
+ * @example
+ * ```typescript
+ * // In a procedure that needs full user data:
+ * .query(async ({ ctx }) => {
+ *   // ctx.user has: id, email, name, roles
+ *   // For additional fields, fetch full user:
+ *   const fullUser = await getFullUser(ctx);
+ *   return { organizationId: fullUser.organizationId };
+ * })
+ * ```
+ *
+ * @param ctx - The procedure context (must have user.id and db)
+ * @returns The full user record from database
+ * @throws If user is not found (should not happen for authenticated requests)
+ */
+export async function getFullUser<
+  TDb extends { user: { findUniqueOrThrow: (args: { where: { id: string } }) => Promise<unknown> } },
+>(ctx: { user: { id: string }; db: TDb }) {
+  return ctx.db.user.findUniqueOrThrow({
+    where: { id: ctx.user.id },
+  });
+}
