@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.77
+
+### Patch Changes
+
+- fix(core): remove duplicate Fastify type exports
+
 ## 0.6.76
 
 ### Patch Changes

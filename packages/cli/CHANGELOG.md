@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.77
+
+### Patch Changes
+
+- fix(core): remove duplicate Fastify type exports
+- Updated dependencies
+  - @veloxts/auth@0.6.77
+  - @veloxts/core@0.6.77
+  - @veloxts/orm@0.6.77
+  - @veloxts/router@0.6.77
+  - @veloxts/validation@0.6.77
+
 ## 0.6.76
 
 ### Patch Changes
