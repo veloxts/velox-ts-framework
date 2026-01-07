@@ -28,6 +28,9 @@ const packageJson = require('../package.json') as { version: string };
 /** VeloxTS framework version */
 export const VELOX_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
+// Re-export Fastify types needed by user code
+export type { FastifyLoggerOptions, FastifyReply, FastifyRequest } from 'fastify';
+
 export type { StartOptions } from './app.js';
 export { VeloxApp, velox, veloxApp } from './app.js';
 // Context system
