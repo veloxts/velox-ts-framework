@@ -232,11 +232,12 @@ async function promptProjectConfig(
     template = selectedTemplate as TemplateType;
   }
 
-  // Database selection
+  // Database selection (prompt unless provided via CLI or running in CI/non-interactive mode)
   let database: DatabaseType = initialDatabase ?? 'sqlite';
 
-  // Only show database prompt in interactive mode (when not provided via CLI)
-  if (!initialDatabase && !initialTemplate) {
+  // Only show database prompt if not provided via CLI
+  // SKIP_INSTALL is set in smoke tests to skip interactive prompts
+  if (!initialDatabase && process.env.SKIP_INSTALL !== 'true') {
     const databases = getAvailableDatabases();
     const selectedDatabase = await p.select({
       message: 'Choose a database',
@@ -260,10 +261,11 @@ async function promptProjectConfig(
     }
   }
 
-  // Package manager selection (only in interactive mode)
+  // Package manager selection (prompt unless running in CI/non-interactive mode)
   let packageManager: 'npm' | 'pnpm' | 'yarn' = detectPackageManager();
 
-  if (!initialTemplate) {
+  // SKIP_INSTALL is set in smoke tests to skip interactive prompts
+  if (process.env.SKIP_INSTALL !== 'true') {
     const selectedPackageManager = await p.select({
       message: 'Choose a package manager',
       initialValue: packageManager,
