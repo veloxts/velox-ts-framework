@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.74
+
+### Patch Changes
+
+- docs: fix erroneous file paths and improve auth context documentation
+- Updated dependencies
+  - @veloxts/auth@0.6.74
+  - @veloxts/core@0.6.74
+  - @veloxts/orm@0.6.74
+  - @veloxts/router@0.6.74
+  - @veloxts/validation@0.6.74
+
 ## 0.6.73
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.74
+
+### Patch Changes
+
+- docs: fix erroneous file paths and improve auth context documentation
+
 ## 0.6.73
 
 ### Patch Changes
