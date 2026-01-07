@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.76
+
+### Patch Changes
+
+- fix(create): resolve all template type errors for zero-error scaffolding
+- Updated dependencies
+  - @veloxts/auth@0.6.76
+  - @veloxts/core@0.6.76
+  - @veloxts/orm@0.6.76
+  - @veloxts/router@0.6.76
+  - @veloxts/validation@0.6.76
+
 ## 0.6.75
 
 ### Patch Changes
