@@ -126,7 +126,9 @@ export const jwt = jwtManager({
  * @throws If user is not found (should not happen for authenticated requests)
  */
 export async function getFullUser<
-  TDb extends { user: { findUniqueOrThrow: (args: { where: { id: string } }) => Promise<unknown> } },
+  TDb extends {
+    user: { findUniqueOrThrow: (args: { where: { id: string } }) => Promise<unknown> };
+  },
 >(ctx: { user: { id: string }; db: TDb }) {
   return ctx.db.user.findUniqueOrThrow({
     where: { id: ctx.user.id },
