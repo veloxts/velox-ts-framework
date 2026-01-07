@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/cli",
-  "version": "0.6.74",
+  "version": "0.6.75",
   "description": "Developer tooling and CLI commands for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",

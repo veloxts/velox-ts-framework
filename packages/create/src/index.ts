@@ -106,7 +106,12 @@ export async function createVeloxApp(
 
   try {
     // Collect project configuration
-    const config = await promptProjectConfig(initialProjectName, initialTemplate, initialDatabase, initialPackageManager);
+    const config = await promptProjectConfig(
+      initialProjectName,
+      initialTemplate,
+      initialDatabase,
+      initialPackageManager
+    );
     projectDirectory = config.directory;
 
     // Show configuration summary

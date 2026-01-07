@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.75
+
+### Patch Changes
+
+- feat(create): add --pm flag to skip package manager prompt
+
 ## 0.6.74
 
 ### Patch Changes

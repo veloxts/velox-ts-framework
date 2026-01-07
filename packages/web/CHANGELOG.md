@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.75
+
+### Patch Changes
+
+- feat(create): add --pm flag to skip package manager prompt
+- Updated dependencies
+  - @veloxts/auth@0.6.75
+  - @veloxts/client@0.6.75
+  - @veloxts/core@0.6.75
+  - @veloxts/router@0.6.75
+
 ## 0.6.74
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.75
+
+### Patch Changes
+
+- feat(create): add --pm flag to skip package manager prompt
+- Updated dependencies
+  - @veloxts/cli@0.6.75
+  - @veloxts/router@0.6.75
+  - @veloxts/validation@0.6.75
+
 ## 0.6.74
 
 ### Patch Changes

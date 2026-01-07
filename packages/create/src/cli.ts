@@ -339,7 +339,12 @@ async function main() {
     }
 
     // Run scaffolder
-    await createVeloxApp(parsed.projectName, parsed.template, parsed.database, parsed.packageManager);
+    await createVeloxApp(
+      parsed.projectName,
+      parsed.template,
+      parsed.database,
+      parsed.packageManager
+    );
   } catch (error) {
     // Handle unexpected errors with actionable guidance
     if (error instanceof Error) {
