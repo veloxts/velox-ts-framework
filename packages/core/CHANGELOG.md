@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.76
+
+### Patch Changes
+
+- fix(create): resolve all template type errors for zero-error scaffolding
+
 ## 0.6.75
 
 ### Patch Changes
