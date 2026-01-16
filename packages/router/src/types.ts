@@ -310,14 +310,16 @@ export interface ParentResourceConfig {
  * @template TInput - The validated input type
  * @template TOutput - The handler output type
  * @template TContext - The context type
+ * @template TType - The procedure type literal ('query' or 'mutation')
  */
 export interface CompiledProcedure<
   TInput = unknown,
   TOutput = unknown,
   TContext extends BaseContext = BaseContext,
+  TType extends ProcedureType = ProcedureType,
 > {
   /** Whether this is a query or mutation */
-  readonly type: ProcedureType;
+  readonly type: TType;
   /** The procedure handler function */
   readonly handler: ProcedureHandler<TInput, TOutput, TContext>;
   /** Input validation schema (if specified) */
@@ -366,7 +368,7 @@ export interface CompiledProcedure<
  * NOTE: Uses `any` for variance compatibility - see ProcedureDefinitions for explanation.
  */
 // biome-ignore lint/suspicious/noExplicitAny: Required for variance compatibility in Record type
-export type ProcedureRecord = Record<string, CompiledProcedure<any, any, any>>;
+export type ProcedureRecord = Record<string, CompiledProcedure<any, any, any, any>>;
 
 /**
  * Procedure collection with namespace
@@ -394,19 +396,25 @@ export interface ProcedureCollection<
  * Extracts the input type from a compiled procedure
  */
 export type InferProcedureInput<T> =
-  T extends CompiledProcedure<infer I, unknown, BaseContext> ? I : never;
+  T extends CompiledProcedure<infer I, unknown, BaseContext, ProcedureType> ? I : never;
 
 /**
  * Extracts the output type from a compiled procedure
  */
 export type InferProcedureOutput<T> =
-  T extends CompiledProcedure<unknown, infer O, BaseContext> ? O : never;
+  T extends CompiledProcedure<unknown, infer O, BaseContext, ProcedureType> ? O : never;
 
 /**
  * Extracts the context type from a compiled procedure
  */
 export type InferProcedureContext<T> =
-  T extends CompiledProcedure<unknown, unknown, infer C> ? C : never;
+  T extends CompiledProcedure<unknown, unknown, infer C, ProcedureType> ? C : never;
+
+/**
+ * Extracts the type (query/mutation) from a compiled procedure
+ */
+export type InferProcedureType<T> =
+  T extends CompiledProcedure<unknown, unknown, BaseContext, infer TType> ? TType : never;
 
 /**
  * Extracts procedure types from a collection

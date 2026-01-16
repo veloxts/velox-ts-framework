@@ -25,12 +25,13 @@ export type ProcedureType = 'query' | 'mutation';
  *
  * @template TInput - The validated input type
  * @template TOutput - The handler output type
+ * @template TType - The procedure type literal ('query' or 'mutation')
  *
  * @see {@link https://github.com/veloxts/velox-ts-framework/velox | @veloxts/router CompiledProcedure}
  */
-export interface ClientProcedure<TInput = unknown, TOutput = unknown> {
+export interface ClientProcedure<TInput = unknown, TOutput = unknown, TType extends ProcedureType = ProcedureType> {
   /** Whether this is a query or mutation */
-  readonly type: ProcedureType;
+  readonly type: TType;
   /** The procedure handler function - uses `any` for ctx to enable contravariant matching with CompiledProcedure */
   // biome-ignore lint/suspicious/noExplicitAny: Required for contravariant type compatibility with router's TContext
   readonly handler: (args: { input: TInput; ctx: any }) => TOutput | Promise<TOutput>;
@@ -54,7 +55,7 @@ export interface ClientProcedure<TInput = unknown, TOutput = unknown> {
  * NOTE: Uses `any` for variance compatibility with @veloxts/router's ProcedureRecord
  */
 // biome-ignore lint/suspicious/noExplicitAny: Required for variance compatibility
-export type ProcedureRecord = Record<string, ClientProcedure<any, any>>;
+export type ProcedureRecord = Record<string, ClientProcedure<any, any, any>>;
 
 /**
  * Procedure collection with namespace
@@ -81,14 +82,21 @@ export interface ProcedureCollection<
  *
  * Works with both ClientProcedure and @veloxts/router's CompiledProcedure
  */
-export type InferProcedureInput<T> = T extends ClientProcedure<infer I, unknown> ? I : never;
+export type InferProcedureInput<T> = T extends ClientProcedure<infer I, unknown, ProcedureType> ? I : never;
 
 /**
  * Extracts the output type from a procedure
  *
  * Works with both ClientProcedure and @veloxts/router's CompiledProcedure
  */
-export type InferProcedureOutput<T> = T extends ClientProcedure<unknown, infer O> ? O : never;
+export type InferProcedureOutput<T> = T extends ClientProcedure<unknown, infer O, ProcedureType> ? O : never;
+
+/**
+ * Extracts the type (query/mutation) from a procedure
+ *
+ * Works with both ClientProcedure and @veloxts/router's CompiledProcedure
+ */
+export type InferProcedureType<T> = T extends ClientProcedure<unknown, unknown, infer TType> ? TType : never;
 
 // ============================================================================
 // Router Type Construction

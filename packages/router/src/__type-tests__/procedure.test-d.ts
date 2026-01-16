@@ -155,8 +155,8 @@ const userProcedures = defineProcedures('users', {
     .mutation(async () => ({ id: '1' })),
 });
 
-// Collection should have namespace (typed as string, not literal)
-expectType<string>(userProcedures.namespace);
+// Collection should have namespace as literal type (preserved by const generic)
+expectType<'users'>(userProcedures.namespace);
 
 // Procedures should be accessible
 expectAssignable<CompiledProcedure<{ id: string }, { id: string; name: string }, BaseContext>>(

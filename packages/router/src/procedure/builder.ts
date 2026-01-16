@@ -275,7 +275,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
      */
     query(
       handler: ProcedureHandler<TInput, TOutput, TContext>
-    ): CompiledProcedure<TInput, TOutput, TContext> {
+    ): CompiledProcedure<TInput, TOutput, TContext, 'query'> {
       return compileProcedure('query', handler, state);
     },
 
@@ -284,7 +284,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
      */
     mutation(
       handler: ProcedureHandler<TInput, TOutput, TContext>
-    ): CompiledProcedure<TInput, TOutput, TContext> {
+    ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'> {
       return compileProcedure('mutation', handler, state);
     },
   };
@@ -299,11 +299,11 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
  *
  * @internal
  */
-function compileProcedure<TInput, TOutput, TContext extends BaseContext>(
-  type: 'query' | 'mutation',
+function compileProcedure<TInput, TOutput, TContext extends BaseContext, TType extends 'query' | 'mutation'>(
+  type: TType,
   handler: ProcedureHandler<TInput, TOutput, TContext>,
   state: BuilderRuntimeState
-): CompiledProcedure<TInput, TOutput, TContext> {
+): CompiledProcedure<TInput, TOutput, TContext, TType> {
   const typedMiddlewares = state.middlewares as ReadonlyArray<
     MiddlewareFunction<TInput, TContext, TContext, TOutput>
   >;

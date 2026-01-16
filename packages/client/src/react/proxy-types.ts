@@ -385,17 +385,20 @@ export interface VeloxMutationOptions<TOutput, TInput, TContext = unknown>
  * Resolves a procedure to its appropriate hook interface
  * based on whether it's a query or mutation
  *
- * Note: The type check uses 'mutation' first because CompiledProcedure's `type`
- * property may be widened to 'query' | 'mutation' union. We check mutation
- * explicitly and default to query for everything else.
+ * With the TType generic parameter preserved through the procedure builder chain,
+ * we can now properly discriminate between query and mutation types.
+ * The ClientProcedure<TInput, TOutput, TType> captures the literal 'query' or 'mutation'
+ * type, enabling accurate type resolution.
  *
  * @internal
  */
 type VeloxProcedureHooks<TProcedure> =
-  TProcedure extends ClientProcedure<infer TInput, infer TOutput>
-    ? TProcedure extends { readonly type: 'mutation' }
+  TProcedure extends ClientProcedure<infer TInput, infer TOutput, infer TType>
+    ? TType extends 'mutation'
       ? VeloxMutationProcedure<TInput, TOutput>
-      : VeloxQueryProcedure<TInput, TOutput>
+      : TType extends 'query'
+        ? VeloxQueryProcedure<TInput, TOutput>
+        : VeloxQueryProcedure<TInput, TOutput> // Fallback for union type (shouldn't happen with proper typing)
     : never;
 
 // ============================================================================

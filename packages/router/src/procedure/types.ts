@@ -318,7 +318,7 @@ export interface ProcedureBuilder<
    */
   query(
     handler: ProcedureHandler<TInput, TOutput, TContext>
-  ): CompiledProcedure<TInput, TOutput, TContext>;
+  ): CompiledProcedure<TInput, TOutput, TContext, 'query'>;
 
   /**
    * Finalizes the procedure as a mutation (write operation)
@@ -340,7 +340,7 @@ export interface ProcedureBuilder<
    */
   mutation(
     handler: ProcedureHandler<TInput, TOutput, TContext>
-  ): CompiledProcedure<TInput, TOutput, TContext>;
+  ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
 }
 
 // ============================================================================
@@ -386,7 +386,7 @@ export interface BuilderRuntimeState {
  * the concrete types at definition time. This `any` only allows the assignment.
  */
 // biome-ignore lint/suspicious/noExplicitAny: Required for variance compatibility in Record type
-export type ProcedureDefinitions = Record<string, CompiledProcedure<any, any, any>>;
+export type ProcedureDefinitions = Record<string, CompiledProcedure<any, any, any, any>>;
 
 /**
  * Type helper to preserve procedure types in a collection
