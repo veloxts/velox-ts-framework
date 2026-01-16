@@ -299,7 +299,12 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
  *
  * @internal
  */
-function compileProcedure<TInput, TOutput, TContext extends BaseContext, TType extends 'query' | 'mutation'>(
+function compileProcedure<
+  TInput,
+  TOutput,
+  TContext extends BaseContext,
+  TType extends 'query' | 'mutation',
+>(
   type: TType,
   handler: ProcedureHandler<TInput, TOutput, TContext>,
   state: BuilderRuntimeState

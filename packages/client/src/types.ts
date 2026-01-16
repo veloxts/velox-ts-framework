@@ -29,7 +29,11 @@ export type ProcedureType = 'query' | 'mutation';
  *
  * @see {@link https://github.com/veloxts/velox-ts-framework/velox | @veloxts/router CompiledProcedure}
  */
-export interface ClientProcedure<TInput = unknown, TOutput = unknown, TType extends ProcedureType = ProcedureType> {
+export interface ClientProcedure<
+  TInput = unknown,
+  TOutput = unknown,
+  TType extends ProcedureType = ProcedureType,
+> {
   /** Whether this is a query or mutation */
   readonly type: TType;
   /** The procedure handler function - uses `any` for ctx to enable contravariant matching with CompiledProcedure */
@@ -82,21 +86,24 @@ export interface ProcedureCollection<
  *
  * Works with both ClientProcedure and @veloxts/router's CompiledProcedure
  */
-export type InferProcedureInput<T> = T extends ClientProcedure<infer I, unknown, ProcedureType> ? I : never;
+export type InferProcedureInput<T> =
+  T extends ClientProcedure<infer I, unknown, ProcedureType> ? I : never;
 
 /**
  * Extracts the output type from a procedure
  *
  * Works with both ClientProcedure and @veloxts/router's CompiledProcedure
  */
-export type InferProcedureOutput<T> = T extends ClientProcedure<unknown, infer O, ProcedureType> ? O : never;
+export type InferProcedureOutput<T> =
+  T extends ClientProcedure<unknown, infer O, ProcedureType> ? O : never;
 
 /**
  * Extracts the type (query/mutation) from a procedure
  *
  * Works with both ClientProcedure and @veloxts/router's CompiledProcedure
  */
-export type InferProcedureType<T> = T extends ClientProcedure<unknown, unknown, infer TType> ? TType : never;
+export type InferProcedureType<T> =
+  T extends ClientProcedure<unknown, unknown, infer TType> ? TType : never;
 
 // ============================================================================
 // Router Type Construction

@@ -31,7 +31,3 @@ declare module '@veloxts/auth' {
     name?: string;
   }
 }
-
-// This export ensures the file is treated as a module, not a script.
-// Without an export, TypeScript may not process the declaration merging correctly.
-export {};
