@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.81
+
+### Patch Changes
+
+- fix(client): update ProcedureCollection type inference for two-parameter interface
+
 ## 0.6.80
 
 ### Patch Changes

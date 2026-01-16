@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.81
+
+### Patch Changes
+
+- fix(client): update ProcedureCollection type inference for two-parameter interface
+- Updated dependencies
+  - @veloxts/auth@0.6.81
+  - @veloxts/core@0.6.81
+  - @veloxts/orm@0.6.81
+  - @veloxts/router@0.6.81
+  - @veloxts/validation@0.6.81
+
 ## 0.6.80
 
 ### Patch Changes
