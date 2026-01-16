@@ -20,6 +20,7 @@
     "@prisma/adapter-better-sqlite3": "7.2.0",
     "@prisma/client": "7.2.0",
     "@prisma/client-runtime-utils": "7.2.0",
+    "@veloxts/core": "__VELOXTS_VERSION__",
     "@veloxts/velox": "__VELOXTS_VERSION__",
     "better-sqlite3": "12.5.0",
     "dotenv": "17.2.3",

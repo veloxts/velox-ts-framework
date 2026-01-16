@@ -21,6 +21,7 @@
     "@prisma/client": "7.2.0",
     "@prisma/client-runtime-utils": "7.2.0",
     "@veloxts/auth": "__VELOXTS_VERSION__",
+    "@veloxts/core": "__VELOXTS_VERSION__",
     "@veloxts/velox": "__VELOXTS_VERSION__",
     "bcrypt": "6.0.0",
     "better-sqlite3": "12.5.0",
