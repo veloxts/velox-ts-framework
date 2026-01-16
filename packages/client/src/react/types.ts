@@ -34,7 +34,7 @@ export type GetProcedure<
   TRouter,
   TNamespace extends keyof TRouter,
   TProcedureName extends keyof GetProceduresFromCollection<TRouter[TNamespace]>,
-> = TRouter[TNamespace] extends ProcedureCollection<infer TProcedures>
+> = TRouter[TNamespace] extends ProcedureCollection<infer _TN, infer TProcedures>
   ? TProcedureName extends keyof TProcedures
     ? TProcedures[TProcedureName]
     : never
@@ -45,9 +45,8 @@ export type GetProcedure<
  *
  * @template TCollection - The procedure collection type
  */
-export type GetProceduresFromCollection<TCollection> = TCollection extends ProcedureCollection
-  ? TCollection['procedures']
-  : never;
+export type GetProceduresFromCollection<TCollection> =
+  TCollection extends ProcedureCollection<string, infer TProcedures> ? TProcedures : never;
 
 // ============================================================================
 // Hook Options Types
