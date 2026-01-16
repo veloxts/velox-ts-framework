@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.78
+
+### Patch Changes
+
+- fix(ci): add Docker Hub login to avoid rate limits in tests, add rsc-auth template to smoke test matrix, Fix / types.d.ts reference error in template
+- Updated dependencies
+  - @veloxts/core@0.6.78
+  - @veloxts/validation@0.6.78
+
 ## 0.6.77
 
 ### Patch Changes

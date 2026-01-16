@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.78
+
+### Patch Changes
+
+- fix(ci): add Docker Hub login to avoid rate limits in tests, add rsc-auth template to smoke test matrix, Fix / types.d.ts reference error in template
+
 ## 0.6.77
 
 ### Patch Changes
