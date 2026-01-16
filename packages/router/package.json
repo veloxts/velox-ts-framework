@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/router",
-  "version": "0.6.79",
+  "version": "0.6.80",
   "description": "Procedure definitions with tRPC and REST routing for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",

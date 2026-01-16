@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.80
+
+### Patch Changes
+
+- fix(router,client): preserve procedure type literals for query/mutation discrimination + lint fixes
+- Updated dependencies
+  - @veloxts/auth@0.6.80
+  - @veloxts/client@0.6.80
+  - @veloxts/core@0.6.80
+  - @veloxts/router@0.6.80
+
 ## 0.6.79
 
 ### Patch Changes

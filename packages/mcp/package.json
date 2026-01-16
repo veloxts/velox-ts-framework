@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/mcp",
-  "version": "0.6.79",
+  "version": "0.6.80",
   "description": "Model Context Protocol server for VeloxTS - expose project context to AI tools",
   "type": "module",
   "main": "dist/index.js",
