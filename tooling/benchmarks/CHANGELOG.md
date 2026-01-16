@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.82
+
+### Patch Changes
+
+- fix(create): add @veloxts/core to SPA template dependencies
+
 ## 0.6.81
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.82
+
+### Patch Changes
+
+- fix(create): add @veloxts/core to SPA template dependencies
+- Updated dependencies
+  - @veloxts/cli@0.6.82
+  - @veloxts/router@0.6.82
+  - @veloxts/validation@0.6.82
+
 ## 0.6.81
 
 ### Patch Changes
