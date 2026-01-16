@@ -82,8 +82,8 @@ function generateHealthSchema(): string {
   return compileTemplate('api/schemas/health.ts', DEFAULT_CONFIG);
 }
 
-function generateApiTypesDts(): string {
-  return compileTemplate('api/types.d.ts', DEFAULT_CONFIG);
+function generateApiTypesTs(): string {
+  return compileTemplate('api/types.ts', DEFAULT_CONFIG);
 }
 
 function generateDockerCompose(config: TemplateConfig): string {
@@ -116,7 +116,7 @@ export function generateTrpcTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/src/procedures/users.ts', content: generateUserProcedures() },
     { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
     { path: 'apps/api/src/schemas/health.ts', content: generateHealthSchema() },
-    { path: 'apps/api/src/types.d.ts', content: generateApiTypesDts() },
+    { path: 'apps/api/src/types.ts', content: generateApiTypesTs() },
   ];
 
   // Add docker-compose for PostgreSQL

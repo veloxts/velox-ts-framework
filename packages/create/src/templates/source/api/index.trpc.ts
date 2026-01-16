@@ -10,6 +10,9 @@
 
 import 'dotenv/config';
 
+// Side-effect import for declaration merging (extends ctx.db type)
+import './types.js';
+
 import { databasePlugin, serve, veloxApp } from '@veloxts/velox';
 
 import { config } from './config/app.js';
