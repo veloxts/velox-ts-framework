@@ -9,6 +9,11 @@
  * The server entry point (index.ts) handles environment setup.
  */
 
+// Triple-slash reference ensures TypeScript processes our type augmentations
+// for BaseContext and User before type-checking procedures.
+// This is NOT a runtime import - it only affects type checking.
+/// <reference path="./types.ts" />
+
 import { createRouter, extractRoutes } from '@veloxts/velox';
 
 import { authProcedures } from './procedures/auth.js';

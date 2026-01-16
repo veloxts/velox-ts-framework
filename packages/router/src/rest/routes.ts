@@ -8,7 +8,7 @@
  * @module rest/routes
  */
 
-import type { ProcedureCollection, ProcedureRecord } from '../types.js';
+import type { HttpMethod, ProcedureCollection, ProcedureRecord } from '../types.js';
 import { buildRestPath, parseNamingConvention } from './naming.js';
 
 /**
@@ -17,7 +17,7 @@ import { buildRestPath, parseNamingConvention } from './naming.js';
  * Matches the RouteEntry interface in @veloxts/client
  */
 export interface RouteEntry {
-  method: string;
+  method: HttpMethod;
   path: string;
   kind: 'query' | 'mutation';
 }
@@ -128,7 +128,7 @@ export function extractRoutes(collections: ProcedureCollection[]): RouteMap {
  * Infer HTTP method from procedure kind
  * @internal
  */
-function inferMethodFromKind(kind: 'query' | 'mutation'): string {
+function inferMethodFromKind(kind: 'query' | 'mutation'): HttpMethod {
   return kind === 'query' ? 'GET' : 'POST';
 }
 
