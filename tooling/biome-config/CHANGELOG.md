@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.79
+
+### Patch Changes
+
+- fix(router,client): preserve namespace literal types for proper type narrowing
+
 ## 0.6.78
 
 ### Patch Changes

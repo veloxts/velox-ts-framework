@@ -1,5 +1,13 @@
 # @veloxts/scheduler
 
+## 0.6.79
+
+### Patch Changes
+
+- fix(router,client): preserve namespace literal types for proper type narrowing
+- Updated dependencies
+  - @veloxts/core@0.6.79
+
 ## 0.6.78
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.79
+
+### Patch Changes
+
+- fix(router,client): preserve namespace literal types for proper type narrowing
+- Updated dependencies
+  - @veloxts/auth@0.6.79
+  - @veloxts/core@0.6.79
+  - @veloxts/orm@0.6.79
+  - @veloxts/router@0.6.79
+  - @veloxts/validation@0.6.79
+
 ## 0.6.78
 
 ### Patch Changes
