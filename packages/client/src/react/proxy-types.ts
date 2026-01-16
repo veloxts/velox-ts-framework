@@ -434,7 +434,7 @@ export type VeloxNamespace<TProcedures extends ProcedureRecord> = {
  * ```
  */
 export type VeloxHooks<TRouter> = {
-  [K in keyof TRouter]: TRouter[K] extends ProcedureCollection<infer TProcedures>
+  [K in keyof TRouter]: TRouter[K] extends ProcedureCollection<infer _TNamespace, infer TProcedures>
     ? VeloxNamespace<TProcedures>
     : never;
 };

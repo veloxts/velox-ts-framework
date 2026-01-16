@@ -59,11 +59,19 @@ export type ProcedureRecord = Record<string, ClientProcedure<any, any>>;
 /**
  * Procedure collection with namespace
  *
- * Matches the structure of @veloxts/router's ProcedureCollection
+ * Matches the structure of @veloxts/router's ProcedureCollection.
+ * The TNamespace parameter captures the literal namespace string for proper
+ * type narrowing in router types.
+ *
+ * @template TNamespace - The literal namespace string (e.g., 'users', 'posts')
+ * @template TProcedures - The record of named procedures
  */
-export interface ProcedureCollection<TProcedures extends ProcedureRecord = ProcedureRecord> {
+export interface ProcedureCollection<
+  TNamespace extends string = string,
+  TProcedures extends ProcedureRecord = ProcedureRecord,
+> {
   /** Resource namespace (e.g., 'users', 'posts') */
-  readonly namespace: string;
+  readonly namespace: TNamespace;
   /** Named procedures in this collection */
   readonly procedures: TProcedures;
 }

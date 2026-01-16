@@ -13,32 +13,34 @@ import type { ProcedureCollection, ProcedureRecord } from './types.js';
 // ============================================================================
 
 /**
- * Extracts the namespace from a ProcedureCollection as a literal type
+ * Extracts the namespace literal type from a ProcedureCollection
+ *
+ * With the updated ProcedureCollection<TNamespace, TProcedures> signature,
+ * TNamespace is now a literal type (e.g., 'users', 'auth') rather than just string.
  */
-type ExtractNamespace<T> = T extends ProcedureCollection<infer _P> & { readonly namespace: infer N }
-  ? N extends string
-    ? N
-    : never
-  : never;
+type ExtractNamespace<T> = T extends ProcedureCollection<infer N, infer _P> ? N : never;
 
 /**
  * Creates a union of namespaces from an array of ProcedureCollections
  */
-type CollectionNamespaces<T extends readonly ProcedureCollection[]> = {
+type CollectionNamespaces<T extends readonly ProcedureCollection<string, ProcedureRecord>[]> = {
   [K in keyof T]: ExtractNamespace<T[K]>;
 }[number];
 
 /**
  * Maps namespaces to their corresponding ProcedureCollections
+ *
+ * The Extract utility type now works correctly because TNamespace is a literal type,
+ * allowing proper narrowing from `'users' | 'auth'` to the specific `'users'` collection.
  */
-type RouterFromCollections<T extends readonly ProcedureCollection[]> = {
+type RouterFromCollections<T extends readonly ProcedureCollection<string, ProcedureRecord>[]> = {
   [K in CollectionNamespaces<T>]: Extract<T[number], { namespace: K }>;
 };
 
 /**
  * Result type from createRouter
  */
-export interface RouterResult<T extends readonly ProcedureCollection[]> {
+export interface RouterResult<T extends readonly ProcedureCollection<string, ProcedureRecord>[]> {
   /** Array of procedure collections for routing */
   readonly collections: T;
   /** Object mapping namespaces to procedure collections */
@@ -81,7 +83,7 @@ export interface RouterResult<T extends readonly ProcedureCollection[]> {
  * export const routes = extractRoutes(collections);
  * ```
  */
-export function createRouter<T extends ProcedureCollection<ProcedureRecord>[]>(
+export function createRouter<T extends ProcedureCollection<string, ProcedureRecord>[]>(
   ...collections: T
 ): RouterResult<T> {
   const router = Object.fromEntries(
@@ -115,7 +117,7 @@ export function createRouter<T extends ProcedureCollection<ProcedureRecord>[]>(
  * export type AppRouter = typeof router;
  * ```
  */
-export function toRouter<T extends ProcedureCollection<ProcedureRecord>[]>(
+export function toRouter<T extends ProcedureCollection<string, ProcedureRecord>[]>(
   ...collections: T
 ): RouterFromCollections<T> {
   return Object.fromEntries(

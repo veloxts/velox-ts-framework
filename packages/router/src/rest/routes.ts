@@ -147,7 +147,7 @@ function inferMethodFromKind(kind: 'query' | 'mutation'): HttpMethod {
  * ```
  */
 export type ExtractRoutesType<TRouter> = {
-  [K in keyof TRouter]: TRouter[K] extends ProcedureCollection<infer P>
+  [K in keyof TRouter]: TRouter[K] extends ProcedureCollection<infer _N, infer P>
     ? ExtractNamespaceRoutes<P>
     : never;
 };

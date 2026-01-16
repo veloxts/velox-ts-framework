@@ -422,11 +422,12 @@ export interface DefineProceduresOptions {
  * In development mode, emits warnings for procedure names that don't follow
  * naming conventions (which means they won't generate REST routes).
  *
+ * @template TNamespace - The literal namespace string (inferred from argument)
  * @template TProcedures - The record of named procedures
  * @param namespace - Resource namespace (e.g., 'users', 'posts')
  * @param procedures - Object containing named procedures
  * @param options - Optional configuration for warnings
- * @returns Procedure collection with preserved types
+ * @returns Procedure collection with preserved types including literal namespace
  *
  * @example
  * ```typescript
@@ -445,6 +446,7 @@ export interface DefineProceduresOptions {
  * });
  *
  * // Types are fully preserved:
+ * // userProcedures.namespace -> 'users' (literal type)
  * // userProcedures.procedures.getUser.inputSchema -> { id: string }
  * // userProcedures.procedures.createUser -> mutation type
  * ```
@@ -479,11 +481,14 @@ export interface DefineProceduresOptions {
  * });
  * ```
  */
-export function defineProcedures<TProcedures extends ProcedureDefinitions>(
-  namespace: string,
+export function defineProcedures<
+  const TNamespace extends string,
+  TProcedures extends ProcedureDefinitions,
+>(
+  namespace: TNamespace,
   procedures: TProcedures,
   options?: DefineProceduresOptions
-): ProcedureCollection<InferProcedures<TProcedures>> {
+): ProcedureCollection<TNamespace, InferProcedures<TProcedures>> {
   // Normalize warning options (handles shorthands)
   const warnings = normalizeWarningOption(options?.warnings);
 
