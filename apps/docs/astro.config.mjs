@@ -1,9 +1,10 @@
-import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   site: 'https://veloxts.dev',
   base: '/docs',
+  outDir: './dist/docs',
   integrations: [
     starlight({
       title: 'VeloxTS',

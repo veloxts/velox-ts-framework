@@ -6,8 +6,9 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && cp public/index.html dist/index.html",
     "preview": "astro preview",
+    "serve": "serve dist -l ${PORT:-4321}",
     "astro": "astro"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@types/node": "22.10.10",
+    "serve": "14.2.5",
     "typescript": "5.7.3"
   }
 }
