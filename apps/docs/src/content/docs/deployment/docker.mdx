@@ -1,0 +1,87 @@
+---
+title: Docker
+description: Containerize your VeloxTS application.
+---
+
+Deploy VeloxTS with Docker for consistent, portable deployments.
+
+## Dockerfile
+
+```dockerfile
+FROM node:20-alpine AS base
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Dependencies
+FROM base AS deps
+COPY package.json pnpm-lock.yaml ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+RUN pnpm install --frozen-lockfile
+
+# Build
+FROM base AS build
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN pnpm build
+RUN pnpm prisma generate
+
+# Production
+FROM base AS production
+ENV NODE_ENV=production
+
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./
+COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/prisma.config.ts ./
+
+EXPOSE 3030
+
+CMD ["node", "dist/index.js"]
+```
+
+## Docker Compose
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3030:3030"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/app
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=app
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+## Build and Run
+
+```bash
+docker build -t my-velox-app .
+docker run -p 3030:3030 --env-file .env.production my-velox-app
+```
+
+## Next Steps
+
+- [Railway](/docs/deployment/railway/) - PaaS deployment
+- [Production Checklist](/docs/deployment/production-checklist/) - Full checklist

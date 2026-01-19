@@ -1,0 +1,67 @@
+---
+title: Production Checklist
+description: Ensure your app is ready for production.
+---
+
+Complete this checklist before deploying to production.
+
+## Environment
+
+- [ ] `NODE_ENV=production` is set
+- [ ] All secrets are secure (not committed to git)
+- [ ] Environment variables are configured on host
+
+## Security
+
+- [ ] JWT secrets are 32+ characters
+- [ ] Database credentials are secure
+- [ ] CORS origins are restricted (not `*`)
+- [ ] Rate limiting is enabled on auth endpoints
+- [ ] HTTPS is enforced
+
+## Database
+
+- [ ] Production database URL is configured
+- [ ] Connection pooling is appropriate
+- [ ] Migrations are run: `pnpm prisma migrate deploy`
+- [ ] Backups are configured
+
+## Performance
+
+- [ ] Build is optimized: `pnpm build`
+- [ ] Unnecessary dev dependencies removed
+- [ ] Logging level is appropriate
+
+## Monitoring
+
+- [ ] Health check endpoint works: `/api/health`
+- [ ] Error tracking is configured (Sentry, etc.)
+- [ ] Logging aggregation is set up
+
+## Graceful Shutdown
+
+```typescript
+const shutdown = async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+```
+
+## Health Endpoint
+
+```typescript
+health: procedure()
+  .output(z.object({ status: z.string(), timestamp: z.string() }))
+  .query(() => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  })),
+```
+
+## Next Steps
+
+- [Docker](/docs/deployment/docker/) - Container deployment
+- [Railway](/docs/deployment/railway/) - PaaS deployment

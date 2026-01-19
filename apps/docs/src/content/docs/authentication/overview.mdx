@@ -1,0 +1,106 @@
+---
+title: Authentication Overview
+description: Secure your VeloxTS application with authentication.
+---
+
+VeloxTS provides two authentication strategies: JWT and Sessions.
+
+## Quick Comparison
+
+| Feature | JWT | Sessions |
+|---------|-----|----------|
+| Storage | Client (token) | Server (store) |
+| Scalability | Stateless | Requires shared store |
+| Revocation | Difficult | Easy |
+| Use case | APIs, mobile | Web apps, SSR |
+
+## JWT Authentication
+
+Token-based, stateless authentication with access/refresh token pairs:
+
+```typescript
+import { jwtManager, authPlugin, authenticated } from '@veloxts/auth';
+
+// Configure JWT with access and refresh tokens
+const jwt = jwtManager({
+  secret: process.env.JWT_SECRET!,
+  refreshSecret: process.env.JWT_REFRESH_SECRET!,
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d',
+});
+
+app.register(authPlugin, { jwt });
+
+// Protect procedures with guards
+getProfile: procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => ctx.user),
+```
+
+[Learn more about JWT](/docs/authentication/jwt/)
+
+## Session Authentication
+
+Cookie-based, server-side sessions with secure defaults:
+
+```typescript
+import { sessionMiddleware, inMemorySessionStore } from '@veloxts/auth';
+
+const session = sessionMiddleware({
+  secret: process.env.SESSION_SECRET!,  // 32+ chars
+  store: inMemorySessionStore(),        // Use Redis in production
+  cookie: {
+    secure: true,
+    httpOnly: true,
+    sameSite: 'lax',
+  },
+  userLoader: async (userId) => db.user.findUnique({ where: { id: userId } }),
+});
+
+// Protect procedures
+getProfile: procedure()
+  .use(session.requireAuth())
+  .query(({ ctx }) => ctx.user),
+```
+
+[Learn more about Sessions](/docs/authentication/sessions/)
+
+## Guards
+
+Protect procedures with authorization checks:
+
+```typescript
+import { authenticated, hasRole, hasPermission } from '@veloxts/auth';
+
+// Must be logged in
+.guard(authenticated)
+
+// Must have specific role
+.guard(hasRole('admin'))
+
+// Must have permission
+.guard(hasPermission('users:write'))
+
+// Chain multiple guards
+.guard(authenticated)
+.guard(hasRole('editor'))
+```
+
+Guards narrow `ctx.user` type - after `authenticated`, `ctx.user` is guaranteed to exist.
+
+[Learn more about Guards](/docs/authentication/guards/)
+
+## Templates
+
+Quick start with authentication:
+
+```bash
+npx create-velox-app my-app --auth
+npx create-velox-app my-app --rsc-auth
+```
+
+## Next Steps
+
+- [JWT](/docs/authentication/jwt/) - Token authentication
+- [Sessions](/docs/authentication/sessions/) - Cookie-based auth
+- [Guards](/docs/authentication/guards/) - Authorization

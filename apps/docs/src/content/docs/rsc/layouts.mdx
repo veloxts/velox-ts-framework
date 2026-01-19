@@ -1,0 +1,81 @@
+---
+title: Layouts
+description: Nested layout composition for consistent UI.
+---
+
+Layouts wrap pages with shared UI elements.
+
+## Root Layout
+
+```tsx
+// app/layouts/root.tsx
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <header>
+          <nav>...</nav>
+        </header>
+        <main>{children}</main>
+        <footer>...</footer>
+      </body>
+    </html>
+  );
+}
+```
+
+## Nested Layouts
+
+```tsx
+// app/layouts/dashboard.tsx
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="dashboard">
+      <aside>
+        <nav>Dashboard Nav</nav>
+      </aside>
+      <div className="content">{children}</div>
+    </div>
+  );
+}
+```
+
+## Route Group Layouts
+
+Apply layouts to route groups:
+
+```
+app/
+├── layouts/
+│   ├── root.tsx
+│   ├── marketing.tsx
+│   └── dashboard.tsx
+├── pages/
+│   ├── (marketing)/      # Uses marketing layout
+│   │   ├── about.tsx
+│   │   └── pricing.tsx
+│   └── (dashboard)/      # Uses dashboard layout
+│       ├── settings.tsx
+│       └── profile.tsx
+```
+
+## Layout Props
+
+Layouts receive children and route info:
+
+```tsx
+export default function Layout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Record<string, string>;
+}) {
+  return <div>{children}</div>;
+}
+```
+
+## Next Steps
+
+- [File Routing](/docs/rsc/file-routing/) - Route patterns
+- [Server Actions](/docs/rsc/server-actions/) - Mutations

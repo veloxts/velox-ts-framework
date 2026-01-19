@@ -1,0 +1,98 @@
+---
+title: Session Authentication
+description: Cookie-based session authentication.
+---
+
+Session authentication stores state server-side, using cookies for identification.
+
+## Setup
+
+```typescript
+import { sessionMiddleware, inMemorySessionStore } from '@veloxts/auth';
+
+const session = sessionMiddleware({
+  secret: process.env.SESSION_SECRET!,
+  store: inMemorySessionStore(), // Use Redis in production
+  cookie: {
+    name: 'session',
+    secure: true,
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 86400, // 24 hours
+  },
+});
+```
+
+## Login Flow
+
+```typescript
+import { loginSession } from '@veloxts/auth';
+
+login: procedure()
+  .use(session.optionalAuth())
+  .input(LoginSchema)
+  .mutation(async ({ input, ctx }) => {
+    const user = await verifyCredentials(input);
+
+    // Create session
+    await loginSession(ctx.session, {
+      id: user.id,
+      email: user.email,
+    });
+
+    return { user };
+  }),
+```
+
+## Logout
+
+```typescript
+import { logoutSession } from '@veloxts/auth';
+
+logout: procedure()
+  .use(session.requireAuth())
+  .mutation(async ({ ctx }) => {
+    await logoutSession(ctx.session);
+    return { success: true };
+  }),
+```
+
+## Protecting Routes
+
+```typescript
+getProfile: procedure()
+  .use(session.requireAuth())
+  .query(({ ctx }) => ctx.user),
+
+// Optional auth (user may or may not be logged in)
+homePage: procedure()
+  .use(session.optionalAuth())
+  .query(({ ctx }) => ({ user: ctx.user ?? null })),
+```
+
+## Flash Messages
+
+```typescript
+// Set flash message
+ctx.session.flash('success', 'Profile updated!');
+
+// Read flash message (one-time)
+const message = ctx.session.getFlash('success');
+```
+
+## Production: Redis Store
+
+```typescript
+import { createRedisSessionStore } from '@veloxts/auth';
+
+const session = sessionMiddleware({
+  store: createRedisSessionStore({
+    url: process.env.REDIS_URL,
+  }),
+});
+```
+
+## Next Steps
+
+- [JWT](/docs/authentication/jwt/) - Alternative approach
+- [Guards](/docs/authentication/guards/) - Authorization

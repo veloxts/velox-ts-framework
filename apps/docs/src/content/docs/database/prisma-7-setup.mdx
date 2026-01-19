@@ -1,0 +1,387 @@
+---
+title: Prisma 7 Setup
+description: Configure Prisma 7 with driver adapters for VeloxTS applications.
+---
+
+import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+VeloxTS uses Prisma 7, which introduces significant architectural changes from previous versions.
+
+<Aside type="caution" title="Breaking Changes in Prisma 7">
+Prisma 7 removes `datasourceUrl` from PrismaClient and requires driver adapters. All VeloxTS templates are pre-configured—this guide is for understanding or migrating existing projects.
+</Aside>
+
+## What Changed in Prisma 7?
+
+<Tabs>
+  <TabItem label="Prisma 6 (Old)">
+```prisma
+// schema.prisma
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")  // URL configured here
+}
+```
+
+```typescript
+// database.ts
+import { PrismaClient } from '@prisma/client';
+export const db = new PrismaClient();  // Just works
+```
+  </TabItem>
+  <TabItem label="Prisma 7 (New)">
+```prisma
+// schema.prisma
+datasource db {
+  provider = "sqlite"
+  // NO url field - configured in prisma.config.ts
+}
+```
+
+```typescript
+// prisma.config.ts (NEW - required)
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
+
+export default defineConfig({
+  schema: './prisma/schema.prisma',
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+});
+```
+
+```typescript
+// database.ts
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '@prisma/client';
+
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! });
+export const db = new PrismaClient({ adapter });  // Adapter required
+```
+  </TabItem>
+</Tabs>
+
+### Why Driver Adapters?
+
+- **Separation of concerns**: CLI configuration (migrations) separate from runtime (client)
+- **Connection control**: Full control over pooling, timeouts, and behavior
+- **Edge support**: Enables serverless and edge deployments
+- **Type safety**: Type-safe adapter configuration
+
+## Quick Setup
+
+<Steps>
+
+1. **Create `prisma.config.ts`** at project root:
+
+   ```typescript
+   import 'dotenv/config';
+   import { defineConfig } from 'prisma/config';
+
+   export default defineConfig({
+     schema: './prisma/schema.prisma',
+     datasource: {
+       url: process.env.DATABASE_URL,
+     },
+   });
+   ```
+
+2. **Update `prisma/schema.prisma`** (remove url field):
+
+   ```prisma
+   generator client {
+     provider = "prisma-client-js"
+     output   = "../node_modules/.prisma/client"
+   }
+
+   datasource db {
+     provider = "sqlite"
+     // NO url here - it's in prisma.config.ts
+   }
+
+   model User {
+     id        String   @id @default(uuid())
+     name      String
+     email     String   @unique
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+
+     @@map("users")
+   }
+   ```
+
+3. **Create database client** at `src/config/database.ts`:
+
+   ```typescript
+   import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+   import { PrismaClient } from '@prisma/client';
+
+   if (!process.env.DATABASE_URL) {
+     throw new Error('DATABASE_URL environment variable is required');
+   }
+
+   const adapter = new PrismaBetterSqlite3({
+     url: process.env.DATABASE_URL,
+   });
+
+   export const db = new PrismaClient({ adapter });
+   ```
+
+4. **Set environment variable** in `.env`:
+
+   ```bash
+   DATABASE_URL="file:./dev.db"
+   ```
+
+5. **Generate client and push schema**:
+
+   ```bash
+   pnpm prisma generate
+   pnpm prisma db push
+   ```
+
+</Steps>
+
+## Database-Specific Setup
+
+### SQLite (Development)
+
+Best for local development, testing, and demos.
+
+**Dependencies:**
+```json
+{
+  "@prisma/adapter-better-sqlite3": "7.2.0",
+  "@prisma/client": "7.2.0",
+  "better-sqlite3": "11.9.1",
+  "prisma": "7.2.0"
+}
+```
+
+**Configuration:**
+```typescript
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '@prisma/client';
+
+const adapter = new PrismaBetterSqlite3({
+  url: process.env.DATABASE_URL,  // "file:./dev.db"
+});
+export const db = new PrismaClient({ adapter });
+```
+
+<Aside type="note">
+After installing, rebuild the native module: `npm rebuild better-sqlite3`
+</Aside>
+
+### PostgreSQL (Production)
+
+Best for production applications with high concurrency.
+
+**Dependencies:**
+```json
+{
+  "@prisma/adapter-pg": "7.2.0",
+  "@prisma/client": "7.2.0",
+  "pg": "8.13.0",
+  "prisma": "7.2.0"
+}
+```
+
+**Configuration:**
+```typescript
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
+
+// Pass connectionString directly (Prisma 7 pattern)
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+export const db = new PrismaClient({ adapter });
+```
+
+**Environment:**
+```bash
+DATABASE_URL="postgresql://user:password@localhost:5432/mydb?schema=public"
+```
+
+## VeloxTS Integration
+
+Extend the context to include your Prisma client:
+
+```typescript
+// src/config/database.ts
+import type { BaseContext } from '@veloxts/core';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '@prisma/client';
+
+const adapter = new PrismaBetterSqlite3({
+  url: process.env.DATABASE_URL!,
+});
+
+export const db = new PrismaClient({ adapter });
+
+// Extend VeloxTS context
+declare module '@veloxts/core' {
+  interface BaseContext {
+    db: PrismaClient;
+  }
+}
+```
+
+Use in procedures:
+
+```typescript
+import { procedures, procedure } from '@veloxts/velox';
+import { z } from 'zod';
+
+export const userProcedures = procedures('users', {
+  listUsers: procedure()
+    .query(({ ctx }) => ctx.db.user.findMany()),
+
+  getUser: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .query(({ input, ctx }) => ctx.db.user.findUnique({
+      where: { id: input.id },
+    })),
+});
+```
+
+## Common Errors
+
+### "Unknown property datasourceUrl"
+
+**Cause:** Prisma 7 removed `datasourceUrl` from PrismaClient constructor.
+
+**Fix:** Use a driver adapter instead:
+```typescript
+// WRONG (Prisma 6 pattern)
+const db = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
+
+// CORRECT (Prisma 7 pattern)
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! });
+const db = new PrismaClient({ adapter });
+```
+
+### "The datasource property 'url' is no longer supported"
+
+**Cause:** `url` field in `schema.prisma` datasource block.
+
+**Fix:** Remove `url` from schema, configure in `prisma.config.ts`:
+```prisma
+// WRONG
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")  // Remove this
+}
+
+// CORRECT
+datasource db {
+  provider = "sqlite"
+}
+```
+
+### "Cannot find module 'better-sqlite3'"
+
+**Cause:** Native module not rebuilt after installation.
+
+**Fix:**
+```bash
+npm rebuild better-sqlite3
+```
+
+### "PrismaBetterSQLite3 is not a constructor"
+
+**Cause:** Incorrect class name casing.
+
+**Fix:** Use `PrismaBetterSqlite3` (lowercase "qlite"):
+```typescript
+// WRONG
+import { PrismaBetterSQLite3 } from '@prisma/adapter-better-sqlite3';
+
+// CORRECT
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+```
+
+### "ENOENT: no such file or directory"
+
+**Cause:** Database path relative to wrong directory.
+
+**Fix:** Paths are relative to project root (where `prisma.config.ts` is):
+```bash
+# CORRECT
+DATABASE_URL="file:./dev.db"
+
+# WRONG (if running from src/)
+DATABASE_URL="file:../dev.db"
+```
+
+## Migrating from Prisma 6
+
+<Steps>
+
+1. **Update dependencies**:
+   ```bash
+   pnpm add @prisma/client@7.2.0 @prisma/adapter-better-sqlite3@7.2.0
+   pnpm add -D prisma@7.2.0
+   ```
+
+2. **Remove url from schema**:
+   ```diff
+     datasource db {
+       provider = "sqlite"
+   -   url      = env("DATABASE_URL")
+     }
+   ```
+
+3. **Create `prisma.config.ts`**:
+   ```typescript
+   import 'dotenv/config';
+   import { defineConfig } from 'prisma/config';
+
+   export default defineConfig({
+     schema: './prisma/schema.prisma',
+     datasource: {
+       url: process.env.DATABASE_URL!,
+     },
+   });
+   ```
+
+4. **Update database client**:
+   ```typescript
+   // Before (Prisma 6)
+   import { PrismaClient } from '@prisma/client';
+   export const db = new PrismaClient();
+
+   // After (Prisma 7)
+   import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+   import { PrismaClient } from '@prisma/client';
+
+   const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! });
+   export const db = new PrismaClient({ adapter });
+   ```
+
+5. **Rebuild and regenerate**:
+   ```bash
+   npm rebuild better-sqlite3
+   pnpm prisma generate
+   ```
+
+</Steps>
+
+## Troubleshooting Checklist
+
+- [ ] Prisma version is 7.x: `pnpm list prisma`
+- [ ] Adapter package installed: `pnpm list @prisma/adapter-*`
+- [ ] Native module rebuilt (SQLite): `npm rebuild better-sqlite3`
+- [ ] No `url` field in `schema.prisma` datasource
+- [ ] `prisma.config.ts` exists with correct URL
+- [ ] `DATABASE_URL` environment variable is set
+- [ ] Prisma client generated: `pnpm prisma generate`
+- [ ] Database schema pushed: `pnpm prisma db push`
+
+## Next Steps
+
+- [Driver Adapters](/docs/database/driver-adapters/) - All adapter options
+- [Migrations](/docs/database/migrations/) - Schema changes
+- [Seeding](/docs/database/seeding/) - Test data

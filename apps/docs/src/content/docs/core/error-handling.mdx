@@ -1,0 +1,72 @@
+---
+title: Error Handling
+description: Handle errors consistently across your API.
+---
+
+VeloxTS provides structured error handling with type-safe error responses.
+
+## Throwing Errors
+
+```typescript
+import { NotFoundError, ValidationError, fail } from '@veloxts/core';
+
+getUser: procedure()
+  .input(z.object({ id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    return user;
+  }),
+```
+
+## Error Types
+
+| Error | Status | Use Case |
+|-------|--------|----------|
+| `ValidationError` | 400 | Invalid input |
+| `NotFoundError` | 404 | Resource not found |
+| `UnauthorizedError` | 401 | Not authenticated |
+| `ForbiddenError` | 403 | Not authorized |
+| `ConflictError` | 409 | Resource conflict |
+
+## Custom Errors
+
+```typescript
+import { VeloxError } from '@veloxts/core';
+
+class PaymentError extends VeloxError {
+  constructor(message: string) {
+    super(message, 'PAYMENT_FAILED', 402);
+  }
+}
+```
+
+## Error Response Format
+
+```json
+{
+  "error": {
+    "message": "User not found",
+    "code": "NOT_FOUND"
+  }
+}
+```
+
+## Error Codes
+
+VeloxTS uses structured error codes (E1xxx-E9xxx) with fix suggestions:
+
+```
+VeloxError[E1001]: Procedure "getUser" missing required input schema
+
+  Fix: Add .input() to your procedure definition
+```
+
+## Next Steps
+
+- [Validation](/docs/validation/error-handling/) - Validation errors
+- [Reference](/docs/reference/error-codes/) - Error code catalog

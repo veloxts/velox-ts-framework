@@ -1,0 +1,105 @@
+---
+title: tRPC API Architecture
+description: Maximum type safety with tRPC-only APIs.
+---
+
+Use this architecture when all your clients are TypeScript and you want maximum type safety.
+
+## When to Choose tRPC
+
+- All clients are TypeScript
+- Maximum type safety is priority
+- Internal APIs between services
+- No need for REST/OpenAPI
+
+## Project Setup
+
+```bash
+npx create-velox-app my-api --trpc
+```
+
+## How It Works
+
+With `--trpc`, VeloxTS skips REST generation. You get pure tRPC:
+
+```typescript
+// src/procedures/users.ts
+import { procedures, procedure } from '@veloxts/velox';
+import { z } from '@veloxts/velox';
+
+export const userProcedures = procedures('users', {
+  list: procedure()
+    .output(z.array(UserSchema))
+    .query(({ ctx }) => ctx.db.user.findMany()),
+
+  get: procedure()
+    .input(z.object({ id: z.string() }))
+    .query(({ input, ctx }) => ctx.db.user.findUnique({ where: { id: input.id } })),
+
+  create: procedure()
+    .input(CreateUserSchema)
+    .mutation(({ input, ctx }) => ctx.db.user.create({ data: input })),
+});
+```
+
+## Client Usage
+
+The frontend imports types directly from the backend:
+
+```typescript
+// frontend/src/api.ts
+import { createTRPCClient } from '@trpc/client';
+import type { AppRouter } from '../../api/src/router';
+
+export const trpc = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: 'http://localhost:3030/trpc',
+    }),
+  ],
+});
+
+// Fully typed!
+const users = await trpc.users.list.query();
+const user = await trpc.users.get.query({ id: '123' });
+```
+
+## Type Inference
+
+Types flow automatically:
+
+```typescript
+// Backend defines the shape
+const createUser = procedure()
+  .input(z.object({
+    name: z.string(),
+    email: z.string().email(),
+  }))
+  .mutation(...)
+
+// Frontend gets the types
+trpc.users.create.mutate({
+  name: 'Alice',  // TypeScript knows this is required
+  email: 'alice@example.com',
+  // @ts-error - 'age' doesn't exist
+  age: 30,
+});
+```
+
+## When to Add REST
+
+You can add REST later if needed:
+
+```typescript
+// Enable REST adapter for specific procedures
+export const userProcedures = procedures('users', {
+  // This gets both tRPC and REST
+  listUsers: procedure()...
+});
+```
+
+## Next Steps
+
+- [Procedures](/docs/router/procedures/) - Procedure API reference
+- [tRPC Adapter](/docs/router/trpc-adapter/) - tRPC configuration
+- [Client Package](/docs/rsc/client-package/) - Frontend client

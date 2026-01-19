@@ -1,0 +1,251 @@
+---
+title: Configuration Reference
+description: Complete configuration options for VeloxTS applications.
+---
+
+All configuration options available in VeloxTS applications.
+
+## Application Configuration
+
+```typescript
+import { createApp } from '@veloxts/core';
+
+const app = createApp({
+  // Server options
+  port: 3030,
+  host: '0.0.0.0',
+
+  // Logging
+  logger: {
+    level: 'info', // 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace'
+    transport: {
+      target: 'pino-pretty',
+    },
+  },
+
+  // CORS
+  cors: {
+    origin: ['http://localhost:3000'],
+    credentials: true,
+  },
+});
+```
+
+## Router Configuration
+
+```typescript
+import { createRouter } from '@veloxts/router';
+
+const router = createRouter({
+  // Base path for all routes
+  prefix: '/api',
+
+  // tRPC configuration
+  trpc: {
+    endpoint: '/trpc',
+  },
+
+  // REST adapter
+  rest: {
+    enabled: true,
+  },
+
+  // OpenAPI generation
+  openapi: {
+    enabled: true,
+    path: '/openapi.json',
+    info: {
+      title: 'My API',
+      version: '1.0.0',
+    },
+  },
+});
+```
+
+## Auth Configuration
+
+### JWT Options
+
+```typescript
+import { jwtManager } from '@veloxts/auth';
+
+const jwt = jwtManager({
+  secret: process.env.JWT_SECRET!,
+  refreshSecret: process.env.JWT_REFRESH_SECRET!,
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d',
+
+  // Optional: custom claims
+  audience: 'my-app',
+  issuer: 'my-api',
+});
+```
+
+### Session Options
+
+```typescript
+import { sessionMiddleware } from '@veloxts/auth';
+
+const session = sessionMiddleware({
+  secret: process.env.SESSION_SECRET!,
+
+  store: inMemorySessionStore(), // or redisSessionStore()
+
+  cookie: {
+    name: 'session',
+    secure: true,
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 86400,
+  },
+
+  expiration: {
+    ttl: 86400,
+    sliding: true,
+    absoluteTimeout: 604800,
+  },
+
+  userLoader: async (userId) => db.user.findUnique({ where: { id: userId } }),
+});
+```
+
+## Prisma Configuration
+
+### prisma.config.ts
+
+```typescript
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
+
+export default defineConfig({
+  schema: './prisma/schema.prisma',
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+});
+```
+
+### Driver Adapters
+
+```typescript
+// SQLite
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
+
+// PostgreSQL
+import { PrismaPg } from '@prisma/adapter-pg';
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+
+// MySQL
+import { PrismaMysql2 } from '@prisma/adapter-mysql';
+const adapter = new PrismaMysql2({ url: process.env.DATABASE_URL });
+```
+
+## CLI Configuration
+
+### velox.config.ts
+
+```typescript
+import { defineConfig } from '@veloxts/cli';
+
+export default defineConfig({
+  // Entry point
+  entry: './src/index.ts',
+
+  // Output directory
+  outDir: './dist',
+
+  // Dev server options
+  dev: {
+    port: 3030,
+    hmr: true,
+  },
+});
+```
+
+### package.json HMR Boundaries
+
+```json
+{
+  "hotHook": {
+    "boundaries": [
+      "src/procedures/**/*.ts",
+      "src/schemas/**/*.ts",
+      "src/handlers/**/*.ts"
+    ]
+  }
+}
+```
+
+## Ecosystem Configuration
+
+### Cache
+
+```typescript
+import { cachePlugin } from '@veloxts/cache';
+
+app.use(cachePlugin({
+  driver: 'redis',
+  config: {
+    url: process.env.REDIS_URL,
+    prefix: 'app:',
+    ttl: 3600,
+  },
+}));
+```
+
+### Queue
+
+```typescript
+import { queuePlugin } from '@veloxts/queue';
+
+app.use(queuePlugin({
+  driver: 'bullmq',
+  config: {
+    connection: { url: process.env.REDIS_URL },
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 1000 },
+    },
+  },
+}));
+```
+
+### Mail
+
+```typescript
+import { mailPlugin } from '@veloxts/mail';
+
+app.use(mailPlugin({
+  driver: 'resend',
+  config: { apiKey: process.env.RESEND_API_KEY },
+  defaults: {
+    from: 'noreply@example.com',
+    replyTo: 'support@example.com',
+  },
+}));
+```
+
+### Storage
+
+```typescript
+import { storagePlugin } from '@veloxts/storage';
+
+app.use(storagePlugin({
+  driver: 's3',
+  config: {
+    bucket: process.env.S3_BUCKET,
+    region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+  },
+}));
+```
+
+## Next Steps
+
+- [Environment Variables](/docs/reference/environment-variables/) - Required variables
+- [Troubleshooting](/docs/reference/troubleshooting/) - Common issues

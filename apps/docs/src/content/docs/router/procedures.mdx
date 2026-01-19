@@ -1,0 +1,193 @@
+---
+title: Procedures
+description: The core abstraction for defining type-safe API endpoints.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Procedures are the core building block of VeloxTS APIs. They define type-safe endpoints with input validation, output schemas, and handlers.
+
+## Basic Syntax
+
+```typescript
+import { procedures, procedure } from '@veloxts/velox';
+import { z } from '@veloxts/velox';
+
+export const userProcedures = procedures('users', {
+  getUser: procedure()
+    .input(z.object({ id: z.string() }))
+    .output(UserSchema)
+    .query(async ({ input, ctx }) => {
+      return ctx.db.user.findUnique({ where: { id: input.id } });
+    }),
+});
+```
+
+<Aside type="caution" title="Common Mistake">
+Use `procedure()` with parentheses to create a new builder instance:
+
+```typescript
+// Correct
+getUser: procedure().input(...).query(...)
+
+// Wrong - creates shared state issues
+getUser: procedure.input(...).query(...)
+```
+</Aside>
+
+## Builder Methods
+
+### `.input(schema)`
+
+Define the input validation schema:
+
+```typescript
+.input(z.object({
+  id: z.string().uuid(),
+  includeDeleted: z.boolean().optional(),
+}))
+```
+
+### `.output(schema)`
+
+Define the output schema (optional but recommended):
+
+```typescript
+.output(z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+}))
+```
+
+### `.query(handler)` / `.mutation(handler)`
+
+Define the handler function:
+
+- `.query()` - For read operations (GET)
+- `.mutation()` - For write operations (POST, PUT, DELETE)
+
+```typescript
+.query(async ({ input, ctx }) => {
+  // input is typed based on .input() schema
+  // ctx contains request context
+  return ctx.db.user.findUnique({ where: { id: input.id } });
+})
+```
+
+### `.guard(guardFn)`
+
+Add authorization guards:
+
+```typescript
+.guard(authenticated)
+.guard(hasRole('admin'))
+```
+
+### `.use(middleware)`
+
+Add middleware:
+
+```typescript
+.use(rateLimitMiddleware)
+.use(loggingMiddleware)
+```
+
+### `.rest(options)`
+
+Override REST endpoint generation:
+
+```typescript
+.rest({ method: 'POST', path: '/auth/login' })
+.rest({ enabled: false })  // tRPC-only
+```
+
+See [REST Overrides](/docs/router/rest-overrides/) for full options.
+
+## Method Chain Order
+
+<Aside type="caution" title="Builder Chain Order Matters">
+Methods must be called in this order:
+
+```typescript
+procedure()
+  .input(schema)       // 1. Input validation (optional)
+  .output(schema)      // 2. Output validation (optional)
+  .guard(guardFn)      // 3. Authorization (optional, can have multiple)
+  .use(middleware)     // 4. Middleware (optional, can have multiple)
+  .rest(options)       // 5. REST override (optional) - BEFORE handler
+  .query(handler)      // 6. Handler - MUST be last
+```
+
+**Wrong:**
+```typescript
+// ERROR: .rest() after .query() won't work
+procedure().query(handler).rest(options)
+```
+</Aside>
+
+## Handler Context
+
+The handler receives `{ input, ctx }`:
+
+```typescript
+.query(async ({ input, ctx }) => {
+  // input: Validated input data
+  // ctx.db: Prisma client
+  // ctx.request: Fastify request
+  // ctx.reply: Fastify reply
+  // ctx.user: Authenticated user (if using auth)
+})
+```
+
+## Procedure Collections
+
+Group related procedures with `procedures()`:
+
+```typescript
+export const postProcedures = procedures('posts', {
+  listPosts: procedure()...,
+  getPost: procedure()...,
+  createPost: procedure()...,
+  updatePost: procedure()...,
+  deletePost: procedure()...,
+});
+```
+
+The first argument (`'posts'`) becomes:
+- The REST resource name: `/api/posts`
+- The tRPC namespace: `trpc.posts.listPosts`
+
+## Type Inference
+
+Types flow automatically:
+
+```typescript
+// Backend
+const createUser = procedure()
+  .input(z.object({ name: z.string(), email: z.string().email() }))
+  .output(z.object({ id: z.string(), name: z.string() }))
+  .mutation(...)
+
+// Frontend (via tRPC or client)
+// Input is typed: { name: string; email: string }
+// Output is typed: { id: string; name: string }
+```
+
+## Discovery
+
+Procedures are automatically discovered from `src/procedures/`:
+
+```typescript
+// src/index.ts
+import { discoverProcedures } from '@veloxts/router';
+
+const collections = await discoverProcedures('./src/procedures');
+collections.forEach(c => app.procedures(c));
+```
+
+## Next Steps
+
+- [REST Conventions](/docs/router/rest-conventions/) - How names map to HTTP
+- [Guards](/docs/authentication/guards/) - Authorization
+- [Middleware](/docs/router/middleware/) - Request processing

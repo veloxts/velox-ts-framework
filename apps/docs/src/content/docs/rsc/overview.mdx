@@ -1,0 +1,155 @@
+---
+title: RSC Overview
+description: Build full-stack applications with React Server Components and Vinxi.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The `@veloxts/web` package enables React Server Components (RSC) with Vinxi and React 19, providing a unified full-stack architecture where server and client code coexist seamlessly.
+
+<Aside type="note">
+This section covers RSC templates (`--rsc`, `--rsc-auth`). For SPA templates that consume VeloxTS APIs from a separate frontend, see [Client Package](/docs/rsc/client-package/).
+</Aside>
+
+## What is RSC?
+
+React Server Components allow components to render on the server by default, with the ability to mark specific components as client-side when needed:
+
+```tsx
+// Server Component (default) - runs on server, no JS sent to client
+async function UserProfile({ userId }: { userId: string }) {
+  const user = await db.user.findUnique({ where: { id: userId } });
+  return <div>{user.name}</div>;
+}
+
+// Client Component - interactive, runs in browser
+'use client';
+function Counter() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(c => c + 1)}>{count}</button>;
+}
+```
+
+## Architecture
+
+```
+Browser Request
+     ↓
+   Vinxi (Meta-framework)
+     ↓
+┌─────────────────────────────────────┐
+│  React Server Components            │
+│  ├── Server rendering (RSC)         │
+│  ├── Server Actions → Procedures    │
+│  └── Client hydration               │
+└─────────────────────────────────────┘
+     ↓
+VeloxTS Procedures (Business Logic)
+     ↓
+Database (Prisma)
+```
+
+## Quick Start
+
+```bash
+# Full-stack RSC
+npx create-velox-app my-app --rsc
+cd my-app
+pnpm dev
+
+# RSC with authentication
+npx create-velox-app my-app --rsc-auth
+```
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Server Components** | Components render on server by default—zero client JS |
+| **Server Actions** | Type-safe mutations that call procedures directly |
+| **File-based Routing** | Pages in `app/pages/` map to URL routes |
+| **Nested Layouts** | Compose layouts with shared UI and data loading |
+| **Streaming** | Progressive page loading with Suspense boundaries |
+| **Type Safety** | End-to-end types from database to UI |
+
+## Project Structure
+
+```
+my-app/
+├── app/
+│   ├── pages/           # File-based routes
+│   │   ├── index.tsx    # → /
+│   │   ├── about.tsx    # → /about
+│   │   └── users/
+│   │       ├── index.tsx    # → /users
+│   │       └── [id].tsx     # → /users/:id
+│   ├── layouts/         # Layout components
+│   │   └── root.tsx     # Root layout (wraps all pages)
+│   ├── actions/         # Server actions
+│   │   └── users.ts     # User mutations
+│   └── components/      # Shared components
+├── api/
+│   ├── procedures/      # VeloxTS procedures
+│   └── index.ts         # API entry point
+├── prisma/
+│   └── schema.prisma    # Database schema
+└── app.config.ts        # Vinxi configuration
+```
+
+## RSC vs SPA Templates
+
+| Aspect | RSC (`--rsc`, `--rsc-auth`) | SPA (`--default`, `--auth`) |
+|--------|-----------------------------|-----------------------------|
+| **Rendering** | Server-first, streams HTML | Client-side rendering |
+| **Data Fetching** | Server Components + Actions | API calls from browser |
+| **Bundle Size** | Minimal client JS | Full React app in browser |
+| **SEO** | Excellent (server-rendered) | Requires SSR/SSG setup |
+| **Interactivity** | Opt-in with `'use client'` | Everything is interactive |
+| **Best For** | Content sites, dashboards | SPAs, mobile-first apps |
+
+## Server Actions Bridge
+
+Server Actions connect your React components to database operations with validation:
+
+```tsx
+// app/actions/users.ts
+'use server';
+import { validated } from '@veloxts/web/server';
+import { z } from 'zod';
+
+const CreateUserSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+});
+
+export const createUser = validated(CreateUserSchema, async (input, ctx) => {
+  // input is typed: { name: string; email: string }
+  const { db } = await import('@/api/database');
+  const user = await db.user.create({ data: input });
+  return { success: true, user };
+});
+
+// app/pages/users/new.tsx
+import { createUser } from '@/app/actions/users';
+
+export default function NewUserPage() {
+  return (
+    <form action={createUser}>
+      <input name="name" required />
+      <input name="email" type="email" required />
+      <button type="submit">Create User</button>
+    </form>
+  );
+}
+```
+
+<Aside type="tip">
+The `validated()` function accepts a Zod schema as its first argument, not a procedure. For calling procedures from server actions, see [tRPC Bridge](/docs/rsc/trpc-bridge/).
+</Aside>
+
+## Next Steps
+
+- [Server Actions](/docs/rsc/server-actions/) - Type-safe mutations with validation
+- [File Routing](/docs/rsc/file-routing/) - Route patterns and dynamic segments
+- [Layouts](/docs/rsc/layouts/) - Nested layout composition
+- [tRPC Bridge](/docs/rsc/trpc-bridge/) - Call procedures from server components

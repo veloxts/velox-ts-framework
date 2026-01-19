@@ -1,0 +1,72 @@
+---
+title: Scheduler
+description: Cron task scheduling with fluent API.
+---
+
+`@veloxts/scheduler` provides expressive, fluent task scheduling with cron expressions.
+
+## Installation
+
+```bash
+pnpm add @veloxts/scheduler
+```
+
+## Quick Start
+
+```typescript
+import { schedulerPlugin, schedule } from '@veloxts/scheduler';
+
+app.register(schedulerPlugin);
+
+schedule('cleanup-sessions')
+  .call(async () => {
+    await db.session.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+  })
+  .daily()
+  .at('03:00');
+```
+
+## Scheduling Patterns
+
+```typescript
+// Every minute
+schedule('task').call(fn).everyMinute();
+
+// Hourly
+schedule('task').call(fn).hourly();
+
+// Daily at specific time
+schedule('task').call(fn).daily().at('09:00');
+
+// Weekly on Monday
+schedule('task').call(fn).weekly().on('monday');
+
+// Weekdays only
+schedule('task').call(fn).weekdays().at('09:00');
+
+// Custom cron
+schedule('task').call(fn).cron('0 */6 * * *');
+```
+
+## Options
+
+```typescript
+schedule('sync-data')
+  .call(syncData)
+  .hourly()
+  .timezone('America/New_York')
+  .withoutOverlapping()
+  .onSuccess((ctx, duration) => {
+    console.log(`Completed in ${duration}ms`);
+  })
+  .onFailure((ctx, error) => {
+    console.error('Failed:', error);
+  });
+```
+
+## Next Steps
+
+- [Queue](/docs/ecosystem/queue/) - Background jobs
+- [Ecosystem Overview](/docs/ecosystem/overview/) - All packages

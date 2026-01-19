@@ -1,0 +1,107 @@
+---
+title: Hybrid Architecture
+description: Combine REST and tRPC for different client needs.
+---
+
+Use this architecture when you have both TypeScript and non-TypeScript clients.
+
+## When to Choose Hybrid
+
+- Mobile apps (REST) + web dashboard (tRPC)
+- Public API (REST) + internal tools (tRPC)
+- Gradual migration from REST to tRPC
+- Different teams with different needs
+
+## How It Works
+
+VeloxTS generates both REST and tRPC endpoints from the same procedures:
+
+```typescript
+export const orderProcedures = procedures('orders', {
+  // Available as:
+  // - REST: GET /api/orders
+  // - tRPC: trpc.orders.listOrders.query()
+  listOrders: procedure()
+    .output(z.array(OrderSchema))
+    .query(({ ctx }) => ctx.db.order.findMany()),
+});
+```
+
+## Client Examples
+
+### Mobile App (REST)
+
+```swift
+// iOS Swift
+let url = URL(string: "http://api.example.com/api/orders")!
+let (data, _) = try await URLSession.shared.data(from: url)
+let orders = try JSONDecoder().decode([Order].self, from: data)
+```
+
+### Web Dashboard (tRPC)
+
+```typescript
+// React with tRPC
+const { data: orders } = trpc.orders.listOrders.useQuery();
+```
+
+### Third-Party Integration (REST)
+
+```bash
+curl https://api.example.com/api/orders \
+  -H "Authorization: Bearer ${API_KEY}"
+```
+
+## Selective Exposure
+
+You can expose different procedures to different transports:
+
+```typescript
+// Internal only - tRPC
+export const internalProcedures = procedures('internal', {
+  getMetrics: procedure()
+    .query(...)
+    .rest(false), // Disable REST
+});
+
+// Public only - REST
+export const publicProcedures = procedures('public', {
+  getStatus: procedure()
+    .query(...)
+    // REST enabled by default
+});
+```
+
+## Authentication Across Transports
+
+The same guards work for both:
+
+```typescript
+const getOrder = procedure()
+  .guard(authenticated)
+  .input(z.object({ id: z.string() }))
+  .query(...)
+
+// REST: Authorization header
+// tRPC: Same header or cookie
+```
+
+## API Versioning
+
+For REST clients that need versioning:
+
+```typescript
+export const v1Procedures = procedures('v1/orders', {
+  listOrders: procedure()...
+});
+
+export const v2Procedures = procedures('v2/orders', {
+  listOrders: procedure()... // New shape
+});
+```
+
+## Next Steps
+
+- [REST Conventions](/docs/router/rest-conventions/) - REST patterns
+- [tRPC Adapter](/docs/router/trpc-adapter/) - tRPC configuration
+- [OpenAPI](/docs/router/openapi/) - API documentation

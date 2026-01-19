@@ -1,0 +1,149 @@
+---
+title: Full-stack RSC Architecture
+description: Unified codebase with React Server Components and Vinxi.
+---
+
+Use this architecture for complete web applications with a unified codebase, server rendering, and streaming.
+
+## When to Choose Full-stack RSC
+
+- Building a complete web application
+- Want unified frontend + backend codebase
+- Need SSR and streaming
+- Prefer React Server Components model
+
+## Project Setup
+
+```bash
+npx create-velox-app my-app --rsc
+# or with authentication
+npx create-velox-app my-app --rsc-auth
+```
+
+## How It Works
+
+VeloxTS uses **Vinxi** as the HTTP handler, with Fastify embedded for API routes:
+
+```
+Browser Request
+      ↓
+    Vinxi
+      ├── /api/*     → Fastify (tRPC + REST)
+      ├── /_build/*  → Static Assets
+      └── /*         → RSC Renderer
+```
+
+## Project Structure
+
+```
+my-app/
+├── app/
+│   ├── pages/           # File-based routing
+│   │   ├── index.tsx    # /
+│   │   ├── about.tsx    # /about
+│   │   └── users/
+│   │       ├── index.tsx    # /users
+│   │       └── [id].tsx     # /users/:id
+│   ├── layouts/
+│   │   └── root.tsx     # Root layout
+│   └── actions/         # Server actions
+│       └── users.ts
+├── api/
+│   └── procedures/      # Backend procedures
+├── app.config.ts        # Vinxi configuration
+└── package.json
+```
+
+## File-Based Routing
+
+Pages in `app/pages/` map to routes:
+
+| File | Route |
+|------|-------|
+| `index.tsx` | `/` |
+| `about.tsx` | `/about` |
+| `users/index.tsx` | `/users` |
+| `users/[id].tsx` | `/users/:id` |
+| `posts/[...slug].tsx` | `/posts/*` (catch-all) |
+
+## Server Components
+
+Pages are Server Components by default:
+
+```tsx
+// app/pages/users/index.tsx
+import { db } from '@/api/database';
+
+export default async function UsersPage() {
+  const users = await db.user.findMany();
+
+  return (
+    <div>
+      <h1>Users</h1>
+      <ul>
+        {users.map(user => (
+          <li key={user.id}>{user.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+## Server Actions
+
+Call backend procedures from server actions:
+
+```typescript
+// app/actions/users.ts
+'use server';
+
+import { validated } from '@veloxts/web/server';
+import { CreateUserSchema } from '@/api/schemas/user';
+
+export const createUser = validated(CreateUserSchema, async (input) => {
+  const user = await db.user.create({ data: input });
+  return { success: true, user };
+});
+```
+
+Use in forms:
+
+```tsx
+// app/pages/users/new.tsx
+import { createUser } from '@/app/actions/users';
+
+export default function NewUserPage() {
+  return (
+    <form action={createUser}>
+      <input name="name" required />
+      <input name="email" type="email" required />
+      <button type="submit">Create User</button>
+    </form>
+  );
+}
+```
+
+## Layouts
+
+Wrap pages with layouts:
+
+```tsx
+// app/layouts/root.tsx
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <nav>...</nav>
+        <main>{children}</main>
+      </body>
+    </html>
+  );
+}
+```
+
+## Next Steps
+
+- [Server Actions](/docs/rsc/server-actions/) - Validated mutations
+- [File Routing](/docs/rsc/file-routing/) - Route patterns
+- [Layouts](/docs/rsc/layouts/) - Layout system

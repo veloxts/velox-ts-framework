@@ -1,0 +1,78 @@
+---
+title: RSC Module Separation
+description: Proper server/client boundaries in React Server Components.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+When using RSC, maintain strict module boundaries to prevent Node.js code from leaking into client bundles.
+
+## The Problem
+
+```typescript
+// BAD: Static import pulls database into client bundle
+import { db } from '@/api/database';
+
+export async function createUser(input) {
+  return db.user.create({ data: input });
+}
+```
+
+<Aside type="danger" title="Bundle Error">
+This causes errors like:
+- `No loader is configured for .node files`
+- `Module 'node:fs' externalized for browser compatibility`
+</Aside>
+
+## The Solution
+
+### 1. Type-Only Imports
+
+```typescript
+'use server';
+
+// GOOD: Type-only import is stripped at build time
+import type { User } from '@/api/schemas/user';
+
+export async function getUser(id: string): Promise<User> {
+  const { db } = await import('@/api/database');
+  return db.user.findUnique({ where: { id } });
+}
+```
+
+### 2. Dynamic Imports
+
+```typescript
+'use server';
+
+export async function createUser(input: CreateUserInput) {
+  // GOOD: Dynamic import at runtime
+  const { db } = await import('@/api/database');
+  return db.user.create({ data: input });
+}
+```
+
+### 3. Procedure Bridge
+
+```typescript
+'use server';
+
+export async function createUser(input: CreateUserInput) {
+  const { executeProcedureDirectly } = await import('@veloxts/web/server');
+  const { userProcedures } = await import('@/api/procedures/users');
+
+  return executeProcedureDirectly(userProcedures.procedures.createUser, input);
+}
+```
+
+## Best Practices
+
+1. **Server actions**: Use `'use server'` directive
+2. **Database imports**: Always dynamic
+3. **Type imports**: Use `import type`
+4. **Procedure calls**: Use `executeProcedureDirectly` bridge
+
+## Next Steps
+
+- [Server Actions](/docs/rsc/server-actions/) - Action patterns
+- [tRPC Bridge](/docs/rsc/trpc-bridge/) - Procedure calls

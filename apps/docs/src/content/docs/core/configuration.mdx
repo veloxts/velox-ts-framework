@@ -1,0 +1,70 @@
+---
+title: Configuration
+description: Configure your VeloxTS application.
+---
+
+VeloxTS uses environment variables and configuration objects.
+
+## Environment Variables
+
+Create a `.env` file:
+
+```bash
+# Database
+DATABASE_URL="file:./dev.db"
+
+# Server
+PORT=3030
+HOST=0.0.0.0
+
+# Auth (if using @veloxts/auth)
+JWT_SECRET="your-secret-key-min-32-chars"
+JWT_REFRESH_SECRET="your-refresh-secret-min-32-chars"
+```
+
+## Server Configuration
+
+```typescript
+const app = veloxApp({
+  port: process.env.PORT || 3030,
+  host: process.env.HOST || 'localhost',
+  logger: process.env.NODE_ENV === 'development',
+});
+```
+
+## Plugin Configuration
+
+```typescript
+// Database
+app.register(databasePlugin, {
+  url: process.env.DATABASE_URL,
+});
+
+// Auth
+app.register(authPlugin, {
+  secret: process.env.JWT_SECRET,
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d',
+});
+```
+
+## Prisma Configuration
+
+Prisma 7 requires `prisma.config.ts`:
+
+```typescript
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
+
+export default defineConfig({
+  schema: './prisma/schema.prisma',
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+});
+```
+
+## Next Steps
+
+- [Environment Variables](/docs/reference/environment-variables/) - Full reference
+- [Deployment](/docs/deployment/overview/) - Production config

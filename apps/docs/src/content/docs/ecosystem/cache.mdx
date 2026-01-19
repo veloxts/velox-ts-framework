@@ -1,0 +1,77 @@
+---
+title: Cache
+description: Multi-driver caching with memory and Redis support.
+---
+
+`@veloxts/cache` provides a unified caching API.
+
+## Installation
+
+```bash
+pnpm add @veloxts/cache
+```
+
+## Quick Start
+
+```typescript
+import { cachePlugin } from '@veloxts/cache';
+
+app.register(cachePlugin, {
+  driver: 'memory',
+  config: { maxSize: 1000 },
+});
+```
+
+## Basic Usage
+
+```typescript
+// Set value
+await ctx.cache.put('user:123', user, '30m');
+
+// Get value
+const user = await ctx.cache.get('user:123');
+
+// Remember pattern
+const data = await ctx.cache.remember('key', '1h', async () => {
+  return fetchExpensiveData();
+});
+
+// Delete
+await ctx.cache.forget('user:123');
+```
+
+## Drivers
+
+### Memory (Development)
+
+```typescript
+cachePlugin({
+  driver: 'memory',
+  config: { maxSize: 1000 },
+})
+```
+
+### Redis (Production)
+
+```typescript
+cachePlugin({
+  driver: 'redis',
+  config: { url: process.env.REDIS_URL },
+})
+```
+
+## Tag-Based Invalidation
+
+```typescript
+// Set with tags
+await ctx.cache.tags(['users']).put('user:123', user);
+await ctx.cache.tags(['users']).put('user:456', user);
+
+// Flush all tagged
+await ctx.cache.tags(['users']).flush();
+```
+
+## Next Steps
+
+- [Queue](/docs/ecosystem/queue/) - Background jobs
+- [Ecosystem Overview](/docs/ecosystem/overview/) - All packages

@@ -1,0 +1,76 @@
+---
+title: Code Generators
+description: Generate boilerplate code with velox make.
+---
+
+The `velox make` command scaffolds common code patterns.
+
+## Available Generators
+
+| Generator | Alias | Description |
+|-----------|-------|-------------|
+| `procedure` | `p`, `proc` | Procedure files |
+| `schema` | `s`, `zod` | Zod schemas |
+| `migration` | `mig` | Prisma migrations |
+| `model` | `m` | Full model setup |
+| `test` | `t`, `spec` | Test files |
+| `resource` | `r`, `res` | Full resource stack |
+
+## Examples
+
+### Procedure
+
+```bash
+velox make procedure users
+velox make procedure posts --crud
+```
+
+### Schema
+
+```bash
+velox make schema User
+velox make schema Post --crud
+```
+
+### Migration
+
+```bash
+velox make migration create_users_table
+velox make migration add_email_to_users
+```
+
+### Resource (Full Stack)
+
+```bash
+velox make resource Product
+```
+
+Creates: model, schema, procedures, and tests.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--crud` | Include CRUD operations |
+| `--soft-delete` | Add deletedAt field |
+| `--pagination` | Add paginated list |
+| `--dry-run` | Preview without writing |
+| `--json` | Machine-readable output |
+
+## Output
+
+```bash
+velox make procedure users --crud
+
+Created: src/procedures/users.ts
+  - listUsers (GET /api/users)
+  - getUser (GET /api/users/:id)
+  - createUser (POST /api/users)
+  - updateUser (PUT /api/users/:id)
+  - deleteUser (DELETE /api/users/:id)
+```
+
+## Next Steps
+
+- [Database Commands](/docs/cli/database-commands/) - Migrations
+- [Procedures](/docs/router/procedures/) - Procedure API

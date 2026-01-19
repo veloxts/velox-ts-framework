@@ -1,0 +1,172 @@
+---
+title: Error Codes
+description: VeloxTS error codes and their meanings.
+---
+
+Reference for error codes returned by VeloxTS APIs.
+
+## HTTP Status Codes
+
+### Success (2xx)
+
+| Code | Name | Usage |
+|------|------|-------|
+| `200` | OK | Successful GET, PUT, PATCH, DELETE |
+| `201` | Created | Successful POST (resource created) |
+| `204` | No Content | Successful DELETE (no body) |
+
+### Client Errors (4xx)
+
+| Code | Name | Usage |
+|------|------|-------|
+| `400` | Bad Request | Invalid input, validation failed |
+| `401` | Unauthorized | Missing or invalid authentication |
+| `403` | Forbidden | Authenticated but not authorized |
+| `404` | Not Found | Resource doesn't exist |
+| `409` | Conflict | Resource already exists (e.g., duplicate email) |
+| `422` | Unprocessable Entity | Semantic validation errors |
+| `429` | Too Many Requests | Rate limit exceeded |
+
+### Server Errors (5xx)
+
+| Code | Name | Usage |
+|------|------|-------|
+| `500` | Internal Server Error | Unexpected server error |
+| `502` | Bad Gateway | Upstream service error |
+| `503` | Service Unavailable | Server overloaded or maintenance |
+
+## Error Response Format
+
+VeloxTS returns errors in a consistent format:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "details": [
+      {
+        "field": "email",
+        "message": "Invalid email format"
+      }
+    ]
+  }
+}
+```
+
+## Application Error Codes
+
+### Validation Errors
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `VALIDATION_ERROR` | 400 | Input validation failed |
+| `INVALID_INPUT` | 400 | Malformed request body |
+| `MISSING_FIELD` | 400 | Required field not provided |
+| `INVALID_FORMAT` | 400 | Field format incorrect |
+
+### Authentication Errors
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `UNAUTHENTICATED` | 401 | No valid auth token |
+| `TOKEN_EXPIRED` | 401 | Access token expired |
+| `INVALID_TOKEN` | 401 | Token malformed or invalid |
+| `REFRESH_TOKEN_EXPIRED` | 401 | Refresh token expired |
+| `SESSION_EXPIRED` | 401 | Session no longer valid |
+
+### Authorization Errors
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `FORBIDDEN` | 403 | Action not permitted |
+| `INSUFFICIENT_PERMISSIONS` | 403 | Missing required permission |
+| `ROLE_REQUIRED` | 403 | Missing required role |
+
+### Resource Errors
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `NOT_FOUND` | 404 | Resource doesn't exist |
+| `ALREADY_EXISTS` | 409 | Duplicate resource |
+| `CONFLICT` | 409 | State conflict |
+
+### Rate Limiting
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `RATE_LIMITED` | 429 | Too many requests |
+| `QUOTA_EXCEEDED` | 429 | Usage quota exceeded |
+
+## Handling Errors
+
+### In Procedures
+
+```typescript
+import { TRPCError } from '@trpc/server';
+
+export const getUser = procedure()
+  .input(z.object({ id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({
+      where: { id: input.id },
+    });
+
+    if (!user) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+
+    return user;
+  });
+```
+
+### Custom Error Classes
+
+```typescript
+import { AppError } from '@veloxts/core';
+
+// Throw domain-specific errors
+throw new AppError('USER_NOT_FOUND', {
+  statusCode: 404,
+  message: 'User not found',
+  details: { userId: input.id },
+});
+```
+
+### Client-Side Handling
+
+```typescript
+import { client } from './api';
+
+try {
+  const user = await client.users.getUser.query({ id: '123' });
+} catch (error) {
+  if (error.data?.code === 'NOT_FOUND') {
+    // Handle not found
+  } else if (error.data?.code === 'UNAUTHENTICATED') {
+    // Redirect to login
+  }
+}
+```
+
+## tRPC Error Codes
+
+VeloxTS uses tRPC error codes internally:
+
+| tRPC Code | HTTP | Description |
+|-----------|------|-------------|
+| `BAD_REQUEST` | 400 | Invalid request |
+| `UNAUTHORIZED` | 401 | Not authenticated |
+| `FORBIDDEN` | 403 | Not authorized |
+| `NOT_FOUND` | 404 | Resource not found |
+| `CONFLICT` | 409 | Resource conflict |
+| `PARSE_ERROR` | 400 | JSON parse error |
+| `INTERNAL_SERVER_ERROR` | 500 | Server error |
+
+## Next Steps
+
+- [Troubleshooting](/docs/reference/troubleshooting/) - Common issues
+- [Error Handling](/docs/core/error-handling/) - Error handling patterns

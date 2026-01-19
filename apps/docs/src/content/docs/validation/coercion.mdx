@@ -1,0 +1,280 @@
+---
+title: Type Coercion
+description: Handle automatic type conversion for query parameters and form data.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Query parameters and form data arrive as strings. Zod's coercion utilities handle automatic type conversion.
+
+## The Problem
+
+HTTP query parameters are always strings:
+
+```
+GET /api/products?page=2&active=true&minPrice=100
+```
+
+Without coercion:
+```typescript
+input: z.object({
+  page: z.number(),      // Fails! "2" is a string
+  active: z.boolean(),   // Fails! "true" is a string
+  minPrice: z.number(),  // Fails! "100" is a string
+})
+```
+
+## The Solution: `z.coerce`
+
+Use `z.coerce` for automatic conversion:
+
+```typescript
+input: z.object({
+  page: z.coerce.number(),      // "2" → 2
+  active: z.coerce.boolean(),   // "true" → true
+  minPrice: z.coerce.number(),  // "100" → 100
+})
+```
+
+<Aside type="tip" title="When to Use Coercion">
+Use `z.coerce` for:
+- Query parameters (`GET /api/users?page=1`)
+- Form data (`POST` with `application/x-www-form-urlencoded`)
+- URL path parameters
+
+Don't use for JSON body (types are already correct).
+</Aside>
+
+## Coercion Types
+
+### Numbers
+
+```typescript
+z.coerce.number()           // "42" → 42, "3.14" → 3.14
+z.coerce.number().int()     // "42" → 42, "3.14" → error
+z.coerce.number().positive() // Must be > 0
+z.coerce.number().min(1)    // Must be >= 1
+```
+
+### Booleans
+
+```typescript
+z.coerce.boolean()
+// "true" → true
+// "false" → false
+// "1" → true
+// "0" → false
+// "" → false
+```
+
+### Dates
+
+```typescript
+z.coerce.date()
+// "2024-01-15" → Date object
+// "2024-01-15T10:30:00Z" → Date object
+```
+
+### BigInts
+
+```typescript
+z.coerce.bigint()
+// "9007199254740991" → 9007199254740991n
+```
+
+## Common Patterns
+
+### Pagination
+
+```typescript
+const paginationInput = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+});
+
+listUsers: procedure()
+  .input(paginationInput)
+  .query(({ input }) => {
+    const { page, limit, sortBy, sortOrder } = input;
+    // page and limit are numbers, not strings
+  }),
+```
+
+### Filters
+
+```typescript
+const filterInput = z.object({
+  minPrice: z.coerce.number().optional(),
+  maxPrice: z.coerce.number().optional(),
+  active: z.coerce.boolean().optional(),
+  createdAfter: z.coerce.date().optional(),
+});
+
+findProducts: procedure()
+  .input(filterInput)
+  .query(({ input, ctx }) => {
+    return ctx.db.product.findMany({
+      where: {
+        price: {
+          gte: input.minPrice,
+          lte: input.maxPrice,
+        },
+        active: input.active,
+        createdAt: input.createdAfter
+          ? { gte: input.createdAfter }
+          : undefined,
+      },
+    });
+  }),
+```
+
+### ID Parameters
+
+```typescript
+// For UUID IDs (strings)
+.input(z.object({ id: z.string().uuid() }))
+
+// For numeric IDs
+.input(z.object({ id: z.coerce.number().int().positive() }))
+```
+
+## Mixing Coerced and Non-Coerced
+
+For POST/PUT with JSON body + query params:
+
+```typescript
+updateProduct: procedure()
+  .input(z.object({
+    // From URL path (string → number)
+    id: z.coerce.number(),
+
+    // From JSON body (already correct types)
+    data: z.object({
+      name: z.string(),
+      price: z.number(), // No coerce needed
+      active: z.boolean(), // No coerce needed
+    }),
+  }))
+  .mutation(handler),
+```
+
+## Array Query Parameters
+
+Handle comma-separated query params like `?ids=1,2,3`:
+
+```typescript
+// Using transform
+const idsInput = z.object({
+  ids: z.string().transform(s => s.split(',').map(Number)),
+});
+// "1,2,3" → [1, 2, 3]
+
+// Using preprocess for more flexibility
+const tagsInput = z.object({
+  tags: z.preprocess(
+    (val) => typeof val === 'string' ? val.split(',') : val,
+    z.array(z.string())
+  ),
+});
+// "react,typescript,node" → ["react", "typescript", "node"]
+
+// With coercion for numeric arrays
+const productIdsInput = z.object({
+  productIds: z.preprocess(
+    (val) => typeof val === 'string' ? val.split(',') : val,
+    z.array(z.coerce.number().int().positive())
+  ),
+});
+// "1,2,3" → [1, 2, 3] with validation
+```
+
+## Common Mistakes
+
+### Forgetting coercion on query params
+
+```typescript
+// ❌ BAD: Validation fails - "1" is not a number
+findProducts: procedure()
+  .input(z.object({
+    page: z.number(),
+    limit: z.number(),
+  }))
+  .query(handler),
+
+// ✅ GOOD: Strings are coerced to numbers
+findProducts: procedure()
+  .input(z.object({
+    page: z.coerce.number(),
+    limit: z.coerce.number(),
+  }))
+  .query(handler),
+```
+
+### Using coercion on JSON body
+
+```typescript
+// ❌ UNNECESSARY: JSON already has correct types
+createProduct: procedure()
+  .input(z.object({
+    name: z.string(),
+    price: z.coerce.number(),  // Don't need coerce for JSON
+    active: z.coerce.boolean(), // Don't need coerce for JSON
+  }))
+  .mutation(handler),
+
+// ✅ CORRECT: JSON body types are already correct
+createProduct: procedure()
+  .input(z.object({
+    name: z.string(),
+    price: z.number(),
+    active: z.boolean(),
+  }))
+  .mutation(handler),
+```
+
+### Boolean coercion gotchas
+
+```typescript
+// ⚠️ CAUTION: Empty string coerces to false
+z.coerce.boolean()
+// "" → false
+// "false" → false (string "false" becomes boolean false)
+// "0" → false
+
+// For stricter boolean parsing, use transform:
+z.enum(['true', 'false']).transform(val => val === 'true')
+// Only accepts exactly "true" or "false"
+```
+
+## Handling Prisma Decimals
+
+Prisma's Decimal type requires special handling:
+
+```typescript
+import { prismaDecimal } from '@veloxts/validation';
+
+const ProductSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: prismaDecimal(), // Handles Prisma Decimal serialization
+});
+```
+
+Or use transform:
+
+```typescript
+price: z.any().transform((val) => {
+  if (typeof val === 'object' && 'toNumber' in val) {
+    return val.toNumber(); // Prisma Decimal
+  }
+  return Number(val);
+}),
+```
+
+## Next Steps
+
+- [Schemas](/docs/validation/schemas/) - Schema definitions
+- [REST Conventions](/docs/router/rest-conventions/) - Query params
+- [Pagination](/docs/validation/pagination/) - Pagination patterns

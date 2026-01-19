@@ -1,0 +1,132 @@
+---
+title: SPA + Backend Architecture
+description: Separate frontend with type-safe API communication.
+---
+
+Use this architecture when you have a separate frontend team or an existing React/Vue/Angular application.
+
+## When to Choose SPA + Backend
+
+- Separate frontend and backend codebases
+- Existing React/Vue/Angular application
+- Different deployment strategies for frontend/backend
+- Frontend team prefers their own tooling
+
+## Project Setup
+
+Create the API:
+```bash
+npx create-velox-app my-api
+```
+
+Create your SPA separately (Vite, Create React App, Next.js, etc.):
+```bash
+npm create vite@latest my-frontend -- --template react-ts
+```
+
+## Backend: VeloxTS API
+
+```typescript
+// api/src/procedures/products.ts
+import { procedures, procedure } from '@veloxts/velox';
+import { z } from '@veloxts/velox';
+
+export const productProcedures = procedures('products', {
+  listProducts: procedure()
+    .output(z.array(ProductSchema))
+    .query(({ ctx }) => ctx.db.product.findMany()),
+
+  getProduct: procedure()
+    .input(z.object({ id: z.string() }))
+    .output(ProductSchema)
+    .query(({ input, ctx }) => ctx.db.product.findUnique({
+      where: { id: input.id },
+    })),
+});
+```
+
+## Frontend: Type-Safe Client
+
+Install the VeloxTS client:
+
+```bash
+cd my-frontend
+pnpm add @veloxts/client
+```
+
+Create a typed client:
+
+```typescript
+// frontend/src/api/client.ts
+import { createClient } from '@veloxts/client';
+import type { productProcedures } from '../../api/src/procedures/products';
+
+type AppProcedures = {
+  products: typeof productProcedures;
+};
+
+export const api = createClient<AppProcedures>({
+  baseUrl: 'http://localhost:3030/api',
+});
+```
+
+Use in components:
+
+```tsx
+// frontend/src/components/ProductList.tsx
+import { useEffect, useState } from 'react';
+import { api } from '../api/client';
+
+export function ProductList() {
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    api.products.listProducts().then(setProducts);
+  }, []);
+
+  return (
+    <ul>
+      {products.map(p => <li key={p.id}>{p.name}</li>)}
+    </ul>
+  );
+}
+```
+
+## CORS Configuration
+
+Enable CORS for your frontend origin:
+
+```typescript
+// api/src/index.ts
+import { veloxApp } from '@veloxts/velox';
+
+const app = veloxApp({
+  cors: {
+    origin: ['http://localhost:5173'], // Vite default
+    credentials: true,
+  },
+});
+```
+
+## React Query Integration
+
+For better data fetching, use the React hooks:
+
+```typescript
+import { createVeloxHooks } from '@veloxts/client/react';
+import { api } from './client';
+
+export const { useQuery, useMutation } = createVeloxHooks({ client: api });
+
+// In component
+const { data: products, isLoading } = useQuery(
+  ['products'],
+  () => api.products.listProducts()
+);
+```
+
+## Next Steps
+
+- [Client Package](/docs/rsc/client-package/) - Full client reference
+- [Authentication](/docs/authentication/overview/) - Add auth
+- [REST Conventions](/docs/router/rest-conventions/) - API patterns

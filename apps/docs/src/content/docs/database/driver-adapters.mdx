@@ -1,0 +1,243 @@
+---
+title: Driver Adapters
+description: Configure Prisma 7 driver adapters for different databases.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Prisma 7 requires driver adapters for database connections. Each adapter provides direct control over connection behavior, pooling, and configuration.
+
+## Supported Adapters
+
+| Database | Adapter Package | Driver | Best For |
+|----------|-----------------|--------|----------|
+| SQLite | `@prisma/adapter-better-sqlite3` | better-sqlite3 | Development, testing |
+| PostgreSQL | `@prisma/adapter-pg` | pg | Production |
+
+<Aside type="note">
+Prisma 7 supports additional adapters (MySQL, LibSQL/Turso). VeloxTS templates currently ship with SQLite and PostgreSQL—LibSQL/Turso support for edge deployments is [on the roadmap](https://github.com/veloxts/velox-ts-framework/blob/main/.plans/ROADMAP.md) for v1.1.
+</Aside>
+
+## SQLite (Development)
+
+Zero-configuration local database. Ideal for development and testing.
+
+```bash
+pnpm add @prisma/adapter-better-sqlite3@7.2.0 better-sqlite3@11.9.1
+npm rebuild better-sqlite3  # Required for native bindings
+```
+
+```typescript
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '@prisma/client';
+
+const adapter = new PrismaBetterSqlite3({
+  url: process.env.DATABASE_URL,  // "file:./dev.db"
+});
+export const db = new PrismaClient({ adapter });
+```
+
+**Schema:**
+```prisma
+datasource db {
+  provider = "sqlite"
+}
+```
+
+<Aside type="tip">
+SQLite is perfect for CI/CD testing—no database server needed.
+</Aside>
+
+## PostgreSQL (Production)
+
+Production-ready with connection pooling for high concurrency.
+
+```bash
+pnpm add @prisma/adapter-pg@7.2.0 pg@8.13.0
+pnpm add -D @types/pg@8.11.10
+```
+
+<Tabs>
+  <TabItem label="Simple">
+```typescript
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
+
+// Prisma 7: Pass connectionString directly
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+export const db = new PrismaClient({ adapter });
+```
+  </TabItem>
+  <TabItem label="With Connection Pool">
+```typescript
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+import { PrismaClient } from '@prisma/client';
+
+// Create PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20,                    // Maximum connections
+  min: 5,                     // Minimum connections
+  idleTimeoutMillis: 30000,   // Close idle connections after 30s
+  connectionTimeoutMillis: 2000,
+});
+
+const adapter = new PrismaPg(pool);
+export const db = new PrismaClient({ adapter });
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  await db.$disconnect();
+  await pool.end();
+});
+```
+  </TabItem>
+</Tabs>
+
+**Schema:**
+```prisma
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id String @id @default(dbgenerated("gen_random_uuid()"))
+  // ...
+}
+```
+
+**Environment:**
+```bash
+DATABASE_URL="postgresql://user:password@localhost:5432/mydb?schema=public"
+```
+
+## Connection Pooling Best Practices
+
+### Pool Size Guidelines
+
+| Environment | Recommended Max | Notes |
+|-------------|-----------------|-------|
+| Development | 5 | Low concurrency |
+| Production (small) | 10-20 | Single server |
+| Production (scaled) | 5-10 per instance | Multiple servers share pool |
+
+### Serverless Considerations
+
+For serverless environments (Vercel, AWS Lambda), use external connection poolers:
+
+**PgBouncer / Supabase:**
+```bash
+# Direct connection (for migrations)
+DIRECT_URL="postgresql://user:pass@db.project.supabase.co:5432/postgres"
+
+# Pooled connection (for queries)
+DATABASE_URL="postgresql://user:pass@db.project.supabase.co:6543/postgres?pgbouncer=true"
+```
+
+**Neon:**
+```bash
+# Pooled endpoint
+DATABASE_URL="postgresql://user:pass@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require"
+```
+
+### Graceful Shutdown
+
+Always disconnect on shutdown to prevent connection leaks:
+
+```typescript
+import { db } from './database';
+
+// VeloxTS handles this automatically via the ORM plugin
+// For manual setups:
+const shutdown = async () => {
+  await db.$disconnect();
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+```
+
+## Switching from SQLite to PostgreSQL
+
+To switch from SQLite (development) to PostgreSQL (production):
+
+1. **Update dependencies:**
+   ```bash
+   pnpm remove @prisma/adapter-better-sqlite3 better-sqlite3
+   pnpm add @prisma/adapter-pg pg
+   ```
+
+2. **Update schema.prisma:**
+   ```prisma
+   datasource db {
+     provider = "postgresql"  // Changed from "sqlite"
+   }
+   ```
+
+3. **Update database client:**
+   ```typescript
+   // Change adapter import
+   import { PrismaPg } from '@prisma/adapter-pg';
+
+   const adapter = new PrismaPg({
+     connectionString: process.env.DATABASE_URL,
+   });
+   ```
+
+4. **Update environment:**
+   ```bash
+   DATABASE_URL="postgresql://user:pass@host:5432/db"
+   ```
+
+5. **Regenerate and migrate:**
+   ```bash
+   pnpm prisma generate
+   pnpm prisma migrate dev --name init
+   ```
+
+## Performance Tips
+
+### Select Only Needed Fields
+
+```typescript
+const users = await db.user.findMany({
+  select: {
+    id: true,
+    name: true,
+    email: true,
+    // Exclude password, timestamps if not needed
+  },
+});
+```
+
+### Use Pagination
+
+```typescript
+const users = await db.user.findMany({
+  skip: (page - 1) * pageSize,
+  take: pageSize,
+  orderBy: { createdAt: 'desc' },
+});
+```
+
+### Add Indexes
+
+```prisma
+model User {
+  id    String @id @default(uuid())
+  email String @unique
+
+  @@index([email])  // Add index for frequent queries
+  @@index([createdAt])
+}
+```
+
+## Next Steps
+
+- [Prisma 7 Setup](/docs/database/prisma-7-setup/) - Full configuration guide
+- [Migrations](/docs/database/migrations/) - Schema management
+- [Testing](/docs/database/testing/) - Test patterns

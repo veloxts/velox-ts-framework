@@ -1,0 +1,478 @@
+---
+title: Type Safety
+description: End-to-end type safety without code generation.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+VeloxTS provides complete end-to-end type safety from database to frontend without any code generation step. Types flow naturally through the TypeScript compiler.
+
+## The VeloxTS Type Philosophy
+
+Traditional approaches require code generation:
+- GraphQL: `codegen` generates types from schema
+- tRPC standalone: Types work but REST requires separate typing
+- OpenAPI: Generate client SDKs from spec
+
+**VeloxTS approach:** Types are inferred at compile time through TypeScript's type system. No build step, no generated files, instant feedback in your IDE.
+
+```
+Zod Schema → Procedure → tRPC Router → Client
+     ↓           ↓           ↓           ↓
+  z.infer    input/output   AppRouter   Typed API calls
+```
+
+## How Types Flow
+
+### 1. Schema Definition
+
+```typescript
+// schemas/user.ts
+import { z } from '@veloxts/velox';
+
+export const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  role: z.enum(['user', 'admin']),
+  createdAt: z.date(),
+});
+
+export const CreateUserSchema = UserSchema.omit({
+  id: true,
+  createdAt: true
+});
+
+// Types are inferred from schemas
+export type User = z.infer<typeof UserSchema>;
+export type CreateUserInput = z.infer<typeof CreateUserSchema>;
+```
+
+### 2. Procedure Definition
+
+```typescript
+// procedures/users.ts
+import { procedures, procedure } from '@veloxts/velox';
+import { UserSchema, CreateUserSchema } from '../schemas/user';
+
+export const userProcedures = procedures('users', {
+  getUser: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .output(UserSchema)
+    .query(async ({ input, ctx }) => {
+      // input is typed: { id: string }
+      // return must match UserSchema
+      return ctx.db.user.findUniqueOrThrow({
+        where: { id: input.id }
+      });
+    }),
+
+  createUser: procedure()
+    .input(CreateUserSchema)
+    .output(UserSchema)
+    .mutation(async ({ input, ctx }) => {
+      // input is typed: { name: string; email: string; role: 'user' | 'admin' }
+      return ctx.db.user.create({ data: input });
+    }),
+});
+```
+
+### 3. Router Export
+
+```typescript
+// router.ts
+import { trpc, buildTRPCRouter } from '@veloxts/router';
+import { userProcedures } from './procedures/users';
+import { postProcedures } from './procedures/posts';
+
+const t = trpc();
+
+export const appRouter = t.router({
+  users: buildTRPCRouter(t, userProcedures),
+  posts: buildTRPCRouter(t, postProcedures),
+});
+
+// Export the router type for client consumption
+export type AppRouter = typeof appRouter;
+```
+
+### 4. Client Consumption
+
+```typescript
+// client/api.ts
+import { createVeloxHooks } from '@veloxts/client/react';
+import type { AppRouter } from '../server/router';
+
+export const api = createVeloxHooks<AppRouter>();
+
+// In components
+function UserProfile({ userId }: { userId: string }) {
+  // Fully typed: data is User | undefined
+  const { data: user } = api.users.getUser.useQuery({ id: userId });
+
+  // TypeScript error if wrong input shape
+  // api.users.getUser.useQuery({ userId }); // Error: 'userId' doesn't exist
+
+  return <div>{user?.name}</div>;
+}
+```
+
+## Key Patterns
+
+### `as const` Assertions
+
+Use `as const` to preserve literal types in procedure collections:
+
+```typescript
+// Without as const, TypeScript widens string literals
+const methods = { get: 'GET', post: 'POST' }; // { get: string, post: string }
+
+// With as const, literals are preserved
+const methods = { get: 'GET', post: 'POST' } as const; // { get: 'GET', post: 'POST' }
+
+// Apply to procedure collections for precise typing
+export const userProcedures = procedures('users', {
+  // ...
+}) as const;
+```
+
+### `typeof` for Type Derivation
+
+Derive types from runtime values without duplication:
+
+```typescript
+// Define once at runtime
+export const userProcedures = procedures('users', { /* ... */ });
+
+// Derive type from the value
+type UserProcedures = typeof userProcedures;
+
+// Extract specific procedure types
+type GetUserProcedure = UserProcedures['procedures']['getUser'];
+```
+
+### Zod Inference
+
+Extract TypeScript types from Zod schemas:
+
+```typescript
+import { z } from '@veloxts/velox';
+
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  posts: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+  })),
+});
+
+// Infer the full type
+type User = z.infer<typeof UserSchema>;
+// { id: string; name: string; email: string; posts: { id: string; title: string }[] }
+
+// Infer input type (before transforms)
+type UserInput = z.input<typeof UserSchema>;
+
+// Infer output type (after transforms)
+type UserOutput = z.output<typeof UserSchema>;
+```
+
+## Context Type Extension
+
+VeloxTS uses TypeScript declaration merging to extend the context object:
+
+```typescript
+// types/context.ts
+declare module '@veloxts/core' {
+  interface BaseContext {
+    db: PrismaClient;
+    user?: User;
+    session?: Session;
+  }
+}
+```
+
+<Aside type="tip" title="Declaration Merging">
+Declaration merging allows multiple declarations of the same interface to be combined. This pattern enables plugins to extend the context without modifying core types.
+</Aside>
+
+### Context in Procedures
+
+```typescript
+getProfile: procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => {
+    // ctx.db is typed as PrismaClient
+    // ctx.user is typed as User (narrowed by guard)
+    return ctx.db.user.findUnique({
+      where: { id: ctx.user.id },
+    });
+  }),
+```
+
+## Guard Type Narrowing
+
+Guards can narrow the context type:
+
+```typescript
+import { defineGuard } from '@veloxts/auth';
+
+// Define a guard that narrows ctx.user
+export const authenticated = defineGuard({
+  name: 'authenticated',
+  check: (ctx): ctx is typeof ctx & { user: User } => {
+    return ctx.user !== undefined;
+  },
+  message: 'Authentication required',
+  statusCode: 401,
+});
+
+// After this guard, ctx.user is guaranteed to exist
+adminOnly: procedure()
+  .guard(authenticated)
+  .guard(hasRole('admin'))
+  .query(({ ctx }) => {
+    // ctx.user is User, not User | undefined
+    return ctx.user.email;
+  }),
+```
+
+## Extracting Procedure Types
+
+### Input/Output Types
+
+```typescript
+import type { inferProcedureInput, inferProcedureOutput } from '@veloxts/router';
+import type { userProcedures } from './procedures/users';
+
+// Extract input type for a procedure
+type CreateUserInput = inferProcedureInput<
+  typeof userProcedures.procedures.createUser
+>;
+// { name: string; email: string; role: 'user' | 'admin' }
+
+// Extract output type for a procedure
+type CreateUserOutput = inferProcedureOutput<
+  typeof userProcedures.procedures.createUser
+>;
+// { id: string; name: string; email: string; role: 'user' | 'admin'; createdAt: Date }
+```
+
+### From Router
+
+```typescript
+import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
+import type { AppRouter } from './router';
+
+type RouterInputs = inferRouterInputs<AppRouter>;
+type RouterOutputs = inferRouterOutputs<AppRouter>;
+
+// Access specific procedure types
+type GetUserInput = RouterInputs['users']['getUser'];
+type GetUserOutput = RouterOutputs['users']['getUser'];
+```
+
+## Type-Safe Error Handling
+
+```typescript
+import { TRPCError } from '@trpc/server';
+
+getUser: procedure()
+  .input(z.object({ id: z.string().uuid() }))
+  .output(UserSchema)
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({
+      where: { id: input.id },
+    });
+
+    if (!user) {
+      // TRPCError is typed with specific error codes
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `User ${input.id} not found`,
+      });
+    }
+
+    return user; // TypeScript ensures this matches UserSchema
+  }),
+```
+
+## Frontend Type Safety
+
+### React Query Integration
+
+```typescript
+import { api } from '@/lib/api';
+
+function CreateUserForm() {
+  const createUser = api.users.createUser.useMutation({
+    onSuccess: (user) => {
+      // user is typed as User
+      console.log(`Created user: ${user.name}`);
+    },
+    onError: (error) => {
+      // error.data?.code is typed as TRPCError code
+      if (error.data?.code === 'CONFLICT') {
+        // Handle duplicate email
+      }
+    },
+  });
+
+  const handleSubmit = (data: CreateUserInput) => {
+    // TypeScript enforces correct input shape
+    createUser.mutate(data);
+  };
+}
+```
+
+### Server Action Types
+
+```typescript
+'use server';
+
+import { validated } from '@veloxts/web/server';
+import { CreateUserSchema } from '@/api/schemas/user';
+import type { User } from '@/api/schemas/user';
+
+// validated() infers input type from schema
+export const createUser = validated(CreateUserSchema, async (input, ctx) => {
+  // input is typed: CreateUserInput
+  const { db } = await import('@/api/database');
+  const user = await db.user.create({ data: input });
+  return { success: true as const, user };
+});
+
+// Return type is inferred:
+// Promise<{ success: true; user: User }>
+```
+
+## Common Patterns
+
+### Shared Schema Types
+
+<Tabs>
+  <TabItem label="Backend">
+```typescript
+// api/schemas/user.ts
+import { z } from '@veloxts/velox';
+
+export const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+});
+
+export type User = z.infer<typeof UserSchema>;
+```
+  </TabItem>
+  <TabItem label="Frontend">
+```typescript
+// Import type only - no runtime code
+import type { User } from '@api/schemas/user';
+
+function UserCard({ user }: { user: User }) {
+  return <div>{user.name}</div>;
+}
+```
+  </TabItem>
+</Tabs>
+
+### Discriminated Unions
+
+```typescript
+const ApiResponseSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('success'), data: UserSchema }),
+  z.object({ status: z.literal('error'), message: z.string() }),
+]);
+
+type ApiResponse = z.infer<typeof ApiResponseSchema>;
+
+function handleResponse(response: ApiResponse) {
+  if (response.status === 'success') {
+    // TypeScript knows response.data exists
+    console.log(response.data.name);
+  } else {
+    // TypeScript knows response.message exists
+    console.error(response.message);
+  }
+}
+```
+
+### Branded Types
+
+```typescript
+// Create nominal types for IDs
+const UserIdSchema = z.string().uuid().brand<'UserId'>();
+const PostIdSchema = z.string().uuid().brand<'PostId'>();
+
+type UserId = z.infer<typeof UserIdSchema>;
+type PostId = z.infer<typeof PostIdSchema>;
+
+// These are now incompatible types
+function getUser(id: UserId) { /* ... */ }
+function getPost(id: PostId) { /* ... */ }
+
+const userId = '123' as UserId;
+const postId = '456' as PostId;
+
+getUser(userId); // OK
+getUser(postId); // Error: PostId is not assignable to UserId
+```
+
+## Troubleshooting
+
+### Type Inference Not Working
+
+**Problem:** Types show as `any` or are not inferred.
+
+**Solution:** Ensure you're using `procedure()` with parentheses:
+
+```typescript
+// Wrong - creates shared state, breaks inference
+getUser: procedure.input(...).query(...)
+
+// Correct - creates fresh builder instance
+getUser: procedure().input(...).query(...)
+```
+
+### Missing Context Properties
+
+**Problem:** `ctx.user` or `ctx.db` is not recognized.
+
+**Solution:** Ensure declaration merging is set up:
+
+```typescript
+// types/context.d.ts (must be .d.ts or imported somewhere)
+declare module '@veloxts/core' {
+  interface BaseContext {
+    db: PrismaClient;
+    user?: User;
+  }
+}
+```
+
+### Output Type Mismatch
+
+**Problem:** Return value doesn't match output schema.
+
+**Solution:** Ensure your return matches the schema exactly:
+
+```typescript
+// Schema expects { id, name, email }
+.output(z.object({ id: z.string(), name: z.string(), email: z.string() }))
+
+// Wrong - missing email
+.query(() => ({ id: '1', name: 'Alice' }))
+
+// Correct - all fields present
+.query(() => ({ id: '1', name: 'Alice', email: 'alice@example.com' }))
+```
+
+## Next Steps
+
+- [Procedures](/docs/router/procedures/) - Define type-safe endpoints
+- [Validation](/docs/validation/schemas/) - Schema patterns
+- [Guards](/docs/authentication/guards/) - Type-narrowing guards
+- [tRPC Adapter](/docs/router/trpc-adapter/) - Router configuration

@@ -1,0 +1,580 @@
+---
+title: Validation Errors
+description: Handle validation errors gracefully.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+VeloxTS provides structured validation error responses that work seamlessly across backend and frontend.
+
+## Error Response Structure
+
+When `.input()` validation fails, VeloxTS returns a structured error:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "issues": [
+      {
+        "path": ["email"],
+        "message": "Invalid email",
+        "code": "invalid_string"
+      },
+      {
+        "path": ["age"],
+        "message": "Expected number, received string",
+        "code": "invalid_type"
+      }
+    ]
+  }
+}
+```
+
+**HTTP Status:** `400 Bad Request`
+
+### Error Codes
+
+| Code | Description |
+|------|-------------|
+| `invalid_type` | Wrong type (e.g., string instead of number) |
+| `invalid_string` | String format invalid (email, url, uuid) |
+| `too_small` | Value below minimum (string length, number, array) |
+| `too_big` | Value above maximum |
+| `invalid_enum_value` | Value not in enum |
+| `custom` | Custom validation failed (refine) |
+
+## Nested Object Errors
+
+For nested objects, the `path` array reflects the structure:
+
+```typescript
+const AddressSchema = z.object({
+  street: z.string().min(1),
+  city: z.string().min(1),
+  zipCode: z.string().regex(/^\d{5}$/),
+});
+
+const CreateUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  address: AddressSchema,
+});
+```
+
+**Invalid input:**
+```json
+{
+  "name": "John",
+  "email": "john@example.com",
+  "address": {
+    "street": "",
+    "city": "NYC",
+    "zipCode": "invalid"
+  }
+}
+```
+
+**Error response:**
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "issues": [
+      {
+        "path": ["address", "street"],
+        "message": "String must contain at least 1 character(s)"
+      },
+      {
+        "path": ["address", "zipCode"],
+        "message": "Invalid"
+      }
+    ]
+  }
+}
+```
+
+## Array Validation Errors
+
+Array errors include the index in the path:
+
+```typescript
+const OrderSchema = z.object({
+  items: z.array(z.object({
+    productId: z.string().uuid(),
+    quantity: z.number().int().positive(),
+  })).min(1),
+});
+```
+
+**Invalid input:**
+```json
+{
+  "items": [
+    { "productId": "valid-uuid", "quantity": 2 },
+    { "productId": "not-a-uuid", "quantity": -1 },
+    { "productId": "another-uuid", "quantity": 0 }
+  ]
+}
+```
+
+**Error response:**
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "issues": [
+      {
+        "path": ["items", 1, "productId"],
+        "message": "Invalid uuid"
+      },
+      {
+        "path": ["items", 1, "quantity"],
+        "message": "Number must be greater than 0"
+      },
+      {
+        "path": ["items", 2, "quantity"],
+        "message": "Number must be greater than 0"
+      }
+    ]
+  }
+}
+```
+
+## Manual Validation Errors
+
+Throw validation errors for business logic validation:
+
+```typescript
+import { ValidationError } from '@veloxts/core';
+
+createUser: procedure()
+  .input(CreateUserSchema)
+  .mutation(async ({ input, ctx }) => {
+    // Check for existing email
+    const existing = await ctx.db.user.findUnique({
+      where: { email: input.email },
+    });
+
+    if (existing) {
+      throw new ValidationError('Email already registered', [
+        { path: ['email'], message: 'This email is already in use' },
+      ]);
+    }
+
+    // Check username availability
+    const usernameTaken = await ctx.db.user.findUnique({
+      where: { username: input.username },
+    });
+
+    if (usernameTaken) {
+      throw new ValidationError('Username taken', [
+        { path: ['username'], message: 'This username is not available' },
+      ]);
+    }
+
+    return ctx.db.user.create({ data: input });
+  }),
+```
+
+### Multiple Field Errors
+
+```typescript
+// Validate multiple fields at once
+const errors: Array<{ path: string[]; message: string }> = [];
+
+if (await emailExists(input.email)) {
+  errors.push({ path: ['email'], message: 'Email already registered' });
+}
+
+if (await usernameExists(input.username)) {
+  errors.push({ path: ['username'], message: 'Username taken' });
+}
+
+if (errors.length > 0) {
+  throw new ValidationError('Validation failed', errors);
+}
+```
+
+## Frontend Error Handling
+
+### Type-Safe Error Handling
+
+```typescript
+import { api } from '@/lib/api';
+
+interface ValidationIssue {
+  path: (string | number)[];
+  message: string;
+  code?: string;
+}
+
+interface ApiError {
+  error: {
+    code: string;
+    message: string;
+    issues?: ValidationIssue[];
+  };
+}
+
+function isValidationError(error: unknown): error is { error: ApiError['error'] } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'error' in error &&
+    (error as ApiError).error?.code === 'VALIDATION_ERROR'
+  );
+}
+
+async function createUser(data: CreateUserInput) {
+  try {
+    return await api.users.createUser(data);
+  } catch (error) {
+    if (isValidationError(error)) {
+      // Handle validation errors
+      const fieldErrors = error.error.issues?.reduce((acc, issue) => {
+        const field = issue.path.join('.');
+        acc[field] = issue.message;
+        return acc;
+      }, {} as Record<string, string>);
+
+      return { success: false, errors: fieldErrors };
+    }
+    throw error; // Re-throw non-validation errors
+  }
+}
+```
+
+### Client-Side Validation
+
+Reuse schemas on the frontend for instant feedback:
+
+```typescript
+import { CreateUserSchema } from '@shared/schemas';
+
+function validateForm(formData: unknown) {
+  const result = CreateUserSchema.safeParse(formData);
+
+  if (!result.success) {
+    // Convert Zod errors to field errors
+    const errors: Record<string, string> = {};
+
+    for (const issue of result.error.issues) {
+      const field = issue.path.join('.');
+      // Only keep first error per field
+      if (!errors[field]) {
+        errors[field] = issue.message;
+      }
+    }
+
+    return { success: false, errors, data: null };
+  }
+
+  return { success: true, errors: {}, data: result.data };
+}
+```
+
+## React Hook Form Integration
+
+<Tabs>
+  <TabItem label="With Zod Resolver">
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { CreateUserSchema } from '@shared/schemas';
+import { z } from 'zod';
+
+type CreateUserInput = z.infer<typeof CreateUserSchema>;
+
+function CreateUserForm() {
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateUserInput>({
+    resolver: zodResolver(CreateUserSchema),
+  });
+
+  const onSubmit = async (data: CreateUserInput) => {
+    try {
+      await api.users.createUser(data);
+    } catch (error) {
+      // Map server errors to form fields
+      if (isValidationError(error)) {
+        error.error.issues?.forEach((issue) => {
+          const field = issue.path.join('.') as keyof CreateUserInput;
+          setError(field, { message: issue.message });
+        });
+      }
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {...register('name')} />
+      {errors.name && <span>{errors.name.message}</span>}
+
+      <input {...register('email')} />
+      {errors.email && <span>{errors.email.message}</span>}
+
+      <button type="submit" disabled={isSubmitting}>
+        Create User
+      </button>
+    </form>
+  );
+}
+```
+  </TabItem>
+  <TabItem label="With Nested Fields">
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const FormSchema = z.object({
+  name: z.string().min(1),
+  address: z.object({
+    street: z.string().min(1),
+    city: z.string().min(1),
+    zipCode: z.string().regex(/^\d{5}$/),
+  }),
+});
+
+type FormInput = z.infer<typeof FormSchema>;
+
+function AddressForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormInput>({
+    resolver: zodResolver(FormSchema),
+  });
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {...register('name')} />
+      {errors.name && <span>{errors.name.message}</span>}
+
+      {/* Nested fields use dot notation */}
+      <input {...register('address.street')} />
+      {errors.address?.street && <span>{errors.address.street.message}</span>}
+
+      <input {...register('address.city')} />
+      {errors.address?.city && <span>{errors.address.city.message}</span>}
+
+      <input {...register('address.zipCode')} />
+      {errors.address?.zipCode && <span>{errors.address.zipCode.message}</span>}
+    </form>
+  );
+}
+```
+  </TabItem>
+</Tabs>
+
+<Aside type="tip">
+Install the resolver: `pnpm add @hookform/resolvers`
+</Aside>
+
+## Custom Error Messages
+
+### In Schema Definition
+
+```typescript
+const UserSchema = z.object({
+  name: z.string({
+    required_error: 'Name is required',
+    invalid_type_error: 'Name must be a string',
+  }).min(2, 'Name must be at least 2 characters'),
+
+  email: z.string()
+    .email('Please enter a valid email address'),
+
+  age: z.number()
+    .int('Age must be a whole number')
+    .min(18, 'You must be at least 18 years old')
+    .max(120, 'Please enter a valid age'),
+
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+    .regex(/[0-9]/, 'Password must contain a number'),
+});
+```
+
+### With Refine
+
+```typescript
+const RegistrationSchema = z.object({
+  password: z.string().min(8),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'], // Error appears on confirmPassword field
+});
+```
+
+## Error Transformation
+
+### Flatten Errors
+
+Convert nested paths to dot notation:
+
+```typescript
+function flattenErrors(issues: ValidationIssue[]): Record<string, string> {
+  return issues.reduce((acc, issue) => {
+    const path = issue.path.join('.');
+    if (!acc[path]) {
+      acc[path] = issue.message;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+}
+
+// { "address.street": "Required", "address.zipCode": "Invalid" }
+```
+
+### Group by Field
+
+```typescript
+function groupErrorsByField(issues: ValidationIssue[]): Record<string, string[]> {
+  return issues.reduce((acc, issue) => {
+    const path = issue.path.join('.');
+    if (!acc[path]) {
+      acc[path] = [];
+    }
+    acc[path].push(issue.message);
+    return acc;
+  }, {} as Record<string, string[]>);
+}
+
+// { "email": ["Invalid email", "Email already exists"] }
+```
+
+### First Error Only
+
+```typescript
+function getFirstError(issues: ValidationIssue[]): { field: string; message: string } | null {
+  if (issues.length === 0) return null;
+
+  const first = issues[0];
+  return {
+    field: first.path.join('.'),
+    message: first.message,
+  };
+}
+```
+
+## Localization (i18n)
+
+### Using Error Maps
+
+```typescript
+import { z } from 'zod';
+
+const errorMap: z.ZodErrorMap = (issue, ctx) => {
+  // Custom messages based on error code
+  switch (issue.code) {
+    case 'invalid_type':
+      if (issue.expected === 'string') {
+        return { message: 'Ce champ doit être du texte' };
+      }
+      if (issue.expected === 'number') {
+        return { message: 'Ce champ doit être un nombre' };
+      }
+      break;
+    case 'too_small':
+      if (issue.type === 'string') {
+        return { message: `Minimum ${issue.minimum} caractères requis` };
+      }
+      break;
+    case 'invalid_string':
+      if (issue.validation === 'email') {
+        return { message: 'Adresse email invalide' };
+      }
+      break;
+  }
+
+  // Fallback to default message
+  return { message: ctx.defaultError };
+};
+
+// Apply globally
+z.setErrorMap(errorMap);
+
+// Or per-schema
+const LocalizedSchema = z.object({
+  email: z.string().email(),
+}).superRefine((data, ctx) => {
+  // Use localized error map
+});
+```
+
+### With i18n Library
+
+```typescript
+import { t } from '@/lib/i18n';
+
+const createLocalizedSchema = (locale: string) => z.object({
+  name: z.string().min(1, t('validation.name.required', locale)),
+  email: z.string().email(t('validation.email.invalid', locale)),
+  age: z.number()
+    .min(18, t('validation.age.minimum', locale, { min: 18 })),
+});
+```
+
+## HTTP Status Codes
+
+| Error Type | Status Code | When |
+|------------|-------------|------|
+| Validation Error | `400` | Input validation fails |
+| Authentication Error | `401` | Not logged in |
+| Authorization Error | `403` | Logged in but not permitted |
+| Not Found | `404` | Resource doesn't exist |
+| Conflict | `409` | Duplicate resource (email exists) |
+
+### Custom Status Codes
+
+```typescript
+import { ValidationError, HttpError } from '@veloxts/core';
+
+// For duplicate resources, use 409 Conflict
+if (await emailExists(input.email)) {
+  throw new HttpError(409, 'Email already registered', {
+    code: 'CONFLICT',
+    issues: [{ path: ['email'], message: 'This email is already in use' }],
+  });
+}
+```
+
+## Best Practices
+
+<Aside type="tip" title="Validation Best Practices">
+
+1. **Validate early** - Use client-side validation for instant feedback
+2. **Validate again** - Always validate on the server (never trust the client)
+3. **Share schemas** - Use the same Zod schemas on frontend and backend
+4. **Be specific** - Custom error messages are better than generic ones
+5. **Show all errors** - Display all validation errors, not just the first one
+6. **Map to fields** - Connect errors to their respective form fields
+
+</Aside>
+
+### Security Considerations
+
+```typescript
+// DON'T: Expose internal details
+throw new ValidationError('Query failed: UNIQUE constraint on users.email');
+
+// DO: User-friendly message
+throw new ValidationError('Validation failed', [
+  { path: ['email'], message: 'This email is already registered' },
+]);
+```
+
+## Next Steps
+
+- [Schemas](/docs/validation/schemas/) - Define validation schemas
+- [Coercion](/docs/validation/coercion/) - Handle type conversion
+- [Error Handling](/docs/core/error-handling/) - Core error patterns

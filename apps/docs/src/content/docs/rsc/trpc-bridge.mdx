@@ -1,0 +1,81 @@
+---
+title: tRPC Bridge
+description: Call backend procedures from server actions.
+---
+
+Bridge server actions to your tRPC procedures for full type safety.
+
+## Direct Procedure Call
+
+```typescript
+// app/actions/users.ts
+'use server';
+
+import { executeProcedureDirectly } from '@veloxts/web/server';
+import { userProcedures } from '@/api/procedures/users';
+
+export async function getUsers() {
+  return executeProcedureDirectly(userProcedures.procedures.listUsers, {});
+}
+
+export async function createUser(input: CreateUserInput) {
+  return executeProcedureDirectly(userProcedures.procedures.createUser, input);
+}
+```
+
+## With Validation
+
+```typescript
+'use server';
+
+import { validated } from '@veloxts/web/server';
+import { executeProcedureDirectly } from '@veloxts/web/server';
+import { CreateUserSchema } from '@/api/schemas/user';
+import { userProcedures } from '@/api/procedures/users';
+
+export const createUser = validated(CreateUserSchema, async (input) => {
+  return executeProcedureDirectly(userProcedures.procedures.createUser, input);
+});
+```
+
+## In Server Components
+
+```tsx
+// app/pages/users/index.tsx
+import { getUsers } from '@/app/actions/users';
+
+export default async function UsersPage() {
+  const users = await getUsers();
+
+  return (
+    <ul>
+      {users.map(user => (
+        <li key={user.id}>{user.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+## Type Inference
+
+Types flow from procedure definitions:
+
+```typescript
+// Procedure defines types
+const createUser = procedure()
+  .input(CreateUserSchema)
+  .output(UserSchema)
+  .mutation(...)
+
+// Action gets same types
+export const createUser = validated(CreateUserSchema, async (input) => {
+  // input is typed: CreateUserInput
+  // return is typed: User
+});
+```
+
+## Next Steps
+
+- [Server Actions](/docs/rsc/server-actions/) - Action patterns
+- [Procedures](/docs/router/procedures/) - Backend procedures

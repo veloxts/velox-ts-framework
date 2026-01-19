@@ -1,0 +1,238 @@
+---
+title: Application
+description: The VeloxTS application instance and lifecycle.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+The `veloxApp()` function creates your application instance, which wraps Fastify with VeloxTS conventions.
+
+## Creating an App
+
+```typescript
+import { veloxApp } from '@veloxts/velox';
+
+const app = veloxApp();
+
+// Register procedures
+app.procedures(userProcedures);
+
+// Start server
+await app.start({ port: 3030 });
+```
+
+## Configuration Options
+
+```typescript
+const app = veloxApp({
+  // Server options
+  port: 3030,
+  host: '0.0.0.0',
+
+  // CORS
+  cors: {
+    origin: ['http://localhost:3000'],
+    credentials: true,
+  },
+
+  // Logging (Pino)
+  logger: true,  // or detailed pino config object
+});
+```
+
+### CORS Configuration
+
+```typescript
+const app = veloxApp({
+  cors: {
+    origin: ['http://localhost:5173', 'https://myapp.com'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  },
+});
+```
+
+### Logging
+
+```typescript
+const app = veloxApp({
+  logger: {
+    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+    transport: {
+      target: 'pino-pretty',
+      options: { colorize: true },
+    },
+  },
+});
+```
+
+## Application Lifecycle
+
+```
+veloxApp()           Create instance
+    │
+    ▼
+app.register()       Register plugins
+app.procedures()     Register procedures
+    │
+    ▼
+app.ready()          Finalize setup
+    │
+    ▼
+app.start()          Begin listening
+    │
+    ▼
+app.close()          Graceful shutdown
+```
+
+### Lifecycle Events
+
+```typescript
+const app = veloxApp();
+
+// Called when app is ready but not yet listening
+app.addHook('onReady', async () => {
+  console.log('App ready');
+});
+
+// Called when app starts listening
+app.addHook('onListen', async () => {
+  console.log('Server listening');
+});
+
+// Called during shutdown
+app.addHook('onClose', async () => {
+  console.log('Server closing');
+});
+```
+
+## Graceful Shutdown
+
+VeloxTS handles shutdown signals automatically. For database connections, add explicit cleanup:
+
+```typescript
+import { veloxApp } from '@veloxts/velox';
+import { db } from './config/database';
+
+const app = veloxApp();
+
+// Register your procedures
+app.procedures(userProcedures);
+
+// Start server
+await app.start({ port: 3030 });
+
+// Graceful shutdown - prevent connection leaks
+const shutdown = async () => {
+  await db.$disconnect();  // Disconnect Prisma
+  await app.close();       // Close server
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+```
+
+<Aside type="tip">
+All scaffolded templates include graceful shutdown handlers by default.
+</Aside>
+
+## Development Server (HMR)
+
+The VeloxTS CLI provides a development server with Hot Module Replacement:
+
+```bash
+velox dev              # Start with HMR (default)
+velox dev --no-hmr     # Legacy tsx watch mode
+velox dev --verbose    # Detailed HMR diagnostics
+velox dev --port 4000  # Custom port
+```
+
+### HMR Features
+
+- Sub-second restart times
+- Precise timing metrics (startup, reload, uptime)
+- Smart error classification with suggestions
+- Visual indicators in console output
+
+### HMR Boundaries
+
+Configure which files trigger reloads in `package.json`:
+
+```json
+{
+  "hotHook": {
+    "boundaries": [
+      "src/procedures/**/*.ts",
+      "src/schemas/**/*.ts",
+      "src/config/**/*.ts"
+    ]
+  }
+}
+```
+
+### Ready Signal for Accurate Timing
+
+For precise HMR timing metrics, add the ready signal after starting:
+
+```typescript
+await app.start({ port: 3030 });
+
+// Signal to CLI that server is ready
+if (process.send) {
+  process.send({ type: 'velox:ready' });
+}
+```
+
+The CLI listens for this message to measure actual server boot time versus process startup time.
+
+## Accessing Fastify
+
+The underlying Fastify instance is available when needed:
+
+```typescript
+const app = veloxApp();
+
+// Access Fastify directly
+app.fastify.get('/custom', async (request, reply) => {
+  return { custom: true };
+});
+
+// Register Fastify plugins
+app.fastify.register(import('@fastify/helmet'));
+```
+
+<Aside type="caution">
+Prefer VeloxTS abstractions when possible. Direct Fastify access bypasses type-safe procedure patterns.
+</Aside>
+
+## Health Check Endpoint
+
+All VeloxTS apps include a health check at `/api/health`:
+
+```bash
+curl http://localhost:3030/api/health
+# {"status":"ok","timestamp":"2024-01-15T10:30:00Z"}
+```
+
+## Environment-Based Configuration
+
+```typescript
+const app = veloxApp({
+  port: parseInt(process.env.PORT ?? '3030'),
+  host: process.env.HOST ?? '0.0.0.0',
+  logger: process.env.NODE_ENV === 'production'
+    ? { level: 'warn' }
+    : { level: 'debug', transport: { target: 'pino-pretty' } },
+  cors: {
+    origin: process.env.CORS_ORIGINS?.split(',') ?? ['http://localhost:3000'],
+  },
+});
+```
+
+## Next Steps
+
+- [Context](/docs/core/context/) - Request context
+- [Plugins](/docs/core/plugins/) - Extend functionality
+- [Configuration](/docs/core/configuration/) - Environment setup

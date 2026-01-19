@@ -1,0 +1,182 @@
+---
+title: Environment Variables
+description: Required and optional environment variables for VeloxTS.
+---
+
+Environment variables configure VeloxTS applications at runtime.
+
+## Required Variables
+
+### Core
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NODE_ENV` | Environment mode | `development`, `production` |
+| `PORT` | Server port | `3030` |
+
+### Database
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | Database connection string | `postgresql://user:pass@host:5432/db` |
+
+### Authentication
+
+| Variable | Description | Minimum |
+|----------|-------------|---------|
+| `JWT_SECRET` | Access token signing key | 32 characters |
+| `JWT_REFRESH_SECRET` | Refresh token signing key | 32 characters |
+| `SESSION_SECRET` | Session signing key | 32 chars, 16 unique |
+
+## Optional Variables
+
+### Server
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `HOST` | Server bind address | `0.0.0.0` |
+| `LOG_LEVEL` | Logging verbosity | `info` |
+| `CORS_ORIGINS` | Allowed origins (comma-separated) | `*` |
+
+### Cache (Redis)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REDIS_URL` | Redis connection URL | - |
+| `CACHE_PREFIX` | Key prefix | `app:` |
+| `CACHE_TTL` | Default TTL (seconds) | `3600` |
+
+### Mail
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MAIL_DRIVER` | Mail driver | `smtp` |
+| `SMTP_HOST` | SMTP server host | - |
+| `SMTP_PORT` | SMTP server port | `587` |
+| `SMTP_USER` | SMTP username | - |
+| `SMTP_PASS` | SMTP password | - |
+| `RESEND_API_KEY` | Resend API key | - |
+| `MAIL_FROM` | Default from address | - |
+
+### Storage
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `STORAGE_DRIVER` | Storage driver | `local` |
+| `STORAGE_PATH` | Local storage path | `./uploads` |
+| `S3_BUCKET` | S3 bucket name | - |
+| `S3_REGION` | AWS region | - |
+| `AWS_ACCESS_KEY_ID` | AWS access key | - |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key | - |
+
+## Example .env Files
+
+### Development
+
+```bash
+# .env
+NODE_ENV=development
+PORT=3030
+
+# Database (SQLite for dev)
+DATABASE_URL=file:./dev.db
+
+# Auth (use secure values in production!)
+JWT_SECRET=dev-jwt-secret-min-32-characters-long
+JWT_REFRESH_SECRET=dev-refresh-secret-min-32-chars-here
+
+# Optional: Enable pretty logging
+LOG_LEVEL=debug
+```
+
+### Production
+
+```bash
+# .env.production
+NODE_ENV=production
+PORT=3030
+
+# Database (PostgreSQL)
+DATABASE_URL=postgresql://user:password@host:5432/myapp?sslmode=require
+
+# Auth (generate secure secrets!)
+JWT_SECRET=your-production-jwt-secret-min-32-chars
+JWT_REFRESH_SECRET=your-production-refresh-secret-32-chars
+
+# Redis (for cache, queue, sessions)
+REDIS_URL=redis://user:password@host:6379
+
+# Mail
+MAIL_DRIVER=resend
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+MAIL_FROM=noreply@yourdomain.com
+
+# Storage
+STORAGE_DRIVER=s3
+S3_BUCKET=your-bucket
+S3_REGION=us-east-1
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+
+# Security
+CORS_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+LOG_LEVEL=warn
+```
+
+## Generating Secrets
+
+```bash
+# Generate a secure random secret (Node.js)
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+
+# Generate using OpenSSL
+openssl rand -base64 32
+```
+
+## Loading Environment Variables
+
+VeloxTS uses `dotenv` for environment variable loading:
+
+```typescript
+// Automatic loading in entry point
+import 'dotenv/config';
+
+// Or manual loading
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.production' });
+```
+
+### Vite/RSC Applications
+
+For RSC apps with Vite, load dotenv explicitly:
+
+```typescript
+import dotenv from 'dotenv';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: resolve(__dirname, '..', '.env') });
+```
+
+## Validation
+
+Validate required environment variables at startup:
+
+```typescript
+import { z } from 'zod';
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']),
+  DATABASE_URL: z.string().min(1),
+  JWT_SECRET: z.string().min(32),
+  JWT_REFRESH_SECRET: z.string().min(32),
+});
+
+const env = envSchema.parse(process.env);
+```
+
+## Next Steps
+
+- [Configuration Reference](/docs/reference/configuration/) - Full config options
+- [Troubleshooting](/docs/reference/troubleshooting/) - Common issues

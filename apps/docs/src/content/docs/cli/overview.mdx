@@ -1,0 +1,45 @@
+---
+title: CLI Overview
+description: VeloxTS command-line tools.
+---
+
+The VeloxTS CLI provides development and code generation tools.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `velox dev` | Start development server |
+| `velox make` | Generate code scaffolds |
+| `velox migrate` | Database migrations |
+| `velox db:seed` | Database seeding |
+| `velox introspect` | Type introspection |
+| `velox mcp` | Start MCP server |
+
+## Installation
+
+The CLI is included in `@veloxts/cli`:
+
+```bash
+pnpm add -D @veloxts/cli
+```
+
+Or use via npx:
+
+```bash
+npx velox dev
+```
+
+## Help
+
+```bash
+velox --help
+velox make --help
+velox migrate --help
+```
+
+## Next Steps
+
+- [Dev Server](/docs/cli/dev-server/) - Development workflow
+- [Generators](/docs/cli/generators/) - Code generation
+- [Database Commands](/docs/cli/database-commands/) - Migration/seeding

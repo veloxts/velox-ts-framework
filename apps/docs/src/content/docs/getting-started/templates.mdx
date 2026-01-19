@@ -1,0 +1,101 @@
+---
+title: Templates
+description: Choose the right VeloxTS template for your project.
+---
+
+VeloxTS provides 5 project templates to match different use cases.
+
+## Template Comparison
+
+| Template | API Style | Frontend | Auth | Best For |
+|----------|-----------|----------|------|----------|
+| `default` | REST + tRPC | None | No | Simple APIs, microservices |
+| `--auth` | REST + tRPC | None | JWT | APIs with authentication |
+| `--trpc` | tRPC only | None | No | Internal TypeScript clients |
+| `--rsc` | REST + tRPC | RSC | No | Full-stack apps |
+| `--rsc-auth` | REST + tRPC | RSC | JWT | Full-stack with auth |
+
+## Default Template
+
+```bash
+npx create-velox-app my-app
+```
+
+A minimal API-only setup with:
+- Basic user CRUD procedures
+- SQLite database
+- REST + tRPC endpoints
+
+**Use when:** Building a backend API, microservice, or BFF.
+
+## Auth Template
+
+```bash
+npx create-velox-app my-app --auth
+```
+
+Adds to default:
+- JWT authentication (access + refresh tokens)
+- `authenticated` and `hasRole` guards
+- Login/register/logout procedures
+- Protected routes
+
+**Use when:** Your API needs user authentication.
+
+## tRPC Template
+
+```bash
+npx create-velox-app my-app --trpc
+```
+
+tRPC-only mode:
+- No REST adapter
+- Type-safe client for TypeScript frontends
+- Smaller bundle, faster startup
+
+**Use when:** All clients are TypeScript and you want maximum type safety.
+
+## RSC Template
+
+```bash
+npx create-velox-app my-app --rsc
+```
+
+Full-stack with React Server Components:
+- Vinxi-based build system
+- File-based routing
+- Server actions
+- SSR streaming
+- React 19
+
+**Use when:** Building a complete web application with a React frontend.
+
+## RSC + Auth Template
+
+```bash
+npx create-velox-app my-app --rsc-auth
+```
+
+Full-stack with authentication:
+- Everything from `--rsc`
+- JWT authentication
+- Protected pages and layouts
+- `validated()` server actions
+- Login/register pages
+
+**Use when:** Full-stack app with user accounts.
+
+## Switching Templates
+
+Templates are starting points. You can add capabilities later:
+
+```bash
+# Start minimal, add auth later
+npx create-velox-app my-app
+pnpm add @veloxts/auth
+```
+
+## Next Steps
+
+- [Architecture Guides](/docs/architecture/overview/) - Understand the patterns
+- [Quick Start](/docs/getting-started/quick-start/) - Build something

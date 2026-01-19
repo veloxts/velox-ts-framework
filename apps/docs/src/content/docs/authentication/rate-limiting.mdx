@@ -1,0 +1,73 @@
+---
+title: Rate Limiting
+description: Protect your API from abuse with rate limiting.
+---
+
+VeloxTS provides rate limiting for authentication endpoints.
+
+## Quick Setup
+
+```typescript
+import { authRateLimiter } from '@veloxts/auth';
+
+const rateLimiter = authRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxAttempts: 5, // 5 attempts per window
+});
+
+login: procedure()
+  .use(rateLimiter)
+  .input(LoginSchema)
+  .mutation(handler),
+```
+
+## Progressive Backoff
+
+```typescript
+import { createAuthRateLimiter } from '@veloxts/auth';
+
+const rateLimiter = createAuthRateLimiter({
+  attempts: [
+    { max: 5, windowMs: 60_000 },      // 5 per minute
+    { max: 10, windowMs: 300_000 },    // 10 per 5 minutes
+    { max: 20, windowMs: 3600_000 },   // 20 per hour
+  ],
+});
+```
+
+## Per-Endpoint Limits
+
+```typescript
+// Strict for login
+const loginLimiter = authRateLimiter({
+  maxAttempts: 5,
+  windowMs: 15 * 60 * 1000,
+});
+
+// Lenient for password reset
+const resetLimiter = authRateLimiter({
+  maxAttempts: 3,
+  windowMs: 60 * 60 * 1000, // 3 per hour
+});
+```
+
+## Response
+
+When rate limited:
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Too many attempts. Try again in 10 minutes.",
+    "retryAfter": 600
+  }
+}
+```
+
+HTTP Status: 429 Too Many Requests
+
+## Next Steps
+
+- [JWT](/docs/authentication/jwt/) - Token auth
+- [Guards](/docs/authentication/guards/) - Authorization

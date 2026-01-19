@@ -1,0 +1,272 @@
+---
+title: Troubleshooting
+description: Solutions to common VeloxTS issues.
+---
+
+Solutions to common issues when developing with VeloxTS.
+
+## Prisma 7 Issues
+
+### "Unknown property datasourceUrl"
+
+**Error:**
+```
+Unknown property datasourceUrl in PrismaClient constructor
+```
+
+**Cause:** Prisma 7 removed `datasourceUrl` and `datasources` options.
+
+**Solution:** Use a driver adapter instead:
+
+```typescript
+// Before (Prisma 5/6)
+const db = new PrismaClient({
+  datasourceUrl: process.env.DATABASE_URL,
+});
+
+// After (Prisma 7)
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
+const db = new PrismaClient({ adapter });
+```
+
+### "Generating into @prisma/client not allowed"
+
+**Cause:** Wrong output path in `schema.prisma`.
+
+**Solution:** Use `.prisma/client`:
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"  // Correct
+}
+```
+
+### Database URL Not Loading
+
+**Cause:** Vite SSR doesn't auto-load `.env` files.
+
+**Solution:** Load dotenv explicitly:
+
+```typescript
+import dotenv from 'dotenv';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: resolve(__dirname, '..', '.env') });
+```
+
+## Type Errors
+
+### "Type 'unknown' is not assignable to..."
+
+**Cause:** Context type not extended properly.
+
+**Solution:** Ensure declaration merging is set up:
+
+```typescript
+// src/types.d.ts
+import '@veloxts/core';
+
+declare module '@veloxts/core' {
+  interface BaseContext {
+    db: PrismaClient;
+    user?: User;
+  }
+}
+```
+
+### "Property 'user' does not exist on ctx"
+
+**Cause:** Auth plugin not registered or types not extended.
+
+**Solution:**
+1. Register the auth plugin
+2. Add type declaration for `user`
+
+```typescript
+// 1. Register plugin
+app.use(authPlugin({ userLoader: loadUser }));
+
+// 2. Extend types
+declare module '@veloxts/core' {
+  interface BaseContext {
+    user?: { id: string; email: string; role: string };
+  }
+}
+```
+
+## REST API Issues
+
+### Wrong HTTP Method Generated
+
+**Cause:** Procedure name doesn't match REST conventions.
+
+**Solution:** Use correct naming prefixes:
+
+| Prefix | Method | Example |
+|--------|--------|---------|
+| `get*` | GET | `getUser` → GET /users/:id |
+| `list*` | GET | `listUsers` → GET /users |
+| `create*` | POST | `createUser` → POST /users |
+| `update*` | PUT | `updateUser` → PUT /users/:id |
+| `delete*` | DELETE | `deleteUser` → DELETE /users/:id |
+
+Or override with `.rest()`:
+
+```typescript
+myProcedure: procedure()
+  .rest({ method: 'POST', path: '/custom/path' })
+  .mutation(/* ... */)
+```
+
+### Route Not Found (404)
+
+**Checklist:**
+1. Is the router registered with the app?
+2. Is the procedure exported correctly?
+3. Is the base path correct (`/api`)?
+4. Check exact path in logs when server starts
+
+```typescript
+// Verify router registration
+app.use(router);
+
+// Check startup logs for registered routes
+// [INFO] GET /api/users
+// [INFO] POST /api/users
+```
+
+## Authentication Issues
+
+### "jwt malformed" or "invalid signature"
+
+**Causes:**
+- Token corrupted in transmission
+- Wrong secret used
+- Token from different environment
+
+**Solution:**
+1. Verify `JWT_SECRET` matches between token generation and verification
+2. Check token isn't truncated (copy full token)
+3. Ensure same secret across all instances
+
+### Guards Not Working
+
+**Cause:** Guard not applied or `userLoader` not returning expected fields.
+
+**Checklist:**
+1. Is the guard applied to the procedure?
+2. Is `userLoader` returning the fields your guard checks?
+
+```typescript
+// Guard checks role
+const adminGuard = defineGuard({
+  name: 'admin',
+  check: (ctx) => ctx.user?.role === 'admin',  // Needs role field
+});
+
+// userLoader must return role
+const userLoader = async (userId: string) => {
+  return db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, role: true },  // Include role!
+  });
+};
+```
+
+## Build Issues
+
+### "Cannot find module '@veloxts/...'"
+
+**Causes:**
+- Dependencies not installed
+- Wrong package version
+
+**Solution:**
+```bash
+# Reinstall dependencies
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+
+# Verify versions match
+pnpm list @veloxts/core @veloxts/router
+```
+
+### TypeScript Compilation Errors
+
+**Common fixes:**
+1. Clear TypeScript cache: `rm -rf node_modules/.cache`
+2. Restart TypeScript server in your editor
+3. Ensure `tsconfig.json` extends the correct base config
+
+## HMR Issues
+
+### Changes Not Reloading
+
+**Checklist:**
+1. Is HMR enabled? (`velox dev` not `velox dev --no-hmr`)
+2. Are boundaries configured in `package.json`?
+
+```json
+{
+  "hotHook": {
+    "boundaries": [
+      "src/procedures/**/*.ts",
+      "src/schemas/**/*.ts"
+    ]
+  }
+}
+```
+
+### Port Already in Use
+
+**Error:** `EADDRINUSE: address already in use :::3030`
+
+**Solution:**
+```bash
+# Find process using port
+lsof -i :3030
+
+# Kill it
+kill -9 <PID>
+
+# Or use a different port
+velox dev --port 4000
+```
+
+## Database Connection Issues
+
+### Connection Pool Exhausted
+
+**Symptoms:** Slow queries, timeouts, "too many connections"
+
+**Solutions:**
+1. Add graceful shutdown handler:
+
+```typescript
+const shutdown = async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+```
+
+2. Configure connection pool:
+
+```
+DATABASE_URL=postgresql://...?connection_limit=10
+```
+
+## Getting Help
+
+If your issue isn't covered here:
+
+1. **Search existing issues:** [GitHub Issues](https://github.com/veloxts/veloxts/issues)
+2. **Check the guides:** Review relevant documentation sections
+3. **Open an issue:** Provide error message, code sample, and environment details

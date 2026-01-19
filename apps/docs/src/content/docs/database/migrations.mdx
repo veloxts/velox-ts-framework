@@ -1,0 +1,62 @@
+---
+title: Migrations
+description: Manage database schema changes with Prisma migrations.
+---
+
+VeloxTS uses Prisma for database migrations.
+
+## Development Workflow
+
+### Push Schema (Development)
+
+```bash
+pnpm db:push
+```
+
+Syncs schema to database without creating migration files. Fast for prototyping.
+
+### Create Migration (Production)
+
+```bash
+pnpm prisma migrate dev --name add_users_table
+```
+
+Creates a migration file for the schema change.
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `velox migrate status` | Show migration status |
+| `velox migrate run` | Run pending migrations |
+| `velox migrate rollback` | Rollback last migration |
+| `velox migrate fresh` | Drop all tables and re-run |
+| `velox migrate reset` | Rollback all then re-run |
+
+## Rollback Support
+
+VeloxTS generates `down.sql` files for rollbacks:
+
+```bash
+velox make migration add_status_to_orders
+```
+
+Creates:
+```
+prisma/migrations/
+└── 20240115_add_status_to_orders/
+    ├── migration.sql  # Up migration
+    └── down.sql       # Rollback migration
+```
+
+## Production
+
+```bash
+# Deploy migrations
+pnpm prisma migrate deploy
+```
+
+## Next Steps
+
+- [Seeding](/docs/database/seeding/) - Test data
+- [Prisma 7 Setup](/docs/database/prisma-7-setup/) - Configuration

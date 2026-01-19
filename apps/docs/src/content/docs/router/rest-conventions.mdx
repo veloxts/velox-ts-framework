@@ -1,0 +1,478 @@
+---
+title: REST Naming Conventions
+description: How procedure names automatically map to HTTP methods and paths.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+VeloxTS uses naming conventions to automatically generate REST endpoints from procedure names. Understanding these conventions is essential for predictable API design.
+
+## The Core Rule
+
+The procedure name prefix determines the HTTP method. The resource name (first argument to `procedures()`) determines the path.
+
+```typescript
+// Resource: 'users' → Path: /api/users
+export const userProcedures = procedures('users', {
+  listUsers: ...,   // GET /api/users
+  getUser: ...,     // GET /api/users/:id
+  createUser: ...,  // POST /api/users
+});
+```
+
+<Aside type="caution" title="Common Gotcha">
+The procedure name **does not** affect the path - only the HTTP method.
+
+```typescript
+procedures('stats', {
+  // This creates GET /api/stats, NOT /api/stats/hourly
+  listHourlyStats: procedure()...
+})
+```
+
+If you need `/api/stats/hourly`, use `.rest()` override or a separate resource.
+</Aside>
+
+## Naming Patterns
+
+### GET - Read Operations
+
+| Prefix | Path | Use Case |
+|--------|------|----------|
+| `list*` | `/api/{resource}` | Get collection |
+| `get*` | `/api/{resource}/:id` | Get single by ID |
+| `find*` | `/api/{resource}` | Search/filter collection |
+
+```typescript
+procedures('products', {
+  listProducts: ...,     // GET /api/products
+  getProduct: ...,       // GET /api/products/:id
+  findProducts: ...,     // GET /api/products (with query params)
+});
+```
+
+### POST - Create Operations
+
+| Prefix | Path | Status Code |
+|--------|------|-------------|
+| `create*` | `/api/{resource}` | 201 Created |
+| `add*` | `/api/{resource}` | 201 Created |
+
+```typescript
+procedures('users', {
+  createUser: ...,   // POST /api/users → 201
+  addUser: ...,      // POST /api/users → 201
+});
+```
+
+### PUT - Full Update
+
+| Prefix | Path | Use Case |
+|--------|------|----------|
+| `update*` | `/api/{resource}/:id` | Replace entire resource |
+| `edit*` | `/api/{resource}/:id` | Replace entire resource |
+
+```typescript
+procedures('posts', {
+  updatePost: ...,   // PUT /api/posts/:id
+  editPost: ...,     // PUT /api/posts/:id
+});
+```
+
+### PATCH - Partial Update
+
+| Prefix | Path | Use Case |
+|--------|------|----------|
+| `patch*` | `/api/{resource}/:id` | Update specific fields |
+
+```typescript
+procedures('users', {
+  patchUser: ...,    // PATCH /api/users/:id
+});
+```
+
+### DELETE - Remove
+
+| Prefix | Path | Status Code |
+|--------|------|-------------|
+| `delete*` | `/api/{resource}/:id` | 200 or 204 |
+| `remove*` | `/api/{resource}/:id` | 200 or 204 |
+
+```typescript
+procedures('posts', {
+  deletePost: ...,   // DELETE /api/posts/:id
+  removePost: ...,   // DELETE /api/posts/:id
+});
+```
+
+## Complete Reference Table
+
+| Prefix | HTTP Method | Path Pattern | Response |
+|--------|-------------|--------------|----------|
+| `get*` | GET | `/:id` | Single resource |
+| `list*` | GET | `/` | Collection |
+| `find*` | GET | `/` | Filtered collection |
+| `create*` | POST | `/` | 201 + created resource |
+| `add*` | POST | `/` | 201 + created resource |
+| `update*` | PUT | `/:id` | Updated resource |
+| `edit*` | PUT | `/:id` | Updated resource |
+| `patch*` | PATCH | `/:id` | Updated resource |
+| `delete*` | DELETE | `/:id` | 200/204 |
+| `remove*` | DELETE | `/:id` | 200/204 |
+
+## Examples
+
+<Tabs>
+  <TabItem label="Users CRUD">
+```typescript
+procedures('users', {
+  listUsers: procedure()
+    .output(z.array(UserSchema))
+    .query(({ ctx }) => ctx.db.user.findMany()),
+  // → GET /api/users
+
+  getUser: procedure()
+    .input(z.object({ id: z.string() }))
+    .output(UserSchema)
+    .query(({ input, ctx }) => ctx.db.user.findUnique({ where: { id: input.id } })),
+  // → GET /api/users/:id
+
+  createUser: procedure()
+    .input(CreateUserSchema)
+    .output(UserSchema)
+    .mutation(({ input, ctx }) => ctx.db.user.create({ data: input })),
+  // → POST /api/users (201)
+
+  updateUser: procedure()
+    .input(z.object({ id: z.string(), data: UpdateUserSchema }))
+    .mutation(({ input, ctx }) => ctx.db.user.update({ where: { id: input.id }, data: input.data })),
+  // → PUT /api/users/:id
+
+  deleteUser: procedure()
+    .input(z.object({ id: z.string() }))
+    .mutation(({ input, ctx }) => ctx.db.user.delete({ where: { id: input.id } })),
+  // → DELETE /api/users/:id
+});
+```
+  </TabItem>
+  <TabItem label="Search/Filter">
+```typescript
+procedures('products', {
+  // Collection endpoint
+  listProducts: procedure()
+    .output(z.array(ProductSchema))
+    .query(({ ctx }) => ctx.db.product.findMany()),
+  // → GET /api/products
+
+  // Search with query params
+  findProducts: procedure()
+    .input(z.object({
+      category: z.string().optional(),
+      minPrice: z.coerce.number().optional(),
+      maxPrice: z.coerce.number().optional(),
+    }))
+    .output(z.array(ProductSchema))
+    .query(({ input, ctx }) => ctx.db.product.findMany({
+      where: {
+        category: input.category,
+        price: {
+          gte: input.minPrice,
+          lte: input.maxPrice,
+        },
+      },
+    })),
+  // → GET /api/products?category=electronics&minPrice=100
+});
+```
+  </TabItem>
+</Tabs>
+
+## Custom Routes with `.rest()`
+
+Override conventions when they don't fit:
+
+```typescript
+procedures('auth', {
+  // Custom path
+  login: procedure()
+    .input(LoginSchema)
+    .rest({ method: 'POST', path: '/auth/login' })
+    .mutation(handler),
+
+  // Custom path with params
+  verifyEmail: procedure()
+    .input(z.object({ token: z.string() }))
+    .rest({ method: 'POST', path: '/auth/verify/:token' })
+    .mutation(handler),
+
+  // Disable REST entirely (tRPC-only)
+  internalOnly: procedure()
+    .rest({ enabled: false })
+    .query(handler),
+});
+```
+
+## Common Patterns
+
+### Bulk Operations
+
+```typescript
+procedures('users', {
+  // POST /api/users/bulk
+  createManyUsers: procedure()
+    .input(z.array(CreateUserSchema))
+    .rest({ method: 'POST', path: '/users/bulk' })
+    .mutation(({ input, ctx }) => ctx.db.user.createMany({ data: input })),
+
+  // DELETE /api/users/bulk
+  deleteManyUsers: procedure()
+    .input(z.object({ ids: z.array(z.string()) }))
+    .rest({ method: 'DELETE', path: '/users/bulk' })
+    .mutation(({ input, ctx }) => ctx.db.user.deleteMany({
+      where: { id: { in: input.ids } },
+    })),
+});
+```
+
+### Custom Actions
+
+```typescript
+procedures('users', {
+  // POST /api/users/:id/activate
+  activateUser: procedure()
+    .input(z.object({ id: z.string() }))
+    .rest({ method: 'POST', path: '/users/:id/activate' })
+    .mutation(({ input, ctx }) => ctx.db.user.update({
+      where: { id: input.id },
+      data: { isActive: true },
+    })),
+
+  // POST /api/users/:id/verify-email
+  verifyEmail: procedure()
+    .input(z.object({ id: z.string(), token: z.string() }))
+    .rest({ method: 'POST', path: '/users/:id/verify-email' })
+    .mutation(({ input, ctx }) => ctx.auth.verifyEmail(input.id, input.token)),
+});
+```
+
+### Pagination
+
+```typescript
+procedures('products', {
+  // GET /api/products?page=1&limit=20&category=electronics
+  listProducts: procedure()
+    .input(z.object({
+      page: z.coerce.number().default(1),
+      limit: z.coerce.number().default(20),
+      category: z.string().optional(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const skip = (input.page - 1) * input.limit;
+
+      const [products, total] = await Promise.all([
+        ctx.db.product.findMany({
+          where: { category: input.category },
+          skip,
+          take: input.limit,
+        }),
+        ctx.db.product.count({ where: { category: input.category } }),
+      ]);
+
+      return {
+        data: products,
+        meta: { page: input.page, limit: input.limit, total },
+      };
+    }),
+});
+```
+
+## URL Parameter Extraction
+
+VeloxTS automatically extracts URL path parameters and merges them with the input schema.
+
+### How It Works
+
+For procedures expecting `:id` (like `getUser`, `updateUser`, `deleteUser`):
+
+```typescript
+getUser: procedure()
+  .input(z.object({ id: z.string() }))  // Input schema has 'id'
+  .query(({ input, ctx }) => {
+    // input.id comes from URL: GET /api/users/abc-123
+    return ctx.db.user.findUnique({ where: { id: input.id } });
+  }),
+// → GET /api/users/:id
+```
+
+**Request:** `GET /api/users/abc-123`
+**Handler receives:** `input = { id: "abc-123" }`
+
+<Aside type="note" title="Automatic ID Mapping">
+For `get*`, `update*`, `edit*`, `patch*`, `delete*`, and `remove*` prefixes, VeloxTS:
+1. Generates a route with `:id` parameter
+2. Extracts `id` from the URL path
+3. Merges it with query params (GET) or body (POST/PUT/PATCH) into the `input` object
+4. Validates the combined input against your schema
+
+Your schema **must** include an `id` field for these operations.
+</Aside>
+
+### Multiple Path Parameters
+
+For custom paths with multiple parameters:
+
+```typescript
+getComment: procedure()
+  .input(z.object({
+    postId: z.string(),
+    commentId: z.string(),
+  }))
+  .rest({ method: 'GET', path: '/posts/:postId/comments/:commentId' })
+  .query(({ input }) => {
+    // input.postId = from URL
+    // input.commentId = from URL
+  }),
+```
+
+**Request:** `GET /api/posts/post-1/comments/comment-5`
+**Handler receives:** `input = { postId: "post-1", commentId: "comment-5" }`
+
+## Query Parameter Coercion
+
+<Aside type="tip" title="Query Params are Strings">
+Query parameters arrive as strings. Use `z.coerce` for automatic conversion:
+
+```typescript
+findProducts: procedure()
+  .input(z.object({
+    page: z.coerce.number().default(1),
+    limit: z.coerce.number().default(20),
+    active: z.coerce.boolean().optional(),
+  }))
+  .query(...)
+// GET /api/products?page=2&limit=50&active=true
+```
+</Aside>
+
+## Warning System
+
+VeloxTS includes development-time warnings to catch naming convention issues.
+
+### Warning Types
+
+**No Convention Match:**
+```typescript
+// WARNING: "fetchUser" doesn't match any naming convention
+fetchUser: procedure().query(...)  // Should be: getUser
+```
+
+**Type Mismatch:**
+```typescript
+// WARNING: "getUser" uses "get" prefix but is defined as mutation
+getUser: procedure().mutation(...)  // Should be .query()
+```
+
+**Similar Name Detected:**
+```typescript
+// WARNING: "retrieveUser" - did you mean "getUser"?
+retrieveUser: procedure().query(...)
+```
+
+### Configure Warnings
+
+```typescript
+// Disable warnings for specific namespace
+export const legacyProcedures = procedures('legacy', procs, {
+  warnings: false,
+});
+
+// Strict mode (warnings become errors)
+export const apiProcedures = procedures('api', procs, {
+  warnings: 'strict',
+});
+
+// Exclude specific procedures
+export const mixedProcedures = procedures('users', procs, {
+  warnings: { except: ['customAction'] },
+});
+```
+
+<Aside type="note">
+Warnings are automatically suppressed in production (`NODE_ENV=production`).
+</Aside>
+
+## Anti-Patterns
+
+### Wrong Procedure Type
+
+```typescript
+// BAD: GET prefix with mutation
+getUserData: procedure()
+  .mutation(({ ctx }) => ctx.db.user.findMany())  // Should be .query()
+
+// GOOD: Match type to prefix
+listUsers: procedure()
+  .query(({ ctx }) => ctx.db.user.findMany())
+```
+
+### Missing ID for get* Pattern
+
+```typescript
+// BAD: get* expects :id but no input
+getUser: procedure()
+  .query(({ ctx }) => ctx.db.user.findMany())  // Returns all users!
+
+// GOOD: Provide id input
+getUser: procedure()
+  .input(z.object({ id: z.string() }))
+  .query(({ input, ctx }) => ctx.db.user.findUnique({ where: { id: input.id } }))
+```
+
+### Unnecessary .rest() Override
+
+```typescript
+// BAD: Convention already does this
+getUser: procedure()
+  .rest({ method: 'GET', path: '/users/:id' })  // Redundant!
+  .query(...)
+
+// GOOD: Let conventions work
+getUser: procedure()
+  .query(...)  // Auto-generates GET /api/users/:id
+```
+
+## Troubleshooting
+
+### REST endpoint returns 404
+
+**Causes:** Procedure name doesn't match convention, wrong type (query vs mutation), or incorrect casing.
+
+**Fix:** Check dev console for warnings, use standard prefix, or add `.rest()` override.
+
+### Wrong HTTP method generated
+
+**Cause:** Using `.mutation()` when you meant `.query()` or vice versa.
+
+**Rule of thumb:**
+- `get*`, `list*`, `find*` → Always `.query()`
+- `create*`, `add*`, `update*`, `edit*`, `patch*`, `delete*`, `remove*` → Always `.mutation()`
+
+### Multiple procedures map to same endpoint
+
+`listUsers` and `findUsers` both generate `GET /api/users` - this is expected. Differentiate with `.rest()` if needed:
+
+```typescript
+listUsers: procedure()
+  .rest({ path: '/users' })
+  .query(...),
+
+findUsers: procedure()
+  .rest({ path: '/users/search' })
+  .query(...),
+```
+
+## Next Steps
+
+- [REST Overrides](/docs/router/rest-overrides/) - Custom path configuration
+- [Validation Coercion](/docs/validation/coercion/) - Type conversion patterns
+- [OpenAPI](/docs/router/openapi/) - API documentation

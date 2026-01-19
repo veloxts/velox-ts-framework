@@ -1,12 +1,22 @@
 {
   "name": "@veloxts/docs",
-  "version": "0.4.9",
+  "version": "0.6.82",
   "description": "Documentation site for VeloxTS framework",
+  "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "echo \"Documentation site not yet implemented\"",
-    "build": "echo \"Documentation site not yet implemented\""
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
   },
-  "dependencies": {},
-  "devDependencies": {},
-  "private": true
+  "dependencies": {
+    "@astrojs/starlight": "0.37.3",
+    "astro": "5.16.11",
+    "sharp": "0.33.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.10",
+    "typescript": "5.7.3"
+  }
 }

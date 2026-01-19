@@ -1,0 +1,58 @@
+---
+title: Railway
+description: Deploy to Railway with automatic builds.
+---
+
+Railway provides easy deployment with automatic builds from Git.
+
+## Quick Deploy
+
+1. Push your code to GitHub
+2. Connect Railway to your repository
+3. Railway auto-detects Node.js and deploys
+
+## Configuration
+
+Create `railway.json`:
+
+```json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "pnpm prisma migrate deploy && node dist/index.js",
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 30
+  }
+}
+```
+
+## Environment Variables
+
+Set in Railway dashboard:
+
+```
+NODE_ENV=production
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+JWT_SECRET=your-secret
+JWT_REFRESH_SECRET=your-refresh-secret
+```
+
+## Add PostgreSQL
+
+1. Click "New Service" in Railway
+2. Select "Database" → "PostgreSQL"
+3. Railway auto-links `DATABASE_URL`
+
+## Custom Domain
+
+1. Go to Settings → Domains
+2. Add your custom domain
+3. Update DNS with provided CNAME
+
+## Next Steps
+
+- [Render](/docs/deployment/render/) - Alternative PaaS
+- [Production Checklist](/docs/deployment/production-checklist/) - Full checklist
