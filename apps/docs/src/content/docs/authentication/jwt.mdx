@@ -1,0 +1,88 @@
+---
+title: JWT Authentication
+description: Token-based authentication with access and refresh tokens.
+---
+
+JWT authentication provides stateless, scalable authentication.
+
+## Setup
+
+```typescript
+import { jwtManager, authPlugin } from '@veloxts/auth';
+
+const jwt = jwtManager({
+  secret: process.env.JWT_SECRET!,
+  refreshSecret: process.env.JWT_REFRESH_SECRET!,
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d',
+});
+
+app.register(authPlugin, { jwt });
+```
+
+## Login Flow
+
+```typescript
+login: procedure()
+  .input(z.object({
+    email: z.string().email(),
+    password: z.string(),
+  }))
+  .mutation(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({
+      where: { email: input.email },
+    });
+
+    if (!user || !await verifyPassword(input.password, user.passwordHash)) {
+      throw new Error('Invalid credentials');
+    }
+
+    const tokens = await ctx.jwt.generateTokenPair({
+      sub: user.id,
+      email: user.email,
+    });
+
+    return { user, ...tokens };
+  }),
+```
+
+## Token Refresh
+
+```typescript
+refreshToken: procedure()
+  .input(z.object({ refreshToken: z.string() }))
+  .mutation(async ({ input, ctx }) => {
+    const tokens = await ctx.jwt.refreshTokens(input.refreshToken);
+    return tokens;
+  }),
+```
+
+## Protecting Routes
+
+```typescript
+import { authenticated } from '@veloxts/auth';
+
+getProfile: procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => ctx.user),
+```
+
+## Client Usage
+
+```typescript
+// Store tokens
+localStorage.setItem('accessToken', tokens.accessToken);
+localStorage.setItem('refreshToken', tokens.refreshToken);
+
+// Include in requests
+fetch('/api/profile', {
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+  },
+});
+```
+
+## Next Steps
+
+- [Guards](/docs/authentication/guards/) - Authorization
+- [Sessions](/docs/authentication/sessions/) - Alternative approach

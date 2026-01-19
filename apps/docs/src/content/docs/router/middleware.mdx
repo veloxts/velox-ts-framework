@@ -1,0 +1,138 @@
+---
+title: Middleware
+description: Add request processing logic to procedures.
+---
+
+Middleware lets you run code before procedure handlers execute. Use it for logging, rate limiting, or request transformation.
+
+## Using Middleware
+
+Add middleware with `.use()`:
+
+```typescript
+import { procedure } from '@veloxts/velox';
+
+const loggedProcedure = procedure()
+  .use(async ({ ctx, next }) => {
+    console.log('Request started');
+    const result = await next();
+    console.log('Request completed');
+    return result;
+  })
+  .query(handler);
+```
+
+## Middleware Signature
+
+```typescript
+type Middleware = (opts: {
+  ctx: Context;
+  input: unknown;
+  next: () => Promise<unknown>;
+}) => Promise<unknown>;
+```
+
+## Common Patterns
+
+### Logging
+
+```typescript
+const loggingMiddleware = async ({ ctx, next }) => {
+  const start = Date.now();
+  const result = await next();
+  const duration = Date.now() - start;
+  console.log(`${ctx.request.method} ${ctx.request.url} - ${duration}ms`);
+  return result;
+};
+```
+
+### Timing
+
+```typescript
+const timingMiddleware = async ({ ctx, next }) => {
+  const start = process.hrtime.bigint();
+  const result = await next();
+  const end = process.hrtime.bigint();
+  ctx.reply.header('X-Response-Time', `${Number(end - start) / 1e6}ms`);
+  return result;
+};
+```
+
+### Error Wrapping
+
+```typescript
+const errorMiddleware = async ({ next }) => {
+  try {
+    return await next();
+  } catch (error) {
+    // Log to error tracking service
+    console.error('Procedure error:', error);
+    throw error;
+  }
+};
+```
+
+### Context Enhancement
+
+```typescript
+const tenantMiddleware = async ({ ctx, next }) => {
+  const tenantId = ctx.request.headers['x-tenant-id'];
+  ctx.tenant = await getTenant(tenantId);
+  return next();
+};
+```
+
+## Chaining Middleware
+
+Middleware runs in order:
+
+```typescript
+const securedProcedure = procedure()
+  .use(loggingMiddleware)      // 1. Log request
+  .use(authMiddleware)          // 2. Verify auth
+  .use(rateLimitMiddleware)     // 3. Check rate limit
+  .guard(authenticated)         // 4. Require auth
+  .query(handler);              // 5. Execute handler
+```
+
+## Reusable Procedure Bases
+
+Create middleware-enhanced base procedures:
+
+```typescript
+// Base with logging
+export const loggedProcedure = procedure().use(loggingMiddleware);
+
+// Base with auth
+export const authedProcedure = procedure()
+  .use(loggingMiddleware)
+  .guard(authenticated);
+
+// Use in procedures
+export const userProcedures = procedures('users', {
+  listUsers: loggedProcedure
+    .output(z.array(UserSchema))
+    .query(handler),
+
+  getProfile: authedProcedure
+    .output(UserSchema)
+    .query(({ ctx }) => ctx.user),
+});
+```
+
+## Middleware vs Guards
+
+| Feature | Middleware | Guards |
+|---------|------------|--------|
+| Purpose | Request processing | Authorization |
+| Can modify context | Yes | No |
+| Can modify response | Yes | No |
+| Failure behavior | Throw or continue | Block request |
+
+Use **middleware** for cross-cutting concerns (logging, timing).
+Use **guards** for authorization (authenticated, hasRole).
+
+## Next Steps
+
+- [Guards](/docs/authentication/guards/) - Authorization
+- [Procedures](/docs/router/procedures/) - Procedure API

@@ -1,0 +1,62 @@
+---
+title: Context
+description: Request-scoped state and dependency injection.
+---
+
+The context (`ctx`) object provides access to request-scoped state in procedure handlers.
+
+## Default Context
+
+Every handler receives:
+
+```typescript
+.query(async ({ input, ctx }) => {
+  ctx.request  // Fastify request
+  ctx.reply    // Fastify reply
+  ctx.db       // Prisma client (with ORM plugin)
+  ctx.user     // Authenticated user (with auth plugin)
+})
+```
+
+## Extending Context
+
+Use TypeScript declaration merging:
+
+```typescript
+// src/types.ts
+declare module '@veloxts/core' {
+  interface BaseContext {
+    tenant: Tenant;
+    logger: Logger;
+  }
+}
+```
+
+Then populate in a plugin or middleware:
+
+```typescript
+app.addHook('onRequest', async (request, reply) => {
+  request.context = {
+    ...request.context,
+    tenant: await getTenant(request),
+    logger: createLogger(request),
+  };
+});
+```
+
+## Context in Guards
+
+Guards receive the full context:
+
+```typescript
+const isTenantAdmin = defineGuard({
+  name: 'isTenantAdmin',
+  check: (ctx) => ctx.user?.role === 'admin' && ctx.tenant?.id === ctx.user?.tenantId,
+  message: 'Must be tenant admin',
+});
+```
+
+## Next Steps
+
+- [Plugins](/docs/core/plugins/) - Register plugins
+- [Guards](/docs/authentication/guards/) - Authorization

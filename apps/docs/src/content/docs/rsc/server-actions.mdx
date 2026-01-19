@@ -1,0 +1,103 @@
+---
+title: Server Actions
+description: Type-safe server mutations with validation.
+---
+
+Server actions provide type-safe mutations from React components.
+
+## Basic Action
+
+```typescript
+// app/actions/users.ts
+'use server';
+
+import { db } from '@/api/database';
+
+export async function createUser(formData: FormData) {
+  const name = formData.get('name') as string;
+  const email = formData.get('email') as string;
+
+  return db.user.create({ data: { name, email } });
+}
+```
+
+## Validated Actions
+
+Use `validated()` for type-safe input validation:
+
+```typescript
+// app/actions/users.ts
+'use server';
+
+import { validated } from '@veloxts/web/server';
+import { CreateUserSchema } from '@/api/schemas/user';
+
+export const createUser = validated(CreateUserSchema, async (input) => {
+  const user = await db.user.create({ data: input });
+  return { success: true, user };
+});
+```
+
+## Using in Forms
+
+```tsx
+// app/pages/users/new.tsx
+import { createUser } from '@/app/actions/users';
+
+export default function NewUserPage() {
+  return (
+    <form action={createUser}>
+      <input name="name" required />
+      <input name="email" type="email" required />
+      <button type="submit">Create</button>
+    </form>
+  );
+}
+```
+
+## With useFormAction
+
+```tsx
+'use client';
+
+import { useFormAction } from '@veloxts/web/client';
+import { createUser } from '@/app/actions/users';
+
+export function CreateUserForm() {
+  const { execute, isPending, error } = useFormAction(createUser);
+
+  return (
+    <form action={execute}>
+      <input name="name" required />
+      <input name="email" type="email" required />
+      <button disabled={isPending}>
+        {isPending ? 'Creating...' : 'Create'}
+      </button>
+      {error && <p className="error">{error.message}</p>}
+    </form>
+  );
+}
+```
+
+## Authenticated Actions
+
+```typescript
+'use server';
+
+import { authAction } from '@veloxts/web/server';
+
+export const updateProfile = authAction(
+  UpdateProfileSchema,
+  async (input, { user }) => {
+    return db.user.update({
+      where: { id: user.id },
+      data: input,
+    });
+  }
+);
+```
+
+## Next Steps
+
+- [File Routing](/docs/rsc/file-routing/) - Route patterns
+- [tRPC Bridge](/docs/rsc/trpc-bridge/) - Call procedures

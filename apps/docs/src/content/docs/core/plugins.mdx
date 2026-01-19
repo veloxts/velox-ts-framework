@@ -1,0 +1,62 @@
+---
+title: Plugins
+description: Extend VeloxTS with plugins.
+---
+
+Plugins add functionality to your VeloxTS application. VeloxTS is built on Fastify's plugin system.
+
+## Using Plugins
+
+```typescript
+import { veloxApp } from '@veloxts/velox';
+import { databasePlugin } from '@veloxts/orm';
+import { authPlugin } from '@veloxts/auth';
+
+const app = veloxApp();
+
+app.register(databasePlugin);
+app.register(authPlugin, { secret: process.env.JWT_SECRET });
+
+await app.start({ port: 3030 });
+```
+
+## Built-in Plugins
+
+| Package | Plugin | Purpose |
+|---------|--------|---------|
+| @veloxts/orm | `databasePlugin` | Prisma database connection |
+| @veloxts/auth | `authPlugin` | Authentication setup |
+| @veloxts/router | `registerDocs` | OpenAPI documentation |
+
+## Creating Plugins
+
+```typescript
+import { definePlugin } from '@veloxts/core';
+
+export const myPlugin = definePlugin({
+  name: 'my-plugin',
+  register: async (app, options) => {
+    // Add hooks, decorators, routes
+    app.addHook('onRequest', async (request) => {
+      // ...
+    });
+  },
+});
+```
+
+## Fastify Plugins
+
+You can use any Fastify plugin:
+
+```typescript
+import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+
+app.register(cors, { origin: true });
+app.register(helmet);
+```
+
+## Next Steps
+
+- [Application](/docs/core/application/) - App lifecycle
+- [Context](/docs/core/context/) - Request context

@@ -1,0 +1,96 @@
+---
+title: Architecture Overview
+description: Understanding VeloxTS architectural patterns and choices.
+---
+
+VeloxTS is designed to be flexible. You choose the architecture that fits your needs.
+
+## The Core Abstraction: Procedures
+
+At the heart of VeloxTS is the **procedure** - a type-safe function that can be exposed as both tRPC and REST:
+
+```typescript
+const getUser = procedure()
+  .input(z.object({ id: z.string() }))
+  .output(UserSchema)
+  .query(async ({ input, ctx }) => {
+    return ctx.db.user.findUnique({ where: { id: input.id } });
+  });
+```
+
+This single definition generates:
+- **tRPC endpoint** - Full type inference for TypeScript clients
+- **REST endpoint** - `GET /api/users/:id` for any HTTP client
+
+## Architectural Patterns
+
+### 1. REST API
+
+External-facing API with automatic OpenAPI generation.
+
+```
+Client (any) → REST → VeloxTS → Database
+```
+
+[Learn more](/docs/architecture/rest-api/)
+
+### 2. tRPC API
+
+Maximum type safety for TypeScript clients.
+
+```
+TypeScript Client → tRPC → VeloxTS → Database
+```
+
+[Learn more](/docs/architecture/trpc-api/)
+
+### 3. SPA + Backend
+
+Separate frontend, type-safe communication.
+
+```
+React SPA → tRPC Client → VeloxTS API → Database
+```
+
+[Learn more](/docs/architecture/spa-backend/)
+
+### 4. Full-stack RSC
+
+Unified codebase with React Server Components.
+
+```
+Browser → Vinxi → RSC → Server Actions → VeloxTS → Database
+```
+
+[Learn more](/docs/architecture/fullstack-rsc/)
+
+### 5. Hybrid
+
+Combine patterns - tRPC for internal, REST for external.
+
+```
+Mobile App → REST ↘
+                    VeloxTS → Database
+Web App → tRPC   ↗
+```
+
+[Learn more](/docs/architecture/hybrid/)
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| HTTP Server | Fastify |
+| RPC | tRPC |
+| Validation | Zod |
+| ORM | Prisma |
+| Full-stack | Vinxi + React 19 |
+
+## Next Steps
+
+Choose your architecture:
+
+- [REST API](/docs/architecture/rest-api/) - External clients
+- [tRPC API](/docs/architecture/trpc-api/) - TypeScript clients
+- [SPA + Backend](/docs/architecture/spa-backend/) - Separate frontend
+- [Full-stack RSC](/docs/architecture/fullstack-rsc/) - Unified codebase

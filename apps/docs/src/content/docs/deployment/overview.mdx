@@ -1,0 +1,50 @@
+---
+title: Deployment Overview
+description: Deploy your VeloxTS application to production.
+---
+
+VeloxTS applications can be deployed to various platforms.
+
+## Supported Platforms
+
+| Platform | Type | Best For |
+|----------|------|----------|
+| Railway | PaaS | Quick deploys, scaling |
+| Render | PaaS | Free tier, simplicity |
+| Fly.io | Edge | Global distribution |
+| Docker | Container | Self-hosted, Kubernetes |
+| Vercel | Serverless | RSC apps |
+
+## Pre-Deployment Checklist
+
+- [ ] Set `NODE_ENV=production`
+- [ ] Configure production database URL
+- [ ] Set secure JWT secrets (32+ chars)
+- [ ] Run `pnpm build`
+- [ ] Run `pnpm prisma migrate deploy`
+- [ ] Configure health check endpoint
+
+## Environment Variables
+
+```bash
+NODE_ENV=production
+DATABASE_URL=postgresql://...
+JWT_SECRET=your-secure-secret-min-32-chars
+JWT_REFRESH_SECRET=another-secure-secret
+PORT=3030
+```
+
+## Health Check
+
+Ensure `/api/health` returns 200:
+
+```bash
+curl https://your-app.com/api/health
+# {"status":"ok","timestamp":"..."}
+```
+
+## Next Steps
+
+- [Docker](/docs/deployment/docker/) - Container deployment
+- [Railway](/docs/deployment/railway/) - PaaS deployment
+- [Production Checklist](/docs/deployment/production-checklist/) - Full checklist

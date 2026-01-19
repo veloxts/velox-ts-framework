@@ -1,0 +1,61 @@
+---
+title: MCP Integration
+description: Model Context Protocol server for AI tools.
+---
+
+VeloxTS includes an MCP server for AI tool integration.
+
+## What is MCP?
+
+Model Context Protocol (MCP) allows AI assistants to access project context:
+
+- Procedure definitions and signatures
+- Schema information
+- Route mappings
+- Error codes and fixes
+
+## Starting the Server
+
+```bash
+velox mcp
+```
+
+## Exposed Context
+
+The MCP server provides:
+
+```json
+{
+  "procedures": [...],     // All procedures with types
+  "schemas": [...],        // Zod schemas
+  "routes": [...],         // REST/tRPC routes
+  "database": {...},       // Prisma schema
+  "errors": [...]          // Error catalog
+}
+```
+
+## IDE Integration
+
+### VS Code / Cursor
+
+Add to `.vscode/settings.json`:
+
+```json
+{
+  "mcp.servers": {
+    "veloxts": {
+      "command": "velox",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+### Claude Code
+
+The CLAUDE.md file provides context. MCP enhances this with live data.
+
+## Next Steps
+
+- [CLI Overview](/docs/cli/overview/) - All CLI commands
+- [Templates](/docs/getting-started/templates/) - AI context files (CLAUDE.md)

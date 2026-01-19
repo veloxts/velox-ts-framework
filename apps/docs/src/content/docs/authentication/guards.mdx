@@ -1,0 +1,188 @@
+---
+title: Guards
+description: Protect procedures with authorization guards.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Guards protect procedures by checking authorization before the handler runs. If a guard fails, the request is rejected.
+
+## Built-in Guards
+
+### `authenticated`
+
+Requires a logged-in user:
+
+```typescript
+import { authenticated } from '@veloxts/auth';
+
+getProfile: procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => ctx.user),
+```
+
+### `hasRole(role)`
+
+Requires a specific role:
+
+```typescript
+import { hasRole } from '@veloxts/auth';
+
+deleteUser: procedure()
+  .guard(authenticated)
+  .guard(hasRole('admin'))
+  .mutation(handler),
+```
+
+### `hasPermission(permission)`
+
+Requires a specific permission:
+
+```typescript
+import { hasPermission } from '@veloxts/auth';
+
+updateSettings: procedure()
+  .guard(authenticated)
+  .guard(hasPermission('settings:write'))
+  .mutation(handler),
+```
+
+## Custom Guards
+
+Create guards with `defineGuard`:
+
+```typescript
+import { defineGuard } from '@veloxts/auth';
+
+const isVerified = defineGuard({
+  name: 'isVerified',
+  check: (ctx) => ctx.user?.emailVerified === true,
+  message: 'Email verification required',
+  statusCode: 403,
+});
+
+// Usage
+updateEmail: procedure()
+  .guard(authenticated)
+  .guard(isVerified)
+  .mutation(handler),
+```
+
+<Aside type="note" title="Guard Signature">
+`defineGuard` requires an object with:
+- `name`: Identifier for error messages
+- `check`: Function returning `boolean` or `Promise<boolean>`
+- `message`: Error message when guard fails
+- `statusCode`: HTTP status code (default: 403)
+</Aside>
+
+## Guard Composition
+
+### `allOf` - All guards must pass
+
+```typescript
+import { allOf } from '@veloxts/auth';
+
+const adminAndVerified = allOf(hasRole('admin'), isVerified);
+
+sensitiveOperation: procedure()
+  .guard(authenticated)
+  .guard(adminAndVerified)
+  .mutation(handler),
+```
+
+### `anyOf` - At least one guard must pass
+
+```typescript
+import { anyOf } from '@veloxts/auth';
+
+const adminOrModerator = anyOf(hasRole('admin'), hasRole('moderator'));
+
+moderateContent: procedure()
+  .guard(authenticated)
+  .guard(adminOrModerator)
+  .mutation(handler),
+```
+
+### `not` - Invert a guard
+
+```typescript
+import { not } from '@veloxts/auth';
+
+const notBanned = not(defineGuard({
+  name: 'isBanned',
+  check: (ctx) => ctx.user?.banned === true,
+  message: 'Account is banned',
+}));
+```
+
+## Understanding `ctx.user`
+
+<Aside type="caution" title="Common Gotcha">
+`ctx.user` only contains fields returned by your `userLoader` function, **not** the full database user.
+
+```typescript
+// If your userLoader returns:
+userLoader: async (userId) => {
+  return db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, role: true },
+  });
+}
+
+// Then ctx.user will be:
+// { id: string, email: string, role: string }
+
+// NOT the full user record!
+```
+
+If you need additional fields in guards, include them in `userLoader`.
+</Aside>
+
+## Chaining Guards
+
+Guards run in order. If any fails, subsequent guards don't run:
+
+```typescript
+getSecretData: procedure()
+  .guard(authenticated)      // 1. Must be logged in
+  .guard(isVerified)         // 2. Must have verified email
+  .guard(hasRole('admin'))   // 3. Must be admin
+  .guard(notBanned)          // 4. Must not be banned
+  .query(handler),
+```
+
+## Error Responses
+
+When a guard fails:
+
+```json
+{
+  "error": {
+    "message": "Email verification required",
+    "code": "FORBIDDEN"
+  }
+}
+```
+
+HTTP status code is set based on guard configuration (default: 403).
+
+## Resource-Based Guards
+
+For per-resource authorization, use policies instead:
+
+```typescript
+// Guard: "Is user an admin?" (role-based)
+.guard(hasRole('admin'))
+
+// Policy: "Can user edit THIS post?" (resource-based)
+.guard(authorize('posts', 'edit'))
+```
+
+See [Policies](/docs/authentication/policies/) for resource-based authorization.
+
+## Next Steps
+
+- [Policies](/docs/authentication/policies/) - Resource-based authorization
+- [JWT](/docs/authentication/jwt/) - Token authentication
+- [Sessions](/docs/authentication/sessions/) - Cookie-based auth

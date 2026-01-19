@@ -1,0 +1,173 @@
+---
+title: OpenAPI Documentation
+description: Generate OpenAPI/Swagger documentation from your procedures.
+---
+
+VeloxTS can automatically generate OpenAPI documentation from your procedure definitions.
+
+## Quick Setup
+
+```typescript
+import { veloxApp } from '@veloxts/velox';
+import { registerDocs } from '@veloxts/router';
+
+const app = veloxApp();
+
+// Register your procedures
+app.procedures(userProcedures);
+app.procedures(postProcedures);
+
+// Enable OpenAPI docs
+app.register(registerDocs, {
+  path: '/api/docs',
+  info: {
+    title: 'My API',
+    version: '1.0.0',
+    description: 'API documentation',
+  },
+});
+
+app.start({ port: 3030 });
+```
+
+Visit `http://localhost:3030/api/docs` for Swagger UI.
+
+## Configuration
+
+### Basic Info
+
+```typescript
+app.register(registerDocs, {
+  path: '/api/docs',
+  info: {
+    title: 'My API',
+    version: '1.0.0',
+    description: 'My awesome API',
+    contact: {
+      name: 'API Support',
+      email: 'support@example.com',
+    },
+    license: {
+      name: 'MIT',
+      url: 'https://opensource.org/licenses/MIT',
+    },
+  },
+});
+```
+
+### Servers
+
+```typescript
+app.register(registerDocs, {
+  path: '/api/docs',
+  info: { title: 'My API', version: '1.0.0' },
+  servers: [
+    { url: 'https://api.example.com', description: 'Production' },
+    { url: 'https://staging-api.example.com', description: 'Staging' },
+    { url: 'http://localhost:3030', description: 'Development' },
+  ],
+});
+```
+
+### Security Schemes
+
+```typescript
+app.register(registerDocs, {
+  path: '/api/docs',
+  info: { title: 'My API', version: '1.0.0' },
+  securitySchemes: {
+    bearerAuth: {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+    },
+    apiKey: {
+      type: 'apiKey',
+      in: 'header',
+      name: 'X-API-Key',
+    },
+  },
+  security: [{ bearerAuth: [] }], // Default security for all endpoints
+});
+```
+
+## Schema Generation
+
+OpenAPI schemas are generated from Zod schemas:
+
+```typescript
+const CreateUserSchema = z.object({
+  name: z.string().min(1).describe('User display name'),
+  email: z.string().email().describe('User email address'),
+  age: z.number().int().min(0).optional().describe('User age'),
+});
+```
+
+Generates:
+
+```yaml
+CreateUserSchema:
+  type: object
+  required:
+    - name
+    - email
+  properties:
+    name:
+      type: string
+      minLength: 1
+      description: User display name
+    email:
+      type: string
+      format: email
+      description: User email address
+    age:
+      type: integer
+      minimum: 0
+      description: User age
+```
+
+## Procedure Documentation
+
+Add descriptions to procedures:
+
+```typescript
+createUser: procedure()
+  .meta({
+    summary: 'Create a new user',
+    description: 'Creates a new user account with the provided information',
+    tags: ['Users'],
+  })
+  .input(CreateUserSchema)
+  .output(UserSchema)
+  .mutation(handler),
+```
+
+## Tags
+
+Group endpoints by tags:
+
+```typescript
+// In procedure definition
+.meta({ tags: ['Users'] })
+
+// Or configure tag descriptions
+app.register(registerDocs, {
+  tags: [
+    { name: 'Users', description: 'User management endpoints' },
+    { name: 'Auth', description: 'Authentication endpoints' },
+  ],
+});
+```
+
+## JSON Spec
+
+Access the raw OpenAPI JSON:
+
+```
+GET /api/docs/openapi.json
+```
+
+## Next Steps
+
+- [REST Conventions](/docs/router/rest-conventions/) - Endpoint patterns
+- [Procedures](/docs/router/procedures/) - Define endpoints

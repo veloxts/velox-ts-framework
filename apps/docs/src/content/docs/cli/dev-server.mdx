@@ -1,0 +1,76 @@
+---
+title: Dev Server
+description: Development server with hot module replacement.
+---
+
+The `velox dev` command starts a development server with HMR.
+
+## Basic Usage
+
+```bash
+velox dev
+```
+
+Server starts at `http://localhost:3030`.
+
+## Options
+
+```bash
+velox dev --port 4000      # Custom port
+velox dev --no-hmr         # Disable HMR (use tsx watch)
+velox dev --verbose        # Detailed output
+```
+
+## Hot Module Replacement
+
+HMR provides fast reloads when files change:
+
+- Sub-second restart times
+- Preserves server state
+- Automatic `velox:ready` signal for accurate timing
+
+### Configure HMR Boundaries
+
+In `package.json`:
+
+```json
+{
+  "hotHook": {
+    "boundaries": [
+      "src/procedures/**/*.ts",
+      "src/schemas/**/*.ts"
+    ]
+  }
+}
+```
+
+### Server Ready Signal
+
+For accurate timing metrics, add to your entry point:
+
+```typescript
+await app.start({ port: 3030 });
+
+if (process.send) {
+  process.send({ type: 'velox:ready' });
+}
+```
+
+## Graceful Shutdown
+
+Add shutdown handlers to prevent connection leaks:
+
+```typescript
+const shutdown = async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+```
+
+## Next Steps
+
+- [Generators](/docs/cli/generators/) - Code scaffolding
+- [Configuration](/docs/core/configuration/) - Server config

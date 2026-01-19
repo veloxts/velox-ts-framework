@@ -1,0 +1,181 @@
+---
+title: REST Overrides
+description: Customize REST endpoint paths and methods.
+---
+
+When naming conventions don't fit your needs, use `.rest()` to customize the generated REST endpoints.
+
+## Basic Override
+
+```typescript
+loginUser: procedure()
+  .input(z.object({ email: z.string(), password: z.string() }))
+  .mutation(handler)
+  .rest({
+    method: 'POST',
+    path: '/auth/login',
+  }),
+```
+
+## Override Options
+
+### `method`
+
+Force a specific HTTP method:
+
+```typescript
+.rest({ method: 'POST' })  // POST instead of inferred
+.rest({ method: 'GET' })   // GET instead of inferred
+```
+
+### `path`
+
+Custom path (overrides resource-based path):
+
+```typescript
+// Without override: POST /api/users
+// With override: POST /auth/register
+.rest({ path: '/auth/register' })
+```
+
+### Path Parameters
+
+Include params in the path:
+
+```typescript
+verifyEmail: procedure()
+  .input(z.object({ token: z.string() }))
+  .mutation(handler)
+  .rest({
+    method: 'GET',
+    path: '/verify/:token',
+  }),
+// GET /api/verify/abc123
+```
+
+### Disable REST
+
+Keep procedure tRPC-only:
+
+```typescript
+internalMetrics: procedure()
+  .query(handler)
+  .rest(false),
+```
+
+## Common Patterns
+
+### Auth Endpoints
+
+```typescript
+procedures('auth', {
+  register: procedure()
+    .input(RegisterSchema)
+    .mutation(handler)
+    .rest({ method: 'POST', path: '/auth/register' }),
+
+  login: procedure()
+    .input(LoginSchema)
+    .mutation(handler)
+    .rest({ method: 'POST', path: '/auth/login' }),
+
+  logout: procedure()
+    .mutation(handler)
+    .rest({ method: 'POST', path: '/auth/logout' }),
+
+  refreshToken: procedure()
+    .input(z.object({ refreshToken: z.string() }))
+    .mutation(handler)
+    .rest({ method: 'POST', path: '/auth/refresh' }),
+});
+```
+
+### Nested Resources
+
+```typescript
+procedures('comments', {
+  listPostComments: procedure()
+    .input(z.object({ postId: z.string() }))
+    .query(handler)
+    .rest({
+      method: 'GET',
+      path: '/posts/:postId/comments',
+    }),
+
+  createPostComment: procedure()
+    .input(z.object({ postId: z.string(), content: z.string() }))
+    .mutation(handler)
+    .rest({
+      method: 'POST',
+      path: '/posts/:postId/comments',
+    }),
+});
+```
+
+### Bulk Operations
+
+```typescript
+procedures('users', {
+  bulkCreate: procedure()
+    .input(z.object({ users: z.array(CreateUserSchema) }))
+    .mutation(handler)
+    .rest({
+      method: 'POST',
+      path: '/users/bulk',
+    }),
+
+  bulkDelete: procedure()
+    .input(z.object({ ids: z.array(z.string()) }))
+    .mutation(handler)
+    .rest({
+      method: 'DELETE',
+      path: '/users/bulk',
+    }),
+});
+```
+
+### Action Endpoints
+
+```typescript
+procedures('orders', {
+  cancelOrder: procedure()
+    .input(z.object({ id: z.string() }))
+    .mutation(handler)
+    .rest({
+      method: 'POST',
+      path: '/orders/:id/cancel',
+    }),
+
+  shipOrder: procedure()
+    .input(z.object({ id: z.string(), trackingNumber: z.string() }))
+    .mutation(handler)
+    .rest({
+      method: 'POST',
+      path: '/orders/:id/ship',
+    }),
+});
+```
+
+## Path Parameter Extraction
+
+Path params are automatically merged into input:
+
+```typescript
+getOrderItem: procedure()
+  .input(z.object({
+    orderId: z.string(),
+    itemId: z.string(),
+  }))
+  .query(({ input }) => {
+    // input.orderId and input.itemId available
+  })
+  .rest({
+    method: 'GET',
+    path: '/orders/:orderId/items/:itemId',
+  }),
+```
+
+## Next Steps
+
+- [REST Conventions](/docs/router/rest-conventions/) - Default patterns
+- [OpenAPI](/docs/router/openapi/) - API documentation

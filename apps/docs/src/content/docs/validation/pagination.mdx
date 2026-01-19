@@ -1,0 +1,441 @@
+---
+title: Pagination
+description: Paginate query results with built-in helpers.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+VeloxTS provides pagination utilities for offset-based and cursor-based pagination patterns.
+
+## When to Use Each Pattern
+
+| Pattern | Best For | Trade-offs |
+|---------|----------|------------|
+| **Offset** | Admin panels, tables with page numbers | Slow on large datasets, inconsistent with concurrent writes |
+| **Cursor** | Infinite scroll, real-time feeds | No random page access, slightly more complex |
+
+<Aside type="tip">
+Use **offset pagination** for internal tools where users need to jump to specific pages. Use **cursor pagination** for user-facing feeds and large datasets.
+</Aside>
+
+## Offset Pagination
+
+Traditional page-based pagination with page numbers.
+
+### Basic Usage
+
+```typescript
+import { paginationInputSchema, createPaginatedResponseSchema } from '@veloxts/validation';
+import { z } from '@veloxts/velox';
+
+listUsers: procedure()
+  .input(paginationInputSchema)
+  .output(createPaginatedResponseSchema(UserSchema))
+  .query(async ({ input, ctx }) => {
+    const { page, limit, sortBy, sortOrder } = input;
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+      ctx.db.user.findMany({
+        skip,
+        take: limit,
+        orderBy: sortBy ? { [sortBy]: sortOrder } : { createdAt: 'desc' },
+      }),
+      ctx.db.user.count(),
+    ]);
+
+    return {
+      data: users,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }),
+```
+
+### Type-Safe Sorting
+
+Restrict `sortBy` to valid column names for type safety:
+
+```typescript
+// Define allowed sort columns
+const userSortColumns = ['name', 'email', 'createdAt', 'updatedAt'] as const;
+
+const userPaginationInput = paginationInputSchema.extend({
+  sortBy: z.enum(userSortColumns).optional(),
+});
+
+listUsers: procedure()
+  .input(userPaginationInput)
+  .query(async ({ input, ctx }) => {
+    const { page, limit, sortBy, sortOrder } = input;
+
+    // sortBy is now typed as 'name' | 'email' | 'createdAt' | 'updatedAt' | undefined
+    const users = await ctx.db.user.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: sortBy ? { [sortBy]: sortOrder } : undefined,
+    });
+
+    // ...
+  }),
+```
+
+<Aside type="caution">
+Always validate `sortBy` against allowed columns. Accepting arbitrary strings could expose internal column names or cause database errors.
+</Aside>
+
+### With Filtering
+
+Combine pagination with filters:
+
+```typescript
+const userFilterInput = paginationInputSchema.extend({
+  sortBy: z.enum(['name', 'email', 'createdAt']).optional(),
+  // Filters
+  search: z.string().optional(),
+  role: z.enum(['admin', 'user', 'guest']).optional(),
+  isActive: z.coerce.boolean().optional(),
+  createdAfter: z.coerce.date().optional(),
+});
+
+listUsers: procedure()
+  .input(userFilterInput)
+  .query(async ({ input, ctx }) => {
+    const { page, limit, sortBy, sortOrder, search, role, isActive, createdAfter } = input;
+
+    // Build where clause
+    const where = {
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+      ...(role && { role }),
+      ...(isActive !== undefined && { isActive }),
+      ...(createdAfter && { createdAt: { gte: createdAfter } }),
+    };
+
+    const [users, total] = await Promise.all([
+      ctx.db.user.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: sortBy ? { [sortBy]: sortOrder } : { createdAt: 'desc' },
+      }),
+      ctx.db.user.count({ where }),
+    ]);
+
+    return {
+      data: users,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  }),
+```
+
+**Example requests:**
+```bash
+# Page 2, 10 per page
+GET /api/users?page=2&limit=10
+
+# Search + filter + sort
+GET /api/users?search=john&role=admin&sortBy=createdAt&sortOrder=desc
+
+# Filter by active status and date
+GET /api/users?isActive=true&createdAfter=2024-01-01
+```
+
+## Cursor Pagination
+
+Cursor-based pagination using a unique identifier for efficient traversal.
+
+### Basic Usage
+
+```typescript
+import { cursorPaginationSchema } from '@veloxts/validation';
+
+listPosts: procedure()
+  .input(cursorPaginationSchema)
+  .query(async ({ input, ctx }) => {
+    const { cursor, limit } = input;
+
+    // Fetch one extra to determine if there's more
+    const posts = await ctx.db.post.findMany({
+      take: limit + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const hasMore = posts.length > limit;
+    const data = hasMore ? posts.slice(0, -1) : posts;
+
+    return {
+      data,
+      nextCursor: hasMore ? data[data.length - 1].id : null,
+    };
+  }),
+```
+
+### Bidirectional Cursor
+
+Support both forward and backward navigation:
+
+```typescript
+const bidirectionalCursorInput = z.object({
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  direction: z.enum(['forward', 'backward']).default('forward'),
+});
+
+listPosts: procedure()
+  .input(bidirectionalCursorInput)
+  .query(async ({ input, ctx }) => {
+    const { cursor, limit, direction } = input;
+    const isBackward = direction === 'backward';
+
+    const posts = await ctx.db.post.findMany({
+      take: (isBackward ? -1 : 1) * (limit + 1),
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: 'desc' },
+      skip: cursor ? 1 : 0, // Skip the cursor itself
+    });
+
+    // Reverse if going backward
+    if (isBackward) posts.reverse();
+
+    const hasMore = posts.length > limit;
+    const data = hasMore ? posts.slice(0, limit) : posts;
+
+    return {
+      data,
+      nextCursor: hasMore ? data[data.length - 1].id : null,
+      prevCursor: data.length > 0 ? data[0].id : null,
+    };
+  }),
+```
+
+### With Filtering
+
+```typescript
+const postCursorInput = cursorPaginationSchema.extend({
+  authorId: z.string().uuid().optional(),
+  status: z.enum(['draft', 'published', 'archived']).optional(),
+});
+
+listPosts: procedure()
+  .input(postCursorInput)
+  .query(async ({ input, ctx }) => {
+    const { cursor, limit, authorId, status } = input;
+
+    const where = {
+      ...(authorId && { authorId }),
+      ...(status && { status }),
+    };
+
+    const posts = await ctx.db.post.findMany({
+      where,
+      take: limit + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const hasMore = posts.length > limit;
+    const data = hasMore ? posts.slice(0, -1) : posts;
+
+    return {
+      data,
+      nextCursor: hasMore ? data[data.length - 1].id : null,
+    };
+  }),
+```
+
+## Schema Reference
+
+### Offset Pagination Schemas
+
+```typescript
+// Input schema with coercion for query params
+paginationInputSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+});
+
+// Response wrapper factory
+createPaginatedResponseSchema = <T extends z.ZodType>(itemSchema: T) =>
+  z.object({
+    data: z.array(itemSchema),
+    meta: z.object({
+      page: z.number(),
+      limit: z.number(),
+      total: z.number(),
+      totalPages: z.number(),
+    }),
+  });
+
+// Usage
+const PaginatedUsersSchema = createPaginatedResponseSchema(UserSchema);
+type PaginatedUsers = z.infer<typeof PaginatedUsersSchema>;
+// { data: User[], meta: { page, limit, total, totalPages } }
+```
+
+### Cursor Pagination Schemas
+
+```typescript
+// Input schema
+cursorPaginationSchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+// Response wrapper factory
+createCursorResponseSchema = <T extends z.ZodType>(itemSchema: T) =>
+  z.object({
+    data: z.array(itemSchema),
+    nextCursor: z.string().nullable(),
+  });
+```
+
+## Frontend Integration
+
+### React Query with Offset Pagination
+
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+
+function UserTable() {
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<string>();
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['users', { page, sortBy, sortOrder }],
+    queryFn: () => api.users.listUsers({ page, limit: 20, sortBy, sortOrder }),
+  });
+
+  if (isLoading) return <Loading />;
+
+  return (
+    <>
+      <Table data={data.data} />
+      <Pagination
+        page={data.meta.page}
+        totalPages={data.meta.totalPages}
+        onPageChange={setPage}
+      />
+    </>
+  );
+}
+```
+
+### React Query with Infinite Scroll (Cursor)
+
+```typescript
+import { useInfiniteQuery } from '@tanstack/react-query';
+
+function PostFeed() {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['posts'],
+    queryFn: ({ pageParam }) => api.posts.listPosts({ cursor: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: undefined,
+  });
+
+  const posts = data?.pages.flatMap((page) => page.data) ?? [];
+
+  return (
+    <>
+      {posts.map((post) => (
+        <PostCard key={post.id} post={post} />
+      ))}
+      {hasNextPage && (
+        <button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+          {isFetchingNextPage ? 'Loading...' : 'Load More'}
+        </button>
+      )}
+    </>
+  );
+}
+```
+
+## Performance Considerations
+
+### Offset Pagination Pitfalls
+
+<Aside type="caution" title="Large Offset Performance">
+Offset pagination becomes slow on large datasets because the database must scan and skip rows:
+
+```sql
+-- Page 1000 with 20 items requires scanning 20,000 rows
+SELECT * FROM users ORDER BY created_at OFFSET 19980 LIMIT 20;
+```
+
+For datasets over 100,000 rows, consider cursor pagination.
+</Aside>
+
+### Optimizing Offset Queries
+
+```typescript
+// Add indexes for sort columns
+// In schema.prisma:
+model User {
+  // ...
+  @@index([createdAt])
+  @@index([name])
+  @@index([email])
+}
+
+// Limit maximum page depth
+const safePageInput = paginationInputSchema.extend({
+  page: z.coerce.number().int().min(1).max(500), // Cap at page 500
+});
+```
+
+### Cursor Pagination Benefits
+
+- **Consistent performance**: O(1) regardless of position
+- **Stable results**: New inserts don't shift pages
+- **Efficient for real-time**: Works well with frequently updated data
+
+### Count Query Optimization
+
+For large tables, count queries can be expensive:
+
+```typescript
+// Option 1: Skip total count for cursor pagination
+// (just use hasMore indicator)
+
+// Option 2: Cache count with short TTL
+const getCachedCount = async (key: string, countFn: () => Promise<number>) => {
+  const cached = await ctx.cache.get(key);
+  if (cached) return cached;
+
+  const count = await countFn();
+  await ctx.cache.put(key, count, '1m'); // Cache for 1 minute
+  return count;
+};
+
+// Option 3: Use approximate counts for very large tables
+const approximateCount = await ctx.db.$queryRaw`
+  SELECT reltuples::bigint AS estimate
+  FROM pg_class
+  WHERE relname = 'users'
+`;
+```
+
+## Next Steps
+
+- [Schemas](/docs/validation/schemas/) - Schema patterns
+- [Coercion](/docs/validation/coercion/) - Type conversion for query params
+- [REST Conventions](/docs/router/rest-conventions/) - API design patterns

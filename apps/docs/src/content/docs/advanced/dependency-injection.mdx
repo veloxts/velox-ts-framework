@@ -1,0 +1,76 @@
+---
+title: Dependency Injection
+description: VeloxTS dependency injection container.
+---
+
+VeloxTS includes a DI container for managing dependencies.
+
+## Container Basics
+
+```typescript
+import { Container, token } from '@veloxts/core';
+
+const container = new Container();
+
+// Register a value
+container.register(token<Database>('DATABASE'), {
+  useValue: new PrismaClient(),
+});
+
+// Resolve
+const db = container.resolve<Database>('DATABASE');
+```
+
+## Token Types
+
+```typescript
+import { token } from '@veloxts/core';
+
+// Symbol tokens (collision-proof)
+const DATABASE = token.symbol<PrismaClient>('DATABASE');
+const LOGGER = token.symbol<Logger>('LOGGER');
+```
+
+## Registration Patterns
+
+### Value
+
+```typescript
+container.register(DATABASE, {
+  useValue: new PrismaClient(),
+});
+```
+
+### Factory
+
+```typescript
+container.register(LOGGER, {
+  useFactory: () => createLogger({ level: 'info' }),
+});
+```
+
+### Class
+
+```typescript
+container.register(USER_SERVICE, {
+  useClass: UserService,
+});
+```
+
+## Scopes
+
+```typescript
+// Singleton (default)
+container.register(DATABASE, { useValue: db, scope: 'singleton' });
+
+// Scoped (per request)
+container.register(TENANT, { useFactory: fn, scope: 'scoped' });
+
+// Transient (new instance each time)
+container.register(LOGGER, { useClass: Logger, scope: 'transient' });
+```
+
+## Next Steps
+
+- [Plugins](/docs/core/plugins/) - Plugin registration
+- [Context](/docs/core/context/) - Request context

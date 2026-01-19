@@ -1,0 +1,158 @@
+---
+title: tRPC Adapter
+description: Configure tRPC for type-safe internal APIs.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+VeloxTS uses tRPC under the hood for type-safe procedure calls. This page covers tRPC-specific configuration.
+
+## Default Setup
+
+tRPC is automatically configured when you register procedures:
+
+```typescript
+import { veloxApp } from '@veloxts/velox';
+import { userProcedures } from './procedures/users';
+
+const app = veloxApp();
+app.procedures(userProcedures);
+app.start({ port: 3030 });
+// tRPC available at /trpc
+```
+
+## tRPC Endpoint
+
+By default, tRPC is exposed at `/trpc`:
+
+```
+POST /trpc/users.listUsers
+POST /trpc/users.getUser
+POST /trpc/users.createUser
+```
+
+## Client Setup
+
+<Tabs>
+  <TabItem label="Basic Client">
+```typescript
+import { createTRPCClient, httpBatchLink } from '@trpc/client';
+import type { AppRouter } from '../server/router';
+
+export const trpc = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: 'http://localhost:3030/trpc',
+    }),
+  ],
+});
+
+// Usage
+const users = await trpc.users.listUsers.query();
+const user = await trpc.users.getUser.query({ id: '123' });
+await trpc.users.createUser.mutate({ name: 'Alice', email: 'alice@example.com' });
+```
+  </TabItem>
+  <TabItem label="React Query">
+```typescript
+import { createTRPCReact } from '@trpc/react-query';
+import type { AppRouter } from '../server/router';
+
+export const trpc = createTRPCReact<AppRouter>();
+
+// In component
+function UserList() {
+  const { data: users } = trpc.users.listUsers.useQuery();
+  return <ul>{users?.map(u => <li key={u.id}>{u.name}</li>)}</ul>;
+}
+```
+  </TabItem>
+</Tabs>
+
+## Building tRPC Routers
+
+VeloxTS provides utilities to convert procedure collections to tRPC routers:
+
+```typescript
+// src/router.ts
+import { trpc, buildTRPCRouter } from '@veloxts/router';
+import { userProcedures } from './procedures/users';
+import { postProcedures } from './procedures/posts';
+
+// Create tRPC instance
+const t = trpc();
+
+// Build routers from procedure collections
+const userRouter = buildTRPCRouter(t, userProcedures);
+const postRouter = buildTRPCRouter(t, postProcedures);
+
+// Combine into app router
+export const appRouter = t.router({
+  users: userRouter,
+  posts: postRouter,
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+<Aside type="note">
+`buildTRPCRouter()` takes two arguments: a tRPC instance and a procedure collection. It converts VeloxTS procedures to tRPC procedures while preserving type information.
+</Aside>
+
+## Custom tRPC Path
+
+Change the tRPC endpoint path:
+
+```typescript
+import { registerTRPCPlugin } from '@veloxts/router';
+
+app.register(registerTRPCPlugin, {
+  prefix: '/api/trpc', // Now at /api/trpc instead of /trpc
+});
+```
+
+## Batching
+
+tRPC automatically batches multiple queries:
+
+```typescript
+// These are batched into a single HTTP request
+const [users, posts] = await Promise.all([
+  trpc.users.listUsers.query(),
+  trpc.posts.listPosts.query(),
+]);
+```
+
+## Error Handling
+
+tRPC errors are automatically formatted:
+
+```typescript
+try {
+  await trpc.users.getUser.query({ id: 'invalid' });
+} catch (error) {
+  if (error.data?.code === 'NOT_FOUND') {
+    // Handle not found
+  }
+}
+```
+
+## tRPC vs REST
+
+| Feature | tRPC | REST |
+|---------|------|------|
+| Type safety | Full inference | Manual typing |
+| Batching | Automatic | Manual |
+| Caching | React Query | HTTP cache |
+| External clients | TypeScript only | Any language |
+| OpenAPI docs | No | Yes |
+
+<Aside type="tip">
+Use tRPC for internal TypeScript clients (React, React Native). Use REST for external APIs, mobile apps in other languages, or third-party integrations. VeloxTS generates both from the same procedures.
+</Aside>
+
+## Next Steps
+
+- [Client Package](/docs/rsc/client-package/) - VeloxTS client
+- [REST Conventions](/docs/router/rest-conventions/) - REST endpoints
+- [Procedures](/docs/router/procedures/) - Define procedures

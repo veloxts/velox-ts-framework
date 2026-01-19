@@ -1,0 +1,112 @@
+---
+title: REST API Architecture
+description: Building external-facing REST APIs with VeloxTS.
+---
+
+Use this architecture when you need an API for external consumers, mobile apps, or third-party integrations.
+
+## When to Choose REST
+
+- External clients that aren't TypeScript
+- Mobile apps (iOS, Android)
+- Third-party integrations
+- Public APIs
+- OpenAPI/Swagger documentation needed
+
+## Project Setup
+
+```bash
+npx create-velox-app my-api
+# or with auth
+npx create-velox-app my-api --auth
+```
+
+## How It Works
+
+Define procedures with naming conventions, and VeloxTS generates REST endpoints:
+
+```typescript
+// src/procedures/posts.ts
+import { procedures, procedure } from '@veloxts/velox';
+import { z } from '@veloxts/velox';
+
+export const postProcedures = procedures('posts', {
+  // GET /api/posts
+  listPosts: procedure()
+    .output(z.array(PostSchema))
+    .query(({ ctx }) => ctx.db.post.findMany()),
+
+  // GET /api/posts/:id
+  getPost: procedure()
+    .input(z.object({ id: z.string() }))
+    .query(({ input, ctx }) => ctx.db.post.findUnique({ where: { id: input.id } })),
+
+  // POST /api/posts
+  createPost: procedure()
+    .input(CreatePostSchema)
+    .mutation(({ input, ctx }) => ctx.db.post.create({ data: input })),
+
+  // PUT /api/posts/:id
+  updatePost: procedure()
+    .input(z.object({ id: z.string(), data: UpdatePostSchema }))
+    .mutation(({ input, ctx }) => ctx.db.post.update({
+      where: { id: input.id },
+      data: input.data,
+    })),
+
+  // DELETE /api/posts/:id
+  deletePost: procedure()
+    .input(z.object({ id: z.string() }))
+    .mutation(({ input, ctx }) => ctx.db.post.delete({ where: { id: input.id } })),
+});
+```
+
+## REST Naming Conventions
+
+See [REST Conventions](/docs/router/rest-conventions/) for the complete reference.
+
+| Prefix | Method | Path Pattern |
+|--------|--------|--------------|
+| `list*` | GET | `/api/{resource}` |
+| `get*` | GET | `/api/{resource}/:id` |
+| `create*` | POST | `/api/{resource}` |
+| `update*` | PUT | `/api/{resource}/:id` |
+| `delete*` | DELETE | `/api/{resource}/:id` |
+
+## Custom Routes
+
+Override conventions with `.rest()`:
+
+```typescript
+sendPasswordReset: procedure()
+  .input(z.object({ email: z.string().email() }))
+  .mutation(handler)
+  .rest({
+    method: 'POST',
+    path: '/auth/password-reset',
+  }),
+```
+
+## OpenAPI Documentation
+
+Enable automatic Swagger UI:
+
+```typescript
+import { registerDocs } from '@veloxts/router';
+
+app.register(registerDocs, {
+  path: '/api/docs',
+  info: {
+    title: 'My API',
+    version: '1.0.0',
+  },
+});
+```
+
+Visit `http://localhost:3030/api/docs` for interactive API documentation.
+
+## Next Steps
+
+- [REST Conventions](/docs/router/rest-conventions/) - All naming patterns
+- [OpenAPI](/docs/router/openapi/) - API documentation
+- [Authentication](/docs/authentication/overview/) - Secure your API

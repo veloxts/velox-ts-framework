@@ -1,0 +1,74 @@
+---
+title: Database Testing
+description: Test database operations effectively.
+---
+
+Testing database operations in VeloxTS.
+
+## Test Setup
+
+```typescript
+import { setupTestContext } from '@veloxts/core';
+import { db } from '@/database';
+
+describe('User procedures', () => {
+  beforeEach(async () => {
+    // Clean database before each test
+    await db.user.deleteMany();
+  });
+
+  afterAll(async () => {
+    await db.$disconnect();
+  });
+});
+```
+
+## Testing Procedures
+
+```typescript
+import { setupTestContext } from '@veloxts/core';
+import { userProcedures } from '@/procedures/users';
+
+test('createUser creates a user', async () => {
+  const ctx = await setupTestContext();
+
+  const result = await userProcedures.procedures.createUser.handler({
+    input: { name: 'Alice', email: 'alice@example.com' },
+    ctx,
+  });
+
+  expect(result.name).toBe('Alice');
+  expect(result.id).toBeDefined();
+});
+```
+
+## Using Factories
+
+```typescript
+import { userFactory } from '@/database/factories';
+
+test('listUsers returns all users', async () => {
+  await userFactory.createMany(5);
+
+  const result = await userProcedures.procedures.listUsers.handler({
+    input: {},
+    ctx: await setupTestContext(),
+  });
+
+  expect(result).toHaveLength(5);
+});
+```
+
+## Test Database
+
+Use a separate test database:
+
+```bash
+# .env.test
+DATABASE_URL="file:./test.db"
+```
+
+## Next Steps
+
+- [Seeding](/docs/database/seeding/) - Test data
+- [Advanced Testing](/docs/advanced/testing-patterns/) - More patterns

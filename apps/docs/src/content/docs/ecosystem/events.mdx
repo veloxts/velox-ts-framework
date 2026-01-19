@@ -1,0 +1,77 @@
+---
+title: Events
+description: Real-time broadcasting with WebSocket and SSE.
+---
+
+`@veloxts/events` provides real-time communication.
+
+## Installation
+
+```bash
+pnpm add @veloxts/events
+```
+
+## Quick Start
+
+```typescript
+import { eventsPlugin } from '@veloxts/events';
+
+app.register(eventsPlugin, {
+  driver: 'ws',
+  path: '/ws',
+});
+```
+
+## Broadcasting
+
+```typescript
+// Public channel
+await ctx.events.broadcast('orders', 'order.created', {
+  orderId: '123',
+  total: 99.99,
+});
+
+// Private channel (user-specific)
+await ctx.events.broadcast(`user.${userId}`, 'notification', {
+  message: 'New message received',
+});
+```
+
+## Drivers
+
+### WebSocket
+
+```typescript
+eventsPlugin({
+  driver: 'ws',
+  path: '/ws',
+  redis: process.env.REDIS_URL, // Optional for scaling
+})
+```
+
+### Server-Sent Events
+
+```typescript
+eventsPlugin({
+  driver: 'sse',
+  path: '/events',
+})
+```
+
+## Client Usage
+
+```typescript
+// WebSocket
+const ws = new WebSocket('ws://localhost:3030/ws');
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log(data.event, data.payload);
+};
+
+// Subscribe to channel
+ws.send(JSON.stringify({ type: 'subscribe', channel: 'orders' }));
+```
+
+## Next Steps
+
+- [Ecosystem Overview](/docs/ecosystem/overview/) - All packages

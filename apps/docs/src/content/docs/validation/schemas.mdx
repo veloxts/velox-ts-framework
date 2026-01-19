@@ -1,0 +1,815 @@
+---
+title: Schemas
+description: Define validation schemas with Zod.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+VeloxTS uses Zod for type-safe validation schemas. Schemas provide runtime validation while TypeScript infers static types automatically.
+
+## Basic Schema Types
+
+### String Validation
+
+Zod provides comprehensive string validation with built-in formats and transformations.
+
+```typescript
+import { z } from '@veloxts/velox';
+
+const StringSchemas = z.object({
+  // Basic string validation
+  name: z.string(),                          // Any string
+  required: z.string().min(1),              // Non-empty string
+
+  // Length constraints
+  username: z.string().min(3).max(20),      // 3-20 characters
+  exactCode: z.string().length(6),          // Exactly 6 characters
+
+  // Format validation
+  email: z.string().email(),                // Email format
+  url: z.string().url(),                    // Valid URL
+  uuid: z.string().uuid(),                  // UUID format
+  datetime: z.string().datetime(),          // ISO 8601 datetime
+
+  // Pattern matching
+  alphanumeric: z.string().regex(/^[a-zA-Z0-9]+$/),
+
+  // Transformations
+  trimmed: z.string().trim(),               // Remove whitespace
+  lowercase: z.string().toLowerCase(),      // Convert to lowercase
+  uppercase: z.string().toUpperCase(),      // Convert to UPPERCASE
+});
+```
+
+<Aside type="tip">
+Chain transformations and validators together: `z.string().trim().toLowerCase().min(3)` processes the string before validation.
+</Aside>
+
+### Number Validation
+
+Number schemas support range constraints, type coercion, and mathematical validations.
+
+```typescript
+const NumberSchemas = z.object({
+  // Basic number types
+  age: z.number().int().positive(),         // Positive integer
+  price: z.number().nonnegative(),          // 0 or greater (allows decimals)
+  discount: z.number().min(0).max(100),     // Range: 0-100
+
+  // Mathematical constraints
+  even: z.number().multipleOf(2),           // Even numbers only
+  percentage: z.number().min(0).max(1),     // 0.0 to 1.0
+
+  // Negative numbers
+  temperature: z.number().negative(),       // Less than 0
+
+  // Optional with default
+  quantity: z.number().int().default(1),    // Defaults to 1 if undefined
+});
+```
+
+<Aside type="caution">
+Use `.int()` for integer validation. `z.number()` alone accepts decimals like `3.14`.
+</Aside>
+
+### Boolean and Literal Values
+
+```typescript
+const BooleanSchemas = z.object({
+  // Boolean
+  isActive: z.boolean(),
+
+  // Literal values (exact match required)
+  status: z.literal('published'),           // Only accepts "published"
+  apiVersion: z.literal('v2'),
+
+  // Optional boolean with default
+  newsletter: z.boolean().default(false),
+});
+```
+
+### Dates
+
+```typescript
+const DateSchemas = z.object({
+  // Date objects
+  birthDate: z.date(),
+
+  // Date with constraints
+  adultBirthday: z.date().max(new Date(Date.now() - 18 * 365 * 24 * 60 * 60 * 1000)),
+
+  // ISO string dates (common for APIs)
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime().optional(),
+});
+```
+
+## Arrays and Objects
+
+### Array Validation
+
+Validate arrays with constraints on elements and length.
+
+```typescript
+const ArraySchemas = z.object({
+  // Basic arrays
+  tags: z.array(z.string()),                // String array
+  scores: z.array(z.number().int()),        // Integer array
+
+  // Length constraints
+  roles: z.array(z.string()).min(1),        // At least 1 element
+  topThree: z.array(z.string()).max(3),     // At most 3 elements
+  exactFive: z.array(z.number()).length(5), // Exactly 5 elements
+
+  // Non-empty arrays
+  categories: z.array(z.string()).nonempty(), // Requires at least 1
+
+  // Default empty array
+  interests: z.array(z.string()).default([]),
+});
+
+// Practical example: Product with multiple images
+const ProductSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  images: z.array(z.object({
+    url: z.string().url(),
+    alt: z.string(),
+    isPrimary: z.boolean(),
+  })).min(1),  // At least one image required
+});
+```
+
+### Nested Objects
+
+Build complex validation by nesting schemas.
+
+```typescript
+const AddressSchema = z.object({
+  street: z.string().min(1),
+  city: z.string().min(1),
+  state: z.string().length(2),
+  zipCode: z.string().regex(/^\d{5}(-\d{4})?$/),
+});
+
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  email: z.string().email(),
+
+  // Nested object
+  address: AddressSchema,
+
+  // Optional nested object
+  billingAddress: AddressSchema.optional(),
+
+  // Array of nested objects
+  phoneNumbers: z.array(z.object({
+    type: z.enum(['home', 'work', 'mobile']),
+    number: z.string().regex(/^\+?[1-9]\d{1,14}$/),
+  })),
+});
+```
+
+### Optional vs Nullable
+
+Understanding the difference between optional and nullable is crucial.
+
+<Tabs>
+<TabItem label="Optional">
+```typescript
+// Optional - field can be undefined or omitted
+const OptionalSchema = z.object({
+  description: z.string().optional(),
+  // Valid: {} or { description: "text" }
+  // Invalid: { description: null }
+});
+```
+</TabItem>
+
+<TabItem label="Nullable">
+```typescript
+// Nullable - field can be null but must be present
+const NullableSchema = z.object({
+  description: z.string().nullable(),
+  // Valid: { description: null } or { description: "text" }
+  // Invalid: {} (field required)
+});
+```
+</TabItem>
+
+<TabItem label="Both">
+```typescript
+// Optional + Nullable - can be undefined, null, or a string
+const FlexibleSchema = z.object({
+  description: z.string().nullable().optional(),
+  // Valid: {}, { description: null }, { description: "text" }
+});
+
+// Alternative syntax (same behavior)
+const AlternativeSchema = z.object({
+  description: z.string().nullish(), // Shorthand for nullable().optional()
+});
+```
+</TabItem>
+</Tabs>
+
+<Aside type="note">
+Most APIs use `.optional()` for fields that can be omitted. Use `.nullable()` when your database allows NULL values.
+</Aside>
+
+## Enums and Unions
+
+### Enums
+
+Restrict values to a predefined set.
+
+```typescript
+// String enum
+const UserRoleSchema = z.enum(['admin', 'editor', 'viewer']);
+type UserRole = z.infer<typeof UserRoleSchema>; // 'admin' | 'editor' | 'viewer'
+
+// Native enum support
+enum OrderStatus {
+  Pending = 'PENDING',
+  Processing = 'PROCESSING',
+  Shipped = 'SHIPPED',
+  Delivered = 'DELIVERED',
+}
+
+const OrderSchema = z.object({
+  id: z.string().uuid(),
+  status: z.nativeEnum(OrderStatus),
+});
+```
+
+### Unions
+
+Allow multiple types for a single field.
+
+```typescript
+// Simple union - string or number
+const IdSchema = z.union([z.string(), z.number()]);
+
+// Union with literals
+const StatusSchema = z.union([
+  z.literal('draft'),
+  z.literal('published'),
+  z.literal('archived'),
+]);
+
+// Discriminated union - better type inference
+const NotificationSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('email'),
+    to: z.string().email(),
+    subject: z.string(),
+    body: z.string(),
+  }),
+  z.object({
+    type: z.literal('sms'),
+    to: z.string(),
+    message: z.string().max(160),
+  }),
+  z.object({
+    type: z.literal('push'),
+    deviceId: z.string(),
+    title: z.string(),
+    body: z.string(),
+  }),
+]);
+```
+
+<Aside type="tip">
+Use discriminated unions when different shapes share a common `type` field. This provides better TypeScript type narrowing.
+</Aside>
+
+## Custom Validation
+
+### Refine with Custom Rules
+
+Add custom validation logic beyond built-in validators.
+
+```typescript
+// Simple refine - single custom rule
+const PasswordSchema = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .refine(
+    (password) => /[A-Z]/.test(password),
+    { message: 'Password must contain at least one uppercase letter' }
+  )
+  .refine(
+    (password) => /[a-z]/.test(password),
+    { message: 'Password must contain at least one lowercase letter' }
+  )
+  .refine(
+    (password) => /[0-9]/.test(password),
+    { message: 'Password must contain at least one number' }
+  );
+
+// Object-level validation
+const DateRangeSchema = z.object({
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+}).refine(
+  (data) => new Date(data.endDate) > new Date(data.startDate),
+  { message: 'End date must be after start date', path: ['endDate'] }
+);
+
+// Async validation (e.g., check database uniqueness)
+const UniqueEmailSchema = z.string().email().refine(
+  async (email) => {
+    const { db } = await import('@/api/database');
+    const existing = await db.user.findUnique({ where: { email } });
+    return !existing;
+  },
+  { message: 'Email already in use' }
+);
+```
+
+### SuperRefine for Complex Logic
+
+`superRefine()` provides fine-grained control over validation errors.
+
+```typescript
+const RegistrationSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  confirmPassword: z.string(),
+  age: z.number().int(),
+}).superRefine((data, ctx) => {
+  // Password confirmation check
+  if (data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Passwords do not match',
+      path: ['confirmPassword'],
+    });
+  }
+
+  // Age requirement for email domain
+  if (data.email.endsWith('@school.edu') && data.age < 13) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Students must be at least 13 years old',
+      path: ['age'],
+    });
+  }
+});
+```
+
+## Schema Composition
+
+### Extend Schemas
+
+Build on existing schemas by adding fields.
+
+```typescript
+const BaseUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+// Add new fields
+const UserWithIdSchema = BaseUserSchema.extend({
+  id: z.string().uuid(),
+  createdAt: z.string().datetime(),
+});
+
+// Extend and override
+const AdminUserSchema = BaseUserSchema.extend({
+  email: z.string().email().endsWith('@admin.example.com'), // Override validation
+  permissions: z.array(z.string()),                         // Add new field
+});
+```
+
+### Merge Schemas
+
+Combine multiple schemas into one.
+
+```typescript
+const ContactInfoSchema = z.object({
+  email: z.string().email(),
+  phone: z.string().optional(),
+});
+
+const AddressInfoSchema = z.object({
+  street: z.string(),
+  city: z.string(),
+});
+
+// Merge two schemas
+const FullContactSchema = ContactInfoSchema.merge(AddressInfoSchema);
+// Result: { email, phone?, street, city }
+```
+
+### Pick and Omit
+
+Extract or exclude specific fields.
+
+```typescript
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+  password: z.string(),
+  createdAt: z.string().datetime(),
+});
+
+// Pick only specific fields
+const UserPublicSchema = UserSchema.pick({ id: true, name: true, email: true });
+// Result: { id, name, email }
+
+// Omit sensitive fields
+const UserSafeSchema = UserSchema.omit({ password: true });
+// Result: { id, name, email, createdAt }
+```
+
+### Partial and Required
+
+Make fields optional or required.
+
+```typescript
+const CreateUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  age: z.number().int().positive(),
+});
+
+// Make all fields optional (useful for updates)
+const UpdateUserSchema = CreateUserSchema.partial();
+// All fields become optional: { name?, email?, age? }
+
+// Make specific fields optional
+const PartialNameSchema = CreateUserSchema.partial({ name: true });
+// Result: { name?, email, age }
+
+// Make all fields required (opposite of partial)
+const OptionalSchema = z.object({
+  name: z.string().optional(),
+  email: z.string().optional(),
+});
+const RequiredSchema = OptionalSchema.required();
+// All fields become required: { name, email }
+```
+
+## Custom Error Messages
+
+Customize validation error messages for better UX.
+
+```typescript
+// Field-level custom messages
+const UserSchema = z.object({
+  name: z.string({
+    required_error: 'Name is required',
+    invalid_type_error: 'Name must be a string',
+  }).min(1, 'Name cannot be empty'),
+
+  email: z.string()
+    .min(1, 'Email is required')
+    .email('Invalid email format'),
+
+  age: z.number({
+    required_error: 'Age is required',
+    invalid_type_error: 'Age must be a number',
+  })
+    .int('Age must be a whole number')
+    .positive('Age must be positive')
+    .min(18, 'Must be at least 18 years old'),
+});
+
+// Validation with custom errors
+const PriceSchema = z.number()
+  .min(0, { message: 'Price cannot be negative' })
+  .max(999999, { message: 'Price cannot exceed $999,999' })
+  .refine(
+    (price) => price % 0.01 === 0,
+    { message: 'Price must have at most 2 decimal places' }
+  );
+```
+
+## Procedure Integration
+
+Schemas integrate seamlessly with VeloxTS procedures via `.input()` and `.output()`.
+
+### Input Validation
+
+```typescript
+import { procedure, procedures } from '@veloxts/velox';
+import { z } from '@veloxts/velox';
+
+// Define input schemas
+const CreateProductInput = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000),
+  price: z.number().positive(),
+  categoryId: z.string().uuid(),
+  tags: z.array(z.string()).max(10).default([]),
+});
+
+const UpdateProductInput = CreateProductInput.partial().extend({
+  id: z.string().uuid(),
+});
+
+// Use in procedures
+export const productProcedures = procedures('products', {
+  createProduct: procedure()
+    .input(CreateProductInput)
+    .output(ProductSchema)
+    .mutation(async ({ input, ctx }) => {
+      // input is fully typed and validated
+      const product = await ctx.db.product.create({
+        data: {
+          name: input.name,
+          description: input.description,
+          price: input.price,
+          categoryId: input.categoryId,
+          tags: input.tags,
+        },
+      });
+      return product;
+    }),
+
+  updateProduct: procedure()
+    .input(UpdateProductInput)
+    .output(ProductSchema)
+    .mutation(async ({ input, ctx }) => {
+      const { id, ...data } = input;
+      return ctx.db.product.update({
+        where: { id },
+        data,
+      });
+    }),
+});
+```
+
+### Output Validation
+
+Output schemas ensure your procedures return correctly shaped data.
+
+```typescript
+// Define output schema
+const ProductSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string(),
+  price: z.number(),
+  categoryId: z.string().uuid(),
+  tags: z.array(z.string()),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+// List with pagination metadata
+const ProductListSchema = z.object({
+  data: z.array(ProductSchema),
+  pagination: z.object({
+    page: z.number().int(),
+    limit: z.number().int(),
+    total: z.number().int(),
+    totalPages: z.number().int(),
+  }),
+});
+
+export const productProcedures = procedures('products', {
+  getProduct: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .output(ProductSchema)  // Validates single product
+    .query(async ({ input, ctx }) => {
+      const product = await ctx.db.product.findUnique({ where: { id: input.id } });
+      if (!product) {
+        throw new Error('Product not found');
+      }
+      return product;
+    }),
+
+  listProducts: procedure()
+    .input(z.object({
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(20),
+    }))
+    .output(ProductListSchema)  // Validates paginated response
+    .query(async ({ input, ctx }) => {
+      const [data, total] = await Promise.all([
+        ctx.db.product.findMany({
+          skip: (input.page - 1) * input.limit,
+          take: input.limit,
+        }),
+        ctx.db.product.count(),
+      ]);
+
+      return {
+        data,
+        pagination: {
+          page: input.page,
+          limit: input.limit,
+          total,
+          totalPages: Math.ceil(total / input.limit),
+        },
+      };
+    }),
+});
+```
+
+<Aside type="caution">
+Output validation runs on every response. For performance-critical endpoints, consider validating only in development or using `.passthrough()` for trusted data sources.
+</Aside>
+
+## Type Inference
+
+Zod provides powerful type inference utilities.
+
+### Basic Inference
+
+```typescript
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+  age: z.number().int().optional(),
+});
+
+// Infer the TypeScript type
+type User = z.infer<typeof UserSchema>;
+// Result: { id: string; name: string; email: string; age?: number | undefined }
+```
+
+### Input vs Output Types
+
+Some schemas transform data (e.g., `.default()`, `.transform()`). Zod distinguishes input and output types.
+
+```typescript
+const TransformSchema = z.object({
+  name: z.string().trim().toLowerCase(),      // Transforms input
+  tags: z.array(z.string()).default([]),      // Adds default
+  createdAt: z.string().datetime().transform((val) => new Date(val)), // String → Date
+});
+
+type Input = z.input<typeof TransformSchema>;
+// { name: string; tags?: string[] | undefined; createdAt: string }
+
+type Output = z.output<typeof TransformSchema>;
+// { name: string; tags: string[]; createdAt: Date }
+
+// For most schemas without transforms, input and output are identical
+type Inferred = z.infer<typeof TransformSchema>; // Same as z.output<>
+```
+
+### Inferring from Procedures
+
+VeloxTS procedures automatically infer types from schemas.
+
+```typescript
+const createUser = procedure()
+  .input(z.object({ name: z.string(), email: z.string().email() }))
+  .output(z.object({ id: z.string(), name: z.string(), email: z.string() }))
+  .mutation(async ({ input, ctx }) => {
+    // input: { name: string; email: string } - automatically typed
+    return ctx.db.user.create({ data: input });
+  });
+
+// Frontend client gets full type safety
+import { api } from '@/client';
+
+const user = await api.users.createUser({
+  name: 'Alice',
+  email: 'alice@example.com',
+});
+// user: { id: string; name: string; email: string }
+```
+
+## Common Patterns
+
+### Input/Output Schema Pairs
+
+Typical pattern for CRUD operations.
+
+```typescript
+// Base creation schema
+export const CreateUserSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  role: z.enum(['admin', 'editor', 'viewer']).default('viewer'),
+});
+
+// Update schema - all fields optional
+export const UpdateUserSchema = CreateUserSchema.partial();
+
+// Output schema - adds server-generated fields
+export const UserSchema = CreateUserSchema.extend({
+  id: z.string().uuid(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+// Filter/search schema
+export const UserFilterSchema = z.object({
+  role: z.enum(['admin', 'editor', 'viewer']).optional(),
+  search: z.string().optional(),
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(100).default(20),
+});
+```
+
+### Reusable Schema Utilities
+
+VeloxTS provides common schema helpers.
+
+```typescript
+import {
+  idParamSchema,           // { id: string }
+  paginationInputSchema,   // { page, limit, sortBy?, sortOrder? }
+} from '@veloxts/validation';
+
+// Use in procedures
+export const userProcedures = procedures('users', {
+  // Get by ID
+  getUser: procedure()
+    .input(idParamSchema)
+    .output(UserSchema)
+    .query(async ({ input, ctx }) => {
+      return ctx.db.user.findUnique({ where: { id: input.id } });
+    }),
+
+  // Paginated list
+  listUsers: procedure()
+    .input(paginationInputSchema)
+    .output(z.object({
+      data: z.array(UserSchema),
+      pagination: z.object({
+        page: z.number(),
+        limit: z.number(),
+        total: z.number(),
+      }),
+    }))
+    .query(async ({ input, ctx }) => {
+      // input.page, input.limit already validated
+      // ...
+    }),
+});
+```
+
+### Sharing Schemas Across Stack
+
+Define schemas once, use everywhere.
+
+```typescript
+// shared/schemas/product.ts
+import { z } from '@veloxts/velox';
+
+export const CreateProductSchema = z.object({
+  name: z.string().min(1, 'Product name is required').max(200),
+  price: z.number().positive('Price must be positive'),
+  description: z.string().max(2000),
+});
+
+export const ProductSchema = CreateProductSchema.extend({
+  id: z.string().uuid(),
+  createdAt: z.string().datetime(),
+});
+
+// Backend procedure
+import { CreateProductSchema, ProductSchema } from '@shared/schemas/product';
+
+export const productProcedures = procedures('products', {
+  createProduct: procedure()
+    .input(CreateProductSchema)
+    .output(ProductSchema)
+    .mutation(async ({ input, ctx }) => {
+      return ctx.db.product.create({ data: input });
+    }),
+});
+
+// Frontend form validation
+import { CreateProductSchema } from '@shared/schemas/product';
+
+function ProductForm() {
+  const handleSubmit = (data: unknown) => {
+    const result = CreateProductSchema.safeParse(data);
+    if (!result.success) {
+      // Show validation errors
+      console.error(result.error.flatten());
+      return;
+    }
+
+    // Submit validated data
+    api.products.createProduct(result.data);
+  };
+}
+```
+
+<Aside type="tip">
+Share schemas in a `shared/` or `common/` directory accessible to both backend and frontend. This ensures consistent validation across your entire stack.
+</Aside>
+
+## Next Steps
+
+- [Coercion](/docs/validation/coercion/) - Automatic type conversion from strings
+- [Pagination](/docs/validation/pagination/) - Pagination helpers and patterns
+- [Procedures](/docs/router/procedures/) - Using schemas in procedure definitions
+
+## Learn More
+
+- [Zod Official Documentation](https://zod.dev) - Complete Zod reference
+- [Zod Error Handling](https://zod.dev/ERROR_HANDLING) - Advanced error customization
+- [Zod Coercion](https://zod.dev/COERCION) - Type coercion patterns

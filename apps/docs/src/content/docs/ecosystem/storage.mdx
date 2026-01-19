@@ -1,0 +1,85 @@
+---
+title: Storage
+description: File storage abstraction for local and S3.
+---
+
+`@veloxts/storage` provides unified file storage.
+
+## Installation
+
+```bash
+pnpm add @veloxts/storage
+```
+
+## Quick Start
+
+```typescript
+import { storagePlugin } from '@veloxts/storage';
+
+app.register(storagePlugin, {
+  driver: 'local',
+  config: {
+    root: './uploads',
+    baseUrl: '/files',
+  },
+});
+```
+
+## Basic Usage
+
+```typescript
+// Upload
+await ctx.storage.put('avatars/user-123.jpg', buffer, {
+  visibility: 'public',
+});
+
+// Get URL
+const url = await ctx.storage.url('avatars/user-123.jpg');
+
+// Stream large files
+const stream = await ctx.storage.stream('large-file.zip');
+
+// Delete
+await ctx.storage.delete('old-file.pdf');
+
+// Check existence
+const exists = await ctx.storage.exists('avatars/user-123.jpg');
+```
+
+## Drivers
+
+### Local
+
+```typescript
+storagePlugin({
+  driver: 'local',
+  config: { root: './uploads', baseUrl: '/files' },
+})
+```
+
+### S3/R2
+
+```typescript
+storagePlugin({
+  driver: 's3',
+  config: {
+    bucket: 'my-bucket',
+    region: 'us-east-1',
+    accessKeyId: process.env.AWS_KEY,
+    secretAccessKey: process.env.AWS_SECRET,
+  },
+})
+```
+
+## Signed URLs
+
+```typescript
+const signedUrl = await ctx.storage.temporaryUrl(
+  'private/document.pdf',
+  { expiresIn: '1h' }
+);
+```
+
+## Next Steps
+
+- [Ecosystem Overview](/docs/ecosystem/overview/) - All packages

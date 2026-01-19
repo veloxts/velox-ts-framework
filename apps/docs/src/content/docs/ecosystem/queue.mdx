@@ -1,0 +1,80 @@
+---
+title: Queue
+description: Background job processing with BullMQ.
+---
+
+`@veloxts/queue` provides background job processing.
+
+## Installation
+
+```bash
+pnpm add @veloxts/queue
+```
+
+## Define Jobs
+
+```typescript
+import { defineJob } from '@veloxts/queue';
+import { z } from '@veloxts/velox';
+
+export const SendWelcomeEmail = defineJob({
+  name: 'send-welcome-email',
+  schema: z.object({
+    userId: z.string(),
+    email: z.string().email(),
+  }),
+  handler: async ({ data, progress }) => {
+    await progress(50);
+    await sendEmail(data.email, 'Welcome!');
+    await progress(100);
+  },
+});
+```
+
+## Dispatch Jobs
+
+```typescript
+import { dispatch } from '@veloxts/queue';
+
+await dispatch(SendWelcomeEmail, {
+  userId: '123',
+  email: 'user@example.com',
+});
+```
+
+## Drivers
+
+### Sync (Development)
+
+```typescript
+queuePlugin({
+  driver: 'sync', // Runs immediately
+})
+```
+
+### BullMQ (Production)
+
+```typescript
+queuePlugin({
+  driver: 'bullmq',
+  config: { url: process.env.REDIS_URL },
+})
+```
+
+## Job Options
+
+```typescript
+await dispatch(SendWelcomeEmail, data, {
+  delay: 60_000,       // Delay 1 minute
+  attempts: 3,         // Retry 3 times
+  backoff: {
+    type: 'exponential',
+    delay: 1000,
+  },
+});
+```
+
+## Next Steps
+
+- [Mail](/docs/ecosystem/mail/) - Email sending
+- [Scheduler](/docs/ecosystem/scheduler/) - Scheduled tasks

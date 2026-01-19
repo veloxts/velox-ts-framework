@@ -1,0 +1,69 @@
+---
+title: Database Commands
+description: Migration and seeding commands.
+---
+
+VeloxTS provides commands for database management.
+
+## Migrations
+
+### Check Status
+
+```bash
+velox migrate status
+```
+
+### Run Migrations
+
+```bash
+velox migrate run
+```
+
+### Rollback
+
+```bash
+velox migrate rollback          # Last migration
+velox migrate rollback --steps=3  # Last 3 migrations
+```
+
+### Fresh Database
+
+```bash
+velox migrate fresh    # Drop all + migrate
+velox migrate reset    # Rollback all + migrate
+```
+
+## Seeding
+
+### Run All Seeders
+
+```bash
+velox db:seed
+```
+
+### Specific Seeder
+
+```bash
+velox db:seed --seeder=users
+```
+
+### Fresh + Seed
+
+```bash
+velox db:seed --fresh
+```
+
+## Quick Commands
+
+For development, use Prisma directly:
+
+```bash
+pnpm db:push      # Sync schema without migration
+pnpm db:generate  # Generate Prisma client
+pnpm db:studio    # Open Prisma Studio
+```
+
+## Next Steps
+
+- [Migrations](/docs/database/migrations/) - Migration patterns
+- [Seeding](/docs/database/seeding/) - Test data

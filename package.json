@@ -29,7 +29,8 @@
     "bench:throughput": "pnpm --filter @veloxts/benchmarks bench:throughput",
     "bench:latency": "pnpm --filter @veloxts/benchmarks bench:latency",
     "bench:memory": "pnpm --filter @veloxts/benchmarks bench:memory",
-    "bench:startup": "pnpm --filter @veloxts/benchmarks bench:startup"
+    "bench:startup": "pnpm --filter @veloxts/benchmarks bench:startup",
+    "docs:dev": "pnpm --filter @veloxts/docs dev"
   },
   "repository": {
     "type": "git",

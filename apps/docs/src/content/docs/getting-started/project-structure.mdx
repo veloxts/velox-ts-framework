@@ -1,0 +1,143 @@
+---
+title: Project Structure
+description: Understanding the VeloxTS project layout.
+---
+
+VeloxTS projects use a monorepo structure with separate apps for backend (`apps/api`) and frontend (`apps/web`).
+
+## API + SPA Structure (default, auth, trpc Templates)
+
+For `default`, `--auth`, and `--trpc` templates, you get a classic API backend with a Single Page Application frontend:
+
+```
+my-app/
+├── apps/
+│   ├── api/                    # Backend API
+│   │   ├── src/
+│   │   │   ├── procedures/     # API procedures
+│   │   │   │   └── users.ts
+│   │   │   ├── schemas/        # Zod validation schemas
+│   │   │   └── index.ts        # API entry point
+│   │   ├── prisma/
+│   │   │   └── schema.prisma   # Database schema
+│   │   └── prisma.config.ts    # Prisma 7 configuration
+│   │
+│   └── web/                    # Frontend (React SPA)
+│       ├── src/
+│       │   ├── components/     # React components
+│       │   ├── pages/          # Page components
+│       │   └── main.tsx        # App entry point
+│       ├── index.html
+│       └── vite.config.ts      # Vite configuration
+│
+├── packages/                   # Shared code (optional)
+├── .env                        # Environment variables
+├── package.json                # Root package.json
+├── pnpm-workspace.yaml         # Workspace configuration
+└── CLAUDE.md                   # AI assistant context
+```
+
+## API + RSC Structure (React Server Components)
+
+For `--rsc` and `--rsc-auth` templates, you get an API backend with React Server Components powered by Vinxi:
+
+```
+my-app/
+├── apps/
+│   ├── api/                    # Backend API
+│   │   ├── src/
+│   │   │   ├── procedures/     # API procedures
+│   │   │   │   └── users.ts
+│   │   │   ├── schemas/        # Zod validation schemas
+│   │   │   └── index.ts        # API entry point
+│   │   ├── prisma/
+│   │   │   └── schema.prisma   # Database schema
+│   │   └── prisma.config.ts    # Prisma 7 configuration
+│   │
+│   └── web/                    # Frontend (React + Vinxi RSC)
+│       ├── app/
+│       │   ├── pages/          # File-based routing
+│       │   │   ├── index.tsx   # /
+│       │   │   └── users/
+│       │   │       └── [id].tsx
+│       │   ├── layouts/
+│       │   │   └── root.tsx    # Root layout
+│       │   └── actions/        # Server actions
+│       │       └── users.ts
+│       └── app.config.ts       # Vinxi configuration
+│
+├── packages/                   # Shared code (optional)
+├── .env                        # Environment variables
+├── package.json                # Root package.json
+├── pnpm-workspace.yaml         # Workspace configuration
+└── CLAUDE.md                   # AI assistant context
+```
+
+## Key Directories
+
+### `apps/api/src/procedures/`
+
+This is where your API logic lives. Each file exports a `ProcedureCollection`:
+
+```typescript
+// procedures/users.ts
+export const userProcedures = procedures('users', {
+  listUsers: procedure()...
+  getUser: procedure()...
+});
+```
+
+Procedures are automatically discovered and registered.
+
+### `apps/api/src/schemas/`
+
+Zod schemas for validation. These can be shared between procedures and frontend:
+
+```typescript
+// schemas/user.ts
+import { z } from '@veloxts/velox';
+
+export const CreateUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+export type CreateUserInput = z.infer<typeof CreateUserSchema>;
+```
+
+### `apps/api/prisma/`
+
+Database schema and migrations:
+
+- `schema.prisma` - Model definitions
+- `migrations/` - Database migrations (after running `velox migrate`)
+
+## Key Files
+
+### `prisma.config.ts`
+
+Prisma 7 requires this configuration file:
+
+```typescript
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
+
+export default defineConfig({
+  schema: './prisma/schema.prisma',
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+});
+```
+
+### `CLAUDE.md`
+
+Context file for AI assistants (Claude Code, Cursor, etc.). Contains:
+- Framework conventions
+- Common commands
+- Gotchas and tips
+
+## Next Steps
+
+- [Templates](/docs/getting-started/templates/) - Template differences
+- [Procedures](/docs/router/procedures/) - Define your API

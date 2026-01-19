@@ -1,0 +1,69 @@
+---
+title: File-Based Routing
+description: Automatic route generation from file structure.
+---
+
+VeloxTS uses file-based routing in the `app/pages/` directory.
+
+## Route Mapping
+
+| File | Route |
+|------|-------|
+| `pages/index.tsx` | `/` |
+| `pages/about.tsx` | `/about` |
+| `pages/users/index.tsx` | `/users` |
+| `pages/users/[id].tsx` | `/users/:id` |
+| `pages/blog/[...slug].tsx` | `/blog/*` |
+
+## Dynamic Routes
+
+### Single Parameter
+
+```tsx
+// pages/users/[id].tsx
+export default function UserPage({ params }: { params: { id: string } }) {
+  return <div>User: {params.id}</div>;
+}
+```
+
+### Multiple Parameters
+
+```tsx
+// pages/posts/[postId]/comments/[commentId].tsx
+export default function CommentPage({
+  params,
+}: {
+  params: { postId: string; commentId: string };
+}) {
+  return <div>Comment {params.commentId} on Post {params.postId}</div>;
+}
+```
+
+### Catch-All Routes
+
+```tsx
+// pages/docs/[...slug].tsx
+export default function DocsPage({ params }: { params: { slug: string[] } }) {
+  const path = params.slug.join('/');
+  return <div>Docs: {path}</div>;
+}
+```
+
+## Route Groups
+
+Organize routes without affecting URLs:
+
+```
+pages/
+├── (marketing)/
+│   ├── about.tsx      # /about
+│   └── pricing.tsx    # /pricing
+├── (dashboard)/
+│   ├── settings.tsx   # /settings
+│   └── profile.tsx    # /profile
+```
+
+## Next Steps
+
+- [Layouts](/docs/rsc/layouts/) - Layout system
+- [Server Actions](/docs/rsc/server-actions/) - Mutations

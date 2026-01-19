@@ -1,0 +1,83 @@
+---
+title: Installation
+description: How to create a new VeloxTS project.
+---
+
+## Prerequisites
+
+- **Node.js** v20 or higher
+- **pnpm** (recommended) or npm/yarn
+- A code editor with TypeScript support (VS Code recommended)
+
+## Create a New Project
+
+The fastest way to start is with `create-velox-app`:
+
+```bash
+npx create-velox-app my-app
+cd my-app
+```
+
+### pnpm Users: Approve Native Builds
+
+If you're using pnpm (recommended), you'll need to approve native module compilation for packages like `esbuild`, `bcrypt`, and `prisma`:
+
+```bash
+pnpm approve-builds
+```
+
+Select the packages to approve when prompted. This is a one-time setup per project.
+
+### Scaffolder Options
+
+The scaffolder will prompt you to choose:
+- **Template**: default, auth, trpc, rsc, or rsc-auth
+- **Package manager**: pnpm, npm, or yarn
+- **Database**: SQLite (default) or PostgreSQL
+
+## Project Templates
+
+| Template | Use Case |
+|----------|----------|
+| `default` | REST API with basic CRUD |
+| `--auth` | JWT authentication, guards, policies |
+| `--trpc` | tRPC-only (no REST adapter) |
+| `--rsc` | React Server Components with Vinxi |
+| `--rsc-auth` | RSC + JWT authentication |
+
+```bash
+# Explicit template selection
+npx create-velox-app my-app --auth
+npx create-velox-app my-app --rsc
+```
+
+## Initialize the Database
+
+After creating your project:
+
+```bash
+# Push schema to database
+pnpm db:push
+
+# Generate Prisma client
+pnpm db:generate
+```
+
+## Start Development
+
+```bash
+pnpm dev
+```
+
+Your API is now running at **http://localhost:3030**.
+
+Test it:
+```bash
+curl http://localhost:3030/api/health
+# {"status":"ok","timestamp":"..."}
+```
+
+## Next Steps
+
+- [Quick Start](/docs/getting-started/quick-start/) - Build your first procedure
+- [Project Structure](/docs/getting-started/project-structure/) - Understand the layout

@@ -1,0 +1,73 @@
+---
+title: Seeding
+description: Populate your database with test data.
+---
+
+VeloxTS provides an expressive seeding system for populating your database with test data.
+
+## Quick Start
+
+```bash
+velox db:seed
+```
+
+## Creating Seeders
+
+```bash
+velox make seeder users
+```
+
+Creates `database/seeders/users.ts`:
+
+```typescript
+import { defineSeeder } from '@veloxts/orm';
+import { db } from '@/database';
+
+export default defineSeeder({
+  name: 'users',
+  run: async () => {
+    await db.user.createMany({
+      data: [
+        { name: 'Alice', email: 'alice@example.com' },
+        { name: 'Bob', email: 'bob@example.com' },
+      ],
+    });
+  },
+});
+```
+
+## Factories
+
+Generate realistic data with factories:
+
+```typescript
+import { defineFactory } from '@veloxts/orm';
+import { faker } from '@faker-js/faker';
+
+export const userFactory = defineFactory({
+  model: 'user',
+  definition: () => ({
+    name: faker.person.fullName(),
+    email: faker.internet.email(),
+    createdAt: faker.date.past(),
+  }),
+});
+
+// Usage
+await userFactory.create();           // Single user
+await userFactory.createMany(10);     // 10 users
+await userFactory.make();             // Create without saving
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `velox db:seed` | Run all seeders |
+| `velox db:seed --seeder=users` | Run specific seeder |
+| `velox db:seed --fresh` | Fresh database + seed |
+
+## Next Steps
+
+- [Migrations](/docs/database/migrations/) - Schema changes
+- [Testing](/docs/database/testing/) - Test patterns

@@ -1,0 +1,120 @@
+---
+title: Quick Start
+description: Build your first VeloxTS API in 5 minutes.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+This guide walks you through creating a simple user API with VeloxTS.
+
+<Steps>
+
+1. **Create a new project**
+
+   ```bash
+   npx create-velox-app my-api
+   cd my-api
+   pnpm approve-builds  # Allow native module compilation (pnpm only)
+   pnpm db:push
+   ```
+
+2. **Define your procedure**
+
+   Edit `src/procedures/users.ts`:
+
+   ```typescript
+   import { procedures, procedure } from '@veloxts/velox';
+   import { z } from '@veloxts/velox';
+
+   export const userProcedures = procedures('users', {
+     // GET /api/users
+     listUsers: procedure()
+       .output(z.array(z.object({
+         id: z.string(),
+         name: z.string(),
+         email: z.string(),
+       })))
+       .query(async ({ ctx }) => {
+         return ctx.db.user.findMany();
+       }),
+
+     // GET /api/users/:id
+     getUser: procedure()
+       .input(z.object({ id: z.string() }))
+       .output(z.object({
+         id: z.string(),
+         name: z.string(),
+         email: z.string(),
+       }))
+       .query(async ({ input, ctx }) => {
+         const user = await ctx.db.user.findUnique({
+           where: { id: input.id },
+         });
+         if (!user) throw new Error('User not found');
+         return user;
+       }),
+
+     // POST /api/users
+     createUser: procedure()
+       .input(z.object({
+         name: z.string().min(1),
+         email: z.string().email(),
+       }))
+       .mutation(async ({ input, ctx }) => {
+         return ctx.db.user.create({ data: input });
+       }),
+   });
+   ```
+
+3. **Start the dev server**
+
+   ```bash
+   pnpm dev
+   ```
+
+4. **Test your API**
+
+   ```bash
+   # List users
+   curl http://localhost:3030/api/users
+
+   # Create a user
+   curl -X POST http://localhost:3030/api/users \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Alice", "email": "alice@example.com"}'
+
+   # Get a user
+   curl http://localhost:3030/api/users/1
+   ```
+
+</Steps>
+
+## Understanding the Code
+
+### Naming Conventions
+
+VeloxTS uses procedure name prefixes to determine HTTP methods:
+
+| Prefix | HTTP Method | Path |
+|--------|-------------|------|
+| `list*` | GET | `/api/{resource}` |
+| `get*` | GET | `/api/{resource}/:id` |
+| `create*` | POST | `/api/{resource}` |
+| `update*` | PUT | `/api/{resource}/:id` |
+| `delete*` | DELETE | `/api/{resource}/:id` |
+
+See [REST Conventions](/docs/router/rest-conventions/) for the full list.
+
+### Context (`ctx`)
+
+Every procedure handler receives a `ctx` object containing:
+
+- `ctx.db` - Prisma client for database access
+- `ctx.request` - Fastify request object
+- `ctx.reply` - Fastify reply object
+
+## Next Steps
+
+- [Procedures](/docs/router/procedures/) - Deep dive into the procedure API
+- [Authentication](/docs/authentication/overview/) - Add login/logout
+- [REST Conventions](/docs/router/rest-conventions/) - All naming patterns

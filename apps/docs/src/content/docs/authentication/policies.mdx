@@ -1,0 +1,67 @@
+---
+title: Policies
+description: Resource-level authorization with policies.
+---
+
+Policies define authorization rules for specific resources.
+
+## Defining Policies
+
+```typescript
+import { definePolicy } from '@veloxts/auth';
+
+const postPolicy = definePolicy('posts', {
+  view: (user, post) => post.published || post.authorId === user.id,
+  edit: (user, post) => post.authorId === user.id,
+  delete: (user, post) => post.authorId === user.id || user.role === 'admin',
+});
+```
+
+## Using Policies
+
+```typescript
+import { authorize } from '@veloxts/auth';
+
+updatePost: procedure()
+  .guard(authenticated)
+  .input(z.object({ id: z.string(), data: UpdatePostSchema }))
+  .mutation(async ({ input, ctx }) => {
+    const post = await ctx.db.post.findUnique({ where: { id: input.id } });
+
+    // Check policy
+    await authorize(ctx, 'posts', 'edit', post);
+
+    return ctx.db.post.update({
+      where: { id: input.id },
+      data: input.data,
+    });
+  }),
+```
+
+## Helpers
+
+```typescript
+import { can, cannot } from '@veloxts/auth';
+
+// Check without throwing
+if (await can(ctx, 'posts', 'edit', post)) {
+  // User can edit
+}
+
+if (await cannot(ctx, 'posts', 'delete', post)) {
+  // User cannot delete
+}
+```
+
+## Policies vs Guards
+
+| Feature | Guards | Policies |
+|---------|--------|----------|
+| Scope | Request-level | Resource-level |
+| Example | "Is user admin?" | "Can user edit THIS post?" |
+| Check | Before handler | Inside handler |
+
+## Next Steps
+
+- [Guards](/docs/authentication/guards/) - Request authorization
+- [JWT](/docs/authentication/jwt/) - Authentication
