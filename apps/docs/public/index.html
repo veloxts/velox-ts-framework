@@ -29,8 +29,12 @@
           const oldContent = block.querySelector('.code-content.active');
 
           const switchTabs = () => {
-            block.querySelectorAll('.code-block-tab').forEach(t => t.classList.remove('active'));
-            block.querySelectorAll('.code-content').forEach(c => c.classList.remove('active'));
+            block.querySelectorAll('.code-block-tab').forEach((t) => {
+              t.classList.remove('active')
+            });
+            block.querySelectorAll('.code-content').forEach((c) => {
+              c.classList.remove('active')
+            });
             tab.classList.add('active');
             newContent?.classList.add('active');
           };
@@ -213,8 +217,6 @@ export const UserPage: FC&lt;UserPageProps&gt; = ({ id }) =&gt; {
       </div>
     </div>
   </div>
-  </div>
-  </div>
 </section>
 
 <!-- Architecture Section -->
@@ -343,6 +345,14 @@ export const UserPage: FC&lt;UserPageProps&gt; = ({ id }) =&gt; {
         </svg>
         <h3>No code generation</h3>
         <p>Direct TypeScript inference. No build steps, no generated files to commit.</p>
+      </div>
+
+      <div class="feature-card">
+        <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 2L9 7H4l4 5-2 7 6-4 6 4-2-7 4-5h-5L12 2z"></path>
+        </svg>
+        <h3>AI-powered development</h3>
+        <p>Generate procedures, routes, and schemas in seconds thanks to built-in AI skills.</p>
       </div>
 
       <div class="feature-card">
