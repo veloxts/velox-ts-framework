@@ -147,6 +147,7 @@ h1 {
   color: var(--muted-fg);
   max-width: 36rem;
   margin-bottom: 2rem;
+  text-wrap: balance;
 }
 
 .callout {
