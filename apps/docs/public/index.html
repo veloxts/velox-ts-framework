@@ -10,553 +10,12 @@
   <script type="module">
 
     import hljs from 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/es/highlight.min.js';
-    import 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/es/highlight.min.js';
-
     import ts from 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/es/languages/typescript.min.js';
 
     hljs.registerLanguage('typescript', ts);
     hljs.highlightAll();
   </script>
 
-  <style>
-    :root {
-      --primary: #3178c6;
-      --accent: #3297b1;
-      --bg: #0a0a0a;
-      --fg: #fafafa;
-      --muted: #262626;
-      --muted-fg: #a1a1aa;
-      --border: #404040;
-      --radius: 0.5rem;
-    }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
-    }
-
-    /* Navigation */
-    nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: rgba(10, 10, 10, 0.8);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      z-index: 100;
-    }
-
-    nav .container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 1rem;
-      padding-bottom: 1rem;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 700;
-      font-size: 1.25rem;
-    }
-
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      border-radius: 0.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 700;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-    }
-
-    .nav-links a {
-      color: var(--muted-fg);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .nav-links a:hover {
-      color: var(--fg);
-    }
-
-    .btn {
-      padding: 0.5rem 1rem;
-      border-radius: var(--radius);
-      border: none;
-      cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 500;
-      transition: all 0.2s;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: white;
-    }
-
-    .btn-primary:hover {
-      opacity: 0.9;
-    }
-
-    .btn-outline {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--fg);
-    }
-
-    .btn-outline:hover {
-      background: var(--muted);
-    }
-
-    /* Hero Section */
-    .hero {
-      padding-top: 8rem;
-      padding-bottom: 5rem;
-    }
-
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 3rem;
-      align-items: start;
-    }
-
-    @media (min-width: 1024px) {
-      .hero-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.25rem 0.75rem;
-      border-radius: 0.375rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      background: rgba(251, 191, 36, 0.1);
-      border: 1px solid rgba(251, 191, 36, 0.3);
-      color: #f59e0b;
-      margin-bottom: 2rem;
-    }
-
-    h1 {
-      font-size: clamp(2.5rem, 8vw, 4.5rem);
-      line-height: 1.1;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 1.5rem;
-    }
-
-    .gradient-text {
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-text {
-      font-size: 1.25rem;
-      color: var(--muted-fg);
-      max-width: 36rem;
-      margin-bottom: 2rem;
-    }
-
-    .callout {
-      padding: 1rem;
-      border-radius: 0.5rem;
-      background: rgba(38, 38, 38, 0.5);
-      border: 1px solid rgba(64, 64, 64, 0.5);
-      max-width: 36rem;
-      margin-bottom: 2rem;
-    }
-
-    .callout p {
-      font-size: 0.875rem;
-      color: var(--muted-fg);
-      line-height: 1.6;
-    }
-
-    .callout strong {
-      color: var(--fg);
-    }
-
-    .hero-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .btn-lg {
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-    }
-
-    .hero-meta {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      font-size: 0.875rem;
-      color: var(--muted-fg);
-    }
-
-    .hero-meta-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    /* Code Block */
-    .code-wrapper {
-      position: relative;
-    }
-
-    .code-glow {
-      position: absolute;
-      inset: -1rem;
-      background: linear-gradient(135deg, rgba(49, 120, 198, 0.2), rgba(50, 151, 177, 0.2));
-      border-radius: 0.5rem;
-      filter: blur(2rem);
-      z-index: -1;
-    }
-
-    .code-block {
-      --header-bg: #222222;
-      background: #1a1a1a;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      overflow: hidden;
-    }
-
-    .code-header {
-      padding: 0 0.25rem;
-      background: var(--header-bg);
-      border-bottom: 1px solid var(--border);
-      font-size: 0.75rem;
-      color: var(--muted-fg);
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .code-block-tabs {
-      background: var(--border);
-      display: flex;
-      gap: 1px;
-      width: fit-content;
-    }
-    .code-block-tab {
-      background: var(--header-bg);
-      padding-block: 0.5rem;
-      padding-inline: 0.75rem;
-      cursor: pointer;
-    }
-    .code-block-tab:hover {
-      color: white;
-    }
-
-    .code-block-tab.active {
-      background: var(--bg);
-      color: white;
-    }
-
-    .code-content {
-      overflow-x: auto;
-      display: none;
-    }
-
-    .code-content.active {
-      display: block;
-    }
-
-    pre {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.875rem;
-      line-height: 1.7;
-      color: #e5e7eb;
-    }
-
-    /* Sections */
-    section {
-      padding: 5rem 0;
-    }
-
-    h2 {
-      font-size: clamp(2rem, 5vw, 3rem);
-      font-weight: 700;
-      margin-bottom: 1rem;
-      text-align: center;
-    }
-
-    .section-description {
-      font-size: 1.125rem;
-      color: var(--muted-fg);
-      text-align: center;
-      max-width: 48rem;
-      margin: 0 auto 4rem;
-    }
-
-    /* Architecture Grid */
-    .arch-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
-      max-width: 90rem;
-      margin: 0 auto;
-    }
-
-    .arch-card {
-      padding: 2rem;
-      background: linear-gradient(135deg, rgba(38, 38, 38, 0.5), rgba(38, 38, 38, 0.3));
-      border: 1px solid rgba(64, 64, 64, 0.5);
-      border-radius: 0.75rem;
-      transition: all 0.3s;
-      cursor: pointer;
-    }
-
-    .arch-card:hover {
-      border-color: rgba(50, 151, 177, 0.5);
-      transform: translateY(-2px);
-    }
-
-    .arch-card.featured {
-      border-color: var(--accent);
-      background: linear-gradient(135deg, rgba(49, 120, 198, 0.1), rgba(50, 151, 177, 0.1));
-    }
-
-    .arch-icon {
-      width: 3rem;
-      height: 3rem;
-      border-radius: 0.5rem;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1rem;
-    }
-
-    .arch-card h3 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .arch-card p {
-      color: var(--muted-fg);
-      font-size: 0.875rem;
-    }
-
-    /* Tabs */
-    .tabs {
-      max-width: 80rem;
-      margin: 0 auto;
-    }
-
-    .tabs-list {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.25rem;
-      background: rgba(38, 38, 38, 0.5);
-      padding: 0.25rem;
-      border-radius: 0.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .tab-trigger {
-      padding: 0.75rem 1rem;
-      background: transparent;
-      border: none;
-      color: var(--muted-fg);
-      cursor: pointer;
-      border-radius: 0.375rem;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-
-    .tab-trigger:hover {
-      color: var(--fg);
-    }
-
-    .tab-trigger.active {
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: white;
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    /* Features Grid */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
-      max-width: 90rem;
-      margin: 0 auto;
-    }
-
-    .feature-card {
-      padding: 2rem;
-      background: linear-gradient(135deg, rgba(38, 38, 38, 0.5), rgba(38, 38, 38, 0.3));
-      border: 1px solid rgba(64, 64, 64, 0.5);
-      border-radius: 0.75rem;
-      transition: border-color 0.3s;
-    }
-
-    .feature-card:hover {
-      border-color: rgba(50, 151, 177, 0.5);
-    }
-
-    .feature-icon {
-      width: 2rem;
-      height: 2rem;
-      color: var(--accent);
-      margin-bottom: 1rem;
-    }
-
-    .feature-card h3 {
-      font-size: 1.125rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .feature-card p {
-      color: var(--muted-fg);
-      font-size: 0.875rem;
-      line-height: 1.6;
-    }
-
-    /* CTA Section */
-    .cta {
-      max-width: 64rem;
-      margin: 0 auto;
-      text-align: center;
-      padding: 3rem;
-      background: linear-gradient(135deg, rgba(49, 120, 198, 0.1), rgba(50, 151, 177, 0.1));
-      border: 1px solid rgba(50, 151, 177, 0.2);
-      border-radius: 1rem;
-    }
-
-    .cta-logo {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 1.5rem;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      border-radius: 0.5rem;
-    }
-
-    .cta h2 {
-      font-size: clamp(1.75rem, 4vw, 2.5rem);
-      margin-bottom: 1rem;
-    }
-
-    .cta p {
-      font-size: 1.125rem;
-      color: var(--muted-fg);
-      max-width: 42rem;
-      margin: 0 auto 2rem;
-    }
-
-    .cta-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      justify-content: center;
-    }
-
-    /* Footer */
-    footer {
-      border-top: 1px solid rgba(64, 64, 64, 0.5);
-      padding: 3rem 0;
-    }
-
-    .footer-content {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    @media (min-width: 768px) {
-      .footer-content {
-        flex-direction: row;
-        justify-content: space-between;
-      }
-    }
-
-    .footer-logo {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-      color: var(--muted-fg);
-    }
-
-    .footer-links {
-      display: flex;
-      gap: 1.5rem;
-      list-style: none;
-    }
-
-    .footer-links a {
-      font-size: 0.875rem;
-      color: var(--muted-fg);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .footer-links a:hover {
-      color: var(--fg);
-    }
-
-    /* Icons (using simple SVG shapes) */
-    .icon {
-      width: 1.25rem;
-      height: 1.25rem;
-      display: inline-block;
-    }
-
-    .icon-lg {
-      width: 1.5rem;
-      height: 1.5rem;
-    }
-
-    /* Mobile Menu */
-    @media (max-width: 768px) {
-      .nav-links {
-        display: none;
-      }
-    }
-  </style>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.code-block-tabs').forEach(tabs => {
@@ -593,79 +52,75 @@
   </script>
 </head>
 <body>
-  <!-- Navigation -->
-  <nav>
-    <div class="container">
-      <div class="logo">
-        <img src="./veloxts-rounded.svg" alt="Velox TS Framework" class="logo-icon" />
-        <span>Velox TS</span>
-      </div>
-      <ul class="nav-links">
-        <li><a href="#architectures">Architectures</a></li>
-        <li><a href="#features">Features</a></li>
-        <li><a href="/docs/">Docs</a></li>
-        <li><a href="https://github.com/veloxts/velox-ts-framework" target="_blank">GitHub</a></li>
-      </ul>
-      <a href="/docs/getting-started/introduction/" class="btn btn-primary btn-sm">Get Started</a>
+<!-- Navigation -->
+<nav>
+  <div class="container">
+    <div class="logo">
+      <img src="./veloxts-rounded.svg" alt="Velox TS Framework" class="logo-icon" />
+      <span>Velox TS</span>
     </div>
-  </nav>
+    <ul class="nav-links">
+      <li><a href="#architectures">Architectures</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="/docs/">Docs</a></li>
+    </ul>
+    <a href="/docs/getting-started/introduction/" class="btn btn-primary btn-sm">Get Started</a>
+  </div>
+</nav>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
-      <div class="hero-grid">
-        <div>
-          <div class="badge">Early Preview</div>
+<!-- Hero Section -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="badge">Early Preview</div>
 
-          <h1 style="letter-spacing: -0.03em; line-height: 0.9; text-box-trim: trim-both; text-box-edge: ex alphabetic;">
-            One framework, <span class="gradient-text">many patterns</span>
-          </h1>
+        <h1 style="letter-spacing: -0.03em; line-height: 1; text-box-trim: trim-both; text-box-edge: ex alphabetic;">
+          Type-safe from <span class="gradient-text">database</span> to <span class="gradient-text">UI</span>
+        </h1>
 
-          <p class="hero-text">
-            A TypeScript framework for teams requiring easy type-safety across the entire stack. Built for excellent DX.
+        <p class="hero-text">
+          A TypeScript framework for teams requiring easy type-safety across the entire stack. Built for great DX.
+        </p>
+
+        <div class="callout">
+          <p>
+            <strong>Not tied to React.</strong> Use vanilla HTML, web components,
+            React, Vue, Svelte, or no frontend at all—VeloxTS is backend-first.
           </p>
-
-          <div class="callout">
-            <p>
-              <strong>Not tied to React.</strong> Use vanilla HTML, web components,
-              React, Vue, Svelte, or no frontend at all—VeloxTS is backend-first.
-            </p>
-          </div>
-
-          <div class="hero-buttons">
-            <a href="/docs/getting-started/introduction/" class="btn btn-primary btn-lg">
-              Get Started
-              <span class="icon">→</span>
-            </a>
-            <a href="https://github.com/veloxts" class="btn btn-outline btn-lg">
-              <span class="icon">★</span>
-              View on GitHub
-            </a>
-          </div>
-
-          <div class="hero-meta">
-            <div class="hero-meta-item">
-              <span class="icon">✦</span>
-              <span>Early preview</span>
-            </div>
-            <div class="hero-meta-item">
-              <span class="icon">🛡</span>
-              <span>MIT License</span>
-            </div>
-          </div>
         </div>
 
-        <div class="code-wrapper">
-          <div class="code-glow"></div>
-          <div class="code-block">
-              <div class="code-header">
-                <div class="code-block-tabs">
-                  <div class="code-block-tab active" data-tab="index">index.ts</div>
-                  <div class="code-block-tab" data-tab="router">router.ts</div>
-                </div>
-              </div>
-            <div class="code-content active" data-tab-id="index">
-              <pre><code class="language-typescript">import { databasePlugin, rest, veloxApp } from '@veloxts/velox'
+        <div class="hero-buttons">
+          <a href="/docs/getting-started/introduction/" class="btn btn-primary btn-lg">
+            Get Started
+          </a>
+          <a href="https://github.com/veloxts/velox-ts-framework" target="_blank" class="btn btn-outline btn-lg">
+            View on GitHub
+          </a>
+        </div>
+
+        <div class="hero-meta">
+          <div class="hero-meta-item">
+            <span>MIT License</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-wrapper">
+        <div class="code-glow"></div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-block-tabs">
+              <div class="code-block-tab active" data-tab="index">Main</div>
+              <div class="code-block-tab" data-tab="router">Endpoints</div>
+              <div class="code-block-tab" data-tab="users">Procedures</div>
+              <div class="code-block-tab" data-tab="guards">Guards</div>
+              <div class="code-block-tab" data-tab="client">In client</div>
+            </div>
+          </div>
+          <div class="code-content active" data-tab-id="index">
+            <pre class="file-path">/backend/src/index.ts</pre>
+            <pre><code class="language-typescript">import { databasePlugin, rest, veloxApp } from '@veloxts/velox'
 import { db } from './config/database.js';
 import { collections } from './router.js';
 
@@ -679,9 +134,10 @@ app.routes(
 
 await app.start();
 </code></pre>
-            </div>
-            <div class="code-content" data-tab-id="router">
-              <pre><code class="language-typescript">import { createRouter } from '@veloxts/velox'
+          </div>
+          <div class="code-content" data-tab-id="router">
+            <pre class="file-path">/backend/src/router.ts</pre>
+            <pre><code class="language-typescript">import { createRouter } from '@veloxts/velox'
 import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
 
@@ -693,256 +149,133 @@ export const { collections, router } = createRouter(
 
 export type AppRouter = typeof router;
 </code></pre>
-            </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </section>
+          <div class="code-content" data-tab-id="users">
+            <pre class="file-path">/backend/src/procedures/users.ts</pre>
+            <pre><code class="language-typescript">import { authenticated, NotFoundError, procedure, procedures } from '@veloxts/velox';
+import { hasOrganization } from '../guards/organization.js';
+import { UserSchema, GetUserInput } from '../schemas/user.js'; // Zod schemas
 
-  <!-- Architecture Section -->
-  <section id="architectures">
-    <div class="container">
-      <h2>Choose your architecture</h2>
-      <p class="section-description">
-        Velox TS adapts to your team's needs. Start simple, scale when ready.
-      </p>
-
-      <div class="arch-grid">
-        <div class="arch-card featured">
-          <div class="arch-icon">
-            <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <polyline points="16 18 22 12 16 6"></polyline>
-              <polyline points="8 6 2 12 8 18"></polyline>
-            </svg>
-          </div>
-          <h3>tRPC</h3>
-          <p>End-to-end type-safe APIs. Zero code generation, instant autocomplete.</p>
-        </div>
-
-        <div class="arch-card">
-          <div class="arch-icon">
-            <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-            </svg>
-          </div>
-          <h3>REST API</h3>
-          <p>Traditional REST with OpenAPI docs and full type inference.</p>
-        </div>
-
-        <div class="arch-card">
-          <div class="arch-icon">
-            <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-              <polyline points="2 17 12 22 22 17"></polyline>
-              <polyline points="2 12 12 17 22 12"></polyline>
-            </svg>
-          </div>
-          <h3>SPA + Backend</h3>
-          <p>Separate frontend and backend. Perfect for existing React apps.</p>
-        </div>
-
-        <div class="arch-card">
-          <div class="arch-icon">
-            <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-          </div>
-          <h3>HTML/Vanilla JS</h3>
-          <p>Server-rendered HTML or web components. No framework needed.</p>
-        </div>
-
-        <div class="arch-card">
-          <div class="arch-icon">
-            <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <line x1="12" y1="2" x2="12" y2="6"></line>
-              <line x1="12" y1="18" x2="12" y2="22"></line>
-              <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-              <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-              <line x1="2" y1="12" x2="6" y2="12"></line>
-              <line x1="18" y1="12" x2="22" y2="12"></line>
-            </svg>
-          </div>
-          <h3>Full-stack RSC</h3>
-          <p>React Server Components. Build UI and backend together.</p>
-        </div>
-
-        <div class="arch-card">
-          <div class="arch-icon">
-            <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-            </svg>
-          </div>
-          <h3>Hybrid</h3>
-          <p>Mix and match patterns. Use what fits best for each feature.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Interactive Code Tabs -->
-  <section>
-    <div class="container">
-      <h2>See it in action</h2>
-      <p class="section-description">
-        Compare patterns side by side—same type-safety, different approaches
-      </p>
-
-      <div class="tabs">
-        <div class="tabs-list">
-          <button class="tab-trigger" data-tab="rest">REST</button>
-          <button class="tab-trigger active" data-tab="trpc">tRPC</button>
-          <button class="tab-trigger" data-tab="fullstack">RSC</button>
-          <button class="tab-trigger" data-tab="vanilla">Vanilla</button>
-        </div>
-
-        <div class="tab-content" data-tab-content="rest">
-          <div class="code-block">
-            <div class="code-header">index.ts</div>
-            <div class="code-content">
-              <pre><code><span class="code-comment">// Auto-generated REST from procedures</span>
-<span class="code-keyword">import</span> { veloxApp, rest } <span class="code-keyword">from</span> <span class="code-string">'@veloxts/velox'</span>
-<span class="code-keyword">import</span> { userProcedures } <span class="code-keyword">from</span> <span class="code-string">'./procedures/users'</span>
-
-<span class="code-keyword">const</span> app = <span class="code-keyword">await</span> <span class="code-function">veloxApp</span>()
-
-<span class="code-comment">// Naming conventions auto-generate routes:</span>
-<span class="code-comment">//   getUser   → GET /api/users/:id</span>
-<span class="code-comment">//   listUsers → GET /api/users</span>
-<span class="code-comment">//   createUser → POST /api/users</span>
-
-app.<span class="code-function">routes</span>(<span class="code-function">rest</span>([userProcedures], {
-  <span class="code-property">prefix</span>: <span class="code-string">'/api'</span>
-}))
-
-<span class="code-keyword">await</span> app.<span class="code-function">start</span>()</code></pre>
-            </div>
-          </div>
-        </div>
-
-        <div class="tab-content active" data-tab-content="trpc">
-          <div class="code-block">
-            <div class="code-header">procedures/users.ts</div>
-            <div class="code-content">
-              <pre><code><span class="code-comment">// Zero codegen, full type inference</span>
-<span class="code-keyword">import</span> { defineProcedures, procedure } <span class="code-keyword">from</span> <span class="code-string">'@veloxts/router'</span>
-<span class="code-keyword">import</span> { z } <span class="code-keyword">from</span> <span class="code-string">'zod'</span>
-
-<span class="code-keyword">export const</span> userProcedures = <span class="code-function">defineProcedures</span>(<span class="code-string">'users'</span>, {
-  <span class="code-property">getUser</span>: <span class="code-function">procedure</span>()
-    .<span class="code-function">input</span>(z.<span class="code-function">object</span>({ <span class="code-property">id</span>: z.<span class="code-function">string</span>() }))
-    .<span class="code-function">query</span>(<span class="code-keyword">async</span> ({ input, ctx }) <span class="code-keyword">=></span> {
-      <span class="code-keyword">return</span> ctx.db.user.<span class="code-function">findUnique</span>({
-        <span class="code-property">where</span>: { <span class="code-property">id</span>: input.id }
-      })
+export const userProcedures = procedures('users', {
+  getUser: procedure()
+    .guard(authenticated)
+    .guard(hasOrganization)
+    .input(GetUserInput)
+    .output(UserSchema)
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+      if (!user) {
+        throw new NotFoundError(`User with id '${input.id}' not found`);
+      }
+      // Return Prisma object directly - output schema handles Date serialization
+      return user;
     }),
-
-  <span class="code-property">createUser</span>: <span class="code-function">procedure</span>()
-    .<span class="code-function">input</span>(userSchema)
-    .<span class="code-function">mutation</span>(<span class="code-keyword">async</span> ({ input, ctx }) <span class="code-keyword">=></span> {
-      <span class="code-keyword">return</span> ctx.db.user.<span class="code-function">create</span>({ <span class="code-property">data</span>: input })
-    })
-})</code></pre>
-            </div>
+    // …
+});
+</code></pre>
           </div>
-        </div>
+          <div class="code-content" data-tab-id="guards">
+            <pre class="file-path">/backend/src/guards/organization.ts</pre>
+            <pre><code class="language-typescript">import { defineGuard } from '@veloxts/velox';
+import type { User } from '@veloxts/auth';
 
-        <div class="tab-content" data-tab-content="fullstack">
-          <div class="code-block">
-            <div class="code-header">app/users/page.tsx</div>
-            <div class="code-content">
-              <pre><code><span class="code-comment">// Server Component - no API needed</span>
-<span class="code-keyword">import</span> { db } <span class="code-keyword">from</span> <span class="code-string">'@/lib/db'</span>
-
-<span class="code-keyword">export default async function</span> <span class="code-function">UsersPage</span>() {
-  <span class="code-keyword">const</span> users = <span class="code-keyword">await</span> db.user.<span class="code-function">findMany</span>()
-
-  <span class="code-keyword">return</span> (
-    &lt;<span class="code-property">div</span>&gt;
-      &lt;<span class="code-property">h1</span>&gt;Users&lt;/<span class="code-property">h1</span>&gt;
-      &lt;<span class="code-property">UserList</span> <span class="code-property">users</span>={users} /&gt;
-    &lt;/<span class="code-property">div</span>&gt;
-  )
-}</code></pre>
-            </div>
+/**
+ * Guard that ensures user belongs to an organization
+ */
+export const hasOrganization = defineGuard&lt;User&gt;({
+  name: 'hasOrganization',
+  check: (ctx) => !!ctx?.organizationId,
+  message: 'User must belong to an organization',
+  statusCode: 403,
+});
+</code></pre>
           </div>
-        </div>
+          <div class="code-content" data-tab-id="client">
+            <pre class="file-path">/frontend/src/api-hook.ts</pre>
+            <pre class="separated-bottom"><code class="language-typescript">import { createVeloxHooks } from '@veloxts/client/react';
+import type { AppRouter } from '../../backend/src/router.js';
 
-        <div class="tab-content" data-tab-content="vanilla">
-          <div class="code-block">
-            <div class="code-header">client.ts</div>
-            <div class="code-content">
-              <pre><code><span class="code-comment">// Type-safe client - no framework needed</span>
-<span class="code-keyword">import</span> { createClient } <span class="code-keyword">from</span> <span class="code-string">'@veloxts/client'</span>
-<span class="code-keyword">import type</span> { AppRouter } <span class="code-keyword">from</span> <span class="code-string">'./api/router'</span>
+/**
+ * Zero codegen, Type-safe API hooks with full autocomplete
+ */
+export const api = createVeloxHooks&lt;AppRouter&gt;();
+</code></pre>
+            <pre class="file-path">/frontend/src/pages/UserPage.tsx</pre>
+            <pre><code class="language-typescript">import { api } from '../api-hook.js';
 
-<span class="code-keyword">const</span> api = <span class="code-function">createClient</span>&lt;AppRouter&gt;({
-  <span class="code-property">baseUrl</span>: <span class="code-string">'http://localhost:3030'</span>
-})
-
-<span class="code-comment">// Full autocomplete and type inference</span>
-<span class="code-keyword">const</span> user = <span class="code-keyword">await</span> api.users.<span class="code-function">getUser</span>({
-  <span class="code-property">id</span>: <span class="code-string">'123'</span>
-})
-
-console.<span class="code-function">log</span>(user.name) <span class="code-comment">// ← Type: string</span></code></pre>
-            </div>
+export const UserPage: FC&lt;UserPageProps&gt; = ({ id }) =&gt; {
+  const { data } = api.users.getUser.useQuery({ id });
+  // …
+}
+</code></pre>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+  </div>
+  </div>
+</section>
 
-  <!-- Features Section -->
-  <section id="features">
-    <div class="container">
-      <h2>Built for developers</h2>
-      <p class="section-description">
-        Modern tooling and conventions that get out of your way
-      </p>
+<!-- Architecture Section -->
+<section id="architectures">
+  <div class="container">
+    <h2>Choose your architecture</h2>
+    <p class="section-description">
+      Velox TS adapts to your team’s needs. Choose simple SPA, or React Server Components.
+    </p>
 
-      <div class="features-grid">
-        <div class="feature-card">
-          <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-          <h3>Type-safe by default</h3>
-          <p>Full TypeScript inference across your entire stack. Catch errors at compile time, not runtime.</p>
-        </div>
-
-        <div class="feature-card">
-          <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-          </svg>
-          <h3>Database agnostic</h3>
-          <p>Works with Prisma, Drizzle, Kysely, or raw SQL. Use what your team knows.</p>
-        </div>
-
-        <div class="feature-card">
-          <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-          </svg>
-          <h3>Zero config to start</h3>
-          <p>Sensible defaults, optional configuration. Start coding in seconds, customize when needed.</p>
-        </div>
-
-        <div class="feature-card">
-          <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="arch-icon">
+          <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
             <polyline points="16 18 22 12 16 6"></polyline>
             <polyline points="8 6 2 12 8 18"></polyline>
           </svg>
-          <h3>No code generation</h3>
-          <p>Direct TypeScript inference. No build steps, no generated files to commit.</p>
         </div>
+        <h3>tRPC</h3>
+        <p>End-to-end type-safe APIs. Zero code generation, instant autocomplete.</p>
+      </div>
 
-        <div class="feature-card">
-          <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <div class="arch-card">
+        <div class="arch-icon">
+          <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+          </svg>
+        </div>
+        <h3>REST API</h3>
+        <p>Traditional REST with OpenAPI docs and full type inference.</p>
+      </div>
+
+      <div class="arch-card">
+        <div class="arch-icon">
+          <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <h3>SPA + Backend</h3>
+        <p>Separate frontend and backend. Perfect for existing React apps.</p>
+      </div>
+
+      <div class="arch-card" style="display: none">
+        <div class="arch-icon">
+          <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+        </div>
+        <h3>HTML/Vanilla JS</h3>
+        <p>Server-rendered HTML or web components. No framework needed.</p>
+      </div>
+
+      <div class="arch-card">
+        <div class="arch-icon">
+          <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
             <line x1="12" y1="2" x2="12" y2="6"></line>
             <line x1="12" y1="18" x2="12" y2="22"></line>
             <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
@@ -950,115 +283,99 @@ console.<span class="code-function">log</span>(user.name) <span class="code-comm
             <line x1="2" y1="12" x2="6" y2="12"></line>
             <line x1="18" y1="12" x2="22" y2="12"></line>
           </svg>
-          <h3>Incremental adoption</h3>
-          <p>Add Velox TS to existing projects. Migrate one endpoint at a time. No big rewrites required.</p>
         </div>
+        <h3>Full-stack RSC</h3>
+        <p>React Server Components. Build UI and backend together.</p>
+      </div>
+
+      <div class="arch-card" style="display: none">
+        <div class="arch-icon">
+          <svg class="icon" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <h3>Hybrid</h3>
+        <p>Mix and match patterns. Use what fits best for each feature.</p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- CTA Section -->
-  <section>
-    <div class="container">
-      <div class="cta">
-        <div class="cta-logo"></div>
-        <h2>Help shape the future</h2>
-        <p>
-          Velox TS is in early development. Your feedback and contributions will directly influence the direction of the framework.
-        </p>
-        <div class="cta-buttons">
-          <a href="https://github.com/veloxts" class="btn btn-primary btn-lg">
-            <span class="icon">★</span>
-            Star on GitHub
-          </a>
-          <a href="#discord" class="btn btn-outline btn-lg">
-            <span class="icon">💬</span>
-            Join Discord
-          </a>
-          <a href="#twitter" class="btn btn-outline btn-lg">
-            <span class="icon">🐦</span>
-            Follow Updates
-          </a>
-        </div>
+<!-- Features Section -->
+<section id="features">
+  <div class="container">
+    <h2>Built for developers</h2>
+    <p class="section-description">
+      Modern tooling and conventions that get out of your way
+    </p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <h3>Type-safe by default</h3>
+        <p>Full TypeScript inference across your entire stack. Catch errors at compile time, not runtime.</p>
+      </div>
+
+      <div class="feature-card">
+        <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+        </svg>
+        <h3>Database agnostic</h3>
+        <p>Works with Prisma, Drizzle, Kysely, or raw SQL. Use what your team knows.</p>
+      </div>
+
+      <div class="feature-card">
+        <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <h3>Zero config to start</h3>
+        <p>Sensible defaults, optional configuration. Start coding in seconds, customize when needed.</p>
+      </div>
+
+      <div class="feature-card">
+        <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="16 18 22 12 16 6"></polyline>
+          <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        <h3>No code generation</h3>
+        <p>Direct TypeScript inference. No build steps, no generated files to commit.</p>
+      </div>
+
+      <div class="feature-card">
+        <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+          <line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line>
+          <line x1="18" y1="12" x2="22" y2="12"></line>
+        </svg>
+        <h3>Incremental adoption</h3>
+        <p>Add Velox TS to existing projects. Migrate one endpoint at a time. No big rewrites required.</p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-logo">
-          <div class="logo-icon" style="width: 24px; height: 24px; font-size: 0.875rem;">V</div>
-          <span>© 2025 Velox TS. MIT License.</span>
-        </div>
-        <ul class="footer-links">
-          <li><a href="#docs">Documentation</a></li>
-          <li><a href="https://github.com/veloxts">GitHub</a></li>
-          <li><a href="#discord">Discord</a></li>
-          <li><a href="#twitter">Twitter</a></li>
-        </ul>
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-logo">
+        <div class="logo-icon" style="width: 24px; height: 24px; font-size: 0.875rem;">V</div>
+        <span>© 2026 Velox TS Framework. MIT License.</span>
       </div>
+      <ul class="footer-links">
+        <li><a href="/docs/">Documentation</a></li>
+        <li><a href="https://github.com/veloxts/velox-ts-framework">GitHub</a></li>
+      </ul>
     </div>
-  </footer>
+  </div>
+</footer>
 
-  <script>
-    // Tab switching
-    const tabTriggers = document.querySelectorAll('.tab-trigger');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    tabTriggers.forEach(trigger => {
-      trigger.addEventListener('click', () => {
-        const tabName = trigger.dataset.tab;
-
-        // Remove active class from all triggers and contents
-        tabTriggers.forEach(t => t.classList.remove('active'));
-        tabContents.forEach(c => c.classList.remove('active'));
-
-        // Add active class to clicked trigger and corresponding content
-        trigger.classList.add('active');
-        const content = document.querySelector(`[data-tab-content="\${tabName}"]`);
-        if (content) {
-          content.classList.add('active');
-        }
-      });
-    });
-
-    // Smooth scroll for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        const href = this.getAttribute('href');
-        if (href !== '#' && href !== '#discord' && href !== '#twitter') {
-          e.preventDefault();
-          const target = document.querySelector(href);
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth' });
-          }
-        }
-      });
-    });
-
-    // Simple fade-in animation on scroll
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('.arch-card, .feature-card').forEach(el => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(20px)';
-      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-      observer.observe(el);
-    });
-  </script>
 </body>
 </html>
