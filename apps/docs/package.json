@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && cp public/index.html dist/index.html",
+    "build": "astro build && cp -r public/* dist/",
     "preview": "astro preview",
     "serve": "serve dist -l ${PORT:-4321}",
     "astro": "astro"
