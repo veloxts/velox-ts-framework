@@ -7,7 +7,7 @@ export default defineConfig({
   outDir: './dist/docs',
   integrations: [
     starlight({
-      title: 'Velox TS framework',
+      title: 'Velox TS framework',
       tagline: 'Type-safe from database to UI',
       logo: {
         src: './src/assets/velox-logo.svg',
