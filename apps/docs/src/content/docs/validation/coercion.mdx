@@ -82,9 +82,89 @@ z.coerce.bigint()
 // "9007199254740991" → 9007199254740991n
 ```
 
+## Query Helpers
+
+VeloxTS provides shorthand helpers for common query parameter patterns:
+
+```typescript
+import {
+  queryNumber,
+  queryInt,
+  queryBoolean,
+  queryArray,
+  queryEnum,
+  pagination,
+} from '@veloxts/validation';
+```
+
+### `queryNumber()` and `queryInt()`
+
+```typescript
+.input(z.object({
+  page: queryInt(1),       // Default: 1, coerces to integer
+  limit: queryInt(20),     // Default: 20, coerces to integer
+  minPrice: queryNumber(), // Required, coerces to number
+}))
+```
+
+### `queryBoolean()`
+
+Accepts: `"true"`, `"1"`, `"yes"`, `"on"` → `true`
+Accepts: `"false"`, `"0"`, `"no"`, `"off"` → `false`
+
+```typescript
+.input(z.object({
+  active: queryBoolean(true),   // Default: true
+  deleted: queryBoolean(false), // Default: false
+  verified: queryBoolean(),     // Optional, no default
+}))
+```
+
+### `queryArray()`
+
+Parses comma-separated strings into arrays:
+
+```typescript
+.input(z.object({
+  tags: queryArray(),                    // "a,b,c" → ["a", "b", "c"]
+  ids: queryArray({ min: 1 }),           // At least 1 item required
+  categories: queryArray({ max: 5 }),    // Max 5 items
+  values: queryArray({ separator: '|' }), // Custom separator
+}))
+```
+
+### `queryEnum()`
+
+Type-safe enum validation:
+
+```typescript
+.input(z.object({
+  sort: queryEnum(['asc', 'desc'] as const, 'asc'),
+  status: queryEnum(['active', 'pending', 'archived'] as const),
+}))
+```
+
+### `pagination()`
+
+Pre-built pagination schema:
+
+```typescript
+// Default: { page: 1, limit: 20, maxLimit: 100 }
+.input(pagination())
+
+// Custom limits
+.input(pagination({ defaultLimit: 10, maxLimit: 50 }))
+
+// Extend with filters
+.input(pagination().extend({
+  search: z.string().optional(),
+  status: queryEnum(['active', 'archived'] as const),
+}))
+```
+
 ## Common Patterns
 
-### Pagination
+### Pagination (Manual)
 
 ```typescript
 const paginationInput = z.object({

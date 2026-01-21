@@ -110,6 +110,7 @@ export {
 // Guards
 // ============================================================================
 
+export type { GuardBuilder } from './guards.js';
 export {
   // Combinators
   allOf,

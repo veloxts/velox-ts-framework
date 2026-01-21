@@ -32,19 +32,182 @@ export function defineGuard<TContext = unknown>(
   };
 }
 
+// ============================================================================
+// Guard Builder (Fluent API)
+// ============================================================================
+
 /**
- * Creates a simple guard from a check function
+ * Fluent guard builder for progressive configuration
  *
- * @example
+ * Allows building guards step-by-step with method chaining.
+ * The builder is compatible with GuardLike, so it can be used
+ * directly with `.guard()` on procedures.
+ */
+export interface GuardBuilder<TContext> {
+  /** Guard name for error messages (read-only, set via named()) */
+  readonly name: string;
+  /** Guard check function (read-only) */
+  readonly check: GuardFunction<TContext>;
+  /** Custom error message (read-only, set via msg()) */
+  readonly message: string | undefined;
+  /** HTTP status code on failure (read-only, set via status()) */
+  readonly statusCode: number;
+
+  /** Set a descriptive name (used in error messages and debugging) */
+  named(name: string): GuardBuilder<TContext>;
+  /** Set custom error message shown when guard fails */
+  msg(message: string): GuardBuilder<TContext>;
+  /** Set HTTP status code returned when guard fails (default: 403) */
+  status(code: number): GuardBuilder<TContext>;
+}
+
+/**
+ * Counter for generating unique guard names when not provided
+ * @internal
+ */
+let guardCounter = 0;
+
+/**
+ * Attempts to infer a meaningful name from a guard check function
+ * @internal
+ */
+function inferGuardName<TContext>(check: GuardFunction<TContext>): string {
+  // Try to use function name if it exists and isn't generic
+  if (check.name && check.name !== 'check' && check.name !== 'anonymous') {
+    return check.name;
+  }
+  // Fall back to generated name
+  return `guard_${++guardCounter}`;
+}
+
+/**
+ * Creates a guard builder instance
+ * @internal
+ */
+function createGuardBuilder<TContext>(
+  check: GuardFunction<TContext>,
+  initialName: string
+): GuardBuilder<TContext> {
+  // Mutable state for builder
+  let guardName = initialName;
+  let guardMessage: string | undefined;
+  let guardStatusCode = 403;
+
+  const builder: GuardBuilder<TContext> = {
+    // GuardLike compatible properties (getters for current values)
+    get name() {
+      return guardName;
+    },
+    get check() {
+      return check;
+    },
+    get message() {
+      return guardMessage;
+    },
+    get statusCode() {
+      return guardStatusCode;
+    },
+
+    // Builder methods (return self for chaining)
+    named(name: string) {
+      guardName = name;
+      return builder;
+    },
+    msg(message: string) {
+      guardMessage = message;
+      return builder;
+    },
+    status(code: number) {
+      guardStatusCode = code;
+      return builder;
+    },
+  };
+
+  return builder;
+}
+
+// ============================================================================
+// Guard Factory (Multiple Signatures)
+// ============================================================================
+
+/**
+ * Creates a guard with simplified syntax
+ *
+ * Supports three usage patterns with progressive disclosure:
+ *
+ * @example Simple check function (returns builder for configuration)
+ * ```typescript
+ * const isVerified = guard((ctx) => ctx.user?.emailVerified === true)
+ *   .msg('Email verification required');
+ * ```
+ *
+ * @example Check with message (most common - auto-generates name)
+ * ```typescript
+ * const isVerified = guard(
+ *   (ctx) => ctx.user?.emailVerified === true,
+ *   'Email verification required'
+ * );
+ * ```
+ *
+ * @example Named guard (explicit name for debugging)
  * ```typescript
  * const isActive = guard('isActive', (ctx) => ctx.user?.status === 'active');
  * ```
+ *
+ * @example Full fluent configuration
+ * ```typescript
+ * const isPremium = guard((ctx) => ctx.user?.subscription === 'premium')
+ *   .named('isPremium')
+ *   .msg('Premium subscription required')
+ *   .status(402);
+ * ```
  */
+// Overload 1: Check function only → returns builder for configuration
+export function guard<TContext = unknown>(
+  check: GuardFunction<TContext>
+): GuardBuilder<TContext>;
+
+// Overload 2: Check with message (most common pattern)
+export function guard<TContext = unknown>(
+  check: GuardFunction<TContext>,
+  message: string
+): GuardDefinition<TContext>;
+
+// Overload 3: Legacy signature (name, check) for backwards compatibility
 export function guard<TContext = unknown>(
   name: string,
   check: GuardFunction<TContext>
-): GuardDefinition<TContext> {
-  return defineGuard({ name, check });
+): GuardDefinition<TContext>;
+
+// Implementation
+export function guard<TContext = unknown>(
+  nameOrCheck: string | GuardFunction<TContext>,
+  checkOrMessage?: GuardFunction<TContext> | string
+): GuardDefinition<TContext> | GuardBuilder<TContext> {
+  // Overload 3: Legacy (name, check)
+  if (typeof nameOrCheck === 'string' && typeof checkOrMessage === 'function') {
+    return defineGuard({ name: nameOrCheck, check: checkOrMessage });
+  }
+
+  // Overloads 1 & 2: (check) or (check, message)
+  if (typeof nameOrCheck === 'function') {
+    const check = nameOrCheck;
+    const message = typeof checkOrMessage === 'string' ? checkOrMessage : undefined;
+
+    if (message !== undefined) {
+      // Overload 2: Simple form with message - return completed guard
+      return defineGuard({
+        name: inferGuardName(check),
+        check,
+        message,
+      });
+    }
+
+    // Overload 1: Return builder for fluent configuration
+    return createGuardBuilder(check, inferGuardName(check));
+  }
+
+  throw new Error('Invalid guard arguments: expected (check), (check, message), or (name, check)');
 }
 
 // ============================================================================

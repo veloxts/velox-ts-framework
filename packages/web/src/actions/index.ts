@@ -99,6 +99,7 @@ export {
   executeProcedureDirectly,
   type InferProcedureInputType,
   type InferProcedureOutputType,
+  invokeProc,
 } from './procedure-bridge.js';
 // Types
 export type {

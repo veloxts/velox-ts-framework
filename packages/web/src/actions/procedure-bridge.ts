@@ -405,3 +405,26 @@ export type InferProcedureOutputType<T> =
  * Re-export router inference types for convenience
  */
 export type { InferProcedureInput, InferProcedureOutput };
+
+// ============================================================================
+// Alias for cleaner API
+// ============================================================================
+
+/**
+ * Short alias for executeProcedureDirectly
+ *
+ * Provides a cleaner, more ergonomic API for server actions that call procedures.
+ *
+ * @example
+ * ```typescript
+ * import { invokeProc } from '@veloxts/web/server';
+ * import { userProcedures } from './procedures/users';
+ *
+ * export async function listUsers() {
+ *   'use server';
+ *   const ctx = await createH3Context();
+ *   return invokeProc(userProcedures.procedures.listUsers, {}, ctx);
+ * }
+ * ```
+ */
+export const invokeProc = executeProcedureDirectly;

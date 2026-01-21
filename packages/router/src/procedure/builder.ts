@@ -246,6 +246,21 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
+     * Adds multiple authorization guards at once
+     *
+     * Convenience method equivalent to chaining multiple `.guard()` calls.
+     * Guards execute left-to-right. All must pass for the procedure to execute.
+     */
+    guards<TGuards extends GuardLike<Partial<TContext>>[]>(
+      ...guardDefs: TGuards
+    ): ProcedureBuilder<TInput, TOutput, TContext> {
+      return createBuilder<TInput, TOutput, TContext>({
+        ...state,
+        guards: [...state.guards, ...(guardDefs as GuardLike<unknown>[])],
+      });
+    },
+
+    /**
      * Sets REST route override
      */
     rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext> {

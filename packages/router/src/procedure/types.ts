@@ -252,6 +252,36 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<TInput, TOutput, TContext & TNarrowedContext>;
 
   /**
+   * Adds multiple authorization guards at once
+   *
+   * This is a convenience method equivalent to chaining multiple `.guard()` calls.
+   * Guards execute left-to-right. All must pass for the procedure to execute.
+   *
+   * @param guards - Guard definitions to apply (spread)
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * import { authenticated, hasRole, emailVerified } from '@veloxts/auth';
+   *
+   * // Multiple guards in one call
+   * procedure()
+   *   .guards(authenticated, hasRole('admin'), emailVerified)
+   *   .mutation(async ({ input, ctx }) => { ... });
+   *
+   * // Equivalent to:
+   * procedure()
+   *   .guard(authenticated)
+   *   .guard(hasRole('admin'))
+   *   .guard(emailVerified)
+   *   .mutation(async ({ input, ctx }) => { ... });
+   * ```
+   */
+  guards<TGuards extends GuardLike<Partial<TContext>>[]>(
+    ...guards: TGuards
+  ): ProcedureBuilder<TInput, TOutput, TContext>;
+
+  /**
    * Configures REST route override
    *
    * By default, REST routes are auto-generated from procedure names.

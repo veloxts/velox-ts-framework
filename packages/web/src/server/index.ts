@@ -139,6 +139,7 @@ export type {
 export {
   createProcedureContext,
   executeProcedureDirectly,
+  invokeProc,
 } from '../actions/procedure-bridge.js';
 // ============================================================================
 // Server-Only Types (re-exported for convenience)

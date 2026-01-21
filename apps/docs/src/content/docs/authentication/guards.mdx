@@ -49,7 +49,42 @@ updateSettings: procedure()
 
 ## Custom Guards
 
-Create guards with `defineGuard`:
+### Simple Form with `guard()`
+
+The quickest way to create a custom guard:
+
+```typescript
+import { guard } from '@veloxts/auth';
+
+// Check function + message (most common)
+const isVerified = guard(
+  (ctx) => ctx.user?.emailVerified === true,
+  'Email verification required'
+);
+
+// Usage
+updateEmail: procedure()
+  .guard(authenticated)
+  .guard(isVerified)
+  .mutation(handler),
+```
+
+### Fluent Builder
+
+For more control, use the fluent builder:
+
+```typescript
+import { guard } from '@veloxts/auth';
+
+const isPremium = guard((ctx) => ctx.user?.subscription === 'premium')
+  .named('isPremium')
+  .msg('Premium subscription required')
+  .status(402);
+```
+
+### Full Form with `defineGuard`
+
+For maximum explicitness:
 
 ```typescript
 import { defineGuard } from '@veloxts/auth';
@@ -60,12 +95,6 @@ const isVerified = defineGuard({
   message: 'Email verification required',
   statusCode: 403,
 });
-
-// Usage
-updateEmail: procedure()
-  .guard(authenticated)
-  .guard(isVerified)
-  .mutation(handler),
 ```
 
 <Aside type="note" title="Guard Signature">
@@ -149,6 +178,26 @@ getSecretData: procedure()
   .guard(isVerified)         // 2. Must have verified email
   .guard(hasRole('admin'))   // 3. Must be admin
   .guard(notBanned)          // 4. Must not be banned
+  .query(handler),
+```
+
+### Combined `.guards()` Method
+
+Add multiple guards at once for cleaner code:
+
+```typescript
+import { authenticated, hasRole, emailVerified } from '@veloxts/auth';
+
+// Multiple guards in one call
+getSecretData: procedure()
+  .guards(authenticated, emailVerified, hasRole('admin'))
+  .query(handler),
+
+// Equivalent to chaining .guard() calls
+getSecretData: procedure()
+  .guard(authenticated)
+  .guard(emailVerified)
+  .guard(hasRole('admin'))
   .query(handler),
 ```
 
