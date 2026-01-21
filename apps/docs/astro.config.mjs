@@ -2,13 +2,13 @@ import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'https://veloxts.dev',
+  site: 'https://www.veloxts.dev',
   base: '/docs',
   outDir: './dist/docs',
   integrations: [
     starlight({
-      title: 'VeloxTS',
-      tagline: 'One framework, your architecture',
+      title: 'Velox TS framework',
+      tagline: 'Type-safe from database to UI',
       logo: {
         src: './src/assets/velox-logo.svg',
         replacesTitle: false,
@@ -142,6 +142,7 @@ export default defineConfig({
         },
         {
           label: 'Deployment',
+          collapsed: true,
           items: [
             { slug: 'deployment/overview' },
             { slug: 'deployment/docker' },
