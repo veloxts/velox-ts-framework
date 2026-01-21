@@ -86,17 +86,37 @@ trpc.users.create.mutate({
 });
 ```
 
-## When to Add REST
+## Adding REST Later
 
-You can add REST later if needed:
+If you later need REST endpoints (for mobile apps, third parties, webhooks), add the REST adapter to your app:
 
 ```typescript
-// Enable REST adapter for specific procedures
-export const userProcedures = procedures('users', {
-  // This gets both tRPC and REST
-  listUsers: procedure()...
-});
+// src/index.ts
+import { veloxApp, rest } from '@veloxts/velox';
+import { collections } from './router.js';
+
+const app = await veloxApp({ port: 3030 });
+
+app.routes(
+  rest(collections, { prefix: '/api' })  // Add this line
+);
 ```
+
+REST uses naming conventions to infer HTTP methods, so you may need to rename procedures:
+
+```typescript
+// Before (tRPC-style, short names)
+list: procedure()...
+get: procedure()...
+create: procedure()...
+
+// After (REST-style, includes resource name)
+listUsers: procedure()...   // → GET /api/users
+getUser: procedure()...     // → GET /api/users/:id
+createUser: procedure()...  // → POST /api/users
+```
+
+See [REST Conventions](/docs/router/rest-conventions/) for the full naming guide.
 
 ## Next Steps
 
