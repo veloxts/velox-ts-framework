@@ -167,12 +167,10 @@ export const userProcedures = procedures('users', {
     .input(GetUserInput)
     .output(UserSchema)
     .query(async ({ input, ctx }) => {
-      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      if (!user) {
-        throw new NotFoundError(`User with id '${input.id}' not found`);
-      }
       // Return Prisma object directly - output schema handles Date serialization
-      return user;
+      return ctx.db.user.findUniqueOrThrow({
+        where: { id: input.id }
+      });
     }),
     // …
 });
