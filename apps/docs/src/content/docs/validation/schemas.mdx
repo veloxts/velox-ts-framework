@@ -728,7 +728,7 @@ export const userProcedures = procedures('users', {
     .input(idParamSchema)
     .output(UserSchema)
     .query(async ({ input, ctx }) => {
-      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
     }),
 
   // Paginated list
@@ -776,7 +776,7 @@ export const productProcedures = procedures('products', {
     .input(CreateProductSchema)
     .output(ProductSchema)
     .mutation(async ({ input, ctx }) => {
-      return ctx.db.product.create({ data: input });
+      return await ctx.db.product.create({ data: input });
     }),
 });
 

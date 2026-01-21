@@ -114,8 +114,8 @@ const filterInput = z.object({
 
 findProducts: procedure()
   .input(filterInput)
-  .query(({ input, ctx }) => {
-    return ctx.db.product.findMany({
+  .query(async ({ input, ctx }) => {
+    return await ctx.db.product.findMany({
       where: {
         price: {
           gte: input.minPrice,

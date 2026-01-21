@@ -128,29 +128,39 @@ procedures('posts', {
 procedures('users', {
   listUsers: procedure()
     .output(z.array(UserSchema))
-    .query(({ ctx }) => ctx.db.user.findMany()),
+    .query(async ({ ctx }) => {
+      return await ctx.db.user.findMany();
+    }),
   // → GET /api/users
 
   getUser: procedure()
     .input(z.object({ id: z.string() }))
     .output(UserSchema)
-    .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({ where: { id: input.id } })),
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    }),
   // → GET /api/users/:id
 
   createUser: procedure()
     .input(CreateUserSchema)
     .output(UserSchema)
-    .mutation(({ input, ctx }) => ctx.db.user.create({ data: input })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.user.create({ data: input });
+    }),
   // → POST /api/users (201)
 
   updateUser: procedure()
     .input(z.object({ id: z.string(), data: UpdateUserSchema }))
-    .mutation(({ input, ctx }) => ctx.db.user.update({ where: { id: input.id }, data: input.data })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.user.update({ where: { id: input.id }, data: input.data });
+    }),
   // → PUT /api/users/:id
 
   deleteUser: procedure()
     .input(z.object({ id: z.string() }))
-    .mutation(({ input, ctx }) => ctx.db.user.delete({ where: { id: input.id } })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.user.delete({ where: { id: input.id } });
+    }),
   // → DELETE /api/users/:id
 });
 ```
@@ -161,7 +171,9 @@ procedures('products', {
   // Collection endpoint
   listProducts: procedure()
     .output(z.array(ProductSchema))
-    .query(({ ctx }) => ctx.db.product.findMany()),
+    .query(async ({ ctx }) => {
+      return await ctx.db.product.findMany();
+    }),
   // → GET /api/products
 
   // Search with query params
@@ -172,15 +184,17 @@ procedures('products', {
       maxPrice: z.coerce.number().optional(),
     }))
     .output(z.array(ProductSchema))
-    .query(({ input, ctx }) => ctx.db.product.findMany({
-      where: {
-        category: input.category,
-        price: {
-          gte: input.minPrice,
-          lte: input.maxPrice,
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.product.findMany({
+        where: {
+          category: input.category,
+          price: {
+            gte: input.minPrice,
+            lte: input.maxPrice,
+          },
         },
-      },
-    })),
+      });
+    }),
   // → GET /api/products?category=electronics&minPrice=100
 });
 ```
@@ -226,15 +240,19 @@ procedures('users', {
   createManyUsers: procedure()
     .input(z.array(CreateUserSchema))
     .rest({ method: 'POST', path: '/users/bulk' })
-    .mutation(({ input, ctx }) => ctx.db.user.createMany({ data: input })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.user.createMany({ data: input });
+    }),
 
   // DELETE /api/users/bulk
   deleteManyUsers: procedure()
     .input(z.object({ ids: z.array(z.string()) }))
     .rest({ method: 'DELETE', path: '/users/bulk' })
-    .mutation(({ input, ctx }) => ctx.db.user.deleteMany({
-      where: { id: { in: input.ids } },
-    })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.user.deleteMany({
+        where: { id: { in: input.ids } },
+      });
+    }),
 });
 ```
 
@@ -246,16 +264,20 @@ procedures('users', {
   activateUser: procedure()
     .input(z.object({ id: z.string() }))
     .rest({ method: 'POST', path: '/users/:id/activate' })
-    .mutation(({ input, ctx }) => ctx.db.user.update({
-      where: { id: input.id },
-      data: { isActive: true },
-    })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.user.update({
+        where: { id: input.id },
+        data: { isActive: true },
+      });
+    }),
 
   // POST /api/users/:id/verify-email
   verifyEmail: procedure()
     .input(z.object({ id: z.string(), token: z.string() }))
     .rest({ method: 'POST', path: '/users/:id/verify-email' })
-    .mutation(({ input, ctx }) => ctx.auth.verifyEmail(input.id, input.token)),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.auth.verifyEmail(input.id, input.token);
+    }),
 });
 ```
 
@@ -301,9 +323,9 @@ For procedures expecting `:id` (like `getUser`, `updateUser`, `deleteUser`):
 ```typescript
 getUser: procedure()
   .input(z.object({ id: z.string() }))  // Input schema has 'id'
-  .query(({ input, ctx }) => {
+  .query(async ({ input, ctx }) => {
     // input.id comes from URL: GET /api/users/abc-123
-    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   }),
 // → GET /api/users/:id
 ```
@@ -416,7 +438,9 @@ getUserData: procedure()
 
 // GOOD: Match type to prefix
 listUsers: procedure()
-  .query(({ ctx }) => ctx.db.user.findMany())
+  .query(async ({ ctx }) => {
+    return await ctx.db.user.findMany();
+  })
 ```
 
 ### Missing ID for get* Pattern
@@ -429,7 +453,9 @@ getUser: procedure()
 // GOOD: Provide id input
 getUser: procedure()
   .input(z.object({ id: z.string() }))
-  .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({ where: { id: input.id } }))
+  .query(async ({ input, ctx }) => {
+    return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+  })
 ```
 
 ### Unnecessary .rest() Override

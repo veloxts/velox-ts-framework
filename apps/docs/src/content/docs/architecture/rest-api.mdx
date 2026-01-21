@@ -34,30 +34,40 @@ export const postProcedures = procedures('posts', {
   // GET /api/posts
   listPosts: procedure()
     .output(z.array(PostSchema))
-    .query(({ ctx }) => ctx.db.post.findMany()),
+    .query(async ({ ctx }) => {
+      return await ctx.db.post.findMany();
+    }),
 
   // GET /api/posts/:id
   getPost: procedure()
     .input(z.object({ id: z.string() }))
-    .query(({ input, ctx }) => ctx.db.post.findUniqueOrThrow({ where: { id: input.id } })),
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.post.findUniqueOrThrow({ where: { id: input.id } });
+    }),
 
   // POST /api/posts
   createPost: procedure()
     .input(CreatePostSchema)
-    .mutation(({ input, ctx }) => ctx.db.post.create({ data: input })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.post.create({ data: input });
+    }),
 
   // PUT /api/posts/:id
   updatePost: procedure()
     .input(z.object({ id: z.string(), data: UpdatePostSchema }))
-    .mutation(({ input, ctx }) => ctx.db.post.update({
-      where: { id: input.id },
-      data: input.data,
-    })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.post.update({
+        where: { id: input.id },
+        data: input.data,
+      });
+    }),
 
   // DELETE /api/posts/:id
   deletePost: procedure()
     .input(z.object({ id: z.string() }))
-    .mutation(({ input, ctx }) => ctx.db.post.delete({ where: { id: input.id } })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.post.delete({ where: { id: input.id } });
+    }),
 });
 ```
 

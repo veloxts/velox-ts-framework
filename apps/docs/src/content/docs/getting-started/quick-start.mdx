@@ -35,7 +35,7 @@ This guide walks you through creating a simple user API with VeloxTS.
          email: z.string(),
        })))
        .query(async ({ ctx }) => {
-         return ctx.db.user.findMany();
+         return await ctx.db.user.findMany();
        }),
 
      // GET /api/users/:id
@@ -47,11 +47,7 @@ This guide walks you through creating a simple user API with VeloxTS.
          email: z.string(),
        }))
        .query(async ({ input, ctx }) => {
-         const user = await ctx.db.user.findUnique({
-           where: { id: input.id },
-         });
-         if (!user) throw new Error('User not found');
-         return user;
+         return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
        }),
 
      // POST /api/users
@@ -61,7 +57,7 @@ This guide walks you through creating a simple user API with VeloxTS.
          email: z.string().email(),
        }))
        .mutation(async ({ input, ctx }) => {
-         return ctx.db.user.create({ data: input });
+         return await ctx.db.user.create({ data: input });
        }),
    });
    ```

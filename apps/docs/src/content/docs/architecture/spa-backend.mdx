@@ -34,14 +34,18 @@ import { z } from '@veloxts/velox';
 export const productProcedures = procedures('products', {
   listProducts: procedure()
     .output(z.array(ProductSchema))
-    .query(({ ctx }) => ctx.db.product.findMany()),
+    .query(async ({ ctx }) => {
+      return await ctx.db.product.findMany();
+    }),
 
   getProduct: procedure()
     .input(z.object({ id: z.string() }))
     .output(ProductSchema)
-    .query(({ input, ctx }) => ctx.db.product.findUniqueOrThrow({
-      where: { id: input.id },
-    })),
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.product.findUniqueOrThrow({
+        where: { id: input.id },
+      });
+    }),
 });
 ```
 

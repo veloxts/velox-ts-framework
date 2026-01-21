@@ -14,7 +14,7 @@ const getUser = procedure()
   .input(z.object({ id: z.string() }))
   .output(UserSchema)
   .query(async ({ input, ctx }) => {
-    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   });
 ```
 

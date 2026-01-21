@@ -203,10 +203,10 @@ Declaration merging allows multiple declarations of the same interface to be com
 ```typescript
 getProfile: procedure()
   .guard(authenticated)
-  .query(({ ctx }) => {
+  .query(async ({ ctx }) => {
     // ctx.db is typed as PrismaClient
     // ctx.user is typed as User (narrowed by guard)
-    return ctx.db.user.findUniqueOrThrow({
+    return await ctx.db.user.findUniqueOrThrow({
       where: { id: ctx.user.id },
     });
   }),

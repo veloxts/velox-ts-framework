@@ -232,18 +232,19 @@ declare module '@veloxts/core' {
 Use in procedures:
 
 ```typescript
-import { procedures, procedure } from '@veloxts/velox';
-import { z } from 'zod';
+import { procedures, procedure, z } from '@veloxts/velox';
 
 export const userProcedures = procedures('users', {
   listUsers: procedure()
-    .query(({ ctx }) => ctx.db.user.findMany()),
+    .query(async ({ ctx }) => {
+      return await ctx.db.user.findMany();
+    }),
 
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
-    .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
-      where: { id: input.id },
-    })),
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    }),
 });
 ```
 

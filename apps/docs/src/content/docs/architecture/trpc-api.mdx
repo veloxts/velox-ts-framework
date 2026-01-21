@@ -30,15 +30,21 @@ import { z } from '@veloxts/velox';
 export const userProcedures = procedures('users', {
   list: procedure()
     .output(z.array(UserSchema))
-    .query(({ ctx }) => ctx.db.user.findMany()),
+    .query(async ({ ctx }) => {
+      return await ctx.db.user.findMany();
+    }),
 
   get: procedure()
     .input(z.object({ id: z.string() }))
-    .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({ where: { id: input.id } })),
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    }),
 
   create: procedure()
     .input(CreateUserSchema)
-    .mutation(({ input, ctx }) => ctx.db.user.create({ data: input })),
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.user.create({ data: input });
+    }),
 });
 ```
 
