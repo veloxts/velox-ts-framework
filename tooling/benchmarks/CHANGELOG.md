@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.83
+
+### Patch Changes
+
+- docs(templates): add /veloxts skill to CLAUDE.md files and links to online documentation
+
 ## 0.6.82
 
 ### Patch Changes

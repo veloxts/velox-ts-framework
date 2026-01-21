@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.83
+
+### Patch Changes
+
+- docs(templates): add /veloxts skill to CLAUDE.md files and links to online documentation
+- Updated dependencies
+  - @veloxts/core@0.6.83
+  - @veloxts/router@0.6.83
+
 ## 0.6.82
 
 ### Patch Changes
