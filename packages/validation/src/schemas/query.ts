@@ -94,8 +94,12 @@ export function queryBoolean(defaultValue: boolean): z.ZodDefault<z.ZodBoolean>;
 export function queryBoolean(
   defaultValue?: boolean
 ): z.ZodOptional<z.ZodBoolean> | z.ZodDefault<z.ZodBoolean> {
-  // Use preprocess to handle string-to-boolean conversion
-  // This allows the default to be a boolean value
+  // Use preprocess to handle string-to-boolean conversion with query string conventions.
+  //
+  // NOTE: Type casting is required here because z.preprocess() wraps the inner schema
+  // in ZodEffects, but our public API promises ZodDefault<ZodBoolean> / ZodOptional<ZodBoolean>
+  // for better consumer type inference. The runtime behavior is correct; we cast to
+  // maintain the cleaner public type signature.
   const booleanSchema = z.preprocess((val) => {
     if (typeof val === 'boolean') return val;
     if (typeof val === 'string') {
@@ -120,7 +124,7 @@ export function queryBoolean(
  * @param options - Configuration options
  * @returns Zod schema that parses comma-separated string to array
  *
- * @example
+ * @example Basic usage
  * ```typescript
  * .input(z.object({
  *   tags: queryArray(),           // 'a,b,c' -> ['a', 'b', 'c']
@@ -131,6 +135,27 @@ export function queryBoolean(
  * // GET /api/products?tags=electronics,sale,featured
  * // Result: { tags: ['electronics', 'sale', 'featured'] }
  * ```
+ *
+ * @example Edge cases
+ * ```typescript
+ * // Empty string results in empty array (whitespace-only items filtered)
+ * queryArray().parse('')          // []
+ * queryArray().parse('  ,  ')     // []
+ *
+ * // With min constraint, empty string will fail validation
+ * queryArray({ min: 1 }).parse('')  // throws: "Array must have at least 1 item(s)"
+ *
+ * // If you want "no parameter = no filter", combine with optional:
+ * .input(z.object({
+ *   tags: queryArray({ min: 1 }).optional(),  // undefined or non-empty array
+ * }))
+ * ```
+ *
+ * @remarks
+ * Empty strings and whitespace-only values are automatically filtered out.
+ * This means `?tags=` (empty) and `?tags=,,` (only separators) both result
+ * in an empty array `[]`. If you have a `min: 1` constraint, these will fail
+ * validation. Use `.optional()` if the parameter should be omittable.
  */
 export function queryArray(
   options: {
@@ -144,6 +169,8 @@ export function queryArray(
 ): z.ZodType<string[], z.ZodTypeDef, string> {
   const { min, max, separator = ',' } = options;
 
+  // Split by separator, trim whitespace, and filter out empty strings.
+  // Note: Empty input ('') results in [], which may fail min constraint.
   const baseSchema = z.string().transform((val) =>
     val
       .split(separator)

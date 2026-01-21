@@ -42,6 +42,10 @@ export function defineGuard<TContext = unknown>(
  * Allows building guards step-by-step with method chaining.
  * The builder is compatible with GuardLike, so it can be used
  * directly with `.guard()` on procedures.
+ *
+ * **Note**: This builder uses mutable internal state. Each method
+ * modifies the builder and returns the same instance. See
+ * `createGuardBuilder` for usage patterns and caveats.
  */
 export interface GuardBuilder<TContext> {
   /** Guard name for error messages (read-only, set via named()) */
@@ -68,6 +72,26 @@ export interface GuardBuilder<TContext> {
 let guardCounter = 0;
 
 /**
+ * Resets the guard counter to zero.
+ *
+ * This is intended for testing purposes only to ensure deterministic
+ * guard naming across test runs. Should not be used in production code.
+ *
+ * @internal
+ * @example
+ * ```typescript
+ * import { _resetGuardCounter } from '@veloxts/auth';
+ *
+ * beforeEach(() => {
+ *   _resetGuardCounter();
+ * });
+ * ```
+ */
+export function _resetGuardCounter(): void {
+  guardCounter = 0;
+}
+
+/**
  * Attempts to infer a meaningful name from a guard check function
  * @internal
  */
@@ -81,14 +105,43 @@ function inferGuardName<TContext>(check: GuardFunction<TContext>): string {
 }
 
 /**
- * Creates a guard builder instance
+ * Creates a guard builder instance.
+ *
+ * The builder uses **mutable internal state** with method chaining that returns
+ * the same instance. This is intentional for performance and API simplicity:
+ *
+ * ```typescript
+ * // Each method mutates the builder and returns `this`
+ * const myGuard = guard((ctx) => ctx.user?.active)
+ *   .named('isActive')      // Mutates name, returns same builder
+ *   .msg('User inactive')   // Mutates message, returns same builder
+ *   .status(403);           // Mutates statusCode, returns same builder
+ *
+ * // The builder IS the guard definition (implements GuardLike)
+ * // No need to call .build() - use directly with .guard()
+ * ```
+ *
+ * **Important**: Because the builder mutates, avoid patterns like:
+ * ```typescript
+ * // DON'T do this - both variables reference the same mutable builder
+ * const base = guard((ctx) => ctx.user != null);
+ * const withMsg = base.msg('Auth required');
+ * const withOtherMsg = base.msg('Login needed'); // Overwrites previous msg!
+ * ```
+ *
+ * If you need variations, create separate guards:
+ * ```typescript
+ * const authRequired = guard((ctx) => ctx.user != null, 'Auth required');
+ * const loginNeeded = guard((ctx) => ctx.user != null, 'Login needed');
+ * ```
+ *
  * @internal
  */
 function createGuardBuilder<TContext>(
   check: GuardFunction<TContext>,
   initialName: string
 ): GuardBuilder<TContext> {
-  // Mutable state for builder
+  // Mutable internal state - intentionally not exposed directly
   let guardName = initialName;
   let guardMessage: string | undefined;
   let guardStatusCode = 403;

@@ -112,6 +112,8 @@ export {
 
 export type { GuardBuilder } from './guards.js';
 export {
+  // Testing utilities (internal)
+  _resetGuardCounter,
   // Combinators
   allOf,
   anyOf,
