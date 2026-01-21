@@ -193,13 +193,13 @@ Override conventions when they don't fit:
 
 ```typescript
 procedures('auth', {
-  // Custom path
+  // Custom path → POST /api/auth/login
   login: procedure()
     .input(LoginSchema)
     .rest({ method: 'POST', path: '/auth/login' })
     .mutation(handler),
 
-  // Custom path with params
+  // Custom path with params → POST /api/auth/verify/:token
   verifyEmail: procedure()
     .input(z.object({ token: z.string() }))
     .rest({ method: 'POST', path: '/auth/verify/:token' })
@@ -211,6 +211,10 @@ procedures('auth', {
     .query(handler),
 });
 ```
+
+<Aside type="note" title="Path Prefix">
+The `.rest()` path is relative—the API prefix (default `/api`) is applied automatically. Don't include `/api` in your path.
+</Aside>
 
 ## Common Patterns
 
@@ -459,16 +463,17 @@ getUser: procedure()
 
 ### Multiple procedures map to same endpoint
 
-`listUsers` and `findUsers` both generate `GET /api/users` - this is expected. Differentiate with `.rest()` if needed:
+`listUsers` and `findUsers` both generate `GET /api/users`. Override one with `.rest()` to avoid conflict:
 
 ```typescript
 listUsers: procedure()
-  .rest({ path: '/users' })
   .query(...),
+  // → GET /api/users (keep default)
 
 findUsers: procedure()
   .rest({ path: '/users/search' })
   .query(...),
+  // → GET /api/users/search (override)
 ```
 
 ## Next Steps
