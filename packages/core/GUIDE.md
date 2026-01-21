@@ -88,7 +88,7 @@ class UserService {
   constructor(private db: PrismaClient) {}
 
   async getUser(id: string) {
-    return this.db.user.findUnique({ where: { id } });
+    return this.db.user.findUniqueOrThrow({ where: { id } });
   }
 }
 

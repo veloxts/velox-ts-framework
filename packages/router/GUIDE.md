@@ -13,7 +13,7 @@ export const userProcedures = procedures('users', {
     .input(z.object({ id: z.string().uuid() }))
     .output(UserSchema)
     .query(async ({ input, ctx }) => {
-      return ctx.db.user.findUnique({ where: { id: input.id } });
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
     }),
 
   createUser: procedure()
@@ -67,7 +67,7 @@ const userProcedures = procedures('users', {
     .input(z.object({ email: z.string().email() }))
     .rest({ method: 'GET', path: '/users/by-email/:email' })
     .query(async ({ input, ctx }) => {
-      return ctx.db.user.findUnique({ where: { email: input.email } });
+      return ctx.db.user.findUniqueOrThrow({ where: { email: input.email } });
     }),
 
   // Custom action endpoint

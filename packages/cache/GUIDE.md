@@ -14,10 +14,10 @@ pnpm add ioredis
 ## Plugin Registration
 
 ```typescript
-import { createApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { cachePlugin } from '@veloxts/cache';
 
-const app = createApp();
+const app = await veloxApp();
 
 // Memory cache (development)
 app.use(cachePlugin({
@@ -54,7 +54,7 @@ Cache-aside pattern that fetches from cache or computes and stores:
 
 ```typescript
 const user = await ctx.cache.remember('user:123', '1h', async () => {
-  return await ctx.db.user.findUnique({ where: { id: '123' } });
+  return await ctx.db.user.findUniqueOrThrow({ where: { id: '123' } });
 });
 ```
 

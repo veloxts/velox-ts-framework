@@ -110,7 +110,7 @@ interface PageProps {
 }
 
 export default async function UserPage({ params }: PageProps) {
-  const user = await db.user.findUnique({ where: { id: params.id } });
+  const user = await db.user.findUniqueOrThrow({ where: { id: params.id } });
   return <h1>{user.name}</h1>;
 }
 ```

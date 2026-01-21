@@ -528,7 +528,7 @@ export function createClerkAdapter(
 
 ```typescript
 // src/index.ts
-import { createApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { createAuthAdapterPlugin } from '@veloxts/auth';
 import { createClerkAdapter } from '@veloxts/auth/adapters/clerk';
 import { createClerkClient } from '@clerk/backend';
@@ -560,7 +560,7 @@ const authPlugin = createAuthAdapterPlugin({
 });
 
 // Create app and register
-const app = await createApp();
+const app = await veloxApp();
 app.use(authPlugin);
 
 // Your procedures now have ctx.user populated automatically!
