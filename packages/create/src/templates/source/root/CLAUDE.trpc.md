@@ -8,13 +8,27 @@ Full documentation is available at **[veloxts.dev/docs](https://www.veloxts.dev/
 
 ## Claude Code Skills
 
-When using Claude Code (CLI), you can use the `/feature-dev` skill for guided feature development:
+When using Claude Code (CLI), these skills are available:
+
+### `/veloxts` - VeloxTS Development Assistant
+
+```
+/veloxts
+```
+
+VeloxTS-specific help for:
+- Code generation (`velox make resource`, `velox make procedure`)
+- tRPC procedure patterns
+- Validation with Zod schemas
+- Troubleshooting common errors
+
+### `/feature-dev` - Guided Feature Development
 
 ```
 /feature-dev
 ```
 
-This skill provides:
+General-purpose skill for:
 - Codebase understanding and architecture analysis
 - Step-by-step implementation guidance
 - Best practices for VeloxTS patterns
