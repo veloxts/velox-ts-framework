@@ -144,9 +144,12 @@ export function queryArray(
 ): z.ZodType<string[], z.ZodTypeDef, string> {
   const { min, max, separator = ',' } = options;
 
-  const baseSchema = z
-    .string()
-    .transform((val) => val.split(separator).map((s) => s.trim()).filter(Boolean));
+  const baseSchema = z.string().transform((val) =>
+    val
+      .split(separator)
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
 
   // Apply min/max constraints via refinement if needed
   if (min !== undefined || max !== undefined) {
@@ -202,9 +205,7 @@ export function queryEnum<T extends readonly [string, ...string[]]>(
 export function queryEnum<T extends readonly [string, ...string[]]>(
   values: T,
   defaultValue?: T[number]
-):
-  | z.ZodEnum<[T[number], ...T[number][]]>
-  | z.ZodDefault<z.ZodEnum<[T[number], ...T[number][]]>> {
+): z.ZodEnum<[T[number], ...T[number][]]> | z.ZodDefault<z.ZodEnum<[T[number], ...T[number][]]>> {
   // Cast to mutable tuple type that Zod expects
   const mutableValues = [...values] as [T[number], ...T[number][]];
   const base = z.enum(mutableValues);

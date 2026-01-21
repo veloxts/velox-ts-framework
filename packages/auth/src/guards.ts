@@ -163,9 +163,7 @@ function createGuardBuilder<TContext>(
  * ```
  */
 // Overload 1: Check function only → returns builder for configuration
-export function guard<TContext = unknown>(
-  check: GuardFunction<TContext>
-): GuardBuilder<TContext>;
+export function guard<TContext = unknown>(check: GuardFunction<TContext>): GuardBuilder<TContext>;
 
 // Overload 2: Check with message (most common pattern)
 export function guard<TContext = unknown>(
