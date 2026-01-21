@@ -1,5 +1,7 @@
 # Prisma 7 Setup Guide
 
+> **Deprecated:** This document is no longer maintained. Please refer to the official documentation at [veloxts.dev/docs](https://www.veloxts.dev/docs/).
+
 Comprehensive guide for configuring Prisma 7 driver adapters in VeloxTS applications.
 
 ## Overview
@@ -705,12 +707,12 @@ declare module '@veloxts/core' {
 
 **src/index.ts**:
 ```typescript
-import { createApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { serve } from '@veloxts/router';
 import { prisma } from './config/database.js';
 import { userProcedures } from './routes/users.js';
 
-const app = createApp({
+const app = await veloxApp({
   context: () => ({ db: prisma }),
 });
 
@@ -725,16 +727,16 @@ import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 
 export const userProcedures = procedures('users', {
-  listUsers: procedure
+  listUsers: procedure()
     .query(async ({ ctx }) => {
       // ctx.db is fully typed as PrismaClient
       return ctx.db.user.findMany();
     }),
 
-  getUser: procedure
+  getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      return ctx.db.user.findUnique({
+      return ctx.db.user.findUniqueOrThrow({
         where: { id: input.id },
       });
     }),
@@ -804,10 +806,10 @@ model User {
 Always disconnect Prisma on application shutdown:
 
 ```typescript
-import { createApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { prisma } from './config/database.js';
 
-const app = createApp({
+const app = await veloxApp({
   context: () => ({ db: prisma }),
 });
 

@@ -1,5 +1,7 @@
 # Local Publishing with Verdaccio
 
+> **Deprecated:** This document is no longer maintained. Please refer to the official documentation at [veloxts.dev/docs](https://www.veloxts.dev/docs/).
+
 Test VeloxTS packages locally before publishing to npm.
 
 ## Setup Verdaccio

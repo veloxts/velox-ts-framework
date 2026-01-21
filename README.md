@@ -54,6 +54,8 @@ Your API is now running at `http://localhost:3030`.
 | Default | `npx create-velox-app my-app` | Basic REST API with user CRUD procedures |
 | Auth | `npx create-velox-app my-app --auth` | Full authentication (JWT, sessions, guards) |
 | tRPC | `npx create-velox-app my-app --trpc` | tRPC-only setup for type-safe internal APIs |
+| RSC | `npx create-velox-app my-app --rsc` | Full-stack React Server Components with Vinxi |
+| RSC + Auth | `npx create-velox-app my-app --rsc-auth` | RSC with JWT authentication and server actions |
 
 ## Example: Defining Procedures
 
@@ -63,20 +65,20 @@ import { z } from 'zod';
 
 export const userProcedures = procedures('users', {
   // GET /api/users/:id
-  getUser: procedure
+  getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      return ctx.db.user.findUnique({ where: { id: input.id } });
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
     }),
 
   // GET /api/users
-  listUsers: procedure
+  listUsers: procedure()
     .query(async ({ ctx }) => {
       return ctx.db.user.findMany();
     }),
 
   // POST /api/users
-  createUser: procedure
+  createUser: procedure()
     .input(z.object({
       name: z.string().min(1),
       email: z.string().email(),
@@ -151,12 +153,7 @@ All ecosystem packages support Dependency Injection with symbol-based tokens, bu
 
 ## Documentation
 
-- [Getting Started Guide](./docs/GETTING_STARTED.md) - Complete walkthrough for new users
-- [Deployment Guide](./docs/DEPLOYMENT.md) - Docker, Railway, and Render deployment
-- [Prisma 7 Setup Guide](./docs/PRISMA-7-SETUP.md) - Comprehensive guide for configuring Prisma 7 driver adapters
-- [REST Naming Conventions](./docs/REST-NAMING-CONVENTIONS.md) - Complete reference for procedure naming patterns
-- [Test Development Guide](./docs/TEST-DEVELOPMENT-GUIDE.md) - Testing patterns and utilities
-- [Package READMEs](./packages) - Detailed documentation for each package
+**[veloxts.dev/docs](https://www.veloxts.dev/docs/)** - Full documentation including getting started guides, API reference, deployment, and more.
 
 ## Requirements
 
@@ -224,7 +221,7 @@ The framework provides a solid foundation for building type-safe APIs:
 | Guards & Authorization | ✅ Available |
 | Rate Limiting | ✅ Available |
 | Development CLI with HMR | ✅ Available |
-| Project scaffolder | ✅ Available (default, auth, trpc templates) |
+| Project scaffolder | ✅ Available (default, auth, trpc, rsc, rsc-auth templates) |
 | MCP Server (AI integration) | ✅ Available |
 | CLI code generators | ✅ 16 generators available |
 | Database seeding | ✅ Seeder generator available |
@@ -248,12 +245,12 @@ The framework provides a solid foundation for building type-safe APIs:
 - Clean plugin system for extensibility
 - 16 code generators (`velox make <type>`) for rapid development
 - AI-native development with MCP server integration
+- React Server Components with Vinxi and file-based routing
 - Complete ecosystem packages (cache, queue, mail, storage, scheduler, events)
 - Symbol-based Dependency Injection with service mocking for testing
 
 ### Current Limitations
 
-- React Server Components not yet available (planned for v0.7)
 - Small ecosystem (early adopter stage)
 
 ## Contributing

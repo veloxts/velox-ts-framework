@@ -1,5 +1,7 @@
 # VeloxTS Framework - Test Development Guide
 
+> **Deprecated:** This document is no longer maintained. Please refer to the official documentation at [veloxts.dev/docs](https://www.veloxts.dev/docs/).
+
 This guide provides concrete examples and patterns for adding tests to close coverage gaps identified in the coverage report.
 
 ## Quick Reference: Testing Patterns
@@ -42,7 +44,7 @@ describe('ComponentName - Integration', () => {
   let app: VeloxApp;
 
   beforeEach(async () => {
-    app = createVeloxApp();
+    app = await veloxApp();
     await app.ready();
   });
 
@@ -234,7 +236,7 @@ describe('GuardError', () => {
 
 ```typescript
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { procedure, procedures } from '@veloxts/router';
 import { z } from 'zod';
 import {
@@ -244,10 +246,10 @@ import {
 } from '../rate-limit.js';
 
 describe('Auth Rate Limiting', () => {
-  let app: ReturnType<typeof createVeloxApp>;
+  let app: Awaited<ReturnType<typeof veloxApp>>;
 
   beforeEach(async () => {
-    app = createVeloxApp();
+    app = await veloxApp();
     await app.ready();
   });
 
@@ -670,15 +672,15 @@ describe('Auth Rate Limiting', () => {
 
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createVeloxApp } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { authPlugin } from '../plugin.js';
 import { jwtManager } from '../jwt.js';
 
 describe('Auth Plugin', () => {
-  let app: ReturnType<typeof createVeloxApp>;
+  let app: Awaited<ReturnType<typeof veloxApp>>;
 
   beforeEach(() => {
-    app = createVeloxApp();
+    app = await veloxApp();
   });
 
   afterEach(async () => {
@@ -789,7 +791,7 @@ describe('Auth Plugin', () => {
       await app.register(authPlugin, { jwt });
 
       const testProcedures = procedures('test', {
-        checkAuth: procedure.query(async ({ ctx }) => {
+        checkAuth: procedure().query(async ({ ctx }) => {
           // Context should have auth-related properties
           return {
             hasAuth: 'auth' in ctx || 'user' in ctx,
@@ -821,10 +823,10 @@ describe('Auth Plugin', () => {
 
 ```typescript
 // ❌ BAD: Using any
-const result: any = procedure.input(schema);
+const result: any = procedure().input(schema);
 
 // ✅ GOOD: Let TypeScript infer or use proper types
-const result = procedure.input(schema);
+const result = procedure().input(schema);
 expectType<{ id: string }>(result._input);
 ```
 

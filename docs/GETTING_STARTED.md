@@ -1,5 +1,7 @@
 # Getting Started with VeloxTS Framework
 
+> **Deprecated:** This document is no longer maintained. Please refer to the official documentation at [veloxts.dev/docs](https://www.veloxts.dev/docs/).
+
 > **Current Version:** v0.6.x - VeloxTS is in active development with a stable API. This guide reflects the current functionality.
 
 Welcome to VeloxTS, a TypeScript full-stack web framework focused on developer experience and type safety. This guide walks you through creating your first VeloxTS application.
@@ -159,17 +161,17 @@ export type User = z.infer<typeof UserSchema>;
 
 ```typescript
 // src/procedures/users.ts
-import { procedure, defineProcedures } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { z } from '@veloxts/validation';
 import { UserSchema, CreateUserInput } from '../schemas/user.js';
 
-export const userProcedures = defineProcedures('users', {
+export const userProcedures = procedures('users', {
   // GET /api/users/:id
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
-    .output(UserSchema.nullable())
+    .output(UserSchema)
     .query(async ({ input, ctx }) => {
-      return ctx.db.user.findUnique({ where: { id: input.id } });
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
     }),
 
   // GET /api/users
@@ -260,10 +262,10 @@ VeloxTS provides comprehensive authentication out of the box.
 ### JWT Authentication
 
 ```typescript
-import { procedure, defineProcedures } from '@veloxts/router';
+import { procedure, procedures } from '@veloxts/router';
 import { authenticated, hasRole } from '@veloxts/auth';
 
-export const protectedProcedures = defineProcedures('protected', {
+export const protectedProcedures = procedures('protected', {
   // Requires valid JWT token
   getProfile: procedure()
     .guard(authenticated)

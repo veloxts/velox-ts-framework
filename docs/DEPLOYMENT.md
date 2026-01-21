@@ -1,5 +1,7 @@
 # VeloxTS Deployment Guide
 
+> **Deprecated:** This document is no longer maintained. Please refer to the official documentation at [veloxts.dev/docs](https://www.veloxts.dev/docs/).
+
 A comprehensive guide to deploying VeloxTS applications to production environments including Docker, Railway, and Render.
 
 ## Overview
@@ -1170,7 +1172,7 @@ export const cachedProcedure = procedure()
       return JSON.parse(cached);
     }
 
-    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
 
     await redis.set(cacheKey, JSON.stringify(user), 'EX', 300); // 5 min TTL
 

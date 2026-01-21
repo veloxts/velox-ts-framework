@@ -1,5 +1,7 @@
 # REST Naming Conventions
 
+> **Deprecated:** This document is no longer maintained. Please refer to the official documentation at [veloxts.dev/docs](https://www.veloxts.dev/docs/).
+
 VeloxTS automatically generates REST endpoints from procedure names using convention-over-configuration. This guide explains how procedure names map to HTTP methods and paths, when to use manual overrides, and best practices for API design.
 
 ## Table of Contents
@@ -89,7 +91,7 @@ export const userProcedures = procedures('users', {
     .input(z.object({ id: z.string().uuid() }))
     .output(UserSchema)
     .query(async ({ input, ctx }) => {
-      return ctx.db.user.findUnique({ where: { id: input.id } });
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
     }),
 
   // GET /users - List all users (with pagination)
@@ -465,12 +467,12 @@ fetchUser: procedure()  // Should be: getUser, listUsers, or findUsers
 ```typescript
 // Option 1: Use standard naming
 getUser: procedure()
-  .query(async ({ ctx }) => ctx.db.user.findUnique(...)),
+  .query(async ({ ctx }) => ctx.db.user.findUniqueOrThrow(...)),
 
 // Option 2: Use .rest() override
 fetchUser: procedure()
   .rest({ method: 'GET', path: '/users/:id' })
-  .query(async ({ ctx }) => ctx.db.user.findUnique(...)),
+  .query(async ({ ctx }) => ctx.db.user.findUniqueOrThrow(...)),
 ```
 
 #### 2. Type Mismatch
@@ -669,7 +671,7 @@ getUser: procedure()
 getUser: procedure()
   .input(z.object({ id: z.string().uuid() }))
   .query(async ({ input, ctx }) => {  // ✓ Uses ID parameter
-    return ctx.db.user.findUnique({ where: { id: input.id } });
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   }),
 
 // Or use list* pattern for collections
@@ -782,7 +784,7 @@ getUser: procedure()
 getUser: procedure()
   .input(z.object({ id: z.string().uuid() }))
   .query(async ({ input, ctx }) => {
-    return ctx.db.user.findUnique({ where: { id: input.id } });
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   }),
 ```
 

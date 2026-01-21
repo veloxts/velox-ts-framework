@@ -1,5 +1,7 @@
 # Building the VeloxTS Framework
 
+> **Deprecated:** This document is no longer maintained. Please refer to the official documentation at [veloxts.dev/docs](https://www.veloxts.dev/docs/).
+
 This guide explains the different build commands available in the VeloxTS monorepo and when to use each one.
 
 ## Available Build Commands
