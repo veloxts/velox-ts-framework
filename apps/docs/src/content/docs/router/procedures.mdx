@@ -18,7 +18,7 @@ export const userProcedures = procedures('users', {
     .input(z.object({ id: z.string() }))
     .output(UserSchema)
     .query(async ({ input, ctx }) => {
-      return ctx.db.user.findUnique({ where: { id: input.id } });
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
     }),
 });
 ```
@@ -71,7 +71,7 @@ Define the handler function:
 .query(async ({ input, ctx }) => {
   // input is typed based on .input() schema
   // ctx contains request context
-  return ctx.db.user.findUnique({ where: { id: input.id } });
+  return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
 })
 ```
 

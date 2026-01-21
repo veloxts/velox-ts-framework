@@ -34,7 +34,7 @@ export const userProcedures = procedures('users', {
 
   get: procedure()
     .input(z.object({ id: z.string() }))
-    .query(({ input, ctx }) => ctx.db.user.findUnique({ where: { id: input.id } })),
+    .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({ where: { id: input.id } })),
 
   create: procedure()
     .input(CreateUserSchema)

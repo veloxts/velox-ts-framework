@@ -206,7 +206,7 @@ getProfile: procedure()
   .query(({ ctx }) => {
     // ctx.db is typed as PrismaClient
     // ctx.user is typed as User (narrowed by guard)
-    return ctx.db.user.findUnique({
+    return ctx.db.user.findUniqueOrThrow({
       where: { id: ctx.user.id },
     });
   }),

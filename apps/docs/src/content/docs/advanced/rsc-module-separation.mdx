@@ -36,7 +36,7 @@ import type { User } from '@/api/schemas/user';
 
 export async function getUser(id: string): Promise<User> {
   const { db } = await import('@/api/database');
-  return db.user.findUnique({ where: { id } });
+  return db.user.findUniqueOrThrow({ where: { id } });
 }
 ```
 

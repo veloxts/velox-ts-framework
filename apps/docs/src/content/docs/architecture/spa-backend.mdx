@@ -39,7 +39,7 @@ export const productProcedures = procedures('products', {
   getProduct: procedure()
     .input(z.object({ id: z.string() }))
     .output(ProductSchema)
-    .query(({ input, ctx }) => ctx.db.product.findUnique({
+    .query(({ input, ctx }) => ctx.db.product.findUniqueOrThrow({
       where: { id: input.id },
     })),
 });

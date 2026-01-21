@@ -18,7 +18,7 @@ React Server Components allow components to render on the server by default, wit
 ```tsx
 // Server Component (default) - runs on server, no JS sent to client
 async function UserProfile({ userId }: { userId: string }) {
-  const user = await db.user.findUnique({ where: { id: userId } });
+  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
   return <div>{user.name}</div>;
 }
 

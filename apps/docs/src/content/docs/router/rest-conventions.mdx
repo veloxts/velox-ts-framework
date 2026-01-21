@@ -134,7 +134,7 @@ procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string() }))
     .output(UserSchema)
-    .query(({ input, ctx }) => ctx.db.user.findUnique({ where: { id: input.id } })),
+    .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({ where: { id: input.id } })),
   // → GET /api/users/:id
 
   createUser: procedure()
@@ -299,7 +299,7 @@ getUser: procedure()
   .input(z.object({ id: z.string() }))  // Input schema has 'id'
   .query(({ input, ctx }) => {
     // input.id comes from URL: GET /api/users/abc-123
-    return ctx.db.user.findUnique({ where: { id: input.id } });
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   }),
 // → GET /api/users/:id
 ```
@@ -425,7 +425,7 @@ getUser: procedure()
 // GOOD: Provide id input
 getUser: procedure()
   .input(z.object({ id: z.string() }))
-  .query(({ input, ctx }) => ctx.db.user.findUnique({ where: { id: input.id } }))
+  .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({ where: { id: input.id } }))
 ```
 
 ### Unnecessary .rest() Override
