@@ -2,6 +2,23 @@
 
 This is a VeloxTS full-stack application using React Server Components with JWT Authentication.
 
+## Documentation
+
+Full documentation is available at **[veloxts.dev/docs](https://www.veloxts.dev/docs/)**.
+
+## Claude Code Skills
+
+When using Claude Code (CLI), you can use the `/feature-dev` skill for guided feature development:
+
+```
+/feature-dev
+```
+
+This skill provides:
+- Codebase understanding and architecture analysis
+- Step-by-step implementation guidance
+- Best practices for VeloxTS patterns
+
 ## Project Structure
 
 ```

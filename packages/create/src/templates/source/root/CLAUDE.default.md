@@ -2,6 +2,23 @@
 
 This file provides guidance to Claude Code and other AI assistants.
 
+## Documentation
+
+Full documentation is available at **[veloxts.dev/docs](https://www.veloxts.dev/docs/)**.
+
+## Claude Code Skills
+
+When using Claude Code (CLI), you can use the `/feature-dev` skill for guided feature development:
+
+```
+/feature-dev
+```
+
+This skill provides:
+- Codebase understanding and architecture analysis
+- Step-by-step implementation guidance
+- Best practices for VeloxTS patterns
+
 ## Project Overview
 
 **__PROJECT_NAME__** is a VeloxTS full-stack application with:
@@ -53,7 +70,7 @@ export const postProcedures = procedures('posts', {
     .input(z.object({ id: z.string().uuid() }))
     .output(PostSchema)
     .query(async ({ input, ctx }) => {
-      return ctx.db.post.findUnique({ where: { id: input.id } });
+      return ctx.db.post.findUniqueOrThrow({ where: { id: input.id } });
     }),
 
   // POST /api/posts
@@ -388,13 +405,7 @@ import { VeloxError } from '@veloxts/core';
 const getUser = procedure()
   .input(z.object({ id: z.string().uuid() }))
   .query(async ({ ctx, input }) => {
-    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-
-    if (!user) {
-      throw VeloxError.notFound('User', input.id);
-    }
-
-    return user;
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   });
 ```
 
