@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **VeloxTS Framework** is a Laravel-inspired TypeScript full-stack web framework designed to provide exceptional developer experience and type safety for full-stack TypeScript developers. The framework is currently in MVP development (v0.1.0).
 
 **Key Characteristics:**
-- Type safety without code generation (direct type imports using `typeof` and `as const`)
+- Type safety without code generation (types flow through direct imports)
 - Hybrid API architecture (tRPC for internal, auto-generated REST for external)
 - Convention over configuration with Laravel-style elegance
 - Built on Fastify, tRPC, Prisma, and Zod
@@ -22,6 +22,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `--trpc` - tRPC-only setup for type-safe internal APIs
   - `--rsc` - Full-stack React Server Components with Vinxi
   - `--rsc-auth` - RSC + JWT authentication with `validated()` server actions
+
+## Documentation
+
+Full documentation is available at **[veloxts.dev/docs](https://www.veloxts.dev/docs/)**.
+
+## Claude Code Skills
+
+When using Claude Code (CLI), these skills are available:
+
+### `/veloxts` - VeloxTS Development Assistant
+
+```
+/veloxts
+```
+
+VeloxTS-specific help for:
+- Code generation (`velox make resource`, `velox make procedure`)
+- REST route inference from naming conventions
+- Authentication and guards
+- Validation with Zod schemas
+- Troubleshooting common errors
+
+### `/feature-dev` - Guided Feature Development
+
+```
+/feature-dev
+```
+
+General-purpose skill for:
+- Codebase understanding and architecture analysis
+- Step-by-step implementation guidance
+- Best practices for VeloxTS patterns
 
 ## Commands
 
@@ -237,14 +269,14 @@ The core abstraction is the **procedure** - a fluent builder pattern for definin
 
 ```typescript
 export const userProcedures = procedures('users', {
-  getUser: procedure
+  getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .output(UserSchema)
     .query(async ({ input, ctx }) => {
-      return ctx.db.user.findUnique({ where: { id: input.id } });
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
     }),
 
-  createUser: procedure
+  createUser: procedure()
     .input(CreateUserSchema)
     .output(UserSchema)
     .mutation(async ({ input, ctx }) => {
