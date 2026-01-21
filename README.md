@@ -1,12 +1,12 @@
 # Velox TS Framework
 
-> **Early Preview (v0.6.x)** - APIs are stabilizing but may still change. Do not use in production yet.
+> **Early Preview (v0.6.x)** – APIs are stabilizing but may still change. Do not use in production yet.
 
-Full-stack TypeScript framework with end-to-end type safety—no code generation required. Convention-driven APIs that generate both tRPC and REST from a single source.
+Velox TS (pronounced **Velox TypeScript**) is a full-stack TypeScript framework with end-to-end type safety—no code generation required. Convention-driven APIs that generate both tRPC and REST from a single source.
 
 ## Key Features
 
-- **Type Safety Without Code Generation** - Types flow naturally from backend to frontend using `typeof` and `as const`. No build step required for type synchronization.
+- **Type Safety Without Code Generation** – Types flow naturally from backend to frontend through direct imports. No build step required for type synchronization.
 
 - **Unified API Layer** - Define your API once with procedures, get both tRPC (for internal type-safe calls) and REST endpoints (for external consumers) automatically.
 
@@ -25,6 +25,11 @@ Full-stack TypeScript framework with end-to-end type safety—no code generation
 - **Modern Stack** - Built on proven technologies: Fastify, tRPC, Prisma, and Zod.
 
 - **Elegant, Expressive Syntax** - Fluent builder APIs with full IntelliSense support and minimal boilerplate.
+
+### Documentation
+
+**[veloxts.dev/docs](https://www.veloxts.dev/docs/)** - Full documentation including getting started guides, API reference, deployment, and more.
+
 
 ## Quick Start
 
@@ -151,37 +156,11 @@ All ecosystem packages support Dependency Injection with symbol-based tokens, bu
 | [`@veloxts/scheduler`](./packages/scheduler) | Fluent cron task scheduling with overlap protection |
 | [`@veloxts/events`](./packages/events) | Real-time broadcasting via WebSocket and SSE with Redis pub/sub |
 
-## Documentation
-
-**[veloxts.dev/docs](https://www.veloxts.dev/docs/)** - Full documentation including getting started guides, API reference, deployment, and more.
-
 ## Requirements
 
 - Node.js 20 or later
 - TypeScript 5 or later
 - pnpm, npm, or yarn
-
-## Project Structure
-
-A typical VeloxTS project:
-
-```
-my-app/
-├── src/
-│   ├── index.ts              # Application entry point
-│   ├── config/
-│   │   └── index.ts          # Configuration
-│   ├── database/
-│   │   └── index.ts          # Prisma client
-│   └── procedures/
-│       ├── index.ts          # Procedure exports
-│       ├── users.ts          # User procedures
-│       └── health.ts         # Health check
-├── prisma/
-│   └── schema.prisma         # Database schema
-├── package.json
-└── tsconfig.json
-```
 
 ## Development
 
