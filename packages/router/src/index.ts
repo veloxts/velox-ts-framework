@@ -170,16 +170,16 @@ export {
 export type {
   // tRPC types
   AnyRouter,
-  InferAppRouter,
-  TRPCInstance,
-  TRPCPluginOptions,
   // Type utilities for router type inference
   CollectionsToRouterRecord,
   ExtractNamespace,
   ExtractProcedures,
+  InferAppRouter,
   InferRouterFromCollections,
   MapProcedureRecordToTRPC,
   MapProcedureToTRPC,
+  TRPCInstance,
+  TRPCPluginOptions,
 } from './trpc/index.js';
 export {
   // tRPC utilities
