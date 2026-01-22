@@ -1,7 +1,7 @@
 /**
  * Router Definition - tRPC Hybrid Template
  *
- * This file exports the router type for frontend type safety.
+ * This file exports the typed tRPC router for frontend type safety.
  * It MUST NOT have any side effects (like importing dotenv) so that
  * the frontend can safely import types from here.
  *
@@ -14,26 +14,52 @@
 // This is NOT a runtime import - it only affects type checking.
 /// <reference path="./types.ts" />
 
-import { createRouter } from '@veloxts/velox';
+import { rpc } from '@veloxts/velox';
 
 import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
 
-// Create router and collections from procedure definitions
-export const { collections, router } = createRouter(healthProcedures, userProcedures);
+/**
+ * Procedure collections for REST and tRPC registration
+ *
+ * IMPORTANT: Use `as const` to preserve literal types for full type inference.
+ */
+export const collections = [healthProcedures, userProcedures] as const;
+
+/**
+ * Create typed tRPC router using the rpc() helper
+ *
+ * The rpc() helper returns:
+ * - `router`: Fully typed tRPC router for client type inference
+ * - `register`: Async function to register tRPC routes with Fastify
+ *
+ * NOTE: `register` is not exported to avoid TypeScript portability issues.
+ * Use registerRpc() in index.ts instead.
+ */
+const { router } = rpc(collections, { prefix: '/trpc' });
+
+/**
+ * Typed tRPC router for client imports
+ *
+ * Use this for type-safe frontend-backend communication.
+ */
+export { router };
 
 /**
  * AppRouter type for frontend type safety
  *
- * Constructed from procedure collections to preserve full type information.
- * This enables type-safe API calls with full autocomplete.
+ * This is the properly typed tRPC router that enables:
+ * - Full autocomplete for procedure names
+ * - Type-safe input validation
+ * - Inferred output types
  *
  * @example
  * ```typescript
  * import type { AppRouter } from '../../api/src/router.js';
- * import { createVeloxHooks } from '@veloxts/client/react';
+ * import { createTRPCClient } from '@trpc/client';
  *
- * export const api = createVeloxHooks<AppRouter>();
+ * const client = createTRPCClient<AppRouter>({ links: [...] });
+ * const users = await client.users.listUsers.query(); // Fully typed!
  * ```
  */
 export type AppRouter = typeof router;

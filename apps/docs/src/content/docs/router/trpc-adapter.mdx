@@ -7,28 +7,103 @@ import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
 VeloxTS uses tRPC under the hood for type-safe procedure calls. This page covers tRPC-specific configuration.
 
-## Default Setup
+## Quick Start
 
-tRPC is automatically configured when you register procedures:
+Use the `rpc()` helper to create a typed tRPC router:
 
 ```typescript
-import { veloxApp } from '@veloxts/velox';
+// src/router.ts
+import { rpc } from '@veloxts/velox';
 import { userProcedures } from './procedures/users';
+import { postProcedures } from './procedures/posts';
 
-const app = veloxApp();
-app.procedures(userProcedures);
-app.start({ port: 3030 });
-// tRPC available at /trpc
+// IMPORTANT: Use `as const` for full type inference
+export const collections = [userProcedures, postProcedures] as const;
+
+// Create typed tRPC router
+const { router } = rpc(collections, { prefix: '/trpc' });
+
+export { router };
+export type AppRouter = typeof router;
 ```
 
-## tRPC Endpoint
+Register with your app:
 
-By default, tRPC is exposed at `/trpc`:
+```typescript
+// src/index.ts
+import { veloxApp, registerRpc, rest } from '@veloxts/velox';
+import { collections } from './router.js';
 
+const app = await veloxApp({ port: 3030 });
+
+// Register tRPC at /trpc
+await registerRpc(app, collections, { prefix: '/trpc' });
+
+// Optionally register REST at /api
+app.routes(rest([...collections], { prefix: '/api' }));
+
+await app.start();
 ```
-POST /trpc/users.listUsers
-POST /trpc/users.getUser
-POST /trpc/users.createUser
+
+## API Reference
+
+### `rpc(collections, options)`
+
+Creates a typed tRPC router from procedure collections.
+
+```typescript
+import { rpc } from '@veloxts/velox';
+
+const { router, register } = rpc(collections, {
+  prefix: '/trpc',  // Endpoint prefix (default: '/trpc')
+});
+
+// router: Fully typed tRPC router for type export
+// register: Async function to register with Fastify
+```
+
+<Aside type="caution">
+Always use `as const` on the collections array to preserve literal types:
+
+```typescript
+// ✅ Good - full type inference
+export const collections = [userProcedures, postProcedures] as const;
+
+// ❌ Bad - loses specific types
+export const collections = [userProcedures, postProcedures];
+```
+</Aside>
+
+### `registerRpc(app, collections, options)`
+
+Convenience function that combines router creation and registration:
+
+```typescript
+import { registerRpc } from '@veloxts/velox';
+
+// One-liner registration
+const router = await registerRpc(app, collections, { prefix: '/trpc' });
+export type AppRouter = typeof router;
+```
+
+### `serve(app, collections, options)`
+
+Unified function for both REST and tRPC:
+
+```typescript
+import { serve } from '@veloxts/velox';
+
+// Both REST and tRPC
+const router = await serve(app, collections, {
+  api: '/api',    // REST prefix (false to disable)
+  rpc: '/trpc',   // tRPC prefix (false to disable)
+});
+
+// tRPC only
+const router = await serve(app, collections, { api: false });
+
+// REST only
+await serve(app, collections, { rpc: false });
 ```
 
 ## Client Setup
@@ -47,7 +122,7 @@ export const trpc = createTRPCClient<AppRouter>({
   ],
 });
 
-// Usage
+// Fully typed!
 const users = await trpc.users.listUsers.query();
 const user = await trpc.users.getUser.query({ id: '123' });
 await trpc.users.createUser.mutate({ name: 'Alice', email: 'alice@example.com' });
@@ -69,47 +144,33 @@ function UserList() {
   </TabItem>
 </Tabs>
 
-## Building tRPC Routers
+## Type Inference
 
-VeloxTS provides utilities to convert procedure collections to tRPC routers:
+Types flow automatically from backend to frontend:
 
 ```typescript
-// src/router.ts
-import { trpc, buildTRPCRouter } from '@veloxts/router';
-import { userProcedures } from './procedures/users';
-import { postProcedures } from './procedures/posts';
+// Backend defines the shape
+const createUser = procedure()
+  .input(z.object({
+    name: z.string(),
+    email: z.string().email(),
+  }))
+  .mutation(...)
 
-// Create tRPC instance
-const t = trpc();
-
-// Build routers from procedure collections
-const userRouter = buildTRPCRouter(t, userProcedures);
-const postRouter = buildTRPCRouter(t, postProcedures);
-
-// Combine into app router
-export const appRouter = t.router({
-  users: userRouter,
-  posts: postRouter,
+// Frontend gets the types
+trpc.users.createUser.mutate({
+  name: 'Alice',  // TypeScript knows this is required
+  email: 'alice@example.com',
+  // @ts-error - 'age' doesn't exist
+  age: 30,
 });
-
-export type AppRouter = typeof appRouter;
 ```
 
-<Aside type="note">
-`buildTRPCRouter()` takes two arguments: a tRPC instance and a procedure collection. It converts VeloxTS procedures to tRPC procedures while preserving type information.
+<Aside type="tip">
+The type inference requires:
+1. Using `as const` on collections
+2. Exporting `type AppRouter = typeof router` where `router` comes from `rpc()`
 </Aside>
-
-## Custom tRPC Path
-
-Change the tRPC endpoint path:
-
-```typescript
-import { registerTRPCPlugin } from '@veloxts/router';
-
-app.register(registerTRPCPlugin, {
-  prefix: '/api/trpc', // Now at /api/trpc instead of /trpc
-});
-```
 
 ## Batching
 

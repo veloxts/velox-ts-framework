@@ -13,11 +13,11 @@ import 'dotenv/config';
 // Side-effect import for declaration merging (extends ctx.db type)
 import './types.js';
 
-import { databasePlugin, serve, veloxApp } from '@veloxts/velox';
+import { databasePlugin, registerRpc, rest, veloxApp } from '@veloxts/velox';
 
 import { config } from './config/app.js';
 import { db } from './config/database.js';
-// Import router definition (type-only safe for frontend imports)
+// Import collections for route registration
 import { collections } from './router.js';
 
 // Re-export AppRouter for backward compatibility
@@ -41,15 +41,24 @@ await app.register(databasePlugin({ client: db }));
 // ============================================================================
 
 /**
- * Serve procedures as both REST and tRPC endpoints
+ * Register tRPC routes at /trpc
  *
- * - REST: /api/users, /api/health
- * - tRPC: /trpc/users.getUser, /trpc/health.getHealth
+ * Uses registerRpc() for type-safe tRPC endpoint registration.
+ * The router type is inferred from collections for full type safety.
+ *
+ * Endpoints: /trpc/users.listUsers, /trpc/health.getHealth, etc.
  */
-await serve(app, collections, {
-  api: config.apiPrefix,
-  rpc: '/trpc',
-});
+await registerRpc(app, collections, { prefix: '/trpc' });
+
+/**
+ * Register REST routes at /api
+ *
+ * REST endpoints are auto-generated from the same procedure definitions,
+ * enabling external API consumers without tRPC clients.
+ *
+ * Endpoints: GET /api/users, POST /api/users, GET /api/health, etc.
+ */
+app.routes(rest([...collections], { prefix: config.apiPrefix }));
 
 await app.start();
 
