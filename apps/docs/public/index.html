@@ -175,9 +175,10 @@ export const userProcedures = procedures('users', {
           <div class="code-content" data-tab-id="guards">
             <pre class="file-path">/backend/src/guards/organization.ts</pre>
             <pre><code class="language-typescript">import { guard } from '@veloxts/velox';
+import type { BaseContext } from '@veloxts/core';
 
 /** Guard that ensures user belongs to an organization */
-export const hasOrganization = guard(
+export const hasOrganization = guard&lt;BaseContext&gt;(
   (ctx) => !!ctx.user?.organizationId,
   'User must belong to an organization'
 );
