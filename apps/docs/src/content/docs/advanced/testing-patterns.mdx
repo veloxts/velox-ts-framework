@@ -83,6 +83,49 @@ test('User type has correct shape', () => {
 });
 ```
 
+## Auth Testing Utilities
+
+The `@veloxts/auth/testing` subpath provides utilities for test isolation:
+
+```typescript
+import {
+  _resetGuardCounter,
+  clearRateLimitStore,
+  clearAuthRateLimitStore,
+  clearPolicies,
+  stopAuthRateLimitCleanup,
+} from '@veloxts/auth/testing';
+
+beforeEach(() => {
+  // Reset guard counter for deterministic guard naming
+  _resetGuardCounter();
+
+  // Clear rate limit stores between tests
+  clearRateLimitStore();
+  clearAuthRateLimitStore();
+
+  // Clear registered policies
+  clearPolicies();
+});
+
+afterAll(() => {
+  // Stop background cleanup timers
+  stopAuthRateLimitCleanup();
+});
+```
+
+### Available Utilities
+
+| Utility | Purpose |
+|---------|---------|
+| `_resetGuardCounter()` | Reset auto-generated guard names for deterministic tests |
+| `clearRateLimitStore()` | Clear the middleware rate limit store |
+| `clearAuthRateLimitStore()` | Clear the auth-specific rate limit store |
+| `clearPolicies()` | Clear all registered authorization policies |
+| `stopAuthRateLimitCleanup()` | Stop background cleanup intervals |
+
+These utilities are internal and prefixed with underscore to indicate they're not part of the stable public API. Import from `@veloxts/auth/testing` rather than the main `@veloxts/auth` entry point.
+
 ## Next Steps
 
 - [Database Testing](/docs/database/testing/) - DB patterns
