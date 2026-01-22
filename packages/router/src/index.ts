@@ -173,6 +173,13 @@ export type {
   InferAppRouter,
   TRPCInstance,
   TRPCPluginOptions,
+  // Type utilities for router type inference
+  CollectionsToRouterRecord,
+  ExtractNamespace,
+  ExtractProcedures,
+  InferRouterFromCollections,
+  MapProcedureRecordToTRPC,
+  MapProcedureToTRPC,
 } from './trpc/index.js';
 export {
   // tRPC utilities
@@ -183,6 +190,13 @@ export {
   trpc,
   veloxErrorToTRPCError,
 } from './trpc/index.js';
+
+// ============================================================================
+// RPC Helper (tRPC Registration)
+// ============================================================================
+
+export type { RpcOptions, RpcResult } from './rpc.js';
+export { registerRpc, rpc } from './rpc.js';
 
 // ============================================================================
 // Procedure Discovery

@@ -7,7 +7,11 @@
  * @module trpc/adapter
  */
 
-import type { AnyRouter as TRPCAnyRouter } from '@trpc/server';
+import type {
+  AnyRouter as TRPCAnyRouter,
+  TRPCMutationProcedure,
+  TRPCQueryProcedure,
+} from '@trpc/server';
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { BaseContext } from '@veloxts/core';
 import type { FastifyInstance } from 'fastify';
@@ -21,7 +25,97 @@ import type { FastifyInstance } from 'fastify';
 export type AnyRouter = TRPCAnyRouter;
 
 import { isGuardError } from '../errors.js';
-import type { CompiledProcedure, ProcedureCollection } from '../types.js';
+import type { CompiledProcedure, ProcedureCollection, ProcedureRecord } from '../types.js';
+
+// ============================================================================
+// Type Utilities for Router Type Inference
+// ============================================================================
+
+/**
+ * Maps a VeloxTS CompiledProcedure to the corresponding tRPC procedure type
+ *
+ * This preserves the input/output types through the type mapping, enabling
+ * proper type inference when using the router on the client.
+ *
+ * Note: The `meta` field is required by tRPC's BuiltProcedureDef interface.
+ * We use `unknown` since VeloxTS doesn't use procedure-level metadata.
+ */
+export type MapProcedureToTRPC<T extends CompiledProcedure> =
+  T extends CompiledProcedure<infer TInput, infer TOutput, BaseContext, 'query'>
+    ? TRPCQueryProcedure<{ input: TInput; output: TOutput; meta: unknown }>
+    : T extends CompiledProcedure<infer TInput, infer TOutput, BaseContext, 'mutation'>
+      ? TRPCMutationProcedure<{ input: TInput; output: TOutput; meta: unknown }>
+      : never;
+
+/**
+ * Maps a ProcedureRecord to a tRPC router record with proper types
+ *
+ * This preserves each procedure's input/output types through the mapping.
+ */
+export type MapProcedureRecordToTRPC<T extends ProcedureRecord> = {
+  [K in keyof T]: MapProcedureToTRPC<T[K]>;
+};
+
+/**
+ * Extracts the namespace from a ProcedureCollection
+ */
+export type ExtractNamespace<T> =
+  T extends ProcedureCollection<infer N, ProcedureRecord> ? N : never;
+
+/**
+ * Extracts the procedures record from a ProcedureCollection
+ */
+export type ExtractProcedures<T> = T extends ProcedureCollection<string, infer P> ? P : never;
+
+/**
+ * Maps a tuple of ProcedureCollections to a tRPC router record
+ *
+ * This creates a properly typed object where each key is the namespace
+ * and each value is the mapped procedure record.
+ *
+ * @example
+ * ```typescript
+ * type Collections = [
+ *   ProcedureCollection<'users', { getUser: CompiledProcedure<...> }>,
+ *   ProcedureCollection<'posts', { listPosts: CompiledProcedure<...> }>
+ * ];
+ *
+ * type Result = CollectionsToRouterRecord<Collections>;
+ * // Result = {
+ * //   users: { getUser: TRPCQueryProcedure<...> },
+ * //   posts: { listPosts: TRPCQueryProcedure<...> }
+ * // }
+ * ```
+ */
+export type CollectionsToRouterRecord<T extends readonly ProcedureCollection[]> =
+  T extends readonly []
+    ? object
+    : T extends readonly [infer First extends ProcedureCollection, ...infer Rest]
+      ? Rest extends readonly ProcedureCollection[]
+        ? {
+            [K in ExtractNamespace<First>]: MapProcedureRecordToTRPC<ExtractProcedures<First>>;
+          } & CollectionsToRouterRecord<Rest>
+        : { [K in ExtractNamespace<First>]: MapProcedureRecordToTRPC<ExtractProcedures<First>> }
+      : object;
+
+/**
+ * Infers the complete router type from procedure collections
+ *
+ * This is the main type that should be used for `export type AppRouter = ...`
+ * to ensure full type preservation for the tRPC client.
+ *
+ * @example
+ * ```typescript
+ * const collections = [userProcedures, postProcedures] as const;
+ * const router = await rpc(app, collections);
+ * export type AppRouter = InferRouterFromCollections<typeof collections>;
+ *
+ * // Client usage:
+ * // client.users.getUser({ id: '123' }) // Fully typed!
+ * ```
+ */
+export type InferRouterFromCollections<T extends readonly ProcedureCollection[]> =
+  CollectionsToRouterRecord<T>;
 
 // ============================================================================
 // tRPC Initialization
@@ -242,10 +336,11 @@ async function executeWithMiddleware(
  * Create a namespaced app router from multiple procedure collections
  *
  * Each collection becomes a nested router under its namespace.
+ * Use `as const` on the collections array to preserve literal types.
  *
  * @param t - tRPC instance
- * @param collections - Array of procedure collections
- * @returns Merged app router
+ * @param collections - Array of procedure collections (use `as const` for best type inference)
+ * @returns Merged app router with preserved types
  *
  * @example
  * ```typescript
@@ -253,33 +348,39 @@ async function executeWithMiddleware(
  * const router = appRouter(t, [
  *   userProcedures,    // namespace: 'users'
  *   postProcedures,    // namespace: 'posts'
- * ]);
+ * ] as const);
  *
  * // Usage:
  * // router.users.getUser({ id: '123' })
  * // router.posts.listPosts({ page: 1 })
  *
- * // Export type for client
+ * // Export type for client - fully typed!
  * export type AppRouter = typeof router;
  * ```
  */
-export function appRouter(
+export function appRouter<const T extends readonly ProcedureCollection[]>(
   t: TRPCInstance<BaseContext>,
-  collections: ProcedureCollection[]
-): AnyRouter {
+  collections: T
+): AnyRouter & InferRouterFromCollections<T> {
   const routerConfig: Record<string, AnyRouter> = {};
 
   for (const collection of collections) {
     routerConfig[collection.namespace] = buildTRPCRouter(t, collection);
   }
 
-  return t.router(routerConfig as unknown as Parameters<typeof t.router>[0]);
+  return t.router(routerConfig as unknown as Parameters<typeof t.router>[0]) as AnyRouter &
+    InferRouterFromCollections<T>;
 }
 
 /**
- * Helper type to infer the AppRouter type
+ * Helper type to infer the AppRouter type from procedure collections
+ *
+ * @deprecated Use `InferRouterFromCollections<T>` instead for better type inference.
+ * This type alias is kept for backward compatibility.
  */
-export type InferAppRouter = AnyRouter;
+export type InferAppRouter<
+  T extends readonly ProcedureCollection[] = readonly ProcedureCollection[],
+> = InferRouterFromCollections<T>;
 
 // ============================================================================
 // Context Utilities

@@ -4,7 +4,19 @@
  * @module trpc
  */
 
-export type { AnyRouter, InferAppRouter, TRPCInstance, TRPCPluginOptions } from './adapter.js';
+export type {
+  AnyRouter,
+  // Type inference utilities for router types
+  CollectionsToRouterRecord,
+  ExtractNamespace,
+  ExtractProcedures,
+  InferAppRouter,
+  InferRouterFromCollections,
+  MapProcedureRecordToTRPC,
+  MapProcedureToTRPC,
+  TRPCInstance,
+  TRPCPluginOptions,
+} from './adapter.js';
 export {
   appRouter,
   buildTRPCRouter,
