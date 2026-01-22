@@ -130,6 +130,7 @@ export {
   not,
   userCan,
 } from './guards.js';
+
 // NOTE: _resetGuardCounter is available via '@veloxts/auth/testing' for test isolation
 
 // ============================================================================

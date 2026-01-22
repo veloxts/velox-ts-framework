@@ -17,8 +17,6 @@
  * ```
  */
 
-// Auth - Re-export from subpath module (excludes internal testing utilities)
-export * from './auth.js';
 // Core - Application bootstrap, plugins, context
 export * from '@veloxts/core';
 // ORM - Database plugin and Prisma integration
@@ -27,3 +25,6 @@ export * from '@veloxts/orm';
 export * from '@veloxts/router';
 // Validation - Zod integration and schema utilities
 export * from '@veloxts/validation';
+
+// Auth - Re-export from subpath module (excludes internal testing utilities)
+export * from './auth.js';

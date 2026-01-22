@@ -19,10 +19,8 @@
 
 // Guard testing utilities
 export { _resetGuardCounter } from './guards.js';
-
 // Rate limit store clearing (for test isolation)
 export { clearRateLimitStore } from './middleware.js';
-export { clearAuthRateLimitStore, stopAuthRateLimitCleanup } from './rate-limit.js';
-
 // Policy registry clearing (for test isolation)
 export { clearPolicies } from './policies.js';
+export { clearAuthRateLimitStore, stopAuthRateLimitCleanup } from './rate-limit.js';
