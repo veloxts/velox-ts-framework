@@ -162,34 +162,25 @@ import { UserSchema, GetUserInput } from '../schemas/user.js'; // Zod schemas
 
 export const userProcedures = procedures('users', {
   getUser: procedure()
-    .guard(authenticated)
-    .guard(hasOrganization)
+    .guards(authenticated, hasOrganization)
     .input(GetUserInput)
     .output(UserSchema)
-    .query(async ({ input, ctx }) => {
-      // Return Prisma object directly - output schema handles Date serialization
-      return ctx.db.user.findUniqueOrThrow({
-        where: { id: input.id }
-      });
-    }),
+    .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
+      where: { id: input.id }
+    })),
     // …
 });
 </code></pre>
           </div>
           <div class="code-content" data-tab-id="guards">
             <pre class="file-path">/backend/src/guards/organization.ts</pre>
-            <pre><code class="language-typescript">import { defineGuard } from '@veloxts/velox';
-import type { User } from '@veloxts/auth';
+            <pre><code class="language-typescript">import { guard } from '@veloxts/velox';
 
-/**
- * Guard that ensures user belongs to an organization
- */
-export const hasOrganization = defineGuard&lt;User&gt;({
-  name: 'hasOrganization',
-  check: (ctx) => !!ctx?.organizationId,
-  message: 'User must belong to an organization',
-  statusCode: 403,
-});
+/** Guard that ensures user belongs to an organization */
+export const hasOrganization = guard(
+  (ctx) => !!ctx.user?.organizationId,
+  'User must belong to an organization'
+);
 </code></pre>
           </div>
           <div class="code-content" data-tab-id="client">
