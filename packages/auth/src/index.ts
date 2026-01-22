@@ -112,8 +112,6 @@ export {
 
 export type { GuardBuilder } from './guards.js';
 export {
-  // Testing utilities (internal)
-  _resetGuardCounter,
   // Combinators
   allOf,
   anyOf,
@@ -132,6 +130,7 @@ export {
   not,
   userCan,
 } from './guards.js';
+// NOTE: _resetGuardCounter is available via '@veloxts/auth/testing' for test isolation
 
 // ============================================================================
 // Policies
