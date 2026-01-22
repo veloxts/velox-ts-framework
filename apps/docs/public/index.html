@@ -142,13 +142,13 @@ await app.start();
           <div class="code-content" data-tab-id="router">
             <pre class="file-path">/backend/src/router.ts</pre>
             <pre><code class="language-typescript">import { createRouter } from '@veloxts/velox'
-import { healthProcedures } from './procedures/health.js';
 import { userProcedures } from './procedures/users.js';
 
 // Create router and collections from procedure definitions
 export const { collections, router } = createRouter(
-  healthProcedures,
+  // …
   userProcedures,
+  // …
 );
 
 export type AppRouter = typeof router;
