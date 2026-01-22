@@ -52,8 +52,8 @@ You can use any Fastify plugin:
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 
-app.register(cors, { origin: true });
-app.register(helmet);
+await app.register(cors, { origin: true });
+await app.register(helmet);
 ```
 
 ## Next Steps

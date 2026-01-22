@@ -34,40 +34,34 @@ export const postProcedures = procedures('posts', {
   // GET /api/posts
   listPosts: procedure()
     .output(z.array(PostSchema))
-    .query(async ({ ctx }) => {
-      return await ctx.db.post.findMany();
-    }),
+    .query(({ ctx }) => ctx.db.post.findMany()),
 
   // GET /api/posts/:id
   getPost: procedure()
     .input(z.object({ id: z.string() }))
-    .query(async ({ input, ctx }) => {
-      return await ctx.db.post.findUniqueOrThrow({ where: { id: input.id } });
-    }),
+    .query(({ input, ctx }) => ctx.db.post.findUniqueOrThrow({
+      where: { id: input.id }
+    })),
 
   // POST /api/posts
   createPost: procedure()
     .input(CreatePostSchema)
-    .mutation(async ({ input, ctx }) => {
-      return await ctx.db.post.create({ data: input });
-    }),
+    .mutation(({ input, ctx }) => ctx.db.post.create({ data: input })),
 
   // PUT /api/posts/:id
   updatePost: procedure()
     .input(z.object({ id: z.string(), data: UpdatePostSchema }))
-    .mutation(async ({ input, ctx }) => {
-      return await ctx.db.post.update({
-        where: { id: input.id },
-        data: input.data,
-      });
-    }),
+    .mutation(({ input, ctx }) => ctx.db.post.update({
+      where: { id: input.id },
+      data: input.data,
+    })),
 
   // DELETE /api/posts/:id
   deletePost: procedure()
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      return await ctx.db.post.delete({ where: { id: input.id } });
-    }),
+    .mutation(({ input, ctx }) => ctx.db.post.delete({
+      where: { id: input.id }
+    })),
 });
 ```
 
@@ -104,7 +98,7 @@ Enable automatic Swagger UI:
 ```typescript
 import { registerDocs } from '@veloxts/router';
 
-app.register(registerDocs, {
+await app.register(registerDocs, {
   path: '/api/docs',
   info: {
     title: 'My API',

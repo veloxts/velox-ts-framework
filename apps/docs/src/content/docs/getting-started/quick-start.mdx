@@ -34,9 +34,7 @@ This guide walks you through creating a simple user API with VeloxTS.
          name: z.string(),
          email: z.string(),
        })))
-       .query(async ({ ctx }) => {
-         return await ctx.db.user.findMany();
-       }),
+       .query(({ ctx }) => ctx.db.user.findMany()),
 
      // GET /api/users/:id
      getUser: procedure()
@@ -46,9 +44,9 @@ This guide walks you through creating a simple user API with VeloxTS.
          name: z.string(),
          email: z.string(),
        }))
-       .query(async ({ input, ctx }) => {
-         return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-       }),
+       .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
+         where: { id: input.id }
+       })),
 
      // POST /api/users
      createUser: procedure()
@@ -56,9 +54,7 @@ This guide walks you through creating a simple user API with VeloxTS.
          name: z.string().min(1),
          email: z.string().email(),
        }))
-       .mutation(async ({ input, ctx }) => {
-         return await ctx.db.user.create({ data: input });
-       }),
+       .mutation(({ input, ctx }) => ctx.db.user.create({ data: input })),
    });
    ```
 

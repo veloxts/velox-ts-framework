@@ -16,7 +16,7 @@ pnpm add @veloxts/scheduler
 ```typescript
 import { schedulerPlugin, schedule } from '@veloxts/scheduler';
 
-app.register(schedulerPlugin);
+await app.register(schedulerPlugin);
 
 schedule('cleanup-sessions')
   .call(async () => {

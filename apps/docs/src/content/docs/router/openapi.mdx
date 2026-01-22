@@ -37,7 +37,7 @@ Visit `http://localhost:3030/api/docs` for Swagger UI.
 ### Basic Info
 
 ```typescript
-app.register(registerDocs, {
+await app.register(registerDocs, {
   path: '/api/docs',
   info: {
     title: 'My API',
@@ -58,7 +58,7 @@ app.register(registerDocs, {
 ### Servers
 
 ```typescript
-app.register(registerDocs, {
+await app.register(registerDocs, {
   path: '/api/docs',
   info: { title: 'My API', version: '1.0.0' },
   servers: [
@@ -72,7 +72,7 @@ app.register(registerDocs, {
 ### Security Schemes
 
 ```typescript
-app.register(registerDocs, {
+await app.register(registerDocs, {
   path: '/api/docs',
   info: { title: 'My API', version: '1.0.0' },
   securitySchemes: {
@@ -151,7 +151,7 @@ Group endpoints by tags:
 .meta({ tags: ['Users'] })
 
 // Or configure tag descriptions
-app.register(registerDocs, {
+await app.register(registerDocs, {
   tags: [
     { name: 'Users', description: 'User management endpoints' },
     { name: 'Auth', description: 'Authentication endpoints' },

@@ -29,7 +29,7 @@ const jwt = jwtManager({
   refreshTokenExpiry: '7d',
 });
 
-app.register(authPlugin, { jwt });
+await app.register(authPlugin, { jwt });
 
 // Protect procedures with guards
 getProfile: procedure()

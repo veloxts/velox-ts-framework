@@ -23,9 +23,7 @@ export const orderProcedures = procedures('orders', {
   // - tRPC: trpc.orders.listOrders.query()
   listOrders: procedure()
     .output(z.array(OrderSchema))
-    .query(async ({ ctx }) => {
-      return await ctx.db.order.findMany();
-    }),
+    .query(({ ctx }) => ctx.db.order.findMany()),
 });
 ```
 

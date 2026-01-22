@@ -17,7 +17,7 @@ const jwt = jwtManager({
   refreshTokenExpiry: '7d',
 });
 
-app.register(authPlugin, { jwt });
+await app.register(authPlugin, { jwt });
 ```
 
 ## Login Flow
@@ -51,10 +51,7 @@ login: procedure()
 ```typescript
 refreshToken: procedure()
   .input(z.object({ refreshToken: z.string() }))
-  .mutation(async ({ input, ctx }) => {
-    const tokens = await ctx.jwt.refreshTokens(input.refreshToken);
-    return tokens;
-  }),
+  .mutation(({ input, ctx }) => ctx.jwt.refreshTokens(input.refreshToken)),
 ```
 
 ## Protecting Routes

@@ -13,9 +13,9 @@ At the heart of Velox TS is the **procedure** — a type-safe function that ca
 const getUser = procedure()
   .input(z.object({ id: z.string() }))
   .output(UserSchema)
-  .query(async ({ input, ctx }) => {
-    return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-  });
+  .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
+    where: { id: input.id }
+  }));
 ```
 
 This single definition generates:
