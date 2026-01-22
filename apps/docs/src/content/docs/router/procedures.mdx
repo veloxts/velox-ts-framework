@@ -178,10 +178,11 @@ Procedures are automatically discovered from `src/procedures/`:
 
 ```typescript
 // src/index.ts
-import { discoverProcedures } from '@veloxts/router';
+import { veloxApp, rest, discoverProcedures } from '@veloxts/velox';
 
+const app = await veloxApp({ port: 3030 });
 const collections = await discoverProcedures('./src/procedures');
-collections.forEach(c => app.procedures(c));
+app.routes(rest([...collections], { prefix: '/api' }));
 ```
 
 ## Next Steps

@@ -28,21 +28,21 @@ describe('userProcedures', () => {
 ## Integration Testing
 
 ```typescript
-import { veloxApp } from '@veloxts/velox';
+import { veloxApp, rest, type VeloxApp } from '@veloxts/velox';
+import { userProcedures } from '@/procedures/users';
 
 describe('API Integration', () => {
-  let app: ReturnType<typeof velox>;
+  let app: VeloxApp;
 
   beforeAll(async () => {
-    app = veloxApp();
-    app.procedures(userProcedures);
-    await app.ready();
+    app = await veloxApp({ port: 0 }); // Port 0 = random available port
+    app.routes(rest([userProcedures], { prefix: '/api' }));
   });
 
-  afterAll(() => app.close());
+  afterAll(() => app.stop());
 
   test('GET /api/users returns users', async () => {
-    const response = await app.inject({
+    const response = await app.server.inject({
       method: 'GET',
       url: '/api/users',
     });

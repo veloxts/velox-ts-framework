@@ -1,14 +1,16 @@
 /**
- * tRPC Hybrid Template (Full-Stack)
+ * tRPC Template (Full-Stack)
  *
  * Full-stack workspace template with:
- * - apps/api: Hybrid tRPC + REST API with user CRUD operations
+ * - apps/api: tRPC-only API with user CRUD operations
  * - apps/web: React frontend with TanStack Router
  *
  * Showcases VeloxTS's type-safe frontend-backend communication:
- * - tRPC endpoints for internal consumption (primary)
- * - REST endpoints for external APIs (auto-generated)
+ * - tRPC endpoints only (no REST)
  * - End-to-end type safety without code generation
+ * - Frontend imports types directly from router.ts
+ *
+ * For REST + tRPC hybrid, use --default template and add registerRpc().
  */
 
 import { compileTemplate } from './compiler.js';

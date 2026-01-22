@@ -12,12 +12,12 @@ import { veloxApp } from '@veloxts/velox';
 import { databasePlugin } from '@veloxts/orm';
 import { authPlugin } from '@veloxts/auth';
 
-const app = veloxApp();
+const app = await veloxApp({ port: 3030 });
 
-app.register(databasePlugin);
-app.register(authPlugin, { secret: process.env.JWT_SECRET });
+await app.register(databasePlugin);
+await app.register(authPlugin, { secret: process.env.JWT_SECRET });
 
-await app.start({ port: 3030 });
+await app.start();
 ```
 
 ## Built-in Plugins

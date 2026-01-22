@@ -6,7 +6,7 @@
 #   ./smoke-test.sh             # Test spa template (default)
 #   ./smoke-test.sh --spa       # Test SPA + API template
 #   ./smoke-test.sh --auth      # Test auth template
-#   ./smoke-test.sh --trpc      # Test tRPC hybrid template
+#   ./smoke-test.sh --trpc      # Test tRPC-only template (no REST)
 #   ./smoke-test.sh --rsc       # Test RSC full-stack template
 #   ./smoke-test.sh --rsc-auth  # Test RSC + Auth template
 #   ./smoke-test.sh --all       # Test all templates
@@ -277,22 +277,38 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   PORT=$test_port node dist/index.js &
   SERVER_PID=$!
 
-  # Wait for server to be ready (poll health endpoint)
+  # Wait for server to be ready
+  # tRPC template uses tRPC health endpoint, others use REST
   echo "Waiting for server to start..."
   MAX_WAIT=30
   ELAPSED=0
   SERVER_READY=false
 
-  while [ $ELAPSED -lt $MAX_WAIT ]; do
-    if curl -s -f http://localhost:$test_port/api/health > /dev/null 2>&1; then
-      SERVER_READY=true
-      echo "✓ Server ready after ${ELAPSED}s"
-      break
-    fi
-    sleep 1
-    ELAPSED=$((ELAPSED + 1))
-    printf "."
-  done
+  if [ "$template" = "trpc" ]; then
+    # tRPC-only: poll tRPC health endpoint
+    while [ $ELAPSED -lt $MAX_WAIT ]; do
+      if curl -s -f "http://localhost:$test_port/trpc/health.getHealth" > /dev/null 2>&1; then
+        SERVER_READY=true
+        echo "✓ Server ready after ${ELAPSED}s"
+        break
+      fi
+      sleep 1
+      ELAPSED=$((ELAPSED + 1))
+      printf "."
+    done
+  else
+    # REST templates: poll REST health endpoint
+    while [ $ELAPSED -lt $MAX_WAIT ]; do
+      if curl -s -f http://localhost:$test_port/api/health > /dev/null 2>&1; then
+        SERVER_READY=true
+        echo "✓ Server ready after ${ELAPSED}s"
+        break
+      fi
+      sleep 1
+      ELAPSED=$((ELAPSED + 1))
+      printf "."
+    done
+  fi
   echo ""
 
   if [ "$SERVER_READY" = false ]; then
@@ -301,24 +317,26 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
     exit 1
   fi
 
-  # Test health endpoint
-  HEALTH_RESPONSE=$(curl -s http://localhost:$test_port/api/health)
-  if echo "$HEALTH_RESPONSE" | grep -q "status"; then
-    echo "✓ Health endpoint working"
-  else
-    echo "✗ Health endpoint failed: $HEALTH_RESPONSE"
-    kill $SERVER_PID 2>/dev/null || true
-    exit 1
-  fi
+  # Test health endpoint (skip for tRPC template - no REST)
+  if [ "$template" != "trpc" ]; then
+    HEALTH_RESPONSE=$(curl -s http://localhost:$test_port/api/health)
+    if echo "$HEALTH_RESPONSE" | grep -q "status"; then
+      echo "✓ Health endpoint working"
+    else
+      echo "✗ Health endpoint failed: $HEALTH_RESPONSE"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
 
-  # Test users list endpoint (GET)
-  USERS_RESPONSE=$(curl -s http://localhost:$test_port/api/users)
-  if echo "$USERS_RESPONSE" | grep -q "\["; then
-    echo "✓ GET /api/users working"
-  else
-    echo "✗ GET /api/users failed: $USERS_RESPONSE"
-    kill $SERVER_PID 2>/dev/null || true
-    exit 1
+    # Test users list endpoint (GET)
+    USERS_RESPONSE=$(curl -s http://localhost:$test_port/api/users)
+    if echo "$USERS_RESPONSE" | grep -q "\["; then
+      echo "✓ GET /api/users working"
+    else
+      echo "✗ GET /api/users failed: $USERS_RESPONSE"
+      kill $SERVER_PID 2>/dev/null || true
+      exit 1
+    fi
   fi
 
   # Template-specific tests
@@ -461,7 +479,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
     fi
 
   elif [ "$template" = "trpc" ]; then
-    # tRPC hybrid template - test both tRPC and REST endpoints
+    # tRPC-only template - test only tRPC endpoints (no REST)
     echo ""
     echo "--- Testing tRPC endpoints ---"
 
@@ -491,60 +509,45 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       -d '{"name": "tRPC User", "email": "trpc@smoke.com"}')
     if echo "$TRPC_CREATE" | grep -q '"result"'; then
       echo "✓ tRPC users.createUser mutation working"
+      # Extract created user ID for further tests
+      TRPC_USER_ID=$(echo "$TRPC_CREATE" | grep -o '"id":"[^"]*"' | sed 's/"id":"//;s/"//')
     else
       echo "✗ tRPC users.createUser failed: $TRPC_CREATE"
       kill $SERVER_PID 2>/dev/null || true
       exit 1
     fi
 
-    echo ""
-    echo "--- Testing REST endpoints (hybrid) ---"
-
-    # Test REST create user (POST) - same procedures, different transport
-    CREATE_STATUS=$(curl -s -o /tmp/create_body.json -w "%{http_code}" -X POST http://localhost:$test_port/api/users \
-      -H "Content-Type: application/json" \
-      -d '{"name": "REST User", "email": "rest@smoke.com"}')
-    CREATE_BODY=$(cat /tmp/create_body.json)
-    if [ "$CREATE_STATUS" = "201" ] && echo "$CREATE_BODY" | grep -q '"id"'; then
-      USER_ID=$(echo "$CREATE_BODY" | grep -o '"id":"[^"]*"' | sed 's/"id":"//;s/"//')
-      echo "✓ REST POST /api/users returned 201"
+    # Test tRPC getUser query
+    TRPC_GET=$(curl -s "http://localhost:$test_port/trpc/users.getUser?input=%7B%22id%22%3A%22$TRPC_USER_ID%22%7D")
+    if echo "$TRPC_GET" | grep -q '"result"'; then
+      echo "✓ tRPC users.getUser query working"
     else
-      echo "✗ REST POST /api/users failed: status=$CREATE_STATUS"
+      echo "✗ tRPC users.getUser failed: $TRPC_GET"
       kill $SERVER_PID 2>/dev/null || true
       exit 1
     fi
 
-    # Test REST delete (DELETE)
-    DELETE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "http://localhost:$test_port/api/users/$USER_ID")
-    if [ "$DELETE_STATUS" = "200" ]; then
-      echo "✓ REST DELETE /api/users/:id returned 200"
+    # Test tRPC deleteUser mutation
+    TRPC_DELETE=$(curl -s -X POST "http://localhost:$test_port/trpc/users.deleteUser" \
+      -H "Content-Type: application/json" \
+      -d "{\"id\": \"$TRPC_USER_ID\"}")
+    if echo "$TRPC_DELETE" | grep -q '"result"'; then
+      echo "✓ tRPC users.deleteUser mutation working"
     else
-      echo "✗ REST DELETE /api/users/:id failed: $DELETE_STATUS"
+      echo "✗ tRPC users.deleteUser failed: $TRPC_DELETE"
       kill $SERVER_PID 2>/dev/null || true
       exit 1
     fi
 
     echo ""
-    echo "--- Testing error handling ---"
+    echo "--- Verifying no REST endpoints (tRPC-only) ---"
 
-    # Test validation error (invalid email)
-    VALIDATION_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:$test_port/api/users \
-      -H "Content-Type: application/json" \
-      -d '{"name": "Test", "email": "not-an-email"}')
-    if [ "$VALIDATION_STATUS" = "400" ]; then
-      echo "✓ Invalid email returns 400"
+    # Verify REST endpoints return 404 (not registered)
+    REST_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$test_port/api/users)
+    if [ "$REST_STATUS" = "404" ]; then
+      echo "✓ REST /api/users returns 404 (not registered)"
     else
-      echo "✗ Invalid email should return 400, got $VALIDATION_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
-      exit 1
-    fi
-
-    # Test 404 for non-existent resource
-    NOTFOUND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$test_port/api/users/00000000-0000-0000-0000-000000000000)
-    if [ "$NOTFOUND_STATUS" = "404" ]; then
-      echo "✓ Non-existent user returns 404"
-    else
-      echo "✗ Non-existent user should return 404, got $NOTFOUND_STATUS"
+      echo "✗ REST /api/users should return 404 (tRPC-only), got $REST_STATUS"
       kill $SERVER_PID 2>/dev/null || true
       exit 1
     fi

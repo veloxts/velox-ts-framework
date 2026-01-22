@@ -49,7 +49,7 @@ In `package.json`:
 For accurate timing metrics, add to your entry point:
 
 ```typescript
-await app.start({ port: 3030 });
+await app.start();
 
 if (process.send) {
   process.send({ type: 'velox:ready' });

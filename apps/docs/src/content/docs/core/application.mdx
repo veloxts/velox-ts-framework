@@ -10,21 +10,21 @@ The `veloxApp()` function creates your application instance, which wraps Fastify
 ## Creating an App
 
 ```typescript
-import { veloxApp } from '@veloxts/velox';
+import { veloxApp, rest } from '@veloxts/velox';
+import { userProcedures } from './procedures/users.js';
 
-const app = veloxApp();
+const app = await veloxApp({ port: 3030 });
 
-// Register procedures
-app.procedures(userProcedures);
+// Register routes
+app.routes(rest([userProcedures], { prefix: '/api' }));
 
-// Start server
-await app.start({ port: 3030 });
+await app.start();
 ```
 
 ## Configuration Options
 
 ```typescript
-const app = veloxApp({
+const app = await veloxApp({
   // Server options
   port: 3030,
   host: '0.0.0.0',
@@ -43,7 +43,7 @@ const app = veloxApp({
 ### CORS Configuration
 
 ```typescript
-const app = veloxApp({
+const app = await veloxApp({
   cors: {
     origin: ['http://localhost:5173', 'https://myapp.com'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -56,7 +56,7 @@ const app = veloxApp({
 ### Logging
 
 ```typescript
-const app = veloxApp({
+const app = await veloxApp({
   logger: {
     level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
     transport: {
@@ -70,39 +70,36 @@ const app = veloxApp({
 ## Application Lifecycle
 
 ```
-veloxApp()           Create instance
+await veloxApp()     Create instance
     │
     ▼
 app.register()       Register plugins
-app.procedures()     Register procedures
-    │
-    ▼
-app.ready()          Finalize setup
+app.routes()         Register routes
     │
     ▼
 app.start()          Begin listening
     │
     ▼
-app.close()          Graceful shutdown
+app.stop()           Graceful shutdown
 ```
 
 ### Lifecycle Events
 
 ```typescript
-const app = veloxApp();
+const app = await veloxApp({ port: 3030 });
 
 // Called when app is ready but not yet listening
-app.addHook('onReady', async () => {
+app.server.addHook('onReady', async () => {
   console.log('App ready');
 });
 
 // Called when app starts listening
-app.addHook('onListen', async () => {
+app.server.addHook('onListen', async () => {
   console.log('Server listening');
 });
 
 // Called during shutdown
-app.addHook('onClose', async () => {
+app.server.addHook('onClose', async () => {
   console.log('Server closing');
 });
 ```
@@ -112,21 +109,20 @@ app.addHook('onClose', async () => {
 VeloxTS handles shutdown signals automatically. For database connections, add explicit cleanup:
 
 ```typescript
-import { veloxApp } from '@veloxts/velox';
-import { db } from './config/database';
+import { veloxApp, rest } from '@veloxts/velox';
+import { db } from './config/database.js';
+import { userProcedures } from './procedures/users.js';
 
-const app = veloxApp();
+const app = await veloxApp({ port: 3030 });
 
-// Register your procedures
-app.procedures(userProcedures);
+app.routes(rest([userProcedures], { prefix: '/api' }));
 
-// Start server
-await app.start({ port: 3030 });
+await app.start();
 
 // Graceful shutdown - prevent connection leaks
 const shutdown = async () => {
   await db.$disconnect();  // Disconnect Prisma
-  await app.close();       // Close server
+  await app.stop();        // Stop server
   process.exit(0);
 };
 
@@ -177,7 +173,7 @@ Configure which files trigger reloads in `package.json`:
 For precise HMR timing metrics, add the ready signal after starting:
 
 ```typescript
-await app.start({ port: 3030 });
+await app.start();
 
 // Signal to CLI that server is ready
 if (process.send) {
@@ -189,18 +185,18 @@ The CLI listens for this message to measure actual server boot time versus proce
 
 ## Accessing Fastify
 
-The underlying Fastify instance is available when needed:
+The underlying Fastify instance is available via `app.server` when needed:
 
 ```typescript
-const app = veloxApp();
+const app = await veloxApp({ port: 3030 });
 
 // Access Fastify directly
-app.fastify.get('/custom', async (request, reply) => {
+app.server.get('/custom', async (request, reply) => {
   return { custom: true };
 });
 
 // Register Fastify plugins
-app.fastify.register(import('@fastify/helmet'));
+await app.server.register(import('@fastify/helmet'));
 ```
 
 <Aside type="caution">
@@ -219,7 +215,7 @@ curl http://localhost:3030/api/health
 ## Environment-Based Configuration
 
 ```typescript
-const app = veloxApp({
+const app = await veloxApp({
   port: parseInt(process.env.PORT ?? '3030'),
   host: process.env.HOST ?? '0.0.0.0',
   logger: process.env.NODE_ENV === 'production'

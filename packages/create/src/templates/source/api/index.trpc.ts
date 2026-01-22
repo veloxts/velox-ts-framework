@@ -1,11 +1,11 @@
 /**
- * Application Entry Point - tRPC Hybrid Template
+ * Application Entry Point - tRPC Template
  *
- * VeloxTS hybrid API architecture:
+ * VeloxTS tRPC-only API architecture:
  * - tRPC at /trpc for type-safe frontend communication
- * - REST at /api for external consumers
+ * - No REST endpoints (use --default template for REST)
  *
- * Both APIs generated from the same procedure definitions.
+ * Frontend imports types directly from router.ts for full type safety.
  */
 
 import 'dotenv/config';
@@ -13,15 +13,13 @@ import 'dotenv/config';
 // Side-effect import for declaration merging (extends ctx.db type)
 import './types.js';
 
-import { databasePlugin, registerRpc, rest, veloxApp } from '@veloxts/velox';
+import { databasePlugin, registerRpc, veloxApp } from '@veloxts/velox';
 
 import { config } from './config/app.js';
 import { db } from './config/database.js';
-// Import collections for route registration
 import { collections } from './router.js';
 
-// Re-export AppRouter for backward compatibility
-// Frontend should import from ./router.js directly for type safety
+// Re-export AppRouter for frontend type imports
 export type { AppRouter } from './router.js';
 
 // ============================================================================
@@ -37,28 +35,18 @@ const app = await veloxApp({
 await app.register(databasePlugin({ client: db }));
 
 // ============================================================================
-// API Registration
+// tRPC Registration
 // ============================================================================
 
 /**
  * Register tRPC routes at /trpc
  *
- * Uses registerRpc() for type-safe tRPC endpoint registration.
- * The router type is inferred from collections for full type safety.
- *
  * Endpoints: /trpc/users.listUsers, /trpc/health.getHealth, etc.
+ *
+ * No REST endpoints - this template is for internal TypeScript clients only.
+ * For REST + tRPC hybrid, use the --default template and add registerRpc().
  */
 await registerRpc(app, collections, { prefix: '/trpc' });
-
-/**
- * Register REST routes at /api
- *
- * REST endpoints are auto-generated from the same procedure definitions,
- * enabling external API consumers without tRPC clients.
- *
- * Endpoints: GET /api/users, POST /api/users, GET /api/health, etc.
- */
-app.routes(rest([...collections], { prefix: config.apiPrefix }));
 
 await app.start();
 
