@@ -1,5 +1,17 @@
 # @veloxts/velox
 
+## 0.6.84
+
+### Patch Changes
+
+- - auth: add simplified guard() function with overloads + fluent builder
+- Updated dependencies
+  - @veloxts/auth@0.6.84
+  - @veloxts/core@0.6.84
+  - @veloxts/orm@0.6.84
+  - @veloxts/router@0.6.84
+  - @veloxts/validation@0.6.84
+
 ## 0.6.83
 
 ### Patch Changes

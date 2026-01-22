@@ -1,5 +1,13 @@
 # @veloxts/mail
 
+## 0.6.84
+
+### Patch Changes
+
+- - auth: add simplified guard() function with overloads + fluent builder
+- Updated dependencies
+  - @veloxts/core@0.6.84
+
 ## 0.6.83
 
 ### Patch Changes

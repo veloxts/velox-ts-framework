@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.84
+
+### Patch Changes
+
+- - auth: add simplified guard() function with overloads + fluent builder
+
 ## 0.6.83
 
 ### Patch Changes
