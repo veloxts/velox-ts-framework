@@ -383,6 +383,88 @@ export type InferAppRouter<
 > = InferRouterFromCollections<T>;
 
 // ============================================================================
+// @trpc/react-query Compatibility
+// ============================================================================
+
+/**
+ * Transforms a VeloxTS router type (from `createRouter` or `toRouter`) to be
+ * compatible with `@trpc/react-query`'s `createTRPCReact<T>()`.
+ *
+ * Use this when you want to use VeloxTS procedures with the standard tRPC React hooks.
+ *
+ * @example
+ * ```typescript
+ * // Backend: Define router with createRouter
+ * import { createRouter } from '@veloxts/router';
+ * import { userProcedures, postProcedures } from './procedures';
+ *
+ * export const { router } = createRouter(userProcedures, postProcedures);
+ * export type AppRouter = typeof router;
+ *
+ * // Frontend: Use with @trpc/react-query
+ * import { createTRPCReact } from '@trpc/react-query';
+ * import type { AsTRPCRouter } from '@veloxts/router';
+ * import type { AppRouter } from '../server/router';
+ *
+ * export const trpc = createTRPCReact<AsTRPCRouter<AppRouter>>();
+ *
+ * // Full type safety works:
+ * const { data } = trpc.users.getUser.useQuery({ id: '123' });
+ * //                     ^ autocomplete    ^ typed input   ^ typed output
+ * ```
+ *
+ * @remarks
+ * This type transformer handles the structural differences between VeloxTS's
+ * `RouterFromCollections` type and tRPC's expected router shape:
+ *
+ * - Transforms `ProcedureCollection<N, P>` namespaces to tRPC procedure records
+ * - Maps `CompiledProcedure<I, O, C, 'query'>` to `TRPCQueryProcedure`
+ * - Maps `CompiledProcedure<I, O, C, 'mutation'>` to `TRPCMutationProcedure`
+ * - Adds required tRPC router metadata (`_def`, `createCaller`)
+ *
+ * @see {@link InferRouterFromCollections} for transforming collections array types
+ */
+export type AsTRPCRouter<TRouter> = TRouter extends Record<
+  string,
+  ProcedureCollection<string, ProcedureRecord>
+>
+  ? TRPCRouterShell & TransformNamespacesToTRPC<TRouter>
+  : never;
+
+/**
+ * Transforms each namespace in the router to tRPC procedure records
+ *
+ * @internal
+ */
+type TransformNamespacesToTRPC<T extends Record<string, ProcedureCollection<string, ProcedureRecord>>> = {
+  [K in keyof T]: T[K] extends ProcedureCollection<string, infer P extends ProcedureRecord>
+    ? MapProcedureRecordToTRPC<P>
+    : never;
+};
+
+/**
+ * Minimal tRPC router shell type for @trpc/react-query compatibility
+ *
+ * This provides the structural properties that tRPC's type system expects,
+ * without requiring an actual tRPC router instance.
+ *
+ * @internal
+ */
+type TRPCRouterShell = {
+  _def: {
+    _config: {
+      $types: {
+        ctx: BaseContext;
+        meta: unknown;
+      };
+    };
+    record: Record<string, unknown>;
+    procedures: Record<string, unknown>;
+  };
+  createCaller: (ctx: unknown) => unknown;
+};
+
+// ============================================================================
 // Context Utilities
 // ============================================================================
 

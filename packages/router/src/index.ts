@@ -170,6 +170,8 @@ export {
 export type {
   // tRPC types
   AnyRouter,
+  // @trpc/react-query compatibility
+  AsTRPCRouter,
   // Type utilities for router type inference
   CollectionsToRouterRecord,
   ExtractNamespace,
