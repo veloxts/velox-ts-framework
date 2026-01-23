@@ -5,8 +5,8 @@
  * VeloxTS router types to be compatible with @trpc/react-query's createTRPCReact<T>().
  */
 
-import { expectType } from 'tsd';
 import type { TRPCMutationProcedure, TRPCQueryProcedure } from '@trpc/server';
+import { expectType } from 'tsd';
 import { z } from 'zod';
 
 // Import from the compiled dist folders directly
@@ -82,21 +82,25 @@ type PostsNamespace = TransformedRouter['posts'];
 
 // getUser should be a TRPCQueryProcedure with correct input/output types
 type GetUserProcedure = UsersNamespace['getUser'];
-expectType<TRPCQueryProcedure<{ input: { id: string }; output: { id: string; name: string }; meta: unknown }>>(
-  null as unknown as GetUserProcedure
-);
+expectType<
+  TRPCQueryProcedure<{ input: { id: string }; output: { id: string; name: string }; meta: unknown }>
+>(null as unknown as GetUserProcedure);
 
 // listUsers should be a TRPCQueryProcedure
 type ListUsersProcedure = UsersNamespace['listUsers'];
-expectType<TRPCQueryProcedure<{ input: unknown; output: { id: string; name: string }[]; meta: unknown }>>(
-  null as unknown as ListUsersProcedure
-);
+expectType<
+  TRPCQueryProcedure<{ input: unknown; output: { id: string; name: string }[]; meta: unknown }>
+>(null as unknown as ListUsersProcedure);
 
 // getPost should be a TRPCQueryProcedure
 type GetPostProcedure = PostsNamespace['getPost'];
-expectType<TRPCQueryProcedure<{ input: { id: string }; output: { id: string; title: string }; meta: unknown }>>(
-  null as unknown as GetPostProcedure
-);
+expectType<
+  TRPCQueryProcedure<{
+    input: { id: string };
+    output: { id: string; title: string };
+    meta: unknown;
+  }>
+>(null as unknown as GetPostProcedure);
 
 // ============================================================================
 // Test: Mutation procedures are mapped correctly
@@ -104,15 +108,19 @@ expectType<TRPCQueryProcedure<{ input: { id: string }; output: { id: string; tit
 
 // createUser should be a TRPCMutationProcedure with correct input/output types
 type CreateUserProcedure = UsersNamespace['createUser'];
-expectType<TRPCMutationProcedure<{ input: { name: string; email: string }; output: { id: string; name: string }; meta: unknown }>>(
-  null as unknown as CreateUserProcedure
-);
+expectType<
+  TRPCMutationProcedure<{
+    input: { name: string; email: string };
+    output: { id: string; name: string };
+    meta: unknown;
+  }>
+>(null as unknown as CreateUserProcedure);
 
 // deletePost should be a TRPCMutationProcedure
 type DeletePostProcedure = PostsNamespace['deletePost'];
-expectType<TRPCMutationProcedure<{ input: { id: string }; output: { success: boolean }; meta: unknown }>>(
-  null as unknown as DeletePostProcedure
-);
+expectType<
+  TRPCMutationProcedure<{ input: { id: string }; output: { success: boolean }; meta: unknown }>
+>(null as unknown as DeletePostProcedure);
 
 // ============================================================================
 // Test: AsTRPCRouter returns never for invalid input
@@ -134,8 +142,10 @@ expectType<never>(null as unknown as InvalidRouter2);
 type TRPCCompatible = AsTRPCRouter<AppRouter>;
 
 // Access pattern that createTRPCReact uses internally
-type UserGetUserInput = TRPCCompatible['users']['getUser'] extends TRPCQueryProcedure<infer T> ? T['input'] : never;
+type UserGetUserInput =
+  TRPCCompatible['users']['getUser'] extends TRPCQueryProcedure<infer T> ? T['input'] : never;
 expectType<{ id: string }>(null as unknown as UserGetUserInput);
 
-type UserGetUserOutput = TRPCCompatible['users']['getUser'] extends TRPCQueryProcedure<infer T> ? T['output'] : never;
+type UserGetUserOutput =
+  TRPCCompatible['users']['getUser'] extends TRPCQueryProcedure<infer T> ? T['output'] : never;
 expectType<{ id: string; name: string }>(null as unknown as UserGetUserOutput);

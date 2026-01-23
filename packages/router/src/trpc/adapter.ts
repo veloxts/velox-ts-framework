@@ -424,19 +424,19 @@ export type InferAppRouter<
  *
  * @see {@link InferRouterFromCollections} for transforming collections array types
  */
-export type AsTRPCRouter<TRouter> = TRouter extends Record<
-  string,
-  ProcedureCollection<string, ProcedureRecord>
->
-  ? TRPCRouterShell & TransformNamespacesToTRPC<TRouter>
-  : never;
+export type AsTRPCRouter<TRouter> =
+  TRouter extends Record<string, ProcedureCollection<string, ProcedureRecord>>
+    ? TRPCRouterShell & TransformNamespacesToTRPC<TRouter>
+    : never;
 
 /**
  * Transforms each namespace in the router to tRPC procedure records
  *
  * @internal
  */
-type TransformNamespacesToTRPC<T extends Record<string, ProcedureCollection<string, ProcedureRecord>>> = {
+type TransformNamespacesToTRPC<
+  T extends Record<string, ProcedureCollection<string, ProcedureRecord>>,
+> = {
   [K in keyof T]: T[K] extends ProcedureCollection<string, infer P extends ProcedureRecord>
     ? MapProcedureRecordToTRPC<P>
     : never;

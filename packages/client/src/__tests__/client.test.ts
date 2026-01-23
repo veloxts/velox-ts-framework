@@ -1118,7 +1118,9 @@ describe('createClient', () => {
       const client = createClient<{
         games: {
           procedures: {
-            listGames: { inputSchema: { parse: (i: unknown) => { limit: number; offset: number } } };
+            listGames: {
+              inputSchema: { parse: (i: unknown) => { limit: number; offset: number } };
+            };
           };
         };
       }>({
@@ -1187,7 +1189,9 @@ describe('createClient', () => {
       const client = createClient<{
         games: {
           procedures: {
-            listGames: { inputSchema: { parse: (i: unknown) => { limit: number; offset: number } } };
+            listGames: {
+              inputSchema: { parse: (i: unknown) => { limit: number; offset: number } };
+            };
           };
         };
       }>({
@@ -1344,7 +1348,10 @@ describe('createClient', () => {
       await client.games.listGames(undefined as unknown as undefined);
 
       // Should not include ?input= when input is undefined
-      expect(mockFetch).toHaveBeenCalledWith('/trpc/games.listGames', expect.objectContaining({ method: 'GET' }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/trpc/games.listGames',
+        expect.objectContaining({ method: 'GET' })
+      );
     });
 
     it('should handle query with null input', async () => {
@@ -1364,7 +1371,10 @@ describe('createClient', () => {
       await client.games.listGames(null as unknown as null);
 
       // Should not include ?input= when input is null
-      expect(mockFetch).toHaveBeenCalledWith('/trpc/games.listGames', expect.objectContaining({ method: 'GET' }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/trpc/games.listGames',
+        expect.objectContaining({ method: 'GET' })
+      );
     });
 
     it('should handle mutation with undefined input', async () => {
@@ -1436,7 +1446,10 @@ describe('createClient', () => {
       await client.games.listGames({});
 
       // Should use REST format: GET /api/games
-      expect(mockFetch).toHaveBeenCalledWith('/api/games', expect.objectContaining({ method: 'GET' }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/games',
+        expect.objectContaining({ method: 'GET' })
+      );
     });
 
     it('should allow explicit REST mode override even with /trpc baseUrl', async () => {
@@ -1457,7 +1470,10 @@ describe('createClient', () => {
       await client.games.listGames({});
 
       // Should use REST format despite /trpc in URL because mode is explicitly 'rest'
-      expect(mockFetch).toHaveBeenCalledWith('/api/trpc/games', expect.objectContaining({ method: 'GET' }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/trpc/games',
+        expect.objectContaining({ method: 'GET' })
+      );
     });
 
     it('should include custom headers in tRPC mode', async () => {
