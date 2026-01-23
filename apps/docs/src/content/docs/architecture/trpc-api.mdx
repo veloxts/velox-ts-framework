@@ -46,25 +46,62 @@ export const userProcedures = procedures('users', {
 
 ## Client Usage
 
-The frontend imports types directly from the backend:
+Use `@veloxts/client` in tRPC mode for fully typed API calls:
 
 ```typescript
 // frontend/src/api.ts
-import { createTRPCClient } from '@trpc/client';
+import { createClient } from '@veloxts/client';
 import type { AppRouter } from '../../api/src/router';
 
-export const trpc = createTRPCClient<AppRouter>({
-  links: [
-    httpBatchLink({
-      url: 'http://localhost:3030/trpc',
-    }),
-  ],
+export const api = createClient<AppRouter>({
+  baseUrl: 'http://localhost:3030/trpc',
+  // mode: 'trpc' - auto-detected when baseUrl ends with /trpc
 });
 
 // Fully typed!
-const users = await trpc.users.list.query();
-const user = await trpc.users.get.query({ id: '123' });
+const users = await api.users.list();
+const user = await api.users.get({ id: '123' });
 ```
+
+The client auto-detects tRPC mode when `baseUrl` ends with `/trpc`. Queries (procedures starting with `get`, `list`, `find`) use GET with encoded input, mutations use POST with JSON body.
+
+### React Query Integration
+
+For React apps, use the hooks API:
+
+```tsx
+// frontend/src/lib/api.ts
+import { createVeloxHooks, VeloxProvider } from '@veloxts/client/react';
+import type { AppRouter } from '@/api';
+
+export const api = createVeloxHooks<AppRouter>();
+
+// In your app
+function UserList() {
+  const { data: users } = api.users.list.useQuery();
+  return <ul>{users?.map(u => <li key={u.id}>{u.name}</li>)}</ul>;
+}
+```
+
+See [Client Package](/docs/rsc/client-package/) for full React integration.
+
+### Using @trpc/react-query (Advanced)
+
+If you need `@trpc/react-query` specifically (for existing codebases or specific tRPC features), use the `AsTRPCRouter` type transformer:
+
+```typescript
+import { createTRPCReact } from '@trpc/react-query';
+import type { AsTRPCRouter } from '@veloxts/router';
+import type { AppRouter } from '../../api/src/router';
+
+// Transform VeloxTS router type to tRPC-compatible type
+export const trpc = createTRPCReact<AsTRPCRouter<AppRouter>>();
+
+// Now works with @trpc/react-query
+const users = trpc.users.list.useQuery();
+```
+
+This is an escape hatch for specific needs. For most VeloxTS apps, `@veloxts/client` is the recommended approach.
 
 ## Type Inference
 
