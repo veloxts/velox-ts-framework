@@ -296,7 +296,7 @@ function buildTrpcRequest(
   if (isQuery) {
     // GET request with input as query parameter
     let url = `${baseUrl}/${procedurePath}`;
-    if (call.input !== undefined && call.input !== null) {
+    if (call.input != null) {
       const inputParam = encodeURIComponent(JSON.stringify(call.input));
       url = `${url}?input=${inputParam}`;
     }
@@ -315,7 +315,7 @@ function buildTrpcRequest(
     options: {
       method: 'POST',
       headers,
-      body: call.input !== undefined ? JSON.stringify(call.input) : undefined,
+      body: call.input != null ? JSON.stringify(call.input) : undefined,
     },
   };
 }

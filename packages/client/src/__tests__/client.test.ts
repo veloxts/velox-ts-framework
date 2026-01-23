@@ -1393,6 +1393,32 @@ describe('createClient', () => {
       );
     });
 
+    it('should handle mutation with null input', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { success: true } }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            resetAll: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.resetAll(null as unknown as null);
+
+      // Should not include body when input is null (consistent with query behavior)
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/trpc/games.resetAll',
+        expect.objectContaining({
+          method: 'POST',
+          body: undefined,
+        })
+      );
+    });
+
     it('should use REST mode by default when baseUrl does not end with /trpc', async () => {
       const mockFetch = createMockFetch([{ status: 200, body: [] }]);
 
