@@ -87,21 +87,17 @@ See [Client Package](/docs/rsc/client-package/) for full React integration.
 
 ### Using @trpc/react-query (Advanced)
 
-If you need `@trpc/react-query` specifically (for existing codebases or specific tRPC features), use the `AsTRPCRouter` type transformer:
+For existing codebases or specific tRPC features, use `TRPCRouter` to bridge types:
 
 ```typescript
 import { createTRPCReact } from '@trpc/react-query';
-import type { AsTRPCRouter } from '@veloxts/router';
+import type { TRPCRouter } from '@veloxts/router';
 import type { AppRouter } from '../../api/src/router';
 
-// Transform VeloxTS router type to tRPC-compatible type
-export const trpc = createTRPCReact<AsTRPCRouter<AppRouter>>();
-
-// Now works with @trpc/react-query
-const users = trpc.users.list.useQuery();
+export const trpc = createTRPCReact<TRPCRouter<AppRouter>>();
 ```
 
-This is an escape hatch for specific needs. For most VeloxTS apps, `@veloxts/client` is the recommended approach.
+For most VeloxTS apps, `@veloxts/client` is recommended.
 
 ## Type Inference
 

@@ -1,7 +1,7 @@
 /**
  * Type tests for @trpc/react-query compatibility
  *
- * These tests verify that the AsTRPCRouter type transformer correctly converts
+ * These tests verify that the TRPCRouter type transformer correctly converts
  * VeloxTS router types to be compatible with @trpc/react-query's createTRPCReact<T>().
  */
 
@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 // Import from the compiled dist folders directly
 import type { BaseContext } from '../../../core/dist/index.js';
-import type { AsTRPCRouter } from '../../dist/index.js';
+import type { AsTRPCRouter, TRPCRouter } from '../../dist/index.js';
 import { createRouter, defineProcedures, procedure } from '../../dist/index.js';
 
 // ============================================================================
@@ -51,10 +51,10 @@ const { router } = createRouter(userProcedures, postProcedures);
 type AppRouter = typeof router;
 
 // ============================================================================
-// Test: AsTRPCRouter transforms router type correctly
+// Test: TRPCRouter transforms router type correctly
 // ============================================================================
 
-type TransformedRouter = AsTRPCRouter<AppRouter>;
+type TransformedRouter = TRPCRouter<AppRouter>;
 
 // Transformed router should have _def property (tRPC requirement)
 expectType<{
@@ -123,23 +123,23 @@ expectType<
 >(null as unknown as DeletePostProcedure);
 
 // ============================================================================
-// Test: AsTRPCRouter returns never for invalid input
+// Test: TRPCRouter returns never for invalid input
 // ============================================================================
 
 // Non-router types should result in never
-type InvalidRouter1 = AsTRPCRouter<string>;
+type InvalidRouter1 = TRPCRouter<string>;
 expectType<never>(null as unknown as InvalidRouter1);
 
-type InvalidRouter2 = AsTRPCRouter<{ foo: string }>;
+type InvalidRouter2 = TRPCRouter<{ foo: string }>;
 expectType<never>(null as unknown as InvalidRouter2);
 
 // ============================================================================
 // Test: Type can be used with createTRPCReact pattern
 // ============================================================================
 
-// This simulates what users would do with createTRPCReact<AsTRPCRouter<AppRouter>>()
+// This simulates what users would do with createTRPCReact<TRPCRouter<AppRouter>>()
 // The type should be assignable to tRPC's expected router shape
-type TRPCCompatible = AsTRPCRouter<AppRouter>;
+type TRPCCompatible = TRPCRouter<AppRouter>;
 
 // Access pattern that createTRPCReact uses internally
 type UserGetUserInput =
@@ -149,3 +149,11 @@ expectType<{ id: string }>(null as unknown as UserGetUserInput);
 type UserGetUserOutput =
   TRPCCompatible['users']['getUser'] extends TRPCQueryProcedure<infer T> ? T['output'] : never;
 expectType<{ id: string; name: string }>(null as unknown as UserGetUserOutput);
+
+// ============================================================================
+// Test: Deprecated AsTRPCRouter alias still works (backwards compatibility)
+// ============================================================================
+
+// AsTRPCRouter should be an alias for TRPCRouter
+type DeprecatedRouter = AsTRPCRouter<AppRouter>;
+expectType<TRPCRouter<AppRouter>>(null as unknown as DeprecatedRouter);

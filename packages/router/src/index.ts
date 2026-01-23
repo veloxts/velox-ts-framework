@@ -170,7 +170,7 @@ export {
 export type {
   // tRPC types
   AnyRouter,
-  // @trpc/react-query compatibility
+  /** @deprecated Use `TRPCRouter` instead */
   AsTRPCRouter,
   // Type utilities for router type inference
   CollectionsToRouterRecord,
@@ -182,6 +182,8 @@ export type {
   MapProcedureToTRPC,
   TRPCInstance,
   TRPCPluginOptions,
+  // @trpc/react-query compatibility
+  TRPCRouter,
 } from './trpc/index.js';
 export {
   // tRPC utilities
