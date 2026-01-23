@@ -30,7 +30,8 @@
     "bench:latency": "pnpm --filter @veloxts/benchmarks bench:latency",
     "bench:memory": "pnpm --filter @veloxts/benchmarks bench:memory",
     "bench:startup": "pnpm --filter @veloxts/benchmarks bench:startup",
-    "docs:dev": "pnpm --filter @veloxts/docs dev"
+    "docs:dev": "pnpm --filter @veloxts/docs dev",
+    "contract-audit": "./scripts/contract-audit.sh"
   },
   "repository": {
     "type": "git",
