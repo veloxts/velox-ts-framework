@@ -201,11 +201,35 @@ export interface RouteEntry {
 export type RouteMap = Record<string, Record<string, RouteEntry | string>>;
 
 /**
+ * Client mode determines how URLs are generated
+ *
+ * - `'rest'` - RESTful URLs based on naming conventions (e.g., GET /users/:id)
+ * - `'trpc'` - tRPC-compatible URLs (e.g., GET /trpc/users.getUser?input={...})
+ */
+export type ClientMode = 'rest' | 'trpc';
+
+/**
  * Configuration for creating a client instance
  */
 export interface ClientConfig {
   /** Base URL for API requests (e.g., 'https://api.example.com' or '/api') */
   baseUrl: string;
+
+  /**
+   * Client mode: 'rest' or 'trpc'
+   *
+   * - `'rest'` - Generates RESTful paths based on naming conventions
+   *   e.g., `getUser` → `GET /users/:id`, `createUser` → `POST /users`
+   *
+   * - `'trpc'` - Generates tRPC-compatible paths
+   *   e.g., `getUser` → `GET /trpc/users.getUser?input={...}`
+   *   e.g., `createUser` → `POST /trpc/users.createUser` with JSON body
+   *
+   * Auto-detected if not specified:
+   * - If `baseUrl` ends with '/trpc', defaults to 'trpc'
+   * - Otherwise defaults to 'rest'
+   */
+  mode?: ClientMode;
 
   /**
    * Optional custom headers to include in all requests

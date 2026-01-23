@@ -11,6 +11,7 @@ import { NetworkError, parseErrorResponse } from './errors.js';
 import type {
   ClientConfig,
   ClientFromRouter,
+  ClientMode,
   HttpMethod,
   ProcedureCall,
   RouteEntry,
@@ -249,7 +250,78 @@ function extractPathParams(path: string): Set<string> {
 // ============================================================================
 
 /**
- * Resolves both method and path for a procedure call
+ * Detects client mode from configuration
+ *
+ * Auto-detects 'trpc' mode if baseUrl ends with '/trpc'
+ *
+ * @internal
+ */
+function detectMode(config: ClientConfig): ClientMode {
+  if (config.mode) {
+    return config.mode;
+  }
+  // Auto-detect: if baseUrl ends with /trpc, use tRPC mode
+  return config.baseUrl.endsWith('/trpc') ? 'trpc' : 'rest';
+}
+
+/**
+ * Determines if a procedure is a query based on naming convention
+ *
+ * @internal
+ */
+function isQueryProcedure(procedureName: string): boolean {
+  return (
+    procedureName.startsWith('get') ||
+    procedureName.startsWith('list') ||
+    procedureName.startsWith('find')
+  );
+}
+
+/**
+ * Builds a tRPC-compatible request
+ *
+ * - Queries: GET /trpc/namespace.procedure?input={encoded json}
+ * - Mutations: POST /trpc/namespace.procedure with JSON body
+ *
+ * @internal
+ */
+function buildTrpcRequest(
+  call: ProcedureCall,
+  baseUrl: string,
+  headers: Record<string, string>
+): { url: string; options: RequestInit } {
+  const procedurePath = `${call.namespace}.${call.procedureName}`;
+  const isQuery = isQueryProcedure(call.procedureName);
+
+  if (isQuery) {
+    // GET request with input as query parameter
+    let url = `${baseUrl}/${procedurePath}`;
+    if (call.input !== undefined && call.input !== null) {
+      const inputParam = encodeURIComponent(JSON.stringify(call.input));
+      url = `${url}?input=${inputParam}`;
+    }
+    return {
+      url,
+      options: {
+        method: 'GET',
+        headers,
+      },
+    };
+  }
+
+  // POST request with input as JSON body
+  return {
+    url: `${baseUrl}/${procedurePath}`,
+    options: {
+      method: 'POST',
+      headers,
+      body: call.input !== undefined ? JSON.stringify(call.input) : undefined,
+    },
+  };
+}
+
+/**
+ * Resolves both method and path for a procedure call (REST mode)
  *
  * Uses explicit route mapping if available, otherwise falls back to naming convention.
  *
@@ -275,6 +347,10 @@ function resolveMethodAndPath(
 /**
  * Builds the full URL and request options for a procedure call
  *
+ * Supports two modes:
+ * - REST: RESTful paths based on naming conventions
+ * - tRPC: tRPC-compatible paths with namespace.procedure format
+ *
  * @internal
  */
 function buildRequest(
@@ -282,8 +358,6 @@ function buildRequest(
   baseUrl: string,
   config: ClientConfig
 ): { url: string; options: RequestInit } {
-  const { method, path } = resolveMethodAndPath(call.namespace, call.procedureName, config.routes);
-
   // Prepare headers - support both static object and dynamic function
   const customHeaders =
     typeof config.headers === 'function' ? config.headers() : (config.headers ?? {});
@@ -291,6 +365,16 @@ function buildRequest(
     'Content-Type': 'application/json',
     ...customHeaders,
   };
+
+  // Detect mode and route accordingly
+  const mode = detectMode(config);
+
+  if (mode === 'trpc') {
+    return buildTrpcRequest(call, baseUrl, headers);
+  }
+
+  // REST mode
+  const { method, path } = resolveMethodAndPath(call.namespace, call.procedureName, config.routes);
 
   let finalPath = path;
   let body: string | undefined;

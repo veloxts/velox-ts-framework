@@ -37,6 +37,7 @@ export type {
   ClientError,
   ClientFromCollection,
   ClientFromRouter,
+  ClientMode,
   ClientProcedure,
   HttpMethod,
   InferProcedureInput,

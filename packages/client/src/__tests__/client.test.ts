@@ -1110,4 +1110,358 @@ describe('createClient', () => {
       );
     });
   });
+
+  describe('tRPC mode', () => {
+    it('should auto-detect tRPC mode when baseUrl ends with /trpc', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            listGames: { inputSchema: { parse: (i: unknown) => { limit: number; offset: number } } };
+          };
+        };
+      }>({
+        baseUrl: '/api/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.listGames({ limit: 10, offset: 0 });
+
+      // Should use tRPC format: GET /api/trpc/games.listGames?input={encoded json}
+      expect(mockFetch).toHaveBeenCalledWith(
+        `/api/trpc/games.listGames?input=${encodeURIComponent(JSON.stringify({ limit: 10, offset: 0 }))}`,
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('should use tRPC mode when explicitly set', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { id: 'abc' } }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            getGame: { inputSchema: { parse: (i: unknown) => { id: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        mode: 'trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.getGame({ id: 'abc' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `/api/games.getGame?input=${encodeURIComponent(JSON.stringify({ id: 'abc' }))}`,
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('should use GET with encoded input for query procedures (get*)', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { id: 'abc', name: 'Test Game' } }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            getGame: { inputSchema: { parse: (i: unknown) => { id: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.getGame({ id: 'abc' });
+
+      const expectedInput = encodeURIComponent(JSON.stringify({ id: 'abc' }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        `/trpc/games.getGame?input=${expectedInput}`,
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('should use GET with encoded input for query procedures (list*)', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            listGames: { inputSchema: { parse: (i: unknown) => { limit: number; offset: number } } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.listGames({ limit: 10, offset: 0 });
+
+      const expectedInput = encodeURIComponent(JSON.stringify({ limit: 10, offset: 0 }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        `/trpc/games.listGames?input=${expectedInput}`,
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('should use GET with encoded input for query procedures (find*)', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            findGames: { inputSchema: { parse: (i: unknown) => { query: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.findGames({ query: 'test' });
+
+      const expectedInput = encodeURIComponent(JSON.stringify({ query: 'test' }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        `/trpc/games.findGames?input=${expectedInput}`,
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('should use POST with JSON body for mutation procedures', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { success: true } }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            pauseGame: { inputSchema: { parse: (i: unknown) => { id: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.pauseGame({ id: 'abc' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/trpc/games.pauseGame',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ id: 'abc' }),
+        })
+      );
+    });
+
+    it('should use POST for create* procedures', async () => {
+      const mockFetch = createMockFetch([{ status: 201, body: { id: '123' } }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            createGame: { inputSchema: { parse: (i: unknown) => { name: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.createGame({ name: 'New Game' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/trpc/games.createGame',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ name: 'New Game' }),
+        })
+      );
+    });
+
+    it('should use POST for update* procedures', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { id: '123' } }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            updateGame: { inputSchema: { parse: (i: unknown) => { id: string; name: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.updateGame({ id: '123', name: 'Updated' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/trpc/games.updateGame',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ id: '123', name: 'Updated' }),
+        })
+      );
+    });
+
+    it('should use POST for delete* procedures', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { success: true } }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            deleteGame: { inputSchema: { parse: (i: unknown) => { id: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.deleteGame({ id: '123' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/trpc/games.deleteGame',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ id: '123' }),
+        })
+      );
+    });
+
+    it('should handle query with no input (undefined)', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            listGames: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.listGames(undefined as unknown as undefined);
+
+      // Should not include ?input= when input is undefined
+      expect(mockFetch).toHaveBeenCalledWith('/trpc/games.listGames', expect.objectContaining({ method: 'GET' }));
+    });
+
+    it('should handle query with null input', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            listGames: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.listGames(null as unknown as null);
+
+      // Should not include ?input= when input is null
+      expect(mockFetch).toHaveBeenCalledWith('/trpc/games.listGames', expect.objectContaining({ method: 'GET' }));
+    });
+
+    it('should handle mutation with undefined input', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { success: true } }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            resetAll: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        fetch: mockFetch,
+      });
+
+      await client.games.resetAll(undefined as unknown as undefined);
+
+      // Should not include body when input is undefined
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/trpc/games.resetAll',
+        expect.objectContaining({
+          method: 'POST',
+          body: undefined,
+        })
+      );
+    });
+
+    it('should use REST mode by default when baseUrl does not end with /trpc', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            listGames: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.games.listGames({});
+
+      // Should use REST format: GET /api/games
+      expect(mockFetch).toHaveBeenCalledWith('/api/games', expect.objectContaining({ method: 'GET' }));
+    });
+
+    it('should allow explicit REST mode override even with /trpc baseUrl', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            listGames: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/api/trpc',
+        mode: 'rest',
+        fetch: mockFetch,
+      });
+
+      await client.games.listGames({});
+
+      // Should use REST format despite /trpc in URL because mode is explicitly 'rest'
+      expect(mockFetch).toHaveBeenCalledWith('/api/trpc/games', expect.objectContaining({ method: 'GET' }));
+    });
+
+    it('should include custom headers in tRPC mode', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        games: {
+          procedures: {
+            listGames: { inputSchema: { parse: (i: unknown) => void } };
+          };
+        };
+      }>({
+        baseUrl: '/trpc',
+        headers: {
+          Authorization: 'Bearer token123',
+        },
+        fetch: mockFetch,
+      });
+
+      await client.games.listGames({});
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer token123',
+            'Content-Type': 'application/json',
+          }),
+        })
+      );
+    });
+  });
 });
