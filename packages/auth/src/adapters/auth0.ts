@@ -291,6 +291,7 @@ class JWKSCache {
   private keys: Map<string, JWKSKey> = new Map();
   private lastFetch: number = 0;
   private lastRefreshAttempt: number = 0;
+  private refreshPromise: Promise<void> | null = null;
   private readonly ttl: number;
   private readonly jwksUrl: string;
   private readonly logger?: JWKSLogger;
@@ -309,8 +310,14 @@ class JWKSCache {
     const canRefresh = now - this.lastRefreshAttempt > MIN_JWKS_REFRESH_INTERVAL_MS;
 
     if (needsRefresh && canRefresh) {
-      this.lastRefreshAttempt = now;
-      await this.refresh();
+      // Use promise-based locking to prevent concurrent refreshes
+      if (!this.refreshPromise) {
+        this.lastRefreshAttempt = now;
+        this.refreshPromise = this.refresh().finally(() => {
+          this.refreshPromise = null;
+        });
+      }
+      await this.refreshPromise;
     }
 
     return this.keys.get(kid) ?? null;

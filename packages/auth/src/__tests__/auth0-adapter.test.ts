@@ -264,6 +264,25 @@ describe('Auth0Adapter', () => {
       expect(result).not.toBeNull();
     });
 
+    it('should validate token with array audience', async () => {
+      const claims = createMockAuth0Claims({
+        aud: [TEST_AUDIENCE, 'https://other-api.example.com'],
+        email: 'user@example.com',
+      });
+      vi.mocked(jwtVerifier.verify).mockResolvedValueOnce(claims);
+
+      const request = createMockRequest({
+        headers: { authorization: 'Bearer valid-token' },
+      });
+
+      const result = await adapter.getSession(request);
+      expect(result).not.toBeNull();
+      expect(result?.session.providerData?.audience).toEqual([
+        TEST_AUDIENCE,
+        'https://other-api.example.com',
+      ]);
+    });
+
     it('should use custom auth header when configured', async () => {
       await adapter.initialize(fastify, {
         ...config,
