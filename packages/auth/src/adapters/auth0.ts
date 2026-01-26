@@ -680,10 +680,7 @@ export class Auth0Adapter extends BaseAuthAdapter<Auth0AdapterConfig> {
   /**
    * Initialize the adapter with Auth0 configuration
    */
-  override async initialize(
-    fastify: FastifyInstance,
-    config: Auth0AdapterConfig
-  ): Promise<void> {
+  override async initialize(fastify: FastifyInstance, config: Auth0AdapterConfig): Promise<void> {
     await super.initialize(fastify, config);
 
     // Validate domain is non-empty
@@ -737,11 +734,7 @@ export class Auth0Adapter extends BaseAuthAdapter<Auth0AdapterConfig> {
    */
   override async getSession(request: FastifyRequest): Promise<AdapterSessionResult | null> {
     if (!this.verifier) {
-      throw new AuthAdapterError(
-        'Auth0 adapter not initialized',
-        500,
-        'ADAPTER_NOT_CONFIGURED'
-      );
+      throw new AuthAdapterError('Auth0 adapter not initialized', 500, 'ADAPTER_NOT_CONFIGURED');
     }
 
     // Extract token from Authorization header

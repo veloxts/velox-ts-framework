@@ -9,7 +9,11 @@ import { z } from 'zod';
 
 import { defineProcedures, procedure } from '../procedure/builder.js';
 import { generateRestRoutes, registerRestRoutes, rest } from '../rest/adapter.js';
-import { buildMultiLevelNestedPath, buildNestedRestPath, calculateNestingDepth } from '../rest/naming.js';
+import {
+  buildMultiLevelNestedPath,
+  buildNestedRestPath,
+  calculateNestingDepth,
+} from '../rest/naming.js';
 import type { ParentResourceConfig } from '../types.js';
 
 describe('buildNestedRestPath', () => {
@@ -717,9 +721,15 @@ describe('flatAccess option', () => {
     expect(routes.length).toBe(5); // 3 nested + 2 flat (getComment, updateComment)
 
     // Nested routes
-    expect(routes.find((r) => r.path === '/posts/:postId/comments/:id' && r.method === 'GET')).toBeDefined();
-    expect(routes.find((r) => r.path === '/posts/:postId/comments/:id' && r.method === 'PUT')).toBeDefined();
-    expect(routes.find((r) => r.path === '/posts/:postId/comments' && r.method === 'GET')).toBeDefined();
+    expect(
+      routes.find((r) => r.path === '/posts/:postId/comments/:id' && r.method === 'GET')
+    ).toBeDefined();
+    expect(
+      routes.find((r) => r.path === '/posts/:postId/comments/:id' && r.method === 'PUT')
+    ).toBeDefined();
+    expect(
+      routes.find((r) => r.path === '/posts/:postId/comments' && r.method === 'GET')
+    ).toBeDefined();
 
     // Flat routes (only for :id operations)
     expect(routes.find((r) => r.path === '/comments/:id' && r.method === 'GET')).toBeDefined();

@@ -261,10 +261,7 @@ export class ClerkAdapter extends BaseAuthAdapter<ClerkAdapterConfig> {
   /**
    * Initialize the adapter with Clerk client
    */
-  override async initialize(
-    fastify: FastifyInstance,
-    config: ClerkAdapterConfig
-  ): Promise<void> {
+  override async initialize(fastify: FastifyInstance, config: ClerkAdapterConfig): Promise<void> {
     await super.initialize(fastify, config);
 
     if (!config.clerk) {
@@ -293,11 +290,7 @@ export class ClerkAdapter extends BaseAuthAdapter<ClerkAdapterConfig> {
    */
   override async getSession(request: FastifyRequest): Promise<AdapterSessionResult | null> {
     if (!this.clerk) {
-      throw new AuthAdapterError(
-        'Clerk adapter not initialized',
-        500,
-        'ADAPTER_NOT_CONFIGURED'
-      );
+      throw new AuthAdapterError('Clerk adapter not initialized', 500, 'ADAPTER_NOT_CONFIGURED');
     }
 
     // Extract token from Authorization header
@@ -331,7 +324,10 @@ export class ClerkAdapter extends BaseAuthAdapter<ClerkAdapterConfig> {
           user = await this.clerk.users.getUser(claims.sub);
           this.debug(`User data fetched for: ${user.id}`);
         } catch (fetchError) {
-          this.error('Failed to fetch user data', fetchError instanceof Error ? fetchError : undefined);
+          this.error(
+            'Failed to fetch user data',
+            fetchError instanceof Error ? fetchError : undefined
+          );
           // Continue without full user data - we still have claims
         }
       }
@@ -389,9 +385,7 @@ function getPrimaryEmail(user: ClerkUser | null): string {
   }
 
   if (user.primaryEmailAddressId && user.emailAddresses.length > 0) {
-    const primary = user.emailAddresses.find(
-      (email) => email.id === user.primaryEmailAddressId
-    );
+    const primary = user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId);
     if (primary) {
       return primary.emailAddress;
     }
@@ -419,9 +413,7 @@ function isEmailVerified(user: ClerkUser | null): boolean {
   }
 
   if (user.primaryEmailAddressId && user.emailAddresses.length > 0) {
-    const primary = user.emailAddresses.find(
-      (email) => email.id === user.primaryEmailAddressId
-    );
+    const primary = user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId);
     if (primary?.verification?.status === 'verified') {
       return true;
     }
