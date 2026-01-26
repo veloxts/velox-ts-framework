@@ -148,6 +148,7 @@ export function procedure<TContext extends BaseContext = BaseContext>(): Procedu
     guards: [],
     restOverride: undefined,
     parentResource: undefined,
+    parentResources: undefined,
   });
 }
 
@@ -271,7 +272,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
-     * Declares a parent resource for nested routes
+     * Declares a parent resource for nested routes (single level)
      */
     parent(namespace: string, paramName?: string): ProcedureBuilder<TInput, TOutput, TContext> {
       const parentConfig: ParentResourceConfig = {
@@ -282,6 +283,23 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       return createBuilder<TInput, TOutput, TContext>({
         ...state,
         parentResource: parentConfig,
+      });
+    },
+
+    /**
+     * Declares multiple parent resources for deeply nested routes
+     */
+    parents(
+      config: Array<{ resource: string; param?: string }>
+    ): ProcedureBuilder<TInput, TOutput, TContext> {
+      const parentConfigs: ParentResourceConfig[] = config.map((item) => ({
+        namespace: item.resource,
+        paramName: item.param ?? deriveParentParamName(item.resource),
+      }));
+
+      return createBuilder<TInput, TOutput, TContext>({
+        ...state,
+        parentResources: parentConfigs,
       });
     },
 
@@ -345,6 +363,7 @@ function compileProcedure<
     guards: state.guards as ReadonlyArray<GuardLike<TContext>>,
     restOverride: state.restOverride,
     parentResource: state.parentResource,
+    parentResources: state.parentResources,
     // Store pre-compiled executor for performance
     _precompiledExecutor: precompiledExecutor,
   };

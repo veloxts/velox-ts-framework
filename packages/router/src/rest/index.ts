@@ -4,7 +4,12 @@
  * @module rest
  */
 
-export type { RestAdapterOptions, RestPlugin, RestRoute } from './adapter.js';
+export type {
+  GenerateRestRoutesOptions,
+  RestAdapterOptions,
+  RestPlugin,
+  RestRoute,
+} from './adapter.js';
 export {
   generateRestRoutes,
   getRouteSummary,
@@ -14,8 +19,10 @@ export {
 // Naming convention utilities - internal, exported for advanced use cases
 export type { RestMapping } from './naming.js';
 export {
+  buildMultiLevelNestedPath,
   buildNestedRestPath,
   buildRestPath,
+  calculateNestingDepth,
   followsNamingConvention,
   inferResourceName,
   parseNamingConvention,

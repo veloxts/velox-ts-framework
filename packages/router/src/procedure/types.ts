@@ -299,7 +299,7 @@ export interface ProcedureBuilder<
   rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext>;
 
   /**
-   * Declares a parent resource for nested routes
+   * Declares a parent resource for nested routes (single level)
    *
    * When a procedure has a parent resource, the REST path will be nested
    * under the parent: `/${parentNamespace}/:${parentParam}/${childNamespace}/:id`
@@ -327,6 +327,37 @@ export interface ProcedureBuilder<
    * ```
    */
   parent(namespace: string, paramName?: string): ProcedureBuilder<TInput, TOutput, TContext>;
+
+  /**
+   * Declares multiple parent resources for deeply nested routes
+   *
+   * When a procedure has multiple parent resources, the REST path will be
+   * deeply nested: `/${parent1}/:${param1}/${parent2}/:${param2}/.../${child}/:id`
+   *
+   * The input schema should include ALL parent parameters for proper type safety.
+   *
+   * @param config - Array of parent resource configurations from outermost to innermost
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * // Generates: GET /organizations/:orgId/projects/:projectId/tasks/:id
+   * const getTask = procedure()
+   *   .parents([
+   *     { resource: 'organizations', param: 'orgId' },
+   *     { resource: 'projects', param: 'projectId' },
+   *   ])
+   *   .input(z.object({
+   *     orgId: z.string(),
+   *     projectId: z.string(),
+   *     id: z.string()
+   *   }))
+   *   .query(async ({ input }) => { ... });
+   * ```
+   */
+  parents(
+    config: Array<{ resource: string; param?: string }>
+  ): ProcedureBuilder<TInput, TOutput, TContext>;
 
   /**
    * Finalizes the procedure as a query (read-only operation)
@@ -394,8 +425,10 @@ export interface BuilderRuntimeState {
   guards: GuardLike<unknown>[];
   /** REST route override */
   restOverride?: RestRouteOverride;
-  /** Parent resource configuration for nested routes */
+  /** Parent resource configuration for nested routes (single level) */
   parentResource?: ParentResourceConfig;
+  /** Multi-level parent resource configuration for deeply nested routes */
+  parentResources?: ParentResourceConfig[];
 }
 
 // ============================================================================
