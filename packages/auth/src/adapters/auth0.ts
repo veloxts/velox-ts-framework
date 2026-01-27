@@ -35,7 +35,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import type { AdapterRoute, AdapterSessionResult, AuthAdapterConfig } from '../adapter.js';
 import { AuthAdapterError, BaseAuthAdapter } from '../adapter.js';
-import { extractBearerToken } from './utils.js';
+import { extractBearerToken, validateNonEmptyString } from './utils.js';
 
 // ============================================================================
 // Constants
@@ -690,8 +690,10 @@ export class Auth0Adapter extends BaseAuthAdapter<Auth0AdapterConfig> {
   override async initialize(fastify: FastifyInstance, config: Auth0AdapterConfig): Promise<void> {
     await super.initialize(fastify, config);
 
-    // Validate domain is non-empty
-    if (!config.domain || config.domain.trim() === '') {
+    // Validate required configuration using shared utility
+    try {
+      this.domain = validateNonEmptyString(config.domain, 'Auth0 domain');
+    } catch {
       throw new AuthAdapterError(
         'Auth0 domain is required and cannot be empty',
         500,
@@ -699,8 +701,10 @@ export class Auth0Adapter extends BaseAuthAdapter<Auth0AdapterConfig> {
       );
     }
 
-    // Validate audience is non-empty
-    if (!config.audience || config.audience.trim() === '') {
+    let audience: string;
+    try {
+      audience = validateNonEmptyString(config.audience, 'Auth0 audience');
+    } catch {
       throw new AuthAdapterError(
         'Auth0 audience is required and cannot be empty',
         500,
@@ -708,26 +712,23 @@ export class Auth0Adapter extends BaseAuthAdapter<Auth0AdapterConfig> {
       );
     }
 
-    this.domain = config.domain.trim();
     this.clientId = config.clientId;
     this.authHeader = config.authHeader ?? 'authorization';
 
     // Construct issuer URL
     const issuer = config.issuer ?? `https://${this.domain}/`;
 
-    // Create logger that uses adapter's debug method
-    const jwksLogger: JWKSLogger = (message) => this.debug(message);
-
     // Use custom verifier or create default
+    // Pass bound debug method directly to avoid closure overhead
     this.verifier =
       config.jwtVerifier ??
       createDefaultVerifier(
         this.domain,
-        config.audience,
+        audience,
         issuer,
         config.clockTolerance ?? DEFAULT_CLOCK_TOLERANCE_SECONDS,
         config.jwksCacheTtl ?? DEFAULT_JWKS_CACHE_TTL_MS,
-        jwksLogger
+        this.debug.bind(this)
       );
 
     this.debug(`Initialized with domain: ${this.domain}`);
