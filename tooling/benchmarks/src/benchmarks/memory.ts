@@ -37,34 +37,46 @@ interface MemoryBenchmarkResult {
 }
 
 /**
- * Fetches memory stats from the server via a special endpoint
- * Falls back to fetching metrics from /api/health and estimating
- *
- * Note: This function demonstrates how to fetch memory stats if a
- * /debug/memory endpoint were available. Currently returns null
- * to signal that estimation is needed.
+ * Memory response from /debug/memory endpoint
  */
-async function _getServerMemory(baseUrl: string): Promise<MemoryResult | null> {
+interface DebugMemoryResponse {
+  heapUsed: number;
+  heapTotal: number;
+  rss: number;
+  external: number;
+  arrayBuffers: number;
+  heapUsedMB: number;
+  heapTotalMB: number;
+  rssMB: number;
+}
+
+/**
+ * Fetches memory stats from the server's /debug/memory endpoint
+ * Returns null if the endpoint is not available
+ */
+async function getServerMemory(baseUrl: string): Promise<MemoryResult | null> {
   try {
-    // We'll use a heuristic approach:
-    // Make a request and measure response time variations
-    // For accurate memory, we'd need a /debug/memory endpoint
+    const response = await fetch(`${baseUrl}/debug/memory`);
+    if (!response.ok) {
+      return null;
+    }
 
-    // Make health request to ensure server is warm
-    await fetch(`${baseUrl}/api/health`);
+    const data = (await response.json()) as DebugMemoryResponse;
 
-    // Since we can't directly measure server memory from outside,
-    // we'll note that this is an estimate based on typical Fastify usage
-    // In production, you'd expose a /debug/memory endpoint
-
-    return null; // Signal that we need server-side measurement
+    return {
+      heapUsed: data.heapUsedMB,
+      heapTotal: data.heapTotalMB,
+      rss: data.rssMB,
+      external: Math.round((data.external / 1024 / 1024) * 100) / 100,
+      arrayBuffers: Math.round((data.arrayBuffers / 1024 / 1024) * 100) / 100,
+      meetsTarget: data.rssMB < TARGET_METRICS.memoryBaseline,
+    };
   } catch {
     return null;
   }
 }
 
-// Re-export for potential future use
-export { _getServerMemory as getServerMemory };
+export { getServerMemory };
 
 /**
  * Runs the memory benchmark
@@ -78,29 +90,31 @@ async function runMemoryBenchmark(
   printInfo('Target URL', config.targetUrl);
   printInfo('Target Baseline', `< ${TARGET_METRICS.memoryBaseline} MB`);
 
-  // For memory benchmarks, we need to measure from inside the server process
-  // This is a limitation - we'll document it and provide approximate measurements
+  // Check if /debug/memory endpoint is available
+  const testMemory = await getServerMemory(config.targetUrl);
+  const hasDebugEndpoint = testMemory !== null;
 
-  console.log('\n  Note: Memory measurement requires server-side instrumentation.');
-  console.log('  Providing estimates based on typical Fastify + tRPC usage.\n');
+  if (hasDebugEndpoint) {
+    console.log('\n  ✓ Using real memory measurements from /debug/memory endpoint\n');
+  } else {
+    console.log('\n  Note: /debug/memory endpoint not available.');
+    console.log('  Providing estimates based on typical Fastify + tRPC usage.\n');
+  }
 
   // Measure baseline (just after startup, before any load)
   console.log('  Measuring baseline memory...');
   await sleep(2000); // Let GC settle
 
-  // Without server-side instrumentation, we estimate based on typical values
-  // Real measurement would require exposing process.memoryUsage() via an endpoint
-  const baselineEstimate: MemoryResult = {
-    heapUsed: 45,
-    heapTotal: 60,
-    external: 5,
-    arrayBuffers: 2,
-    rss: 75,
-    meetsTarget: true,
-  };
-
-  console.log('  Baseline (estimated):');
-  printMemory(baselineEstimate);
+  let baseline: MemoryResult;
+  if (hasDebugEndpoint) {
+    const realBaseline = await getServerMemory(config.targetUrl);
+    baseline = realBaseline ?? createEstimate(45, 60, 75, 5, 2, true);
+    console.log('  Baseline (measured):');
+  } else {
+    baseline = createEstimate(45, 60, 75, 5, 2, true);
+    console.log('  Baseline (estimated):');
+  }
+  printMemory(baseline);
 
   // Apply load
   console.log('\n  Applying load (100 connections, 10 seconds)...');
@@ -112,67 +126,78 @@ async function runMemoryBenchmark(
   });
 
   // Measure under load
-  console.log('\n  Memory under load (estimated):');
-  const underLoadEstimate: MemoryResult = {
-    heapUsed: 55,
-    heapTotal: 80,
-    external: 8,
-    arrayBuffers: 4,
-    rss: 95,
-    meetsTarget: false, // Typically higher under load
-  };
-  printMemory(underLoadEstimate);
+  let underLoad: MemoryResult;
+  if (hasDebugEndpoint) {
+    const realUnderLoad = await getServerMemory(config.targetUrl);
+    underLoad = realUnderLoad ?? createEstimate(55, 80, 95, 8, 4, false);
+    console.log('\n  Memory under load (measured):');
+  } else {
+    underLoad = createEstimate(55, 80, 95, 8, 4, false);
+    console.log('\n  Memory under load (estimated):');
+  }
+  printMemory(underLoad);
 
   // Let GC run
   console.log('\n  Waiting for GC...');
   await sleep(5000);
 
   // Measure after load
-  console.log('\n  Memory after load (estimated):');
-  const afterLoadEstimate: MemoryResult = {
-    heapUsed: 48,
-    heapTotal: 65,
-    external: 5,
-    arrayBuffers: 2,
-    rss: 78,
-    meetsTarget: true,
-  };
-  printMemory(afterLoadEstimate);
+  let afterLoad: MemoryResult;
+  if (hasDebugEndpoint) {
+    const realAfterLoad = await getServerMemory(config.targetUrl);
+    afterLoad = realAfterLoad ?? createEstimate(48, 65, 78, 5, 2, true);
+    console.log('\n  Memory after load (measured):');
+  } else {
+    afterLoad = createEstimate(48, 65, 78, 5, 2, true);
+    console.log('\n  Memory after load (estimated):');
+  }
+  printMemory(afterLoad);
 
   // Summary
-  const meetsTarget = baselineEstimate.rss < TARGET_METRICS.memoryBaseline;
+  const meetsTarget = baseline.rss < TARGET_METRICS.memoryBaseline;
 
   console.log('\n  Summary:');
   printMetric(
     'Baseline RSS',
-    `${baselineEstimate.rss.toFixed(1)} MB`,
+    `${baseline.rss.toFixed(1)} MB`,
     `< ${TARGET_METRICS.memoryBaseline} MB`,
     meetsTarget
   );
-  printMetric(
-    'Under Load RSS',
-    `${underLoadEstimate.rss.toFixed(1)} MB`,
-    '< 120 MB',
-    underLoadEstimate.rss < 120
-  );
+  printMetric('Under Load RSS', `${underLoad.rss.toFixed(1)} MB`, '< 120 MB', underLoad.rss < 120);
   printMetric(
     'Memory Recovery',
-    `${((1 - afterLoadEstimate.heapUsed / underLoadEstimate.heapUsed) * 100).toFixed(1)}%`,
+    `${((1 - afterLoad.heapUsed / underLoad.heapUsed) * 100).toFixed(1)}%`,
     '> 10%',
-    afterLoadEstimate.heapUsed < underLoadEstimate.heapUsed * 0.9
+    afterLoad.heapUsed < underLoad.heapUsed * 0.9
   );
 
-  console.log('\n  Note: For accurate measurements, add a /debug/memory endpoint:');
-  console.log('  ```typescript');
-  console.log("  app.get('/debug/memory', async () => process.memoryUsage());");
-  console.log('  ```');
+  if (!hasDebugEndpoint) {
+    console.log('\n  Note: For accurate measurements, add a /debug/memory endpoint:');
+    console.log('  ```typescript');
+    console.log("  app.get('/debug/memory', async () => process.memoryUsage());");
+    console.log('  ```');
+  }
 
   return {
-    baseline: baselineEstimate,
-    underLoad: underLoadEstimate,
-    afterLoad: afterLoadEstimate,
+    baseline,
+    underLoad,
+    afterLoad,
     meetsTarget,
   };
+}
+
+/**
+ * Creates an estimated memory result when /debug/memory is not available
+ */
+function createEstimate(
+  heapUsed: number,
+  heapTotal: number,
+  rss: number,
+  external: number,
+  arrayBuffers: number,
+  meetsTarget: boolean
+): MemoryResult {
+  return { heapUsed, heapTotal, rss, external, arrayBuffers, meetsTarget };
 }
 
 /**

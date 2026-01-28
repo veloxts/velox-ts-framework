@@ -306,6 +306,33 @@ async function createApp() {
   const collections = [authProcedures, userProcedures, healthProcedures];
   registerRestRoutes(app.server, collections, { prefix: config.apiPrefix });
 
+  // ============================================================================
+  // Debug Endpoints (Development/Testing Only)
+  // ============================================================================
+  //
+  // These endpoints expose internal metrics for benchmarking and debugging.
+  // They should NOT be enabled in production.
+  // ============================================================================
+  if (config.env !== 'production') {
+    // Memory usage endpoint for accurate benchmark measurements
+    app.server.get('/debug/memory', async () => {
+      const usage = process.memoryUsage();
+      return {
+        heapUsed: usage.heapUsed,
+        heapTotal: usage.heapTotal,
+        rss: usage.rss,
+        external: usage.external,
+        arrayBuffers: usage.arrayBuffers,
+        // Human-readable versions (in MB)
+        heapUsedMB: Math.round((usage.heapUsed / 1024 / 1024) * 100) / 100,
+        heapTotalMB: Math.round((usage.heapTotal / 1024 / 1024) * 100) / 100,
+        rssMB: Math.round((usage.rss / 1024 / 1024) * 100) / 100,
+      };
+    });
+
+    console.log('[Debug] Debug endpoints enabled at /debug/*');
+  }
+
   return { app, collections };
 }
 
