@@ -70,6 +70,7 @@
     "framework"
   ],
   "license": "MIT",
+  "homepage": "https://veloxts.dev/",
   "repository": {
     "type": "git",
     "url": "https://github.com/veloxts/velox-ts-framework",
