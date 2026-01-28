@@ -60,6 +60,8 @@ export default defineConfig({
             { slug: 'router/procedures' },
             { slug: 'router/rest-conventions' },
             { slug: 'router/rest-overrides' },
+            { slug: 'router/nested-routes' },
+            { slug: 'router/rest-adapter-config' },
             { slug: 'router/trpc-adapter' },
             { slug: 'router/middleware' },
             { slug: 'router/openapi' },
