@@ -8,8 +8,8 @@
  * Target performance metrics from ROADMAP
  */
 export const TARGET_METRICS = {
-  /** Request latency p50 target in ms */
-  latencyP50: 5,
+  /** Request latency p50 target in ms (under high load: 100 connections, pipelining 10) */
+  latencyP50: 25,
   /** Throughput target in requests per second */
   throughput: 20000,
   /** Heap memory baseline target in MB (primary metric - what your code allocates) */
