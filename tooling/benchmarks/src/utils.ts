@@ -202,15 +202,22 @@ export async function stopServer(child: ChildProcess): Promise<void> {
       return;
     }
 
-    child.on('exit', () => resolve());
-    child.kill('SIGTERM');
-
-    // Force kill after timeout
-    setTimeout(() => {
+    // Set up force kill timeout that also resolves the promise
+    const forceKillTimeout = setTimeout(() => {
       if (!child.killed) {
         child.kill('SIGKILL');
       }
+      // Always resolve after timeout to prevent hanging
+      resolve();
     }, 5000);
+
+    // Clean up timeout if process exits gracefully
+    child.on('exit', () => {
+      clearTimeout(forceKillTimeout);
+      resolve();
+    });
+
+    child.kill('SIGTERM');
   });
 }
 
