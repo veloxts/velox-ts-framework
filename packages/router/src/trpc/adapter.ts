@@ -25,6 +25,7 @@ import type { FastifyInstance } from 'fastify';
 export type AnyRouter = TRPCAnyRouter;
 
 import { isGuardError } from '../errors.js';
+import { executeMiddlewareChain } from '../middleware/chain.js';
 import type { CompiledProcedure, ProcedureCollection, ProcedureRecord } from '../types.js';
 
 // ============================================================================
@@ -201,52 +202,25 @@ export function buildTRPCRouter(
  * @internal
  */
 function buildTRPCProcedure(t: TRPCInstance<BaseContext>, procedure: CompiledProcedure) {
-  // Start with base procedure builder
-  const baseProcedure = t.procedure;
+  // Build the procedure chain incrementally
+  // biome-ignore lint/suspicious/noExplicitAny: tRPC procedure builder has complex types that vary by chain state
+  let builder: any = t.procedure;
 
-  // Build the procedure chain based on configuration
-  if (procedure.inputSchema && procedure.outputSchema) {
-    // Both input and output schemas
-    const withInput = baseProcedure.input(
-      procedure.inputSchema as Parameters<typeof baseProcedure.input>[0]
-    );
-    const withOutput = withInput.output(
-      procedure.outputSchema as Parameters<typeof withInput.output>[0]
-    );
-
-    const handler = createHandler(procedure);
-
-    return procedure.type === 'query' ? withOutput.query(handler) : withOutput.mutation(handler);
-  }
-
+  // Add input schema if present
   if (procedure.inputSchema) {
-    // Only input schema
-    const withInput = baseProcedure.input(
-      procedure.inputSchema as Parameters<typeof baseProcedure.input>[0]
-    );
-
-    const handler = createHandler(procedure);
-
-    return procedure.type === 'query' ? withInput.query(handler) : withInput.mutation(handler);
+    builder = builder.input(procedure.inputSchema);
   }
 
+  // Add output schema if present
   if (procedure.outputSchema) {
-    // Only output schema
-    const withOutput = baseProcedure.output(
-      procedure.outputSchema as Parameters<typeof baseProcedure.output>[0]
-    );
-
-    const handler = createNoInputHandler(procedure);
-
-    return procedure.type === 'query' ? withOutput.query(handler) : withOutput.mutation(handler);
+    builder = builder.output(procedure.outputSchema);
   }
 
-  // No schemas - use base procedure
-  const handler = createNoInputHandler(procedure);
+  // Select handler based on whether input is expected
+  const handler = procedure.inputSchema ? createHandler(procedure) : createNoInputHandler(procedure);
 
-  return procedure.type === 'query'
-    ? baseProcedure.query(handler)
-    : baseProcedure.mutation(handler);
+  // Finalize as query or mutation
+  return procedure.type === 'query' ? builder.query(handler) : builder.mutation(handler);
 }
 
 /**
@@ -298,34 +272,9 @@ async function executeWithMiddleware(
   input: unknown,
   ctx: BaseContext
 ): Promise<unknown> {
-  // Build middleware chain from end to start
-  let next = async (): Promise<{ output: unknown }> => {
-    const output = await procedure.handler({ input, ctx });
-    return { output };
-  };
-
-  // Wrap each middleware from last to first
-  for (let i = procedure.middlewares.length - 1; i >= 0; i--) {
-    const middleware = procedure.middlewares[i];
-    const currentNext = next;
-
-    next = async (): Promise<{ output: unknown }> => {
-      return middleware({
-        input,
-        ctx,
-        next: async (opts) => {
-          // Allow middleware to extend context
-          if (opts?.ctx) {
-            Object.assign(ctx, opts.ctx);
-          }
-          return currentNext();
-        },
-      });
-    };
-  }
-
-  const result = await next();
-  return result.output;
+  return executeMiddlewareChain(procedure.middlewares, input, ctx, async () =>
+    procedure.handler({ input, ctx })
+  );
 }
 
 // ============================================================================

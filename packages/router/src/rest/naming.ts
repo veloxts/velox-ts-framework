@@ -180,6 +180,17 @@ export function parseNamingConvention(name: string, type: ProcedureType): RestMa
 }
 
 /**
+ * Append the mapping suffix to a base path
+ *
+ * @param basePath - The base path (e.g., '/users', '/posts/:postId/comments')
+ * @param mapping - REST mapping containing the path suffix
+ * @returns The complete path with suffix appended (if not just '/')
+ */
+function appendMappingSuffix(basePath: string, mapping: RestMapping): string {
+  return mapping.path === '/' ? basePath : `${basePath}${mapping.path}`;
+}
+
+/**
  * Build the full REST path from namespace and mapping
  *
  * @param namespace - Resource namespace (e.g., 'users')
@@ -196,15 +207,7 @@ export function parseNamingConvention(name: string, type: ProcedureType): RestMa
  * ```
  */
 export function buildRestPath(namespace: string, mapping: RestMapping): string {
-  const basePath = `/${namespace}`;
-
-  // If path is just '/', return the base path without trailing slash
-  if (mapping.path === '/') {
-    return basePath;
-  }
-
-  // Otherwise append the path (e.g., '/:id')
-  return `${basePath}${mapping.path}`;
+  return appendMappingSuffix(`/${namespace}`, mapping);
 }
 
 /**
@@ -236,19 +239,9 @@ export function buildNestedRestPath(
   childNamespace: string,
   mapping: RestMapping
 ): string {
-  // Build parent path segment: /{parentResource}/:{parentParam}
   const parentPath = `/${parentResource.resource}/:${parentResource.param}`;
-
-  // Build child path segment
-  const childBasePath = `/${childNamespace}`;
-
-  // If mapping path is just '/', don't add extra suffix
-  if (mapping.path === '/') {
-    return `${parentPath}${childBasePath}`;
-  }
-
-  // Otherwise append the path (e.g., '/:id')
-  return `${parentPath}${childBasePath}${mapping.path}`;
+  const basePath = `${parentPath}/${childNamespace}`;
+  return appendMappingSuffix(basePath, mapping);
 }
 
 /**
@@ -281,21 +274,11 @@ export function buildMultiLevelNestedPath(
   childNamespace: string,
   mapping: RestMapping
 ): string {
-  // Build all parent path segments
   const parentSegments = parentResources
     .map((parent) => `/${parent.resource}/:${parent.param}`)
     .join('');
-
-  // Build child path segment
-  const childBasePath = `/${childNamespace}`;
-
-  // If mapping path is just '/', don't add extra suffix
-  if (mapping.path === '/') {
-    return `${parentSegments}${childBasePath}`;
-  }
-
-  // Otherwise append the path (e.g., '/:id')
-  return `${parentSegments}${childBasePath}${mapping.path}`;
+  const basePath = `${parentSegments}/${childNamespace}`;
+  return appendMappingSuffix(basePath, mapping);
 }
 
 /**
