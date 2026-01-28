@@ -54,14 +54,27 @@ const getProfile = procedure()
 ## Guards
 
 ```typescript
-import { hasRole, hasPermission } from '@veloxts/auth';
+import { authenticated, hasRole, hasPermission } from '@veloxts/auth';
 
+// Require authentication
+const getProfile = procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => ctx.user);
+
+// Require admin role
 const adminOnly = procedure()
-  .use(auth.middleware({ guards: [hasRole('admin')] }))
+  .guard(hasRole('admin'))
   .mutation(handler);
 
+// Require specific permission
 const canEdit = procedure()
-  .use(auth.middleware({ guards: [hasPermission('posts.write')] }))
+  .guard(hasPermission('posts.write'))
+  .mutation(handler);
+
+// Chain multiple guards (all must pass)
+const adminWithPermission = procedure()
+  .guard(authenticated)
+  .guard(hasRole('admin'))
   .mutation(handler);
 ```
 

@@ -17,9 +17,10 @@ Your app will be running at `http://localhost:3030`
 
 ```bash
 npx create-velox-app my-app              # Default REST API
-npx create-velox-app my-app --auth       # With authentication
-npx create-velox-app my-app --trpc       # tRPC-only setup
-npx create-velox-app my-app --rsc        # Full-stack setup with React Server Components
+npx create-velox-app my-app --auth       # With JWT authentication
+npx create-velox-app my-app --trpc       # tRPC-only setup (no REST)
+npx create-velox-app my-app --rsc        # Full-stack RSC with Vinxi
+npx create-velox-app my-app --rsc-auth   # Full-stack RSC + JWT authentication
 ```
 
 ## Project Structure

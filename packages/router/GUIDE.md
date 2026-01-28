@@ -134,18 +134,37 @@ await registerRestRoutes(app.server, {
 });
 ```
 
+### REST Route Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `prefix` | `string` | `'/api'` | URL prefix for all routes |
+| `procedures` | `Record<string, ProcedureCollection>` | required | Procedure collections to register |
+| `shortcuts` | `boolean` | `false` | Generate flat shortcut routes in addition to nested routes |
+| `nestingWarnings` | `boolean` | `true` | Warn when nesting depth exceeds 3 levels |
+
+When `shortcuts: true`, deeply nested resources also get flat access routes:
+```typescript
+// With shortcuts enabled:
+// GET /organizations/:orgId/projects/:projectId/tasks/:id (nested)
+// GET /tasks/:id (flat shortcut)
+```
+
 ## tRPC Adapter
 
 ```typescript
-import { trpc, appRouter, registerTRPCPlugin } from '@veloxts/router';
+import { trpc, appRouter, registerTRPCPlugin, type TRPCRouter } from '@veloxts/router';
 
 const t = trpc();
 const router = appRouter(t, [userProcedures]);
 
 await registerTRPCPlugin(app.server, { router, prefix: '/trpc' });
 
-export type AppRouter = typeof router;
+// Use TRPCRouter for @trpc/react-query compatibility
+export type AppRouter = TRPCRouter<typeof router>;
 ```
+
+> **Note**: `AsTRPCRouter` is deprecated. Use `TRPCRouter` instead.
 
 ## OpenAPI Documentation
 
