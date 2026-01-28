@@ -217,7 +217,9 @@ function buildTRPCProcedure(t: TRPCInstance<BaseContext>, procedure: CompiledPro
   }
 
   // Select handler based on whether input is expected
-  const handler = procedure.inputSchema ? createHandler(procedure) : createNoInputHandler(procedure);
+  const handler = procedure.inputSchema
+    ? createHandler(procedure)
+    : createNoInputHandler(procedure);
 
   // Finalize as query or mutation
   return procedure.type === 'query' ? builder.query(handler) : builder.mutation(handler);
@@ -429,6 +431,18 @@ export function createTRPCContextFactory() {
 // ============================================================================
 
 /**
+ * Cause structure for VeloxTS errors converted to tRPC errors
+ */
+export interface VeloxTRPCCause {
+  /** Discriminator for VeloxTS errors */
+  readonly source: 'velox';
+  /** VeloxTS error code */
+  readonly code?: string;
+  /** Guard name (only present for GuardError) */
+  readonly guardName?: string;
+}
+
+/**
  * Convert a VeloxTS error to a tRPC error
  *
  * Maps VeloxTS error codes to appropriate tRPC error codes.
@@ -459,20 +473,26 @@ export function veloxErrorToTRPCError(
 
   // Handle GuardError specifically to preserve guard metadata
   if (isGuardError(error)) {
+    const cause: VeloxTRPCCause = {
+      source: 'velox',
+      code: error.code,
+      guardName: error.guardName,
+    };
     return new TRPCError({
       code: trpcCode,
       message: error.message,
-      cause: {
-        code: error.code,
-        guardName: error.guardName,
-      },
+      cause,
     });
   }
 
+  const cause: VeloxTRPCCause = {
+    source: 'velox',
+    code: error.code,
+  };
   return new TRPCError({
     code: trpcCode,
     message: error.message,
-    cause: error.code,
+    cause,
   });
 }
 
@@ -482,8 +502,9 @@ export function veloxErrorToTRPCError(
  * Use this when handling errors that may have been converted from VeloxTS errors
  * using veloxErrorToTRPCError().
  */
-export function isVeloxTRPCError(error: TRPCError): error is TRPCError & { cause: string } {
-  return typeof error.cause === 'string';
+export function isVeloxTRPCError(error: TRPCError): error is TRPCError & { cause: VeloxTRPCCause } {
+  const cause = error.cause;
+  return cause != null && typeof cause === 'object' && 'source' in cause && cause.source === 'velox';
 }
 
 // ============================================================================

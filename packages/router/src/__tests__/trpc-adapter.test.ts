@@ -516,8 +516,10 @@ describe('veloxErrorToTRPCError', () => {
 
     const trpcError = veloxErrorToTRPCError(error as Error & { statusCode: number; code: string });
 
-    // TRPCError wraps the cause - the code becomes the Error message
-    expect((trpcError.cause as Error).message).toBe('VALIDATION_ERROR');
+    // tRPC wraps cause in UnknownCauseError, check properties
+    const cause = trpcError.cause as { source: string; code: string };
+    expect(cause.source).toBe('velox');
+    expect(cause.code).toBe('VALIDATION_ERROR');
   });
 });
 
