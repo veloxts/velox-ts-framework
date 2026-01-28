@@ -6,6 +6,7 @@
  * Executes all benchmark suites and generates a summary report.
  */
 
+import { execSync } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -28,6 +29,44 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PLAYGROUND_DIR = path.resolve(__dirname, '../../../apps/playground');
 const RESULTS_DIR = path.resolve(__dirname, '..');
+const BENCHMARK_PORT = 3030;
+
+/**
+ * Check for processes using the benchmark port and display them to the user
+ */
+function checkForOrphanedProcesses(): void {
+  try {
+    const output = execSync(`lsof -i :${BENCHMARK_PORT} -t 2>/dev/null`, { encoding: 'utf-8' });
+    const pids = output.trim().split('\n').filter(Boolean);
+
+    if (pids.length > 0) {
+      console.log(
+        `\n\x1b[33m⚠️  Warning: Found processes still using port ${BENCHMARK_PORT}:\x1b[0m`
+      );
+      console.log('\x1b[33m   To clean up, run:\x1b[0m');
+      for (const pid of pids) {
+        console.log(`\x1b[36m   kill -9 ${pid}\x1b[0m`);
+      }
+      console.log('');
+    }
+  } catch {
+    // No processes found on port, which is fine
+  }
+}
+
+/**
+ * Setup signal handlers for graceful shutdown
+ */
+function setupSignalHandlers(): void {
+  const handleExit = (signal: string) => {
+    console.log(`\n\n\x1b[31m  Benchmark interrupted (${signal})\x1b[0m`);
+    checkForOrphanedProcesses();
+    process.exit(130); // Standard exit code for SIGINT
+  };
+
+  process.on('SIGINT', () => handleExit('SIGINT'));
+  process.on('SIGTERM', () => handleExit('SIGTERM'));
+}
 
 /**
  * Writes benchmark results to JSON file
@@ -44,6 +83,9 @@ async function writeResults(results: BenchmarkResults): Promise<void> {
  * Main benchmark runner
  */
 async function main(): Promise<void> {
+  // Setup signal handlers to show orphaned processes on interrupt
+  setupSignalHandlers();
+
   const startTime = Date.now();
 
   printHeader('VeloxTS Performance Benchmarks');
