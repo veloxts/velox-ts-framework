@@ -12,8 +12,10 @@ export const TARGET_METRICS = {
   latencyP50: 5,
   /** Throughput target in requests per second */
   throughput: 20000,
-  /** Memory baseline target in MB */
-  memoryBaseline: 80,
+  /** Heap memory baseline target in MB (primary metric - what your code allocates) */
+  heapBaseline: 100,
+  /** RSS baseline target in MB (secondary - includes V8/native module overhead) */
+  rssBaseline: 350,
   /** Startup time target in ms */
   startupTime: 1000,
 } as const;

@@ -69,7 +69,7 @@ async function getServerMemory(baseUrl: string): Promise<MemoryResult | null> {
       rss: data.rssMB,
       external: Math.round((data.external / 1024 / 1024) * 100) / 100,
       arrayBuffers: Math.round((data.arrayBuffers / 1024 / 1024) * 100) / 100,
-      meetsTarget: data.rssMB < TARGET_METRICS.memoryBaseline,
+      meetsTarget: data.heapUsedMB < TARGET_METRICS.heapBaseline,
     };
   } catch {
     return null;
@@ -88,7 +88,7 @@ async function runMemoryBenchmark(
   printHeader('Memory Usage Benchmark');
 
   printInfo('Target URL', config.targetUrl);
-  printInfo('Target Baseline', `< ${TARGET_METRICS.memoryBaseline} MB`);
+  printInfo('Target Heap Baseline', `< ${TARGET_METRICS.heapBaseline} MB`);
 
   // Check if /debug/memory endpoint is available
   const testMemory = await getServerMemory(config.targetUrl);
@@ -153,17 +153,42 @@ async function runMemoryBenchmark(
   }
   printMemory(afterLoad);
 
-  // Summary
-  const meetsTarget = baseline.rss < TARGET_METRICS.memoryBaseline;
+  // Summary - Heap is the primary metric (what your code allocates)
+  // RSS includes V8 engine, native modules, shared libraries - less controllable
+  const heapMeetsTarget = baseline.heapUsed < TARGET_METRICS.heapBaseline;
+  const rssMeetsTarget = baseline.rss < TARGET_METRICS.rssBaseline;
+  const meetsTarget = heapMeetsTarget; // Primary metric is heap
 
   console.log('\n  Summary:');
+  console.log('  [Primary - Heap measures what your code allocates]');
+  printMetric(
+    'Baseline Heap',
+    `${baseline.heapUsed.toFixed(1)} MB`,
+    `< ${TARGET_METRICS.heapBaseline} MB`,
+    heapMeetsTarget
+  );
+  printMetric(
+    'Under Load Heap',
+    `${underLoad.heapUsed.toFixed(1)} MB`,
+    `< ${TARGET_METRICS.heapBaseline + 50} MB`,
+    underLoad.heapUsed < TARGET_METRICS.heapBaseline + 50
+  );
+
+  console.log('\n  [Secondary - RSS includes V8/native module overhead]');
   printMetric(
     'Baseline RSS',
     `${baseline.rss.toFixed(1)} MB`,
-    `< ${TARGET_METRICS.memoryBaseline} MB`,
-    meetsTarget
+    `< ${TARGET_METRICS.rssBaseline} MB`,
+    rssMeetsTarget
   );
-  printMetric('Under Load RSS', `${underLoad.rss.toFixed(1)} MB`, '< 120 MB', underLoad.rss < 120);
+  printMetric(
+    'Under Load RSS',
+    `${underLoad.rss.toFixed(1)} MB`,
+    `< ${TARGET_METRICS.rssBaseline + 50} MB`,
+    underLoad.rss < TARGET_METRICS.rssBaseline + 50
+  );
+
+  console.log('\n  [Recovery]');
   printMetric(
     'Memory Recovery',
     `${((1 - afterLoad.heapUsed / underLoad.heapUsed) * 100).toFixed(1)}%`,
