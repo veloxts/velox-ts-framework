@@ -21,8 +21,9 @@ import type { StorageStore } from '../types.js';
 // Check Docker availability at module load time
 const dockerAvailable = await isDockerAvailable();
 
-// Skip entire suite if Docker is not available
-const describeIntegration = dockerAvailable ? describe : describe.skip;
+// Skip in CI environments (image pulls are slow) or if Docker is not available
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+const describeIntegration = dockerAvailable && !isCI ? describe : describe.skip;
 
 describeIntegration('S3 storage driver (integration)', () => {
   let minio: MinioContainerResult;
