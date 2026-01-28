@@ -14,21 +14,6 @@ Prisma 7 removes `datasourceUrl` from PrismaClient and requires driver adapters.
 ## What Changed in Prisma 7?
 
 <Tabs>
-  <TabItem label="Prisma 6 (Old)">
-```prisma
-// schema.prisma
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")  // URL configured here
-}
-```
-
-```typescript
-// database.ts
-import { PrismaClient } from '@prisma/client';
-export const db = new PrismaClient();  // Just works
-```
-  </TabItem>
   <TabItem label="Prisma 7 (New)">
 ```prisma
 // schema.prisma
@@ -59,6 +44,21 @@ import { PrismaClient } from '@prisma/client';
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! });
 export const db = new PrismaClient({ adapter });  // Adapter required
 ```
+  </TabItem>
+  <TabItem label="Prisma 6 (Old)">
+    ```prisma
+    // schema.prisma
+    datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")  // URL configured here
+  }
+    ```
+
+    ```typescript
+    // database.ts
+    import { PrismaClient } from '@prisma/client';
+    export const db = new PrismaClient();  // Just works
+    ```
   </TabItem>
 </Tabs>
 

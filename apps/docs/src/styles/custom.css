@@ -1,6 +1,8 @@
 /* VeloxTS Brand Colors */
 
 :root {
+  --sl-hue-purple: 255;
+  --sl-hue-blue: 210;
   /* Primary - Deep Indigo */
   --sl-color-accent-low: #1f609f;
   --sl-color-accent: #327cc7;
@@ -43,6 +45,7 @@
   /* Text - Dark mode */
   --sl-color-text: #f8fafc;
   --sl-color-text-accent: #327cc7;
+  --sl-color-text-invert: #e2f1ff;
 
   /* Borders - Dark mode */
   --sl-color-hairline-light: #324354;

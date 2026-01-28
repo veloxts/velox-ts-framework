@@ -34,7 +34,7 @@ export default defineConfig({
         },
         {
           label: 'Architecture Guides',
-          badge: { text: 'Key', variant: 'tip' },
+          badge: { text: 'Key' },
           items: [
             { slug: 'architecture/overview' },
             { slug: 'architecture/rest-api' },
