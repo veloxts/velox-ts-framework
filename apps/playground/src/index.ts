@@ -23,7 +23,12 @@ import fastifyStatic from '@fastify/static';
 import { authPlugin } from '@veloxts/auth';
 import { VELOX_VERSION, veloxApp } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
-import { getRouteSummary, registerRestRoutes, registerTRPCPlugin } from '@veloxts/router';
+import {
+  getRouteSummary,
+  registerRestRoutes,
+  registerTRPCPlugin,
+  swaggerUIPlugin,
+} from '@veloxts/router';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { authConfig, config } from './config/index.js';
@@ -307,6 +312,36 @@ async function createApp() {
   registerRestRoutes(app.server, collections, { prefix: config.apiPrefix });
 
   // ============================================================================
+  // OpenAPI Documentation (Development/Testing Only)
+  // ============================================================================
+  //
+  // Provides interactive Swagger UI for API exploration and testing.
+  // Disabled in production to avoid exposing API details.
+  // ============================================================================
+  if (config.env !== 'production') {
+    await app.server.register(swaggerUIPlugin, {
+      routePrefix: '/docs',
+      collections,
+      openapi: {
+        info: {
+          title: 'VeloxTS Playground API',
+          version: VELOX_VERSION,
+          description:
+            'Development testing application for validating VeloxTS framework features and demonstrating usage patterns.',
+        },
+        servers: [{ url: `http://localhost:${config.port}`, description: 'Development' }],
+        prefix: config.apiPrefix,
+      },
+      uiConfig: {
+        deepLinking: true,
+        tryItOutEnabled: true,
+      },
+    });
+
+    console.log('[OpenAPI] Swagger UI available at /docs');
+  }
+
+  // ============================================================================
   // Debug Endpoints (Development/Testing Only)
   // ============================================================================
   //
@@ -361,6 +396,9 @@ function printBanner(collections: Parameters<typeof getRouteSummary>[0]) {
   console.log(`  Frontend: http://localhost:${config.port}`);
   console.log(`  REST API: http://localhost:${config.port}${config.apiPrefix}`);
   console.log(`  tRPC:     http://localhost:${config.port}/trpc`);
+  if (config.env !== 'production') {
+    console.log(`  Docs:     http://localhost:${config.port}/docs`);
+  }
   console.log(`${divider}\n`);
 
   // Print example curl commands

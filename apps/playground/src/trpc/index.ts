@@ -7,7 +7,7 @@
 
 import { type AnyRouter, appRouter as createAppRouter, trpc } from '@veloxts/router';
 
-import { healthProcedures, userProcedures } from '../procedures/index.js';
+import { authProcedures, healthProcedures, userProcedures } from '../procedures/index.js';
 
 // ============================================================================
 // tRPC Instance
@@ -24,10 +24,16 @@ export const t = trpc();
 
 /**
  * Combined tRPC router from all procedure collections
+ * Includes auth, user, and health procedures for full API coverage
  */
-export const appRouter: AnyRouter = createAppRouter(t, [userProcedures, healthProcedures]);
+export const appRouter: AnyRouter = createAppRouter(t, [
+  authProcedures,
+  userProcedures,
+  healthProcedures,
+]);
 
 /**
  * App router type for client inference
+ * Using typeof ensures full type safety for tRPC clients
  */
-export type AppRouter = AnyRouter;
+export type AppRouter = typeof appRouter;
