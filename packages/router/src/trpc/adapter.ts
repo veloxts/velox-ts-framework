@@ -504,7 +504,9 @@ export function veloxErrorToTRPCError(
  */
 export function isVeloxTRPCError(error: TRPCError): error is TRPCError & { cause: VeloxTRPCCause } {
   const cause = error.cause;
-  return cause != null && typeof cause === 'object' && 'source' in cause && cause.source === 'velox';
+  return (
+    cause != null && typeof cause === 'object' && 'source' in cause && cause.source === 'velox'
+  );
 }
 
 // ============================================================================
