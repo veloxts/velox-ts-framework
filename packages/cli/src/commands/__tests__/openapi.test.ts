@@ -74,9 +74,7 @@ function createMockSpec() {
           operationId: 'users_getUser',
           summary: 'Get User',
           tags: ['users'],
-          parameters: [
-            { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
-          ],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
             '200': { description: 'Success' },
           },
@@ -126,7 +124,8 @@ describe('OpenAPI Command', () => {
       const generateCmd = cmd.commands.find((c) => c.name() === 'generate');
 
       expect(generateCmd).toBeDefined();
-      const options = generateCmd!.options;
+      if (!generateCmd) return; // Type guard for TypeScript
+      const options = generateCmd.options;
       const optionNames = options.map((opt) => opt.long);
 
       expect(optionNames).toContain('--path');
@@ -148,7 +147,8 @@ describe('OpenAPI Command', () => {
       const generateCmd = cmd.commands.find((c) => c.name() === 'generate');
 
       expect(generateCmd).toBeDefined();
-      const options = generateCmd!.options;
+      if (!generateCmd) return; // Type guard for TypeScript
+      const options = generateCmd.options;
 
       const pathOpt = options.find((o) => o.long === '--path');
       expect(pathOpt?.defaultValue).toBe('./src/procedures');
@@ -173,7 +173,8 @@ describe('OpenAPI Command', () => {
       const serveCmd = cmd.commands.find((c) => c.name() === 'serve');
 
       expect(serveCmd).toBeDefined();
-      const options = serveCmd!.options;
+      if (!serveCmd) return; // Type guard for TypeScript
+      const options = serveCmd.options;
       const optionNames = options.map((opt) => opt.long);
 
       expect(optionNames).toContain('--file');
@@ -187,7 +188,8 @@ describe('OpenAPI Command', () => {
       const serveCmd = cmd.commands.find((c) => c.name() === 'serve');
 
       expect(serveCmd).toBeDefined();
-      const options = serveCmd!.options;
+      if (!serveCmd) return; // Type guard for TypeScript
+      const options = serveCmd.options;
 
       const fileOpt = options.find((o) => o.long === '--file');
       expect(fileOpt?.defaultValue).toBe('./openapi.json');

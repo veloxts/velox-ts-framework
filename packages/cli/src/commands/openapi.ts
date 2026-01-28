@@ -6,12 +6,10 @@
  * - openapi serve - Start a local Swagger UI server
  */
 
-import { createServer } from 'node:http';
 import { existsSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { dirname, extname, resolve } from 'node:path';
-
-import YAML from 'yaml';
 
 import {
   type DiscoveryOptions,
@@ -26,6 +24,7 @@ import {
 import { Command } from 'commander';
 import { config as loadEnv } from 'dotenv';
 import pc from 'picocolors';
+import YAML from 'yaml';
 
 /**
  * Load environment variables from .env file if present
@@ -178,7 +177,10 @@ function createGenerateCommand(): Command {
     .description('Generate OpenAPI specification from procedures')
     .option('-p, --path <path>', 'Path to procedures directory', './src/procedures')
     .option('-o, --output <file>', 'Output file path', './openapi.json')
-    .option('-f, --format <format>', 'Output format (json or yaml), auto-detected from file extension if not specified')
+    .option(
+      '-f, --format <format>',
+      'Output format (json or yaml), auto-detected from file extension if not specified'
+    )
     .option('-t, --title <title>', 'API title', 'VeloxTS API')
     .option('-V, --version <version>', 'API version', '1.0.0')
     .option('-d, --description <desc>', 'API description')
@@ -301,8 +303,10 @@ function createServeCommand(): Command {
       const watchMode = options.watch ?? false;
 
       // Validate port number
-      if (isNaN(port) || port < 1 || port > 65535) {
-        console.error(pc.red(`Error: Invalid port number: ${options.port}. Must be between 1-65535.`));
+      if (Number.isNaN(port) || port < 1 || port > 65535) {
+        console.error(
+          pc.red(`Error: Invalid port number: ${options.port}. Must be between 1-65535.`)
+        );
         process.exit(1);
       }
 
@@ -368,7 +372,9 @@ function createServeCommand(): Command {
               });
               console.log(pc.green('✓') + pc.dim(' Spec reloaded'));
             } catch (error) {
-              console.error(pc.yellow('⚠') + pc.dim(` Failed to reload spec: ${(error as Error).message}`));
+              console.error(
+                pc.yellow('⚠') + pc.dim(` Failed to reload spec: ${(error as Error).message}`)
+              );
             } finally {
               debounceTimer = undefined;
             }
