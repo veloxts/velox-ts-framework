@@ -274,7 +274,7 @@ export interface RestRouteOverride {
 /**
  * Parent resource configuration for nested routes
  *
- * Defines the parent resource relationship for generating nested REST routes
+ * Defines a single parent resource relationship for generating nested REST routes
  * like `/posts/:postId/comments/:id`.
  *
  * @example
@@ -288,17 +288,41 @@ export interface RestRouteOverride {
  */
 export interface ParentResourceConfig {
   /**
-   * Parent resource namespace (e.g., 'posts', 'users')
-   * Used to build the parent path segment: `/${namespace}/:${paramName}`
+   * Parent resource name (e.g., 'posts', 'users')
+   * Used to build the parent path segment: `/${resource}/:${param}`
    */
-  readonly namespace: string;
+  readonly resource: string;
 
   /**
    * Parent resource parameter name in the path
-   * Defaults to `${singularNamespace}Id` if not specified
+   * Defaults to `${singularResource}Id` if not specified
    * (e.g., 'posts' -> 'postId', 'users' -> 'userId')
    */
-  readonly paramName: string;
+  readonly param: string;
+}
+
+/**
+ * Multi-level parent resource configuration for deeply nested routes
+ *
+ * Defines multiple parent resources for generating deeply nested REST routes
+ * like `/organizations/:orgId/projects/:projectId/tasks/:id`.
+ *
+ * @example
+ * ```typescript
+ * // Multi-level nesting
+ * procedure().parents([
+ *   { resource: 'organizations', param: 'orgId' },
+ *   { resource: 'projects', param: 'projectId' },
+ * ])
+ * // Generates: /organizations/:orgId/projects/:projectId/tasks/:id
+ * ```
+ */
+export interface ParentResourceChain {
+  /**
+   * Array of parent resources from outermost to innermost
+   * E.g., [organizations, projects] for /organizations/:orgId/projects/:projectId/tasks
+   */
+  readonly parents: readonly ParentResourceConfig[];
 }
 
 /**
@@ -333,7 +357,7 @@ export interface CompiledProcedure<
   /** REST route override (if specified) */
   readonly restOverride?: RestRouteOverride;
   /**
-   * Parent resource configuration for nested routes
+   * Parent resource configuration for nested routes (single level)
    *
    * When specified, the REST path will be prefixed with the parent resource:
    * `/${parent.namespace}/:${parent.paramName}/${childNamespace}/:id`
@@ -346,6 +370,23 @@ export interface CompiledProcedure<
    * ```
    */
   readonly parentResource?: ParentResourceConfig;
+  /**
+   * Multi-level parent resource configuration for deeply nested routes
+   *
+   * When specified, the REST path will be prefixed with all parent resources:
+   * `/${parent1.namespace}/:${parent1.paramName}/${parent2.namespace}/:${parent2.paramName}/...`
+   *
+   * @example
+   * ```typescript
+   * // With parentResources: [
+   * //   { namespace: 'organizations', paramName: 'orgId' },
+   * //   { namespace: 'projects', paramName: 'projectId' }
+   * // ]
+   * // and namespace: 'tasks'
+   * // Generates: /organizations/:orgId/projects/:projectId/tasks/:id
+   * ```
+   */
+  readonly parentResources?: readonly ParentResourceConfig[];
   /**
    * Pre-compiled middleware chain executor
    *

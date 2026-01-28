@@ -13,7 +13,14 @@ import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest 
 
 import { executeProcedure } from '../procedure/builder.js';
 import type { CompiledProcedure, HttpMethod, ProcedureCollection } from '../types.js';
-import { buildNestedRestPath, buildRestPath, parseNamingConvention } from './naming.js';
+import type { RestMapping } from './naming.js';
+import {
+  buildMultiLevelNestedPath,
+  buildNestedRestPath,
+  buildRestPath,
+  calculateNestingDepth,
+  parseNamingConvention,
+} from './naming.js';
 
 // ============================================================================
 // Types
@@ -52,6 +59,35 @@ export interface RestAdapterOptions {
   prefix?: string;
   /** Custom error handler */
   onError?: (error: unknown, request: FastifyRequest, reply: FastifyReply) => void;
+  /**
+   * Generate flat shortcut routes alongside nested routes.
+   *
+   * When enabled, nested routes like `/organizations/:orgId/projects/:projectId/tasks/:id`
+   * will also generate a flat shortcut route like `/tasks/:id`.
+   *
+   * Note: Shortcuts only work for single-resource operations (GET, PUT, PATCH, DELETE with :id).
+   * Collection operations (list, create) require parent context and are NOT generated as shortcuts.
+   *
+   * @example
+   * ```typescript
+   * rest([tasks], { shortcuts: true })
+   * // Generates:
+   * // GET /organizations/:orgId/projects/:projectId/tasks/:id (nested)
+   * // GET /tasks/:id (shortcut)
+   * ```
+   *
+   * @default false
+   */
+  shortcuts?: boolean;
+  /**
+   * Enable warnings about deep nesting (3+ levels).
+   *
+   * When true (default), the router warns when nesting exceeds 3 levels.
+   * Set to false to silence these warnings.
+   *
+   * @default true
+   */
+  nestingWarnings?: boolean;
 }
 
 /**
@@ -70,6 +106,17 @@ interface InternalRegistrationOptions extends RestAdapterOptions {
 // Route Generation
 // ============================================================================
 
+/** Options for generating REST routes */
+export interface GenerateRestRoutesOptions {
+  /** Generate flat shortcut routes alongside nested routes */
+  shortcuts?: boolean;
+  /** Enable nesting depth warnings (default: true) */
+  nestingWarnings?: boolean;
+}
+
+/** Default nesting depth threshold for warnings */
+const NESTING_DEPTH_WARNING_THRESHOLD = 3;
+
 /**
  * Generate REST routes from a procedure collection
  *
@@ -79,15 +126,39 @@ interface InternalRegistrationOptions extends RestAdapterOptions {
  * 3. Skipping if neither applies (tRPC-only procedure)
  *
  * @param collection - Procedure collection to generate routes from
+ * @param options - Optional route generation options
  * @returns Array of REST route definitions
  */
-export function generateRestRoutes(collection: ProcedureCollection): RestRoute[] {
+export function generateRestRoutes(
+  collection: ProcedureCollection,
+  options: GenerateRestRoutesOptions = {}
+): RestRoute[] {
   const routes: RestRoute[] = [];
+  const { shortcuts = false, nestingWarnings = true } = options;
 
   for (const [name, procedure] of Object.entries(collection.procedures)) {
     const route = generateRouteForProcedure(name, procedure, collection.namespace);
     if (route) {
       routes.push(route);
+
+      // Check nesting depth and warn if too deep
+      if (nestingWarnings) {
+        const depth = calculateNestingDepth(procedure.parentResource, procedure.parentResources);
+        if (depth >= NESTING_DEPTH_WARNING_THRESHOLD) {
+          console.warn(
+            `⚠️  Resource '${collection.namespace}/${name}' has ${depth} levels of nesting. ` +
+              `Consider using shortcuts: true or restructuring your API.`
+          );
+        }
+      }
+
+      // Generate shortcut route if enabled and route is nested with ID parameter
+      if (shortcuts && isNestedRoute(procedure) && route.path.endsWith('/:id')) {
+        const shortcutRoute = generateFlatRoute(route, collection.namespace);
+        if (shortcutRoute) {
+          routes.push(shortcutRoute);
+        }
+      }
     }
   }
 
@@ -95,10 +166,73 @@ export function generateRestRoutes(collection: ProcedureCollection): RestRoute[]
 }
 
 /**
+ * Check if a procedure has parent resources (is nested)
+ */
+function isNestedRoute(procedure: CompiledProcedure): boolean {
+  return (
+    procedure.parentResource !== undefined ||
+    (procedure.parentResources !== undefined && procedure.parentResources.length > 0)
+  );
+}
+
+/**
+ * Generate a shortcut route for a nested route
+ *
+ * Only generates shortcuts for single-resource operations (with :id).
+ * Collection operations require parent context and are not suitable for shortcuts.
+ */
+function generateFlatRoute(nestedRoute: RestRoute, namespace: string): RestRoute | undefined {
+  // Only generate shortcuts for operations with :id (single resource)
+  if (!nestedRoute.path.endsWith('/:id')) {
+    return undefined;
+  }
+
+  // Build shortcut path: /{namespace}/:id
+  const shortcutPath = `/${namespace}/:id`;
+
+  return {
+    method: nestedRoute.method,
+    path: shortcutPath,
+    procedureName: `${nestedRoute.procedureName}Shortcut`,
+    procedure: nestedRoute.procedure,
+  };
+}
+
+/**
+ * Build the REST path for a procedure based on its nesting configuration
+ *
+ * Handles:
+ * - Flat routes: /users/:id
+ * - Single-level nested: /posts/:postId/comments/:id
+ * - Multi-level nested: /organizations/:orgId/projects/:projectId/tasks/:id
+ *
+ * @internal
+ */
+function buildProcedurePath(
+  procedure: CompiledProcedure,
+  namespace: string,
+  mapping: RestMapping
+): string {
+  // Multi-level nesting takes precedence
+  if (procedure.parentResources && procedure.parentResources.length > 0) {
+    return buildMultiLevelNestedPath(procedure.parentResources, namespace, mapping);
+  }
+
+  // Single-level nesting
+  if (procedure.parentResource) {
+    return buildNestedRestPath(procedure.parentResource, namespace, mapping);
+  }
+
+  // Flat route
+  return buildRestPath(namespace, mapping);
+}
+
+/**
  * Generate a REST route for a single procedure
  *
- * Handles both flat routes (e.g., /users/:id) and nested routes
- * (e.g., /posts/:postId/comments/:id) when a parent resource is configured.
+ * Handles flat routes (e.g., /users/:id), single-level nested routes
+ * (e.g., /posts/:postId/comments/:id), and multi-level nested routes
+ * (e.g., /organizations/:orgId/projects/:projectId/tasks/:id).
  *
  * @internal
  */
@@ -126,12 +260,8 @@ function generateRouteForProcedure(
     // Partial override - try to fill in missing parts from convention
     const convention = parseNamingConvention(name, procedure.type);
     if (convention) {
-      // Build path based on whether there's a parent resource
-      const path =
-        override.path ??
-        (procedure.parentResource
-          ? buildNestedRestPath(procedure.parentResource, namespace, convention)
-          : buildRestPath(namespace, convention));
+      // Build path based on nesting configuration
+      const path = override.path ?? buildProcedurePath(procedure, namespace, convention);
 
       return {
         method: override.method ?? convention.method,
@@ -148,10 +278,8 @@ function generateRouteForProcedure(
   // Try to infer from naming convention
   const mapping = parseNamingConvention(name, procedure.type);
   if (mapping) {
-    // Build path based on whether there's a parent resource
-    const path = procedure.parentResource
-      ? buildNestedRestPath(procedure.parentResource, namespace, mapping)
-      : buildRestPath(namespace, mapping);
+    // Build path based on nesting configuration
+    const path = buildProcedurePath(procedure, namespace, mapping);
 
     return {
       method: mapping.method,
@@ -227,37 +355,40 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * Gather input data from the request based on HTTP method
  *
  * - GET: Merge params and query
- * - POST: Use body, but merge params for nested routes (parent ID in URL)
+ * - POST: Use body, but merge params for nested routes (parent IDs in URL)
  * - PUT/PATCH: Merge params (for ID) and body (for data)
  * - DELETE: Merge params and query (no body per REST conventions)
  *
- * For nested routes (e.g., /posts/:postId/comments), the parent param
- * is extracted from the URL and merged with the body/query as appropriate.
+ * For nested routes (e.g., /posts/:postId/comments or
+ * /organizations/:orgId/projects/:projectId/tasks), all parent params
+ * are extracted from the URL and merged with the body/query as appropriate.
  */
 function gatherInput(request: FastifyRequest, route: RestRoute): unknown {
   const params = isPlainObject(request.params) ? request.params : {};
   const query = isPlainObject(request.query) ? request.query : {};
   const body = isPlainObject(request.body) ? request.body : {};
 
-  // Check if this is a nested route (has parent resource)
-  const hasParentResource = route.procedure.parentResource !== undefined;
+  // Check if this is a nested route (has single parent or multiple parents)
+  const hasParentResource =
+    route.procedure.parentResource !== undefined ||
+    (route.procedure.parentResources !== undefined && route.procedure.parentResources.length > 0);
 
   switch (route.method) {
     case 'GET':
-      // GET: params (for :id and parent params) + query (for filters/pagination)
+      // GET: params (for :id and all parent params) + query (for filters/pagination)
       return { ...params, ...query };
 
     case 'DELETE':
-      // DELETE: params (for :id and parent params) + query (for options), no body per REST conventions
+      // DELETE: params (for :id and all parent params) + query (for options), no body per REST conventions
       return { ...params, ...query };
 
     case 'PUT':
     case 'PATCH':
-      // PUT/PATCH: params (for :id and parent params) + body (for data)
+      // PUT/PATCH: params (for :id and all parent params) + body (for data)
       return { ...params, ...body };
 
     case 'POST':
-      // POST: For nested routes, merge params (for parent ID) with body
+      // POST: For nested routes, merge params (for all parent IDs) with body
       // For flat routes, use body only (no ID in params for creates)
       if (hasParentResource) {
         return { ...params, ...body };
@@ -350,10 +481,20 @@ export function registerRestRoutes(
   collections: ProcedureCollection[],
   options: InternalRegistrationOptions = {}
 ): void {
-  const { prefix = '/api', _prefixHandledByFastify = false } = options;
+  const {
+    prefix = '/api',
+    _prefixHandledByFastify = false,
+    shortcuts = false,
+    nestingWarnings = true,
+  } = options;
+
+  const routeGenOptions: GenerateRestRoutesOptions = {
+    shortcuts,
+    nestingWarnings,
+  };
 
   for (const collection of collections) {
-    const routes = generateRestRoutes(collection);
+    const routes = generateRestRoutes(collection, routeGenOptions);
 
     for (const route of routes) {
       // When used with server.register(), Fastify handles the prefix automatically.

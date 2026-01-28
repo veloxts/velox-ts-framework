@@ -71,6 +71,7 @@ export type {
   MiddlewareNext,
   MiddlewareResult,
   // Nested routes
+  ParentResourceChain,
   ParentResourceConfig,
   // Collection types
   ProcedureCollection,
@@ -145,14 +146,17 @@ export { analyzeNamingConvention, isDevelopment, normalizeWarningOption } from '
 // Consider moving to @veloxts/router/internal subpath in v1.1+
 export type {
   ExtractRoutesType,
+  GenerateRestRoutesOptions,
   RestAdapterOptions,
   RestMapping,
   RestRoute,
   RouteMap,
 } from './rest/index.js';
 export {
+  buildMultiLevelNestedPath,
   buildNestedRestPath,
   buildRestPath,
+  calculateNestingDepth,
   extractRoutes,
   followsNamingConvention,
   generateRestRoutes,

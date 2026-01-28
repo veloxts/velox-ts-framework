@@ -92,21 +92,25 @@ procedures('auth', {
 
 ### Nested Resources
 
+For nested resources, use the `.parent()` or `.parents()` methods instead of manual `.rest()` overrides. See [Nested Routes](/docs/router/nested-routes/) for details.
+
 ```typescript
+// RECOMMENDED: Use .parent() for automatic nesting
+procedures('comments', {
+  listComments: procedure()
+    .parent('posts')
+    .input(z.object({ postId: z.string() }))
+    .query(handler),
+  // → GET /posts/:postId/comments
+});
+
+// ALTERNATIVE: Manual override (less maintainable)
 procedures('comments', {
   listPostComments: procedure()
     .input(z.object({ postId: z.string() }))
     .query(handler)
     .rest({
       method: 'GET',
-      path: '/posts/:postId/comments',
-    }),
-
-  createPostComment: procedure()
-    .input(z.object({ postId: z.string(), content: z.string() }))
-    .mutation(handler)
-    .rest({
-      method: 'POST',
       path: '/posts/:postId/comments',
     }),
 });
@@ -178,4 +182,5 @@ getOrderItem: procedure()
 ## Next Steps
 
 - [REST Conventions](/docs/router/rest-conventions/) - Default patterns
+- [Nested Routes](/docs/router/nested-routes/) - Hierarchical resources
 - [OpenAPI](/docs/router/openapi/) - API documentation

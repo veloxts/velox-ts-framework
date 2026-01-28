@@ -11,6 +11,7 @@
 import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core';
 
 import { GuardError } from '../errors.js';
+import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -148,6 +149,7 @@ export function procedure<TContext extends BaseContext = BaseContext>(): Procedu
     guards: [],
     restOverride: undefined,
     parentResource: undefined,
+    parentResources: undefined,
   });
 }
 
@@ -271,17 +273,34 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
-     * Declares a parent resource for nested routes
+     * Declares a parent resource for nested routes (single level)
      */
-    parent(namespace: string, paramName?: string): ProcedureBuilder<TInput, TOutput, TContext> {
+    parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext> {
       const parentConfig: ParentResourceConfig = {
-        namespace,
-        paramName: paramName ?? deriveParentParamName(namespace),
+        resource,
+        param: param ?? deriveParentParamName(resource),
       };
 
       return createBuilder<TInput, TOutput, TContext>({
         ...state,
         parentResource: parentConfig,
+      });
+    },
+
+    /**
+     * Declares multiple parent resources for deeply nested routes
+     */
+    parents(
+      config: Array<{ resource: string; param?: string }>
+    ): ProcedureBuilder<TInput, TOutput, TContext> {
+      const parentConfigs: ParentResourceConfig[] = config.map((item) => ({
+        resource: item.resource,
+        param: item.param ?? deriveParentParamName(item.resource),
+      }));
+
+      return createBuilder<TInput, TOutput, TContext>({
+        ...state,
+        parentResources: parentConfigs,
       });
     },
 
@@ -345,6 +364,7 @@ function compileProcedure<
     guards: state.guards as ReadonlyArray<GuardLike<TContext>>,
     restOverride: state.restOverride,
     parentResource: state.parentResource,
+    parentResources: state.parentResources,
     // Store pre-compiled executor for performance
     _precompiledExecutor: precompiledExecutor,
   };
@@ -363,41 +383,7 @@ function createPrecompiledMiddlewareExecutor<TInput, TOutput, TContext extends B
   middlewares: ReadonlyArray<MiddlewareFunction<TInput, TContext, TContext, TOutput>>,
   handler: ProcedureHandler<TInput, TOutput, TContext>
 ): (input: TInput, ctx: TContext) => Promise<TOutput> {
-  // Pre-build the chain executor once
-  return async (input: TInput, ctx: TContext): Promise<TOutput> => {
-    // Create mutable context copy for middleware extensions
-    const mutableCtx = ctx;
-
-    // Build the handler wrapper
-    const executeHandler = async (): Promise<{ output: TOutput }> => {
-      const output = await handler({ input, ctx: mutableCtx });
-      return { output };
-    };
-
-    // Build chain from end to start (only done once per request, not per middleware)
-    let next = executeHandler;
-
-    for (let i = middlewares.length - 1; i >= 0; i--) {
-      const middleware = middlewares[i];
-      const currentNext = next;
-
-      next = async (): Promise<{ output: TOutput }> => {
-        return middleware({
-          input,
-          ctx: mutableCtx,
-          next: async (opts) => {
-            if (opts?.ctx) {
-              Object.assign(mutableCtx, opts.ctx);
-            }
-            return currentNext();
-          },
-        });
-      };
-    }
-
-    const result = await next();
-    return result.output;
-  };
+  return createMiddlewareExecutor(middlewares, handler);
 }
 
 // ============================================================================
@@ -674,34 +660,7 @@ async function executeMiddlewareChainFallback<TInput, TOutput, TContext extends 
   ctx: TContext,
   handler: () => Promise<TOutput>
 ): Promise<TOutput> {
-  // Build the chain from the end (handler) back to the start
-  let next = async (): Promise<{ output: TOutput }> => {
-    const output = await handler();
-    return { output };
-  };
-
-  // Wrap each middleware from last to first
-  for (let i = middlewares.length - 1; i >= 0; i--) {
-    const middleware = middlewares[i];
-    const currentNext = next;
-
-    next = async (): Promise<{ output: TOutput }> => {
-      return middleware({
-        input,
-        ctx,
-        next: async (opts) => {
-          // Allow middleware to extend context
-          if (opts?.ctx) {
-            Object.assign(ctx, opts.ctx);
-          }
-          return currentNext();
-        },
-      });
-    };
-  }
-
-  const result = await next();
-  return result.output;
+  return executeMiddlewareChain(middlewares, input, ctx, handler);
 }
 
 // ============================================================================

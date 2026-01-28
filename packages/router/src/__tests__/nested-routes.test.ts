@@ -4,18 +4,22 @@
  */
 
 import { veloxApp } from '@veloxts/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { defineProcedures, procedure } from '../procedure/builder.js';
 import { generateRestRoutes, registerRestRoutes, rest } from '../rest/adapter.js';
-import { buildNestedRestPath } from '../rest/naming.js';
+import {
+  buildMultiLevelNestedPath,
+  buildNestedRestPath,
+  calculateNestingDepth,
+} from '../rest/naming.js';
 import type { ParentResourceConfig } from '../types.js';
 
 describe('buildNestedRestPath', () => {
   const parent: ParentResourceConfig = {
-    namespace: 'posts',
-    paramName: 'postId',
+    resource: 'posts',
+    param: 'postId',
   };
 
   it('should build nested path with ID parameter', () => {
@@ -36,8 +40,8 @@ describe('buildNestedRestPath', () => {
 
   it('should handle custom parent param names', () => {
     const customParent: ParentResourceConfig = {
-      namespace: 'posts',
-      paramName: 'post_id',
+      resource: 'posts',
+      param: 'post_id',
     };
     const mapping = { method: 'GET', path: '/:id', hasIdParam: true } as const;
 
@@ -87,8 +91,8 @@ describe('procedure().parent()', () => {
       .query(async ({ input }) => ({ postId: input.postId, id: input.id }));
 
     expect(proc.parentResource).toEqual({
-      namespace: 'posts',
-      paramName: 'postId',
+      resource: 'posts',
+      param: 'postId',
     });
   });
 
@@ -99,8 +103,8 @@ describe('procedure().parent()', () => {
       .query(async ({ input }) => ({ post_id: input.post_id, id: input.id }));
 
     expect(proc.parentResource).toEqual({
-      namespace: 'posts',
-      paramName: 'post_id',
+      resource: 'posts',
+      param: 'post_id',
     });
   });
 
@@ -109,25 +113,25 @@ describe('procedure().parent()', () => {
     const usersProc = procedure()
       .parent('users')
       .query(async () => ({}));
-    expect(usersProc.parentResource?.paramName).toBe('userId');
+    expect(usersProc.parentResource?.param).toBe('userId');
 
     // -ies plural
     const categoriesProc = procedure()
       .parent('categories')
       .query(async () => ({}));
-    expect(categoriesProc.parentResource?.paramName).toBe('categoryId');
+    expect(categoriesProc.parentResource?.param).toBe('categoryId');
 
     // -es plural
     const boxesProc = procedure()
       .parent('boxes')
       .query(async () => ({}));
-    expect(boxesProc.parentResource?.paramName).toBe('boxId');
+    expect(boxesProc.parentResource?.param).toBe('boxId');
 
     // Already singular or non-standard
     const dataProc = procedure()
       .parent('data')
       .query(async () => ({}));
-    expect(dataProc.parentResource?.paramName).toBe('datumId');
+    expect(dataProc.parentResource?.param).toBe('datumId');
   });
 
   it('should preserve other builder state when adding parent', () => {
@@ -206,7 +210,7 @@ describe('generateRestRoutes with parent', () => {
         .input(z.object({ postId: z.string(), id: z.string() }))
         .query(async ({ input }) => ({ id: input.id })),
 
-      // Flat (not nested) - for admin or API access
+      // Not nested (flat) - for admin or API access
       listComments: procedure().query(async () => []),
     });
 
@@ -514,6 +518,555 @@ describe('Nested routes - Integration', () => {
       postId: 'post-123',
       page: 2,
       limit: 25,
+    });
+  });
+});
+
+// ============================================================================
+// Multi-Level Nested Routing Tests
+// ============================================================================
+
+describe('buildMultiLevelNestedPath', () => {
+  const parents: ParentResourceConfig[] = [
+    { resource: 'organizations', param: 'orgId' },
+    { resource: 'projects', param: 'projectId' },
+  ];
+
+  it('should build multi-level nested path with ID parameter', () => {
+    const mapping = { method: 'GET', path: '/:id', hasIdParam: true } as const;
+
+    const path = buildMultiLevelNestedPath(parents, 'tasks', mapping);
+
+    expect(path).toBe('/organizations/:orgId/projects/:projectId/tasks/:id');
+  });
+
+  it('should build multi-level nested path without ID parameter', () => {
+    const mapping = { method: 'GET', path: '/', hasIdParam: false } as const;
+
+    const path = buildMultiLevelNestedPath(parents, 'tasks', mapping);
+
+    expect(path).toBe('/organizations/:orgId/projects/:projectId/tasks');
+  });
+
+  it('should handle single parent in array', () => {
+    const singleParent: ParentResourceConfig[] = [{ resource: 'posts', param: 'postId' }];
+    const mapping = { method: 'GET', path: '/:id', hasIdParam: true } as const;
+
+    const path = buildMultiLevelNestedPath(singleParent, 'comments', mapping);
+
+    expect(path).toBe('/posts/:postId/comments/:id');
+  });
+
+  it('should handle three levels of nesting', () => {
+    const threeParents: ParentResourceConfig[] = [
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+      { resource: 'tasks', param: 'taskId' },
+    ];
+    const mapping = { method: 'GET', path: '/:id', hasIdParam: true } as const;
+
+    const path = buildMultiLevelNestedPath(threeParents, 'subtasks', mapping);
+
+    expect(path).toBe('/organizations/:orgId/projects/:projectId/tasks/:taskId/subtasks/:id');
+  });
+});
+
+describe('calculateNestingDepth', () => {
+  it('should return 1 for flat routes', () => {
+    expect(calculateNestingDepth(undefined, undefined)).toBe(1);
+    expect(calculateNestingDepth(undefined, [])).toBe(1);
+  });
+
+  it('should return 2 for single parent', () => {
+    const parent: ParentResourceConfig = { resource: 'posts', param: 'postId' };
+    expect(calculateNestingDepth(parent, undefined)).toBe(2);
+  });
+
+  it('should return depth + 1 for multi-level nesting', () => {
+    const parents: ParentResourceConfig[] = [
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+    ];
+    expect(calculateNestingDepth(undefined, parents)).toBe(3);
+
+    const threeParents: ParentResourceConfig[] = [
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+      { resource: 'tasks', param: 'taskId' },
+    ];
+    expect(calculateNestingDepth(undefined, threeParents)).toBe(4);
+  });
+});
+
+describe('procedure().parents()', () => {
+  it('should create procedure with multiple parent resources', () => {
+    const proc = procedure()
+      .parents([{ resource: 'organizations' }, { resource: 'projects' }])
+      .input(z.object({ orgId: z.string(), projectId: z.string(), id: z.string() }))
+      .query(async ({ input }) => ({
+        orgId: input.orgId,
+        projectId: input.projectId,
+        id: input.id,
+      }));
+
+    expect(proc.parentResources).toEqual([
+      { resource: 'organizations', param: 'organizationId' },
+      { resource: 'projects', param: 'projectId' },
+    ]);
+  });
+
+  it('should create procedure with custom param names', () => {
+    const proc = procedure()
+      .parents([
+        { resource: 'organizations', param: 'orgId' },
+        { resource: 'projects', param: 'proj_id' },
+      ])
+      .query(async () => ({}));
+
+    expect(proc.parentResources).toEqual([
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'proj_id' },
+    ]);
+  });
+
+  it('should derive param names from plural namespaces', () => {
+    const proc = procedure()
+      .parents([{ resource: 'categories' }, { resource: 'items' }])
+      .query(async () => ({}));
+
+    expect(proc.parentResources).toEqual([
+      { resource: 'categories', param: 'categoryId' },
+      { resource: 'items', param: 'itemId' },
+    ]);
+  });
+});
+
+describe('generateRestRoutes with multi-level parents', () => {
+  it('should generate multi-level nested routes', () => {
+    const collection = defineProcedures('tasks', {
+      getTask: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(z.object({ orgId: z.string(), projectId: z.string(), id: z.string() }))
+        .query(async ({ input }) => ({
+          orgId: input.orgId,
+          projectId: input.projectId,
+          id: input.id,
+        })),
+
+      listTasks: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(z.object({ orgId: z.string(), projectId: z.string() }))
+        .query(async ({ input }) => [{ orgId: input.orgId, projectId: input.projectId }]),
+
+      createTask: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(z.object({ orgId: z.string(), projectId: z.string(), title: z.string() }))
+        .mutation(async ({ input }) => ({
+          id: 'new',
+          orgId: input.orgId,
+          projectId: input.projectId,
+          title: input.title,
+        })),
+    });
+
+    const routes = generateRestRoutes(collection);
+
+    expect(routes).toHaveLength(3);
+
+    const getRoute = routes.find((r) => r.procedureName === 'getTask');
+    expect(getRoute?.path).toBe('/organizations/:orgId/projects/:projectId/tasks/:id');
+    expect(getRoute?.method).toBe('GET');
+
+    const listRoute = routes.find((r) => r.procedureName === 'listTasks');
+    expect(listRoute?.path).toBe('/organizations/:orgId/projects/:projectId/tasks');
+    expect(listRoute?.method).toBe('GET');
+
+    const createRoute = routes.find((r) => r.procedureName === 'createTask');
+    expect(createRoute?.path).toBe('/organizations/:orgId/projects/:projectId/tasks');
+    expect(createRoute?.method).toBe('POST');
+  });
+});
+
+describe('shortcuts option', () => {
+  it('should generate shortcut routes alongside nested routes when enabled', () => {
+    const collection = defineProcedures('comments', {
+      getComment: procedure()
+        .parent('posts')
+        .input(z.object({ postId: z.string(), id: z.string() }))
+        .query(async ({ input }) => ({ id: input.id, postId: input.postId })),
+
+      updateComment: procedure()
+        .parent('posts')
+        .input(z.object({ postId: z.string(), id: z.string(), content: z.string() }))
+        .mutation(async ({ input }) => ({ id: input.id, content: input.content })),
+
+      listComments: procedure()
+        .parent('posts')
+        .input(z.object({ postId: z.string() }))
+        .query(async () => []),
+    });
+
+    const routes = generateRestRoutes(collection, { shortcuts: true });
+
+    // Should have nested routes + shortcut routes for those with :id
+    expect(routes.length).toBe(5); // 3 nested + 2 flat (getComment, updateComment)
+
+    // Nested routes
+    expect(
+      routes.find((r) => r.path === '/posts/:postId/comments/:id' && r.method === 'GET')
+    ).toBeDefined();
+    expect(
+      routes.find((r) => r.path === '/posts/:postId/comments/:id' && r.method === 'PUT')
+    ).toBeDefined();
+    expect(
+      routes.find((r) => r.path === '/posts/:postId/comments' && r.method === 'GET')
+    ).toBeDefined();
+
+    // Shortcut routes (only for :id operations)
+    expect(routes.find((r) => r.path === '/comments/:id' && r.method === 'GET')).toBeDefined();
+    expect(routes.find((r) => r.path === '/comments/:id' && r.method === 'PUT')).toBeDefined();
+
+    // Should NOT have shortcut route for listComments (no :id)
+    expect(routes.filter((r) => r.path === '/comments' && r.method === 'GET')).toHaveLength(0);
+  });
+
+  it('should generate shortcut routes for multi-level nested routes', () => {
+    const collection = defineProcedures('tasks', {
+      getTask: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(z.object({ orgId: z.string(), projectId: z.string(), id: z.string() }))
+        .query(async ({ input }) => ({ id: input.id })),
+    });
+
+    const routes = generateRestRoutes(collection, { shortcuts: true });
+
+    expect(routes).toHaveLength(2);
+
+    // Nested route
+    const nestedRoute = routes.find((r) => r.path.includes('/organizations/'));
+    expect(nestedRoute?.path).toBe('/organizations/:orgId/projects/:projectId/tasks/:id');
+
+    // Shortcut route
+    const flatRoute = routes.find((r) => r.path === '/tasks/:id');
+    expect(flatRoute).toBeDefined();
+    expect(flatRoute?.method).toBe('GET');
+  });
+
+  it('should not generate shortcut routes when disabled', () => {
+    const collection = defineProcedures('comments', {
+      getComment: procedure()
+        .parent('posts')
+        .input(z.object({ postId: z.string(), id: z.string() }))
+        .query(async ({ input }) => ({ id: input.id })),
+    });
+
+    const routes = generateRestRoutes(collection, { shortcuts: false });
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0].path).toBe('/posts/:postId/comments/:id');
+  });
+
+  it('should not generate shortcut routes for flat (non-nested) routes', () => {
+    const collection = defineProcedures('users', {
+      getUser: procedure()
+        .input(z.object({ id: z.string() }))
+        .query(async ({ input }) => ({ id: input.id })),
+    });
+
+    const routes = generateRestRoutes(collection, { shortcuts: true });
+
+    // Should only have the original flat route, not a duplicate
+    expect(routes).toHaveLength(1);
+    expect(routes[0].path).toBe('/users/:id');
+  });
+});
+
+describe('nesting depth warnings', () => {
+  it('should warn for 3+ levels of nesting', () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const collection = defineProcedures('subtasks', {
+      getSubtask: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+          { resource: 'tasks', param: 'taskId' },
+        ])
+        .query(async () => ({})),
+    });
+
+    generateRestRoutes(collection, { nestingWarnings: true });
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Resource 'subtasks/getSubtask' has 4 levels of nesting")
+    );
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should not warn for 2 levels of nesting', () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const collection = defineProcedures('comments', {
+      getComment: procedure()
+        .parent('posts')
+        .query(async () => ({})),
+    });
+
+    generateRestRoutes(collection, { nestingWarnings: true });
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should suppress warnings when nestingWarnings is false', () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const collection = defineProcedures('subtasks', {
+      getSubtask: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+          { resource: 'tasks', param: 'taskId' },
+        ])
+        .query(async () => ({})),
+    });
+
+    generateRestRoutes(collection, { nestingWarnings: false });
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+});
+
+describe('Multi-level nested routes - Integration', () => {
+  let app: Awaited<ReturnType<typeof veloxApp>>;
+
+  beforeEach(async () => {
+    app = await veloxApp({ port: 0, logger: false });
+  });
+
+  afterEach(async () => {
+    if (app.isRunning) {
+      await app.stop();
+    }
+  });
+
+  it('should register and handle multi-level GET with ID', async () => {
+    const collection = defineProcedures('tasks', {
+      getTask: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(z.object({ orgId: z.string(), projectId: z.string(), id: z.string() }))
+        .query(async ({ input }) => ({
+          orgId: input.orgId,
+          projectId: input.projectId,
+          id: input.id,
+          title: 'Test task',
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/api/organizations/org-1/projects/proj-2/tasks/task-3',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      orgId: 'org-1',
+      projectId: 'proj-2',
+      id: 'task-3',
+      title: 'Test task',
+    });
+  });
+
+  it('should register and handle multi-level GET collection', async () => {
+    const collection = defineProcedures('tasks', {
+      listTasks: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(z.object({ orgId: z.string(), projectId: z.string() }))
+        .query(async ({ input }) => [
+          { id: '1', orgId: input.orgId, projectId: input.projectId },
+          { id: '2', orgId: input.orgId, projectId: input.projectId },
+        ]),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/api/organizations/org-1/projects/proj-2/tasks',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toHaveLength(2);
+    expect(response.json()[0].orgId).toBe('org-1');
+    expect(response.json()[0].projectId).toBe('proj-2');
+  });
+
+  it('should register and handle multi-level POST', async () => {
+    const collection = defineProcedures('tasks', {
+      createTask: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(z.object({ orgId: z.string(), projectId: z.string(), title: z.string() }))
+        .mutation(async ({ input }) => ({
+          id: 'new-task',
+          orgId: input.orgId,
+          projectId: input.projectId,
+          title: input.title,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'POST',
+      url: '/api/organizations/org-1/projects/proj-2/tasks',
+      payload: { title: 'New task' },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({
+      id: 'new-task',
+      orgId: 'org-1',
+      projectId: 'proj-2',
+      title: 'New task',
+    });
+  });
+
+  it('should register and handle multi-level PUT', async () => {
+    const collection = defineProcedures('tasks', {
+      updateTask: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(
+          z.object({ orgId: z.string(), projectId: z.string(), id: z.string(), title: z.string() })
+        )
+        .mutation(async ({ input }) => ({
+          id: input.id,
+          orgId: input.orgId,
+          projectId: input.projectId,
+          title: input.title,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'PUT',
+      url: '/api/organizations/org-1/projects/proj-2/tasks/task-3',
+      payload: { title: 'Updated task' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      id: 'task-3',
+      orgId: 'org-1',
+      projectId: 'proj-2',
+      title: 'Updated task',
+    });
+  });
+
+  it('should register and handle multi-level DELETE', async () => {
+    const collection = defineProcedures('tasks', {
+      deleteTask: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(z.object({ orgId: z.string(), projectId: z.string(), id: z.string() }))
+        .mutation(async ({ input }) => ({
+          deleted: true,
+          id: input.id,
+          orgId: input.orgId,
+          projectId: input.projectId,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'DELETE',
+      url: '/api/organizations/org-1/projects/proj-2/tasks/task-3',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      deleted: true,
+      id: 'task-3',
+      orgId: 'org-1',
+      projectId: 'proj-2',
+    });
+  });
+
+  it('should merge query params with multi-level route params', async () => {
+    const collection = defineProcedures('tasks', {
+      listTasks: procedure()
+        .parents([
+          { resource: 'organizations', param: 'orgId' },
+          { resource: 'projects', param: 'projectId' },
+        ])
+        .input(
+          z.object({
+            orgId: z.string(),
+            projectId: z.string(),
+            page: z.coerce.number().optional(),
+            limit: z.coerce.number().optional(),
+          })
+        )
+        .query(async ({ input }) => ({
+          orgId: input.orgId,
+          projectId: input.projectId,
+          page: input.page ?? 1,
+          limit: input.limit ?? 10,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/api/organizations/org-1/projects/proj-2/tasks?page=3&limit=50',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      orgId: 'org-1',
+      projectId: 'proj-2',
+      page: 3,
+      limit: 50,
     });
   });
 });

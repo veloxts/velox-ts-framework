@@ -180,6 +180,17 @@ export function parseNamingConvention(name: string, type: ProcedureType): RestMa
 }
 
 /**
+ * Append the mapping suffix to a base path
+ *
+ * @param basePath - The base path (e.g., '/users', '/posts/:postId/comments')
+ * @param mapping - REST mapping containing the path suffix
+ * @returns The complete path with suffix appended (if not just '/')
+ */
+function appendMappingSuffix(basePath: string, mapping: RestMapping): string {
+  return mapping.path === '/' ? basePath : `${basePath}${mapping.path}`;
+}
+
+/**
  * Build the full REST path from namespace and mapping
  *
  * @param namespace - Resource namespace (e.g., 'users')
@@ -196,19 +207,11 @@ export function parseNamingConvention(name: string, type: ProcedureType): RestMa
  * ```
  */
 export function buildRestPath(namespace: string, mapping: RestMapping): string {
-  const basePath = `/${namespace}`;
-
-  // If path is just '/', return the base path without trailing slash
-  if (mapping.path === '/') {
-    return basePath;
-  }
-
-  // Otherwise append the path (e.g., '/:id')
-  return `${basePath}${mapping.path}`;
+  return appendMappingSuffix(`/${namespace}`, mapping);
 }
 
 /**
- * Build a nested REST path with parent resource prefix
+ * Build a nested REST path with parent resource prefix (single level)
  *
  * Creates paths like `/posts/:postId/comments/:id` for nested resources.
  *
@@ -219,7 +222,7 @@ export function buildRestPath(namespace: string, mapping: RestMapping): string {
  *
  * @example
  * ```typescript
- * const parent = { namespace: 'posts', paramName: 'postId' };
+ * const parent = { resource: 'posts', param: 'postId' };
  *
  * buildNestedRestPath(parent, 'comments', { method: 'GET', path: '/:id', hasIdParam: true })
  * // Returns: '/posts/:postId/comments/:id'
@@ -236,19 +239,68 @@ export function buildNestedRestPath(
   childNamespace: string,
   mapping: RestMapping
 ): string {
-  // Build parent path segment: /{parentNamespace}/:{parentParamName}
-  const parentPath = `/${parentResource.namespace}/:${parentResource.paramName}`;
+  const parentPath = `/${parentResource.resource}/:${parentResource.param}`;
+  const basePath = `${parentPath}/${childNamespace}`;
+  return appendMappingSuffix(basePath, mapping);
+}
 
-  // Build child path segment
-  const childBasePath = `/${childNamespace}`;
+/**
+ * Build a deeply nested REST path with multiple parent resources
+ *
+ * Creates paths like `/organizations/:orgId/projects/:projectId/tasks/:id`
+ * for deeply nested resources.
+ *
+ * @param parentResources - Array of parent resource configurations (outermost to innermost)
+ * @param childNamespace - Child resource namespace (e.g., 'tasks')
+ * @param mapping - REST mapping from parseNamingConvention
+ * @returns Full deeply nested path
+ *
+ * @example
+ * ```typescript
+ * const parents = [
+ *   { resource: 'organizations', param: 'orgId' },
+ *   { resource: 'projects', param: 'projectId' },
+ * ];
+ *
+ * buildMultiLevelNestedPath(parents, 'tasks', { method: 'GET', path: '/:id', hasIdParam: true })
+ * // Returns: '/organizations/:orgId/projects/:projectId/tasks/:id'
+ *
+ * buildMultiLevelNestedPath(parents, 'tasks', { method: 'GET', path: '/', hasIdParam: false })
+ * // Returns: '/organizations/:orgId/projects/:projectId/tasks'
+ * ```
+ */
+export function buildMultiLevelNestedPath(
+  parentResources: readonly ParentResourceConfig[],
+  childNamespace: string,
+  mapping: RestMapping
+): string {
+  const parentSegments = parentResources
+    .map((parent) => `/${parent.resource}/:${parent.param}`)
+    .join('');
+  const basePath = `${parentSegments}/${childNamespace}`;
+  return appendMappingSuffix(basePath, mapping);
+}
 
-  // If mapping path is just '/', don't add extra suffix
-  if (mapping.path === '/') {
-    return `${parentPath}${childBasePath}`;
+/**
+ * Calculate the nesting depth of a route
+ *
+ * Returns the number of parent levels plus 1 for the resource itself.
+ *
+ * @param parentResource - Single parent resource (optional)
+ * @param parentResources - Multiple parent resources (optional)
+ * @returns The total nesting depth (1 = flat, 2 = one parent, 3+ = deeply nested)
+ */
+export function calculateNestingDepth(
+  parentResource?: ParentResourceConfig,
+  parentResources?: readonly ParentResourceConfig[]
+): number {
+  if (parentResources && parentResources.length > 0) {
+    return parentResources.length + 1;
   }
-
-  // Otherwise append the path (e.g., '/:id')
-  return `${parentPath}${childBasePath}${mapping.path}`;
+  if (parentResource) {
+    return 2;
+  }
+  return 1;
 }
 
 /**

@@ -171,6 +171,91 @@ export function clearAuthRateLimitStore(): void {
 startCleanup();
 
 // ============================================================================
+// Configuration Helpers
+// ============================================================================
+
+/** Time constants for readability */
+const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_MINUTE_MS = 60 * 1000;
+
+/** IP-only key generator */
+const ipOnlyKeyGenerator = (ctx: BaseContext): string => ctx.request.ip ?? 'unknown';
+
+/**
+ * Default key generator combining IP and identifier
+ */
+function defaultKeyGenerator(ctx: BaseContext, identifier?: string): string {
+  const ip = ctx.request.ip ?? 'unknown';
+  return identifier ? `${ip}:${identifier.toLowerCase()}` : ip;
+}
+
+/**
+ * Default configurations for each operation type
+ */
+interface OperationDefaults {
+  maxAttempts: number;
+  windowMs: number;
+  lockoutDurationMs: number;
+  keyGenerator: (ctx: BaseContext, identifier?: string) => string;
+  message: string;
+  progressiveBackoff: boolean;
+}
+
+const OPERATION_DEFAULTS: Record<string, OperationDefaults> = {
+  login: {
+    maxAttempts: 5,
+    windowMs: FIFTEEN_MINUTES_MS,
+    lockoutDurationMs: FIFTEEN_MINUTES_MS,
+    keyGenerator: defaultKeyGenerator,
+    message: 'Too many login attempts. Please try again later.',
+    progressiveBackoff: true,
+  },
+  register: {
+    maxAttempts: 3,
+    windowMs: ONE_HOUR_MS,
+    lockoutDurationMs: ONE_HOUR_MS,
+    keyGenerator: ipOnlyKeyGenerator,
+    message: 'Too many registration attempts. Please try again later.',
+    progressiveBackoff: false,
+  },
+  passwordReset: {
+    maxAttempts: 3,
+    windowMs: ONE_HOUR_MS,
+    lockoutDurationMs: ONE_HOUR_MS,
+    keyGenerator: ipOnlyKeyGenerator,
+    message: 'Too many password reset attempts. Please try again later.',
+    progressiveBackoff: false,
+  },
+  refresh: {
+    maxAttempts: 10,
+    windowMs: ONE_MINUTE_MS,
+    lockoutDurationMs: ONE_MINUTE_MS,
+    keyGenerator: ipOnlyKeyGenerator,
+    message: 'Too many token refresh attempts. Please try again later.',
+    progressiveBackoff: false,
+  },
+};
+
+/**
+ * Build a complete rate limit config by merging user config with defaults
+ */
+function buildRateLimitConfig(
+  userConfig: AuthRateLimitConfig | undefined,
+  operation: keyof typeof OPERATION_DEFAULTS
+): Required<AuthRateLimitConfig> {
+  const defaults = OPERATION_DEFAULTS[operation];
+  return {
+    maxAttempts: userConfig?.maxAttempts ?? defaults.maxAttempts,
+    windowMs: userConfig?.windowMs ?? defaults.windowMs,
+    lockoutDurationMs: userConfig?.lockoutDurationMs ?? defaults.lockoutDurationMs,
+    keyGenerator: userConfig?.keyGenerator ?? defaults.keyGenerator,
+    message: userConfig?.message ?? defaults.message,
+    progressiveBackoff: userConfig?.progressiveBackoff ?? defaults.progressiveBackoff,
+  };
+}
+
+// ============================================================================
 // Auth Rate Limiter
 // ============================================================================
 
@@ -198,42 +283,18 @@ startCleanup();
  * ```
  */
 export function createAuthRateLimiter(config: AuthRateLimiterConfig = {}) {
-  // Default configurations
-  const loginConfig: Required<AuthRateLimitConfig> = {
-    maxAttempts: config.login?.maxAttempts ?? 5,
-    windowMs: config.login?.windowMs ?? 15 * 60 * 1000, // 15 minutes
-    lockoutDurationMs: config.login?.lockoutDurationMs ?? 15 * 60 * 1000,
-    keyGenerator: config.login?.keyGenerator ?? defaultKeyGenerator,
-    message: config.login?.message ?? 'Too many login attempts. Please try again later.',
-    progressiveBackoff: config.login?.progressiveBackoff ?? true,
-  };
+  // Build configurations using helper
+  const loginConfig = buildRateLimitConfig(config.login, 'login');
+  const registerConfig = buildRateLimitConfig(config.register, 'register');
+  const passwordResetConfig = buildRateLimitConfig(config.passwordReset, 'passwordReset');
+  const refreshConfig = buildRateLimitConfig(config.refresh, 'refresh');
 
-  const registerConfig: Required<AuthRateLimitConfig> = {
-    maxAttempts: config.register?.maxAttempts ?? 3,
-    windowMs: config.register?.windowMs ?? 60 * 60 * 1000, // 1 hour
-    lockoutDurationMs: config.register?.lockoutDurationMs ?? 60 * 60 * 1000,
-    keyGenerator: config.register?.keyGenerator ?? ((ctx) => ctx.request.ip ?? 'unknown'),
-    message: config.register?.message ?? 'Too many registration attempts. Please try again later.',
-    progressiveBackoff: config.register?.progressiveBackoff ?? false,
-  };
-
-  const passwordResetConfig: Required<AuthRateLimitConfig> = {
-    maxAttempts: config.passwordReset?.maxAttempts ?? 3,
-    windowMs: config.passwordReset?.windowMs ?? 60 * 60 * 1000, // 1 hour
-    lockoutDurationMs: config.passwordReset?.lockoutDurationMs ?? 60 * 60 * 1000,
-    keyGenerator: config.passwordReset?.keyGenerator ?? ((ctx) => ctx.request.ip ?? 'unknown'),
-    message:
-      config.passwordReset?.message ?? 'Too many password reset attempts. Please try again later.',
-    progressiveBackoff: config.passwordReset?.progressiveBackoff ?? false,
-  };
-
-  const refreshConfig: Required<AuthRateLimitConfig> = {
-    maxAttempts: config.refresh?.maxAttempts ?? 10,
-    windowMs: config.refresh?.windowMs ?? 60 * 1000, // 1 minute
-    lockoutDurationMs: config.refresh?.lockoutDurationMs ?? 60 * 1000,
-    keyGenerator: config.refresh?.keyGenerator ?? ((ctx) => ctx.request.ip ?? 'unknown'),
-    message: config.refresh?.message ?? 'Too many token refresh attempts. Please try again later.',
-    progressiveBackoff: config.refresh?.progressiveBackoff ?? false,
+  // Config lookup for operations
+  const configs: Record<string, Required<AuthRateLimitConfig>> = {
+    login: loginConfig,
+    register: registerConfig,
+    'password-reset': passwordResetConfig,
+    refresh: refreshConfig,
   };
 
   return {
@@ -303,12 +364,7 @@ export function createAuthRateLimiter(config: AuthRateLimiterConfig = {}) {
      */
     recordFailure: (key: string, operation: 'login' | 'register' | 'password-reset') => {
       const fullKey = `auth:${operation}:${key}`;
-      const config =
-        operation === 'login'
-          ? loginConfig
-          : operation === 'register'
-            ? registerConfig
-            : passwordResetConfig;
+      const operationConfig = configs[operation];
 
       const now = Date.now();
       const entry = authRateLimitStore.get(fullKey);
@@ -317,7 +373,7 @@ export function createAuthRateLimiter(config: AuthRateLimiterConfig = {}) {
         // Start new window
         authRateLimitStore.set(fullKey, {
           attempts: 1,
-          windowResetAt: now + config.windowMs,
+          windowResetAt: now + operationConfig.windowMs,
           lockoutUntil: null,
           lockoutCount: entry?.lockoutCount ?? 0,
         });
@@ -326,9 +382,11 @@ export function createAuthRateLimiter(config: AuthRateLimiterConfig = {}) {
         entry.attempts++;
 
         // Check if lockout should trigger
-        if (entry.attempts >= config.maxAttempts) {
-          const lockoutMultiplier = config.progressiveBackoff ? 2 ** entry.lockoutCount : 1;
-          entry.lockoutUntil = now + config.lockoutDurationMs * lockoutMultiplier;
+        if (entry.attempts >= operationConfig.maxAttempts) {
+          const lockoutMultiplier = operationConfig.progressiveBackoff
+            ? 2 ** entry.lockoutCount
+            : 1;
+          entry.lockoutUntil = now + operationConfig.lockoutDurationMs * lockoutMultiplier;
           entry.lockoutCount++;
         }
       }
@@ -365,20 +423,13 @@ export function createAuthRateLimiter(config: AuthRateLimiterConfig = {}) {
       operation: 'login' | 'register' | 'password-reset' | 'refresh'
     ): number => {
       const fullKey = `auth:${operation}:${key}`;
-      const config =
-        operation === 'login'
-          ? loginConfig
-          : operation === 'register'
-            ? registerConfig
-            : operation === 'refresh'
-              ? refreshConfig
-              : passwordResetConfig;
+      const operationConfig = configs[operation];
 
       const entry = authRateLimitStore.get(fullKey);
       if (!entry || entry.windowResetAt <= Date.now()) {
-        return config.maxAttempts;
+        return operationConfig.maxAttempts;
       }
-      return Math.max(0, config.maxAttempts - entry.attempts);
+      return Math.max(0, operationConfig.maxAttempts - entry.attempts);
     },
   };
 }
@@ -386,14 +437,6 @@ export function createAuthRateLimiter(config: AuthRateLimiterConfig = {}) {
 // ============================================================================
 // Internal Helpers
 // ============================================================================
-
-/**
- * Default key generator combining IP and identifier
- */
-function defaultKeyGenerator(ctx: BaseContext, identifier?: string): string {
-  const ip = ctx.request.ip ?? 'unknown';
-  return identifier ? `${ip}:${identifier.toLowerCase()}` : ip;
-}
 
 /**
  * Creates the actual rate limit middleware
