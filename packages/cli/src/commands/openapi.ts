@@ -300,6 +300,12 @@ function createServeCommand(): Command {
       const host = options.host ?? 'localhost';
       const watchMode = options.watch ?? false;
 
+      // Validate port number
+      if (isNaN(port) || port < 1 || port > 65535) {
+        console.error(pc.red(`Error: Invalid port number: ${options.port}. Must be between 1-65535.`));
+        process.exit(1);
+      }
+
       // Verify spec file exists
       if (!existsSync(filePath)) {
         console.error(pc.red(`Error: OpenAPI spec file not found: ${filePath}`));
@@ -343,9 +349,9 @@ function createServeCommand(): Command {
 
       // Watch for file changes
       let watcher: ReturnType<typeof watch> | undefined;
-      if (watchMode) {
-        let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+      let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
+      if (watchMode) {
         watcher = watch(filePath, () => {
           // Debounce rapid changes
           if (debounceTimer) {
@@ -363,6 +369,8 @@ function createServeCommand(): Command {
               console.log(pc.green('✓') + pc.dim(' Spec reloaded'));
             } catch (error) {
               console.error(pc.yellow('⚠') + pc.dim(` Failed to reload spec: ${(error as Error).message}`));
+            } finally {
+              debounceTimer = undefined;
             }
           }, 100);
         });
@@ -372,6 +380,9 @@ function createServeCommand(): Command {
       const shutdown = () => {
         console.log();
         console.log(pc.dim('Shutting down...'));
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+        }
         watcher?.close();
         server.close(() => {
           process.exit(0);
