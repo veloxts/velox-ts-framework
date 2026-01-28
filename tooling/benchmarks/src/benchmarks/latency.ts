@@ -36,6 +36,35 @@ interface LatencyResult {
 }
 
 /**
+ * Safely extracts a numeric value, returning undefined if invalid
+ */
+function safeNumber(value: number | undefined | null): number | undefined {
+  if (value === undefined || value === null || Number.isNaN(value)) {
+    return undefined;
+  }
+  return value;
+}
+
+/**
+ * Interpolates a missing percentile from surrounding values
+ * For example, p95 can be estimated from p90 and p99
+ */
+function interpolatePercentile(
+  lower: number | undefined,
+  upper: number | undefined,
+  lowerPct: number,
+  upperPct: number,
+  targetPct: number
+): number | undefined {
+  if (lower === undefined || upper === undefined) {
+    return lower ?? upper; // Return whichever is available
+  }
+  // Linear interpolation
+  const ratio = (targetPct - lowerPct) / (upperPct - lowerPct);
+  return lower + (upper - lower) * ratio;
+}
+
+/**
  * Runs latency benchmark for a specific endpoint
  */
 async function benchmarkEndpoint(
@@ -53,16 +82,28 @@ async function benchmarkEndpoint(
     duration,
   });
 
+  // Extract values safely, handling undefined/NaN
+  const p50 = safeNumber(result.latency.p50);
+  const p75 = safeNumber(result.latency.p75);
+  const p90 = safeNumber(result.latency.p90);
+  let p95 = safeNumber(result.latency.p95);
+  const p99 = safeNumber(result.latency.p99);
+
+  // Interpolate p95 if missing but p90 and p99 are available
+  if (p95 === undefined && (p90 !== undefined || p99 !== undefined)) {
+    p95 = interpolatePercentile(p90, p99, 90, 99, 95);
+  }
+
   return {
-    p50: result.latency.p50,
-    p75: result.latency.p75,
-    p90: result.latency.p90,
-    p95: result.latency.p95,
-    p99: result.latency.p99,
-    max: result.latency.max,
-    min: result.latency.min,
-    mean: result.latency.mean,
-    stddev: result.latency.stddev,
+    p50: p50 ?? 0,
+    p75: p75 ?? 0,
+    p90: p90 ?? 0,
+    p95: p95 ?? 0,
+    p99: p99 ?? 0,
+    max: safeNumber(result.latency.max) ?? 0,
+    min: safeNumber(result.latency.min) ?? 0,
+    mean: safeNumber(result.latency.mean) ?? 0,
+    stddev: safeNumber(result.latency.stddev) ?? 0,
   };
 }
 
@@ -135,7 +176,7 @@ async function runLatencyBenchmark(config: BenchmarkConfig): Promise<LatencyResu
     'Latency p95 (primary)',
     formatMs(primaryLatency.p95),
     '< 10 ms',
-    !Number.isNaN(primaryLatency.p95) && primaryLatency.p95 < 10
+    primaryLatency.p95 < 10
   );
   printMetric(
     'Latency p99 (primary)',

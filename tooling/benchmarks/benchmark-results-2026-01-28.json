@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-01-28T19:34:58.798Z",
+  "nodeVersion": "v24.11.0",
+  "platform": "darwin",
+  "startup": {
+    "startupTimeMs": 1315.1147165999996,
+    "timeToFirstResponse": 3.188050000000112,
+    "meetsTarget": false
+  },
+  "throughput": {
+    "requestsPerSecond": 37598.55,
+    "totalRequests": 413582,
+    "duration": 10,
+    "connections": 100,
+    "errors": 0,
+    "errorRate": 0,
+    "latency": {
+      "p50": 20,
+      "p75": 35,
+      "p90": 38,
+      "p99": 60,
+      "max": 403,
+      "min": 1,
+      "mean": 26.07,
+      "stddev": 17.18
+    },
+    "meetsTarget": true
+  },
+  "memory": {
+    "heapUsed": 45,
+    "heapTotal": 60,
+    "external": 5,
+    "arrayBuffers": 2,
+    "rss": 75,
+    "meetsTarget": true
+  }
+}
