@@ -115,7 +115,10 @@ async function main(): Promise<ThroughputResult | null> {
   if (!serverAlreadyRunning) {
     console.log('\n  Starting playground server...');
 
-    serverProcess = spawnServer(PLAYGROUND_DIR, 'node', ['dist/index.js'], { USE_MOCK_DB: 'true' });
+    serverProcess = spawnServer(PLAYGROUND_DIR, 'node', ['dist/index.js'], {
+      USE_MOCK_DB: 'true',
+      LOG_LEVEL: 'silent', // Disable logging to prevent memory accumulation
+    });
 
     const serverReady = await waitForServer(config.targetUrl, 30000);
     if (!serverReady) {

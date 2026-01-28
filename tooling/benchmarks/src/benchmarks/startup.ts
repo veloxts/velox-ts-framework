@@ -44,6 +44,7 @@ async function measureStartup(config: BenchmarkConfig): Promise<StartupResult> {
   // Spawn server
   const serverProcess = spawnServer(PLAYGROUND_DIR, 'node', ['dist/index.js'], {
     USE_MOCK_DB: 'true',
+    LOG_LEVEL: 'silent', // Disable logging for accurate startup time measurement
   });
 
   // Wait for server to be ready
