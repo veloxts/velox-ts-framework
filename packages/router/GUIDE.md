@@ -240,13 +240,16 @@ await registerDocs(app.server, {
 });
 ```
 
-### CLI Command
+### CLI Commands
 
-Generate OpenAPI specs from the command line:
+Generate and serve OpenAPI specs from the command line:
 
 ```bash
 # Basic generation
 velox openapi generate --output ./openapi.json
+
+# YAML output (auto-detected from extension)
+velox openapi generate -o ./docs/api.yaml
 
 # Full options
 velox openapi generate \
@@ -255,13 +258,35 @@ velox openapi generate \
   --title "My API" \
   --version "1.0.0" \
   --description "API documentation" \
-  --server http://localhost:3030 \
-  --server https://api.example.com \
-  --prefix /api
+  --server "http://localhost:3030|Development" \
+  --server "https://api.example.com|Production" \
+  --prefix /api \
+  --recursive \
+  --pretty
 
 # Serve documentation locally
 velox openapi serve --port 8080
+
+# Serve with hot-reload on file changes
+velox openapi serve --watch -f ./docs/api.yaml
 ```
+
+**Available Options:**
+
+`velox openapi generate`:
+- `-p, --path <path>` - Procedures directory (default: `./src/procedures`)
+- `-o, --output <file>` - Output file path (default: `./openapi.json`)
+- `-f, --format <format>` - Output format: `json` or `yaml` (auto-detected from extension)
+- `-s, --server <url>` - Server URL (format: `url|description`, repeatable)
+- `--prefix <prefix>` - API route prefix (default: `/api`)
+- `-r, --recursive` - Scan subdirectories for procedures
+- `-q, --quiet` - Suppress output except errors
+
+`velox openapi serve`:
+- `-f, --file <file>` - OpenAPI spec file (default: `./openapi.json`)
+- `--port <port>` - Server port (default: `8080`)
+- `--host <host>` - Host to bind (default: `localhost`)
+- `-w, --watch` - Watch for file changes and hot-reload
 
 ### Security Schemes
 

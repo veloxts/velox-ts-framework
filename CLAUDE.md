@@ -160,26 +160,67 @@ All scaffolded templates include these patterns by default.
 
 ### OpenAPI Documentation
 
-VeloxTS provides automatic OpenAPI specification generation from procedure definitions.
+VeloxTS provides automatic OpenAPI 3.0.3 specification generation from procedure definitions, with both CLI and programmatic APIs.
 
 #### CLI Commands
 
-```bash
-# Generate OpenAPI specification from procedures
-velox openapi generate                    # JSON output to ./openapi.json
-velox openapi generate -o api.yaml        # YAML output (auto-detected)
-velox openapi generate --format yaml      # Explicit YAML format
-velox openapi generate -t "My API" -V 2.0 # Custom title and version
-velox openapi generate -s "http://localhost:3030|Dev" # Add server URL
+**Generate OpenAPI Specification**
 
-# Start a local Swagger UI server
-velox openapi serve                       # Serve at http://localhost:8080
-velox openapi serve -f api.yaml           # Serve YAML spec
-velox openapi serve --port 9000           # Custom port
-velox openapi serve --watch               # Auto-reload on file changes
+```bash
+# Basic generation - JSON to ./openapi.json
+velox openapi generate
+
+# YAML output (auto-detected from extension)
+velox openapi generate -o ./docs/api.yaml
+
+# Full configuration
+velox openapi generate \
+  --path ./src/procedures \
+  --output ./docs/openapi.json \
+  --title "My API" \
+  --version "2.0.0" \
+  --description "Production API" \
+  --server "http://localhost:3030|Development" \
+  --server "https://api.example.com|Production" \
+  --prefix /api \
+  --recursive \
+  --pretty
+
+# Available options:
+# -p, --path <path>          Procedures directory (default: ./src/procedures)
+# -o, --output <file>        Output file path (default: ./openapi.json)
+# -f, --format <format>      json or yaml (auto-detected from extension)
+# -t, --title <title>        API title (default: VeloxTS API)
+# -V, --version <version>    API version (default: 1.0.0)
+# -d, --description <desc>   API description
+# -s, --server <url>         Server URL (format: url|description, repeatable)
+# --prefix <prefix>          API route prefix (default: /api)
+# -r, --recursive            Scan subdirectories for procedures
+# --pretty / --no-pretty     Pretty-print or minify output
+# --validate / --no-validate Validate generated spec
+# -q, --quiet                Suppress output except errors
+```
+
+**Serve Swagger UI**
+
+```bash
+# Start local Swagger UI server
+velox openapi serve                     # Serve at http://localhost:8080
+velox openapi serve -f ./docs/api.yaml  # Custom spec file
+velox openapi serve --port 9000         # Custom port
+velox openapi serve --host 0.0.0.0      # Bind to all interfaces
+velox openapi serve --watch             # Auto-reload on file changes
+
+# Available options:
+# -f, --file <file>   OpenAPI spec file (default: ./openapi.json)
+# --port <port>       Server port (default: 8080)
+# --host <host>       Host to bind (default: localhost)
+# -w, --watch         Watch for file changes and hot-reload
 ```
 
 #### Fastify Plugin (Recommended for Production)
+
+Serve interactive Swagger UI documentation alongside your API:
 
 ```typescript
 import { swaggerUIPlugin } from '@veloxts/router';
@@ -195,30 +236,115 @@ app.register(swaggerUIPlugin, {
     },
     servers: [
       { url: 'http://localhost:3030', description: 'Development' },
+      { url: 'https://api.example.com', description: 'Production' },
     ],
+    prefix: '/api',
+  },
+  title: 'API Documentation',         // Page title (optional)
+  uiConfig: {
+    deepLinking: true,                // Enable deep linking (default: true)
+    tryItOutEnabled: true,            // Enable "Try it out" (default: true)
+    persistAuthorization: false,      // Persist auth in localStorage
+    docExpansion: 'list',             // 'list', 'full', or 'none'
   },
 });
 ```
 
 The Swagger UI is then available at `/docs` with the raw spec at `/docs/openapi.json`.
 
-#### Procedure Annotations
+#### Programmatic API
 
-Enhance your OpenAPI documentation with Zod descriptions and deprecation flags:
+Generate OpenAPI specs in code:
 
 ```typescript
-// Field descriptions appear in OpenAPI schema
+import { generateOpenApiSpec, validateOpenApiSpec } from '@veloxts/router';
+
+// Generate specification
+const spec = generateOpenApiSpec([userProcedures, postProcedures], {
+  info: {
+    title: 'My API',
+    version: '1.0.0',
+    description: 'API documentation',
+  },
+  prefix: '/api',
+  servers: [
+    { url: 'http://localhost:3030', description: 'Development' },
+  ],
+});
+
+// Validate spec for issues
+const warnings = validateOpenApiSpec(spec);
+if (warnings.length > 0) {
+  console.warn('OpenAPI validation warnings:', warnings);
+}
+
+// Write to file
+import fs from 'fs';
+fs.writeFileSync('openapi.json', JSON.stringify(spec, null, 2));
+```
+
+Factory functions for common use cases:
+
+```typescript
+import { createSwaggerUI, getOpenApiSpec, registerDocs } from '@veloxts/router';
+
+// Create pre-configured plugin
+const docs = createSwaggerUI({
+  collections: [userProcedures],
+  openapi: { info: { title: 'My API', version: '1.0.0' } },
+});
+app.register(docs);
+
+// Get spec without registering routes
+const spec = getOpenApiSpec({
+  collections: [userProcedures],
+  openapi: { info: { title: 'My API', version: '1.0.0' } },
+});
+
+// Register docs with one call
+await registerDocs(app.server, {
+  collections: [userProcedures],
+  openapi: { info: { title: 'My API', version: '1.0.0' } },
+});
+```
+
+#### Procedure Annotations
+
+**Zod Schema Descriptions**
+
+Field descriptions flow from Zod schemas to OpenAPI parameter and property descriptions:
+
+```typescript
 const CreateUserSchema = z.object({
   name: z.string().min(1).describe('Display name for the user'),
   email: z.string().email().describe('Email address for authentication'),
+  age: z.number().min(0).max(150).optional().describe('User age in years'),
 });
 
-// Mark procedures as deprecated
-const getOldUser = procedure()
-  .deprecated('Use getUserById instead. This will be removed in v2.0.')
-  .input(z.object({ id: z.string() }))
-  .query(handler);
+// These descriptions appear in Swagger UI for each field
 ```
+
+**Procedure Deprecation**
+
+Mark procedures as deprecated in OpenAPI spec:
+
+```typescript
+const userProcedures = procedures('users', {
+  // Simple deprecation
+  getOldUser: procedure()
+    .input(z.object({ id: z.string() }))
+    .deprecated()  // Shows as deprecated in Swagger UI
+    .query(handler),
+
+  // With migration message
+  getUserLegacy: procedure()
+    .input(z.object({ id: z.string() }))
+    .deprecated('Use getUserById instead. This endpoint will be removed in v2.0.')
+    .query(handler),
+});
+```
+
+The deprecation flag and message appear in the OpenAPI spec and Swagger UI, helping API consumers migrate to newer endpoints.
 
 ### Publishing to npm (or Verdaccio for local testing)
 

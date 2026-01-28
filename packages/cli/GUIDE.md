@@ -111,6 +111,105 @@ Supported platforms:
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 - Linux: `~/.config/Claude/claude_desktop_config.json`
 
+### velox openapi generate
+
+Generate OpenAPI 3.0.3 specification from procedure definitions:
+
+```bash
+# Basic usage - JSON to ./openapi.json
+velox openapi generate
+
+# YAML output (auto-detected from extension)
+velox openapi generate -o ./docs/api.yaml
+
+# Full configuration
+velox openapi generate \
+  --path ./src/procedures \
+  --output ./docs/openapi.json \
+  --title "My API" \
+  --version "2.0.0" \
+  --description "Production API documentation" \
+  --server "http://localhost:3030|Development" \
+  --server "https://api.example.com|Production" \
+  --prefix /api \
+  --recursive \
+  --pretty
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-p, --path <path>` | Procedures directory | `./src/procedures` |
+| `-o, --output <file>` | Output file path | `./openapi.json` |
+| `-f, --format <format>` | Output format: `json` or `yaml` | Auto-detected from extension |
+| `-t, --title <title>` | API title | `VeloxTS API` |
+| `-V, --version <version>` | API version | `1.0.0` |
+| `-d, --description <desc>` | API description | None |
+| `-s, --server <url>` | Server URL (repeatable, format: `url\|description`) | None |
+| `--prefix <prefix>` | API route prefix | `/api` |
+| `-r, --recursive` | Scan subdirectories for procedures | `false` |
+| `--pretty` / `--no-pretty` | Pretty-print or minify output | `true` |
+| `--validate` / `--no-validate` | Validate generated spec for issues | `true` |
+| `-q, --quiet` | Suppress output except errors | `false` |
+
+**Server URL Format:**
+
+You can specify multiple server URLs using the `url|description` format:
+
+```bash
+velox openapi generate \
+  -s "http://localhost:3030|Local development" \
+  -s "https://staging.example.com|Staging environment" \
+  -s "https://api.example.com|Production"
+```
+
+**Output:**
+
+The command generates a complete OpenAPI 3.0.3 specification including:
+- Auto-generated paths from procedure naming conventions
+- Request/response schemas from Zod definitions
+- Security schemes from guards (JWT, API keys, etc.)
+- Deprecation warnings from `.deprecated()` procedures
+- Field descriptions from Zod `.describe()` calls
+
+### velox openapi serve
+
+Start a local Swagger UI server to preview OpenAPI documentation:
+
+```bash
+# Serve with default settings
+velox openapi serve
+
+# Custom spec file and port
+velox openapi serve -f ./docs/api.yaml --port 9000
+
+# Enable hot-reload on file changes
+velox openapi serve --watch
+
+# Bind to all interfaces (accessible from network)
+velox openapi serve --host 0.0.0.0
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-f, --file <file>` | OpenAPI spec file (JSON or YAML) | `./openapi.json` |
+| `--port <port>` | Server port | `8080` |
+| `--host <host>` | Host to bind | `localhost` |
+| `-w, --watch` | Watch for file changes and hot-reload | `false` |
+
+**Features:**
+- Interactive Swagger UI interface
+- Try out API endpoints directly from the browser
+- Auto-reload when spec file changes (with `--watch`)
+- CORS enabled for development
+
+The server provides two endpoints:
+- `/` - Swagger UI interface
+- `/openapi.json` - Raw OpenAPI specification (always JSON, regardless of source format)
+
 ## Database Seeding
 
 ### Creating Seeders

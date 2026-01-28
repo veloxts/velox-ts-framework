@@ -99,9 +99,11 @@ describe('schema-converter', () => {
     });
 
     it('preserves schema-level description', () => {
-      const schema = z.object({
-        name: z.string(),
-      }).describe('A user object representing a registered user');
+      const schema = z
+        .object({
+          name: z.string(),
+        })
+        .describe('A user object representing a registered user');
 
       const result = zodSchemaToJsonSchema(schema);
       expect(result?.description).toBe('A user object representing a registered user');
@@ -121,28 +123,33 @@ describe('schema-converter', () => {
     });
 
     it('preserves descriptions for nested objects', () => {
-      const AddressSchema = z.object({
-        street: z.string().describe('Street address'),
-        city: z.string().describe('City name'),
-      }).describe('Physical mailing address');
+      const AddressSchema = z
+        .object({
+          street: z.string().describe('Street address'),
+          city: z.string().describe('City name'),
+        })
+        .describe('Physical mailing address');
 
       const schema = z.object({
-        user: z.object({
-          name: z.string().describe('Full name'),
-          address: AddressSchema,
-        }).describe('User profile information'),
+        user: z
+          .object({
+            name: z.string().describe('Full name'),
+            address: AddressSchema,
+          })
+          .describe('User profile information'),
       });
 
       const result = zodSchemaToJsonSchema(schema);
-      const properties = result?.properties as Record<string, { description?: string; properties?: Record<string, { description?: string }> }>;
+      const properties = result?.properties as Record<
+        string,
+        { description?: string; properties?: Record<string, { description?: string }> }
+      >;
 
       expect(properties?.user?.description).toBe('User profile information');
     });
 
     it('preserves array item descriptions', () => {
-      const schema = z.array(
-        z.string().describe('Tag identifier')
-      ).describe('List of tags');
+      const schema = z.array(z.string().describe('Tag identifier')).describe('List of tags');
 
       const result = zodSchemaToJsonSchema(schema);
       expect(result?.description).toBe('List of tags');
