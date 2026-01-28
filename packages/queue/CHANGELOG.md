@@ -1,5 +1,13 @@
 # @veloxts/queue
 
+## 0.6.86
+
+### Patch Changes
+
+- updated documentation
+- Updated dependencies
+  - @veloxts/core@0.6.86
+
 ## 0.6.85
 
 ### Patch Changes

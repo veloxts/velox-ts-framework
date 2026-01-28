@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.86
+
+### Patch Changes
+
+- updated documentation
+- Updated dependencies
+  - @veloxts/cli@0.6.86
+  - @veloxts/router@0.6.86
+  - @veloxts/validation@0.6.86
+
 ## 0.6.85
 
 ### Patch Changes
