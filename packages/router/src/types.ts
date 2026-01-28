@@ -288,17 +288,17 @@ export interface RestRouteOverride {
  */
 export interface ParentResourceConfig {
   /**
-   * Parent resource namespace (e.g., 'posts', 'users')
-   * Used to build the parent path segment: `/${namespace}/:${paramName}`
+   * Parent resource name (e.g., 'posts', 'users')
+   * Used to build the parent path segment: `/${resource}/:${param}`
    */
-  readonly namespace: string;
+  readonly resource: string;
 
   /**
    * Parent resource parameter name in the path
-   * Defaults to `${singularNamespace}Id` if not specified
+   * Defaults to `${singularResource}Id` if not specified
    * (e.g., 'posts' -> 'postId', 'users' -> 'userId')
    */
-  readonly paramName: string;
+  readonly param: string;
 }
 
 /**

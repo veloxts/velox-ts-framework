@@ -1,0 +1,672 @@
+---
+title: Nested Routes
+description: Create hierarchical REST APIs with single-level and multi-level resource nesting.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+VeloxTS supports both single-level and multi-level resource nesting, allowing you to model hierarchical relationships in your REST API.
+
+## Single-Level Nesting
+
+Use the `.parent()` method to nest a resource under a single parent resource.
+
+### Basic Usage
+
+```typescript
+import { procedures, procedure } from '@veloxts/router';
+import { z } from 'zod';
+
+// Comments nested under posts
+export const commentProcedures = procedures('comments', {
+  // GET /posts/:postId/comments/:id
+  getComment: procedure()
+    .parent('posts')
+    .input(z.object({ postId: z.string(), id: z.string() }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.comment.findUniqueOrThrow({
+        where: {
+          id: input.id,
+          postId: input.postId, // Ensure comment belongs to post
+        },
+      });
+    }),
+
+  // GET /posts/:postId/comments
+  listComments: procedure()
+    .parent('posts')
+    .input(z.object({ postId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.comment.findMany({
+        where: { postId: input.postId },
+      });
+    }),
+
+  // POST /posts/:postId/comments
+  createComment: procedure()
+    .parent('posts')
+    .input(z.object({
+      postId: z.string(),
+      content: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.comment.create({
+        data: {
+          content: input.content,
+          postId: input.postId,
+        },
+      });
+    }),
+});
+```
+
+### Custom Parameter Names
+
+By default, VeloxTS generates parameter names by singularizing the namespace and adding `Id`:
+- `posts` → `postId`
+- `users` → `userId`
+- `categories` → `categoryId`
+
+Override this with a custom parameter name:
+
+```typescript
+// GET /posts/:post_id/comments/:id
+getComment: procedure()
+  .parent('posts', 'post_id')
+  .input(z.object({ post_id: z.string(), id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    return await ctx.db.comment.findUniqueOrThrow({
+      where: { id: input.id, postId: input.post_id },
+    });
+  }),
+```
+
+<Aside type="caution" title="Input Schema Requirement">
+Your input schema MUST include the parent parameter. VeloxTS extracts it from the URL and passes it to your handler through the `input` object.
+
+```typescript
+// BAD - Missing postId in input
+.parent('posts')
+.input(z.object({ id: z.string() })) // ❌ No postId!
+
+// GOOD - Parent parameter included
+.parent('posts')
+.input(z.object({ postId: z.string(), id: z.string() })) // ✅
+```
+</Aside>
+
+## Multi-Level Nesting
+
+Use the `.parents()` method to nest resources under multiple parent resources.
+
+### Basic Usage
+
+```typescript
+// Tasks nested under organizations and projects
+export const taskProcedures = procedures('tasks', {
+  // GET /organizations/:orgId/projects/:projectId/tasks/:id
+  getTask: procedure()
+    .parents([
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+    ])
+    .input(z.object({
+      orgId: z.string(),
+      projectId: z.string(),
+      id: z.string(),
+    }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.task.findUniqueOrThrow({
+        where: {
+          id: input.id,
+          projectId: input.projectId,
+          project: {
+            organizationId: input.orgId,
+          },
+        },
+      });
+    }),
+
+  // GET /organizations/:orgId/projects/:projectId/tasks
+  listTasks: procedure()
+    .parents([
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+    ])
+    .input(z.object({
+      orgId: z.string(),
+      projectId: z.string(),
+    }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.task.findMany({
+        where: {
+          projectId: input.projectId,
+          project: {
+            organizationId: input.orgId,
+          },
+        },
+      });
+    }),
+});
+```
+
+### Parent Array Order
+
+Parents are specified from **outermost to innermost**:
+
+```typescript
+.parents([
+  { resource: 'organizations', param: 'orgId' },      // Outermost
+  { resource: 'projects', param: 'projectId' },       // Middle
+  { resource: 'sprints', param: 'sprintId' },         // Innermost
+])
+// Generates: /organizations/:orgId/projects/:projectId/sprints/:sprintId/tasks
+```
+
+<Aside type="tip" title="Parameter Name Inference">
+If you omit the `param` field, VeloxTS uses the same singularization logic:
+
+```typescript
+.parents([
+  { resource: 'organizations' },  // Infers: orgId → organizationId
+  { resource: 'projects' },        // Infers: projectId
+])
+```
+
+Be explicit with `param` for clarity and control.
+</Aside>
+
+## Shortcuts
+
+For deeply nested resources, accessing a single item requires knowing all parent IDs. The `shortcuts` option generates **both** nested and shortcut routes.
+
+### Enabling Shortcuts
+
+```typescript
+import { rest } from '@veloxts/router';
+
+// Enable shortcuts in REST adapter
+app.register(
+  rest([organizationProcedures, projectProcedures, taskProcedures], {
+    shortcuts: true,
+  }),
+  { prefix: '/api' }
+);
+```
+
+### Generated Routes
+
+With `shortcuts: true`, single-resource operations generate two routes:
+
+```typescript
+// Original nested route
+GET /organizations/:orgId/projects/:projectId/tasks/:id
+
+// Additional shortcut
+GET /tasks/:id
+```
+
+Both routes call the same handler. The shortcut route extracts only the `:id` parameter, so your handler receives:
+
+```typescript
+// Nested: { orgId: "...", projectId: "...", id: "..." }
+// Flat:   { id: "..." }
+```
+
+<Aside type="note" title="Shortcut Limitations">
+**Shortcut routes are ONLY generated for single-resource operations** (those ending with `/:id`):
+- ✅ `GET /tasks/:id` - Single resource
+- ✅ `PUT /tasks/:id` - Single resource update
+- ✅ `DELETE /tasks/:id` - Single resource deletion
+- ❌ `GET /tasks` - Collection (requires parent context)
+- ❌ `POST /tasks` - Creation (requires parent context)
+
+Collection and creation operations require parent IDs to determine context, so they remain nested-only.
+</Aside>
+
+### Handler Compatibility
+
+When using shortcuts, design handlers to work with or without parent parameters:
+
+```typescript
+getTask: procedure()
+  .parents([
+    { resource: 'organizations', param: 'orgId' },
+    { resource: 'projects', param: 'projectId' },
+  ])
+  .input(z.object({
+    orgId: z.string().optional(),      // Optional for shortcuts
+    projectId: z.string().optional(),  // Optional for shortcuts
+    id: z.string(),
+  }))
+  .query(async ({ input, ctx }) => {
+    const task = await ctx.db.task.findUniqueOrThrow({
+      where: { id: input.id },
+      include: { project: true },
+    });
+
+    // Validate parent IDs if provided (nested route)
+    if (input.orgId && task.project.organizationId !== input.orgId) {
+      throw new Error('Task does not belong to this organization');
+    }
+
+    if (input.projectId && task.projectId !== input.projectId) {
+      throw new Error('Task does not belong to this project');
+    }
+
+    return task;
+  }),
+```
+
+## Nesting Depth Warnings
+
+VeloxTS warns when resource nesting exceeds **3 levels**, as deeply nested APIs can become unwieldy.
+
+### Warning Example
+
+```typescript
+// 4-level nesting triggers a warning
+procedures('features', {
+  getFeature: procedure()
+    .parents([
+      { resource: 'organizations', param: 'orgId' },       // Level 1
+      { resource: 'projects', param: 'projectId' },        // Level 2
+      { resource: 'sprints', param: 'sprintId' },          // Level 3
+      { resource: 'stories', param: 'storyId' },           // Level 4
+    ])
+    .input(z.object({ ... }))
+    .query(async ({ input, ctx }) => { ... }),
+});
+```
+
+Console output:
+```
+⚠️  Resource 'features/getFeature' has 4 levels of nesting.
+    Consider using shortcuts: true or restructuring your API.
+```
+
+### Disabling Warnings
+
+If deep nesting is intentional, disable warnings with `nestingWarnings: false`:
+
+```typescript
+rest([featureProcedures], {
+  shortcuts: true,
+  nestingWarnings: false,
+});
+```
+
+<Aside type="caution" title="Design Consideration">
+Deep nesting often indicates architectural issues. Consider alternatives:
+- **Shortcuts**: Use `shortcuts: true` for direct resource access
+- **Query parameters**: Use `/tasks?projectId=...&orgId=...` instead of nested paths
+- **Restructure**: Model relationships differently (e.g., `/tasks/:id` with embedded relationships)
+
+REST best practices typically recommend **2-3 levels maximum** for maintainability.
+</Aside>
+
+## Complete Example
+
+<Tabs>
+  <TabItem label="Single-Level">
+```typescript
+import { procedures, procedure, rest } from '@veloxts/router';
+import { z } from 'zod';
+
+// Posts at root level
+export const postProcedures = procedures('posts', {
+  listPosts: procedure()
+    .output(z.array(PostSchema))
+    .query(async ({ ctx }) => {
+      return await ctx.db.post.findMany();
+    }),
+
+  getPost: procedure()
+    .input(z.object({ id: z.string() }))
+    .output(PostSchema)
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.post.findUniqueOrThrow({
+        where: { id: input.id },
+      });
+    }),
+});
+
+// Comments nested under posts
+export const commentProcedures = procedures('comments', {
+  // GET /posts/:postId/comments
+  listComments: procedure()
+    .parent('posts')
+    .input(z.object({ postId: z.string() }))
+    .output(z.array(CommentSchema))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.comment.findMany({
+        where: { postId: input.postId },
+        orderBy: { createdAt: 'desc' },
+      });
+    }),
+
+  // GET /posts/:postId/comments/:id
+  getComment: procedure()
+    .parent('posts')
+    .input(z.object({ postId: z.string(), id: z.string() }))
+    .output(CommentSchema)
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.comment.findUniqueOrThrow({
+        where: { id: input.id, postId: input.postId },
+      });
+    }),
+
+  // POST /posts/:postId/comments
+  createComment: procedure()
+    .parent('posts')
+    .input(z.object({
+      postId: z.string(),
+      content: z.string().min(1),
+      authorId: z.string(),
+    }))
+    .output(CommentSchema)
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.comment.create({
+        data: {
+          content: input.content,
+          authorId: input.authorId,
+          postId: input.postId,
+        },
+      });
+    }),
+
+  // DELETE /posts/:postId/comments/:id
+  deleteComment: procedure()
+    .parent('posts')
+    .input(z.object({ postId: z.string(), id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.db.comment.delete({
+        where: { id: input.id, postId: input.postId },
+      });
+    }),
+});
+
+// Register with REST adapter
+app.register(
+  rest([postProcedures, commentProcedures]),
+  { prefix: '/api' }
+);
+```
+  </TabItem>
+  <TabItem label="Multi-Level">
+```typescript
+import { procedures, procedure, rest } from '@veloxts/router';
+import { z } from 'zod';
+
+// Organizations at root level
+export const organizationProcedures = procedures('organizations', {
+  listOrganizations: procedure()
+    .query(async ({ ctx }) => {
+      return await ctx.db.organization.findMany();
+    }),
+});
+
+// Projects nested under organizations
+export const projectProcedures = procedures('projects', {
+  listProjects: procedure()
+    .parent('organizations')
+    .input(z.object({ organizationId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.project.findMany({
+        where: { organizationId: input.organizationId },
+      });
+    }),
+});
+
+// Tasks nested under organizations AND projects
+export const taskProcedures = procedures('tasks', {
+  // GET /organizations/:orgId/projects/:projectId/tasks
+  listTasks: procedure()
+    .parents([
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+    ])
+    .input(z.object({
+      orgId: z.string(),
+      projectId: z.string(),
+      status: z.enum(['todo', 'in_progress', 'done']).optional(),
+    }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.task.findMany({
+        where: {
+          projectId: input.projectId,
+          status: input.status,
+          project: {
+            organizationId: input.orgId,
+          },
+        },
+      });
+    }),
+
+  // GET /organizations/:orgId/projects/:projectId/tasks/:id
+  // Also generates: GET /tasks/:id (with shortcuts)
+  getTask: procedure()
+    .parents([
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+    ])
+    .input(z.object({
+      orgId: z.string().optional(),
+      projectId: z.string().optional(),
+      id: z.string(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const task = await ctx.db.task.findUniqueOrThrow({
+        where: { id: input.id },
+        include: { project: true },
+      });
+
+      // Validate parent context if provided
+      if (input.projectId && task.projectId !== input.projectId) {
+        throw new Error('Task not found in this project');
+      }
+      if (input.orgId && task.project.organizationId !== input.orgId) {
+        throw new Error('Task not found in this organization');
+      }
+
+      return task;
+    }),
+
+  // POST /organizations/:orgId/projects/:projectId/tasks
+  createTask: procedure()
+    .parents([
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+    ])
+    .input(z.object({
+      orgId: z.string(),
+      projectId: z.string(),
+      title: z.string(),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // Verify project belongs to organization
+      const project = await ctx.db.project.findUniqueOrThrow({
+        where: {
+          id: input.projectId,
+          organizationId: input.orgId,
+        },
+      });
+
+      return await ctx.db.task.create({
+        data: {
+          title: input.title,
+          description: input.description,
+          projectId: project.id,
+        },
+      });
+    }),
+});
+
+// Register with shortcuts enabled
+app.register(
+  rest(
+    [organizationProcedures, projectProcedures, taskProcedures],
+    { shortcuts: true }
+  ),
+  { prefix: '/api' }
+);
+```
+  </TabItem>
+</Tabs>
+
+## Type Safety
+
+VeloxTS preserves full type safety through nested routes:
+
+```typescript
+// Input type includes all parent parameters
+type TaskInput = {
+  orgId: string;
+  projectId: string;
+  id: string;
+};
+
+// Handler receives correctly typed input
+getTask: procedure()
+  .parents([...])
+  .input(TaskInputSchema)
+  .query(async ({ input, ctx }) => {
+    // input.orgId - fully typed
+    // input.projectId - fully typed
+    // input.id - fully typed
+  }),
+```
+
+The input schema enforces that all parent parameters are present and validated before reaching your handler.
+
+## OpenAPI Support
+
+Nested routes are automatically included in OpenAPI documentation:
+
+```yaml
+paths:
+  /posts/{postId}/comments:
+    get:
+      summary: List comments for a post
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+
+  /posts/{postId}/comments/{id}:
+    get:
+      summary: Get a specific comment
+      parameters:
+        - name: postId
+          in: path
+          required: true
+        - name: id
+          in: path
+          required: true
+```
+
+## Best Practices
+
+### Use Nesting for True Hierarchies
+
+Nesting should reflect genuine parent-child relationships:
+
+```typescript
+// GOOD - Comments belong to posts
+GET /posts/:postId/comments/:id
+
+// BAD - Users don't "belong" to posts
+GET /posts/:postId/users/:userId
+```
+
+### Validate Parent Relationships
+
+Always verify that child resources actually belong to the specified parents:
+
+```typescript
+getComment: procedure()
+  .parent('posts')
+  .input(z.object({ postId: z.string(), id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    // This query ENFORCES the parent relationship
+    return await ctx.db.comment.findUniqueOrThrow({
+      where: {
+        id: input.id,
+        postId: input.postId, // ✅ Validates comment belongs to post
+      },
+    });
+  }),
+```
+
+### Consider Shortcuts for Deep Nesting
+
+If you need more than 2 levels of nesting, enable `shortcuts` for direct access:
+
+```typescript
+rest([...procedures], { shortcuts: true });
+```
+
+This provides both nested URLs (for context) and shortcut URLs (for convenience).
+
+### Use Query Params for Filtering
+
+Instead of deep nesting for filters, use query parameters:
+
+```typescript
+// AVOID - Overly nested for filtering
+GET /organizations/:orgId/projects/:projectId/tasks/assigned-to/:userId
+
+// BETTER - Flat with query params
+GET /organizations/:orgId/projects/:projectId/tasks?assignedTo=:userId
+```
+
+## Troubleshooting
+
+### Missing parent parameter in input
+
+**Error:** Handler receives `undefined` for parent parameter
+
+**Cause:** Input schema doesn't include the parent parameter
+
+**Fix:** Add parent parameter to input schema:
+
+```typescript
+.parent('posts')
+.input(z.object({
+  postId: z.string(), // ✅ Must include parent param
+  id: z.string(),
+}))
+```
+
+### 404 on nested route
+
+**Cause:** Route wasn't generated correctly
+
+**Debug:** Check console for nesting warnings, verify `.parent()` or `.parents()` configuration matches your input schema.
+
+### Type error on handler input
+
+**Cause:** Input schema doesn't match parent configuration
+
+**Fix:** Ensure input schema includes ALL parent parameters in the same order as `.parents()`:
+
+```typescript
+.parents([
+  { resource: 'organizations', param: 'orgId' },
+  { resource: 'projects', param: 'projectId' },
+])
+.input(z.object({
+  orgId: z.string(),        // ✅ Matches first parent
+  projectId: z.string(),    // ✅ Matches second parent
+  id: z.string(),
+}))
+```
+
+## Next Steps
+
+- [REST Conventions](/docs/router/rest-conventions/) - Naming patterns for REST routes
+- [REST Overrides](/docs/router/rest-overrides/) - Manual route configuration
+- [OpenAPI](/docs/router/openapi/) - API documentation generation

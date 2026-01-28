@@ -16,16 +16,13 @@
  * import { createAuth0Adapter } from '@veloxts/auth/adapters/auth0';
  *
  * const adapter = createAuth0Adapter({
- *   name: 'auth0',
  *   domain: process.env.AUTH0_DOMAIN!,
  *   audience: process.env.AUTH0_AUDIENCE!,
  *   clientId: process.env.AUTH0_CLIENT_ID,
  * });
  *
- * const authPlugin = createAuthAdapterPlugin({
- *   adapter,
- *   config: adapter.config,
- * });
+ * // Simplified API - just pass the adapter
+ * const authPlugin = createAuthAdapterPlugin(adapter);
  *
  * app.use(authPlugin);
  * ```
@@ -875,17 +872,14 @@ function transformAuth0Session(claims: Auth0Claims): AdapterSessionResult {
  * import { createAuthAdapterPlugin } from '@veloxts/auth';
  *
  * const adapter = createAuth0Adapter({
- *   name: 'auth0',
  *   domain: process.env.AUTH0_DOMAIN!,
  *   audience: process.env.AUTH0_AUDIENCE!,
  *   clientId: process.env.AUTH0_CLIENT_ID, // Optional
  *   debug: process.env.NODE_ENV === 'development',
  * });
  *
- * const authPlugin = createAuthAdapterPlugin({
- *   adapter,
- *   config: adapter.config,
- * });
+ * // Simplified API - just pass the adapter
+ * const authPlugin = createAuthAdapterPlugin(adapter);
  *
  * app.use(authPlugin);
  * ```

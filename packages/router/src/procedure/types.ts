@@ -302,13 +302,13 @@ export interface ProcedureBuilder<
    * Declares a parent resource for nested routes (single level)
    *
    * When a procedure has a parent resource, the REST path will be nested
-   * under the parent: `/${parentNamespace}/:${parentParam}/${childNamespace}/:id`
+   * under the parent: `/${parentResource}/:${parentParam}/${childResource}/:id`
    *
    * The input schema should include the parent parameter (e.g., `postId`) for
    * proper type safety and runtime validation.
    *
-   * @param namespace - Parent resource namespace (e.g., 'posts', 'users')
-   * @param paramName - Optional custom parameter name (default: `${singularNamespace}Id`)
+   * @param resource - Parent resource name (e.g., 'posts', 'users')
+   * @param param - Optional custom parameter name (default: `${singularResource}Id`)
    * @returns Same builder (no type changes)
    *
    * @example
@@ -326,7 +326,7 @@ export interface ProcedureBuilder<
    *   .query(async ({ input }) => { ... });
    * ```
    */
-  parent(namespace: string, paramName?: string): ProcedureBuilder<TInput, TOutput, TContext>;
+  parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext>;
 
   /**
    * Declares multiple parent resources for deeply nested routes

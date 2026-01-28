@@ -1,0 +1,683 @@
+---
+title: Authentication Adapters
+description: Integrate third-party authentication providers with VeloxTS.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+VeloxTS provides a pluggable authentication system that integrates with popular authentication providers through adapters. This allows you to use services like Clerk, Auth0, or Better Auth without writing custom authentication logic.
+
+## Available Adapters
+
+| Adapter | Provider | Use Case |
+|---------|----------|----------|
+| **JWT Adapter** | Built-in | Custom JWT authentication |
+| **Clerk Adapter** | [Clerk](https://clerk.com) | Complete user management platform |
+| **Auth0 Adapter** | [Auth0](https://auth0.com) | Enterprise identity platform |
+| **Better Auth Adapter** | [Better Auth](https://www.better-auth.com) | Open-source authentication library |
+
+## Core Concepts
+
+### Adapter Pattern
+
+All adapters implement the same interface, providing:
+- **Session verification** - Validate authentication tokens/cookies
+- **User loading** - Transform provider user data to VeloxTS format
+- **Context integration** - Automatically inject `ctx.user` and `ctx.session`
+
+### How It Works
+
+1. Request arrives with authentication credentials (JWT, cookie, etc.)
+2. Adapter verifies credentials with the provider
+3. User and session data are loaded and transformed
+4. Data is injected into procedure context as `ctx.user` and `ctx.session`
+5. Guards and procedures can access authenticated user data
+
+```typescript
+// After adapter processes request
+procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => {
+    // ctx.user - User object from adapter
+    // ctx.session - Session info from adapter
+    return { email: ctx.user.email };
+  })
+```
+
+## Clerk Adapter
+
+Integrate [Clerk](https://clerk.com) - a complete user management platform with authentication, user profiles, and organization management.
+
+### Installation
+
+```bash
+npm install @clerk/backend
+```
+
+Clerk adapter is a peer dependency - you must install `@clerk/backend` separately.
+
+### Configuration
+
+```typescript
+import { createAuthAdapterPlugin } from '@veloxts/auth';
+import { createClerkAdapter } from '@veloxts/auth/adapters';
+import { createClerkClient } from '@clerk/backend';
+
+// Create Clerk client
+const clerk = createClerkClient({
+  secretKey: process.env.CLERK_SECRET_KEY!,
+  publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+});
+
+// Create adapter
+const adapter = createClerkAdapter({
+  clerk,
+  authorizedParties: ['http://localhost:3000', 'https://myapp.com'],
+  fetchUserData: true,  // Fetch full user profile from Clerk API
+  debug: process.env.NODE_ENV === 'development',
+});
+
+// Create and register plugin
+app.use(createAuthAdapterPlugin(adapter));
+```
+
+### Configuration Options
+
+```typescript
+interface ClerkAdapterConfig {
+  /** Clerk client instance from @clerk/backend */
+  clerk: ClerkClient;
+
+  /** Authorized origins for token verification */
+  authorizedParties?: string[];
+
+  /** Expected audience claim (optional) */
+  audiences?: string | string[];
+
+  /** Clock tolerance in seconds (default: 5) */
+  clockTolerance?: number;
+
+  /** Custom authorization header name (default: 'authorization') */
+  authHeader?: string;
+
+  /** Fetch full user data from Clerk API (default: true) */
+  fetchUserData?: boolean;
+
+  /** Enable debug logging */
+  debug?: boolean;
+}
+```
+
+### How It Works
+
+1. Extracts JWT from `Authorization: Bearer <token>` header
+2. Verifies token with Clerk's backend SDK
+3. Optionally fetches full user profile from Clerk API
+4. Transforms Clerk user/session to VeloxTS format
+5. Injects into `ctx.user` and `ctx.session`
+
+### Available User Data
+
+```typescript
+procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => {
+    // Standard fields
+    ctx.user.id;           // Clerk user ID
+    ctx.user.email;        // Primary email
+    ctx.user.name;         // Full name
+    ctx.user.image;        // Profile picture URL
+    ctx.user.emailVerified; // Email verification status
+
+    // Provider-specific data
+    ctx.user.providerData.organizationId;          // Clerk org ID
+    ctx.user.providerData.organizationRole;        // Org role
+    ctx.user.providerData.organizationSlug;        // Org slug
+    ctx.user.providerData.organizationPermissions; // Org permissions
+    ctx.user.providerData.publicMetadata;          // Public metadata
+    ctx.user.providerData.privateMetadata;         // Private metadata
+
+    // Session info
+    ctx.session.sessionId;  // Clerk session ID
+    ctx.session.expiresAt;  // Expiration timestamp
+  })
+```
+
+### Organization Support
+
+Clerk adapter automatically includes organization data if the token contains organization claims:
+
+```typescript
+procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => {
+    const orgId = ctx.user.providerData.organizationId;
+    const orgRole = ctx.user.providerData.organizationRole;
+    const orgPermissions = ctx.user.providerData.organizationPermissions;
+
+    if (orgPermissions?.includes('org:invoices:create')) {
+      // User has permission to create invoices
+    }
+  })
+```
+
+### Disabling User Data Fetching
+
+For performance, you can skip fetching full user data and use only JWT claims:
+
+```typescript
+const adapter = createClerkAdapter({
+  clerk,
+  fetchUserData: false, // Only use data from JWT claims
+});
+```
+
+This reduces API calls but limits available user data to what's in the token.
+
+<Aside type="tip" title="When to Disable fetchUserData">
+- **Enable** (default) when you need full user profiles, metadata, or verification status
+- **Disable** for high-traffic APIs where you only need basic user info (ID, email)
+</Aside>
+
+## Auth0 Adapter
+
+Integrate [Auth0](https://auth0.com) - an enterprise identity platform with extensive authentication features and compliance certifications.
+
+### Installation
+
+No additional dependencies required. The adapter uses Web Crypto API for JWT verification.
+
+### Configuration
+
+```typescript
+import { createAuthAdapterPlugin } from '@veloxts/auth';
+import { createAuth0Adapter } from '@veloxts/auth/adapters';
+
+const adapter = createAuth0Adapter({
+  domain: process.env.AUTH0_DOMAIN!,        // e.g., 'your-tenant.auth0.com'
+  audience: process.env.AUTH0_AUDIENCE!,    // Your API identifier
+  clientId: process.env.AUTH0_CLIENT_ID,    // Optional: validate azp claim
+  debug: process.env.NODE_ENV === 'development',
+});
+
+app.use(createAuthAdapterPlugin(adapter));
+```
+
+### Configuration Options
+
+```typescript
+interface Auth0AdapterConfig {
+  /** Auth0 tenant domain (e.g., 'your-tenant.auth0.com') */
+  domain: string;
+
+  /** API audience identifier (must match Auth0 API settings) */
+  audience: string;
+
+  /** Client ID (optional, validates azp claim if provided) */
+  clientId?: string;
+
+  /** Custom JWT verifier implementation (optional) */
+  jwtVerifier?: JwtVerifier;
+
+  /** JWKS cache TTL in ms (default: 3600000 = 1 hour) */
+  jwksCacheTtl?: number;
+
+  /** Clock tolerance in seconds (default: 5) */
+  clockTolerance?: number;
+
+  /** Custom authorization header name (default: 'authorization') */
+  authHeader?: string;
+
+  /** Token issuer override (default: https://{domain}/) */
+  issuer?: string;
+
+  /** Enable debug logging */
+  debug?: boolean;
+}
+```
+
+### How It Works
+
+1. Extracts JWT from `Authorization: Bearer <token>` header
+2. Fetches JWKS (JSON Web Key Set) from Auth0
+3. Verifies JWT signature using JWKS public keys
+4. Validates claims (issuer, audience, expiration)
+5. Transforms Auth0 claims to VeloxTS format
+6. Injects into `ctx.user` and `ctx.session`
+
+### JWKS Caching
+
+The adapter caches JWKS keys to avoid fetching them on every request:
+
+- **Cache TTL:** 1 hour (default) - Keys are refreshed after expiration
+- **Rate Limiting:** Minimum 5 seconds between refresh attempts
+- **Promise Locking:** Concurrent requests share the same refresh promise
+
+```typescript
+const adapter = createAuth0Adapter({
+  domain: 'your-tenant.auth0.com',
+  audience: 'https://your-api.example.com',
+  jwksCacheTtl: 7200000, // Cache for 2 hours
+});
+```
+
+<Aside type="note" title="JWKS Performance">
+JWKS caching significantly improves performance by reducing round trips to Auth0. The default 1-hour TTL balances security (key rotation) with performance.
+</Aside>
+
+### Available User Data
+
+```typescript
+procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => {
+    // Standard fields
+    ctx.user.id;           // Auth0 user ID (sub claim)
+    ctx.user.email;        // Email from token
+    ctx.user.name;         // Display name
+    ctx.user.image;        // Profile picture URL
+    ctx.user.emailVerified; // Email verification status
+
+    // Provider-specific data
+    ctx.user.providerData.scope;          // Token scopes
+    ctx.user.providerData.permissions;    // RBAC permissions
+    ctx.user.providerData.organizationId; // Auth0 org ID
+    ctx.user.providerData.organizationName; // Auth0 org name
+
+    // Session info
+    ctx.session.sessionId;  // Auth0 session ID
+    ctx.session.expiresAt;  // Token expiration
+    ctx.session.providerData.issuedAt;     // Token issued at
+    ctx.session.providerData.notBefore;    // Token not before
+  })
+```
+
+### RBAC and Permissions
+
+Auth0 adapter supports Role-Based Access Control (RBAC):
+
+```typescript
+import { hasPermission } from '@veloxts/auth';
+
+deleteInvoice: procedure()
+  .guard(hasPermission('delete:invoices'))
+  .mutation(async ({ input, ctx }) => {
+    // User has 'delete:invoices' permission from Auth0
+    return await ctx.db.invoice.delete({ where: { id: input.id } });
+  }),
+```
+
+Permissions are extracted from the `permissions` claim in the JWT.
+
+### Organization Support
+
+Auth0 Organizations (part of Auth0 B2B features) are automatically included:
+
+```typescript
+procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => {
+    const orgId = ctx.user.providerData.organizationId;
+    const orgName = ctx.user.providerData.organizationName;
+
+    // Filter data by organization
+    return await ctx.db.resource.findMany({
+      where: { organizationId: orgId },
+    });
+  })
+```
+
+### Custom Domain Support
+
+If you use a custom domain with Auth0, specify it explicitly:
+
+```typescript
+const adapter = createAuth0Adapter({
+  domain: 'auth.myapp.com',  // Custom domain
+  audience: 'https://api.myapp.com',
+  issuer: 'https://auth.myapp.com/', // Optional: override issuer
+});
+```
+
+## Better Auth Adapter
+
+Integrate [Better Auth](https://www.better-auth.com) - an open-source, lightweight authentication library for Node.js.
+
+### Installation
+
+```bash
+npm install better-auth
+```
+
+### Configuration
+
+```typescript
+import { betterAuth } from 'better-auth';
+import { createAuthAdapterPlugin } from '@veloxts/auth';
+import { createBetterAuthAdapter } from '@veloxts/auth/adapters';
+
+// Create Better Auth instance
+const auth = betterAuth({
+  database: prisma,
+  emailAndPassword: { enabled: true },
+  socialProviders: {
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    },
+  },
+});
+
+// Create adapter
+const adapter = createBetterAuthAdapter({
+  auth,
+  debug: process.env.NODE_ENV === 'development',
+});
+
+// Create and register plugin
+app.use(createAuthAdapterPlugin(adapter));
+```
+
+### How It Works
+
+1. Reads session cookie set by Better Auth
+2. Calls Better Auth's session validation API
+3. Transforms Better Auth user/session to VeloxTS format
+4. Injects into `ctx.user` and `ctx.session`
+
+### Available User Data
+
+```typescript
+procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => {
+    // Standard fields
+    ctx.user.id;           // Better Auth user ID
+    ctx.user.email;        // User email
+    ctx.user.name;         // Display name
+    ctx.user.emailVerified; // Email verification status
+
+    // Session info
+    ctx.session.sessionId;  // Better Auth session ID
+    ctx.session.expiresAt;  // Session expiration
+  })
+```
+
+<Aside type="note" title="Better Auth Routes">
+Better Auth adapter does not register authentication routes. You must handle Better Auth routes separately using its built-in handler or by creating procedures that call Better Auth methods.
+</Aside>
+
+## Using Adapters with Guards
+
+All adapters work seamlessly with VeloxTS guards:
+
+```typescript
+import { authenticated, hasRole, hasPermission } from '@veloxts/auth';
+
+// Require authentication
+getProfile: procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => ctx.user),
+
+// Require specific role
+adminDashboard: procedure()
+  .guard(authenticated)
+  .guard(hasRole('admin'))
+  .query(({ ctx }) => { /* ... */ }),
+
+// Require permission (Auth0/Clerk)
+deleteUser: procedure()
+  .guard(hasPermission('users:delete'))
+  .mutation(({ input, ctx }) => { /* ... */ }),
+```
+
+Guards automatically work with adapter-provided user/session data.
+
+## Creating Custom Adapters
+
+You can create custom adapters by extending `BaseAuthAdapter`:
+
+```typescript
+import { BaseAuthAdapter, type AuthAdapterConfig } from '@veloxts/auth';
+import type { FastifyRequest } from 'fastify';
+
+interface MyAdapterConfig extends AuthAdapterConfig {
+  apiKey: string;
+}
+
+class MyCustomAdapter extends BaseAuthAdapter<MyAdapterConfig> {
+  private apiKey: string | null = null;
+
+  constructor() {
+    super('my-adapter', '1.0.0');
+  }
+
+  async initialize(fastify: FastifyInstance, config: MyAdapterConfig): Promise<void> {
+    await super.initialize(fastify, config);
+    this.apiKey = config.apiKey;
+  }
+
+  async getSession(request: FastifyRequest): Promise<AdapterSessionResult | null> {
+    // Extract credentials from request
+    const token = request.headers.authorization?.replace('Bearer ', '');
+    if (!token) return null;
+
+    // Verify with your auth provider
+    const userData = await verifyWithMyProvider(token, this.apiKey);
+    if (!userData) return null;
+
+    // Transform to VeloxTS format
+    return {
+      user: {
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        emailVerified: userData.emailVerified,
+      },
+      session: {
+        sessionId: userData.sessionId,
+        userId: userData.id,
+        expiresAt: userData.expiresAt,
+        isActive: true,
+      },
+    };
+  }
+
+  getRoutes(): AdapterRoute[] {
+    return []; // Return auth routes if needed
+  }
+}
+
+export function createMyCustomAdapter(config: MyAdapterConfig) {
+  const adapter = new MyCustomAdapter();
+  return Object.assign(adapter, { config });
+}
+```
+
+Then use it like any other adapter:
+
+```typescript
+const adapter = createMyCustomAdapter({
+  apiKey: process.env.MY_API_KEY!,
+});
+
+app.use(createAuthAdapterPlugin(adapter));
+```
+
+## Migration from JWT Manager
+
+If you're using the legacy `jwtManager` API, migrate to the JWT adapter:
+
+<Tabs>
+  <TabItem label="Before (jwtManager)">
+```typescript
+import { authPlugin, jwtManager } from '@veloxts/auth';
+
+const jwt = jwtManager({
+  secret: process.env.JWT_SECRET!,
+  refreshSecret: process.env.JWT_REFRESH_SECRET!,
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d',
+});
+
+await app.register(authPlugin, { jwt });
+```
+  </TabItem>
+  <TabItem label="After (JWT Adapter)">
+```typescript
+import { createAuthAdapterPlugin } from '@veloxts/auth';
+import { createJwtAdapter } from '@veloxts/auth/adapters';
+
+const adapter = createJwtAdapter({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET!,
+    accessTokenExpiry: '15m',
+    refreshTokenExpiry: '7d',
+  },
+  userLoader: async (userId) => {
+    return await db.user.findUnique({ where: { id: userId } });
+  },
+});
+
+app.use(createAuthAdapterPlugin(adapter));
+```
+  </TabItem>
+</Tabs>
+
+The adapter pattern provides better extensibility and consistency across providers.
+
+## Best Practices
+
+### Environment Variables
+
+Store provider secrets in environment variables:
+
+```bash
+# .env
+CLERK_SECRET_KEY=sk_live_...
+CLERK_PUBLISHABLE_KEY=pk_live_...
+
+AUTH0_DOMAIN=your-tenant.auth0.com
+AUTH0_AUDIENCE=https://api.yourapp.com
+AUTH0_CLIENT_ID=your_client_id
+```
+
+Never commit secrets to version control.
+
+### Debug Mode
+
+Enable debug logging in development to troubleshoot authentication issues:
+
+```typescript
+const adapter = createClerkAdapter({
+  clerk,
+  debug: process.env.NODE_ENV === 'development',
+});
+```
+
+Debug logs show token verification, user loading, and error details.
+
+### Token Expiration
+
+Configure appropriate token expiration times:
+
+- **Short-lived access tokens** (15-60 minutes) - Reduce risk of token theft
+- **Longer refresh tokens** (7-30 days) - Balance security with UX
+- **Session-based adapters** (Clerk, Auth0) - Handle expiration automatically
+
+### Performance Optimization
+
+For high-traffic APIs:
+
+1. **Disable unnecessary data fetching:**
+   ```typescript
+   createClerkAdapter({ fetchUserData: false })
+   ```
+
+2. **Adjust JWKS cache TTL:**
+   ```typescript
+   createAuth0Adapter({ jwksCacheTtl: 7200000 }) // 2 hours
+   ```
+
+3. **Use connection pooling** for database user lookups
+
+### Error Handling
+
+Adapters return `null` for invalid/missing authentication. Use guards to enforce authentication:
+
+```typescript
+// Returns null if not authenticated - guard handles it
+procedure()
+  .guard(authenticated)
+  .query(({ ctx }) => {
+    // ctx.user is guaranteed to exist here
+    return ctx.user;
+  })
+```
+
+Don't check `ctx.user` manually - let guards handle authentication requirements.
+
+## Troubleshooting
+
+### Token verification fails (Clerk)
+
+**Cause:** Incorrect `authorizedParties` or token issued for wrong audience
+
+**Fix:** Ensure `authorizedParties` matches your frontend origin:
+
+```typescript
+createClerkAdapter({
+  clerk,
+  authorizedParties: ['http://localhost:3000'], // Must match frontend
+})
+```
+
+### Token verification fails (Auth0)
+
+**Cause:** Incorrect `audience` or JWKS fetch failure
+
+**Fix:**
+1. Verify `audience` matches your Auth0 API identifier
+2. Check that Auth0 domain is correct
+3. Enable debug mode to see JWKS fetch errors
+
+```typescript
+createAuth0Adapter({
+  domain: 'your-tenant.auth0.com', // Verify this is correct
+  audience: 'https://your-api.example.com', // Must match Auth0 API
+  debug: true,
+})
+```
+
+### User data missing
+
+**Cause:** Token doesn't include expected claims
+
+**Fix:** Configure your provider to include required claims in tokens:
+- **Clerk:** Enable user profile in token settings
+- **Auth0:** Add custom claims via Auth0 Actions
+- **Better Auth:** Ensure session includes user data
+
+### Clock skew errors
+
+**Cause:** Server time differs from provider time
+
+**Fix:** Increase clock tolerance:
+
+```typescript
+// Clerk (seconds)
+createClerkAdapter({ clerk, clockTolerance: 10 }) // 10 seconds
+
+// Auth0 (seconds)
+createAuth0Adapter({ domain: '...', audience: '...', clockTolerance: 10 }) // 10 seconds
+```
+
+Or synchronize your server's clock using NTP.
+
+## Next Steps
+
+- [Guards](/docs/authentication/guards/) - Protect procedures with authorization checks
+- [JWT Authentication](/docs/authentication/jwt/) - Built-in JWT authentication
+- [Sessions](/docs/authentication/sessions/) - Cookie-based authentication
+- [Rate Limiting](/docs/authentication/rate-limiting/) - Protect against abuse

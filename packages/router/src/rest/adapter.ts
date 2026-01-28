@@ -60,34 +60,34 @@ export interface RestAdapterOptions {
   /** Custom error handler */
   onError?: (error: unknown, request: FastifyRequest, reply: FastifyReply) => void;
   /**
-   * Generate flat routes alongside nested routes for easier access.
+   * Generate flat shortcut routes alongside nested routes.
    *
    * When enabled, nested routes like `/organizations/:orgId/projects/:projectId/tasks/:id`
    * will also generate a flat shortcut route like `/tasks/:id`.
    *
-   * Note: Flat routes only work for single-resource operations (GET, PUT, PATCH, DELETE with :id).
-   * Collection operations (list, create) require parent context and are NOT generated as flat routes.
+   * Note: Shortcuts only work for single-resource operations (GET, PUT, PATCH, DELETE with :id).
+   * Collection operations (list, create) require parent context and are NOT generated as shortcuts.
    *
    * @example
    * ```typescript
-   * rest([tasks], { flatAccess: true })
+   * rest([tasks], { shortcuts: true })
    * // Generates:
    * // GET /organizations/:orgId/projects/:projectId/tasks/:id (nested)
-   * // GET /tasks/:id (flat shortcut)
+   * // GET /tasks/:id (shortcut)
    * ```
    *
    * @default false
    */
-  flatAccess?: boolean;
+  shortcuts?: boolean;
   /**
-   * Suppress warnings about deep nesting (3+ levels).
+   * Enable warnings about deep nesting (3+ levels).
    *
-   * By default, the router warns when nesting exceeds 3 levels.
-   * Set this to true to disable those warnings.
+   * When true (default), the router warns when nesting exceeds 3 levels.
+   * Set to false to silence these warnings.
    *
-   * @default false
+   * @default true
    */
-  suppressNestingWarnings?: boolean;
+  nestingWarnings?: boolean;
 }
 
 /**
@@ -108,10 +108,10 @@ interface InternalRegistrationOptions extends RestAdapterOptions {
 
 /** Options for generating REST routes */
 export interface GenerateRestRoutesOptions {
-  /** Generate flat routes alongside nested routes */
-  flatAccess?: boolean;
-  /** Suppress nesting depth warnings */
-  suppressNestingWarnings?: boolean;
+  /** Generate flat shortcut routes alongside nested routes */
+  shortcuts?: boolean;
+  /** Enable nesting depth warnings (default: true) */
+  nestingWarnings?: boolean;
 }
 
 /** Default nesting depth threshold for warnings */
@@ -134,7 +134,7 @@ export function generateRestRoutes(
   options: GenerateRestRoutesOptions = {}
 ): RestRoute[] {
   const routes: RestRoute[] = [];
-  const { flatAccess = false, suppressNestingWarnings = false } = options;
+  const { shortcuts = false, nestingWarnings = true } = options;
 
   for (const [name, procedure] of Object.entries(collection.procedures)) {
     const route = generateRouteForProcedure(name, procedure, collection.namespace);
@@ -142,21 +142,21 @@ export function generateRestRoutes(
       routes.push(route);
 
       // Check nesting depth and warn if too deep
-      if (!suppressNestingWarnings) {
+      if (nestingWarnings) {
         const depth = calculateNestingDepth(procedure.parentResource, procedure.parentResources);
         if (depth >= NESTING_DEPTH_WARNING_THRESHOLD) {
           console.warn(
             `⚠️  Resource '${collection.namespace}/${name}' has ${depth} levels of nesting. ` +
-              `Consider using flatAccess: true or restructuring your API.`
+              `Consider using shortcuts: true or restructuring your API.`
           );
         }
       }
 
-      // Generate flat route if enabled and route is nested with ID parameter
-      if (flatAccess && isNestedRoute(procedure) && route.path.endsWith('/:id')) {
-        const flatRoute = generateFlatRoute(route, collection.namespace);
-        if (flatRoute) {
-          routes.push(flatRoute);
+      // Generate shortcut route if enabled and route is nested with ID parameter
+      if (shortcuts && isNestedRoute(procedure) && route.path.endsWith('/:id')) {
+        const shortcutRoute = generateFlatRoute(route, collection.namespace);
+        if (shortcutRoute) {
+          routes.push(shortcutRoute);
         }
       }
     }
@@ -176,24 +176,24 @@ function isNestedRoute(procedure: CompiledProcedure): boolean {
 }
 
 /**
- * Generate a flat route for a nested route
+ * Generate a shortcut route for a nested route
  *
- * Only generates flat routes for single-resource operations (with :id).
- * Collection operations require parent context and are not suitable for flat access.
+ * Only generates shortcuts for single-resource operations (with :id).
+ * Collection operations require parent context and are not suitable for shortcuts.
  */
 function generateFlatRoute(nestedRoute: RestRoute, namespace: string): RestRoute | undefined {
-  // Only generate flat routes for operations with :id (single resource)
+  // Only generate shortcuts for operations with :id (single resource)
   if (!nestedRoute.path.endsWith('/:id')) {
     return undefined;
   }
 
-  // Build flat path: /{namespace}/:id
-  const flatPath = `/${namespace}/:id`;
+  // Build shortcut path: /{namespace}/:id
+  const shortcutPath = `/${namespace}/:id`;
 
   return {
     method: nestedRoute.method,
-    path: flatPath,
-    procedureName: `${nestedRoute.procedureName}Flat`,
+    path: shortcutPath,
+    procedureName: `${nestedRoute.procedureName}Shortcut`,
     procedure: nestedRoute.procedure,
   };
 }
@@ -484,13 +484,13 @@ export function registerRestRoutes(
   const {
     prefix = '/api',
     _prefixHandledByFastify = false,
-    flatAccess = false,
-    suppressNestingWarnings = false,
+    shortcuts = false,
+    nestingWarnings = true,
   } = options;
 
   const routeGenOptions: GenerateRestRoutesOptions = {
-    flatAccess,
-    suppressNestingWarnings,
+    shortcuts,
+    nestingWarnings,
   };
 
   for (const collection of collections) {

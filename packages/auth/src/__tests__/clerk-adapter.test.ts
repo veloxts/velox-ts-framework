@@ -381,7 +381,7 @@ describe('createClerkAdapter', () => {
       clerk: clerkClient,
       authorizedParties: ['http://localhost:3000'],
       audiences: 'my-api',
-      clockSkewInMs: 10000,
+      clockTolerance: 10, // seconds
       authHeader: 'x-auth',
       fetchUserData: false,
       debug: true,

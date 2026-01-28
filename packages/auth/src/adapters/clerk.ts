@@ -20,16 +20,10 @@
  * });
  *
  * // Create adapter
- * const adapter = createClerkAdapter({
- *   name: 'clerk',
- *   clerk,
- * });
+ * const adapter = createClerkAdapter({ clerk });
  *
- * // Create plugin and register
- * const authPlugin = createAuthAdapterPlugin({
- *   adapter,
- *   config: adapter.config,
- * });
+ * // Create plugin and register (simplified API)
+ * const authPlugin = createAuthAdapterPlugin(adapter);
  *
  * app.use(authPlugin);
  * ```
@@ -196,13 +190,14 @@ export interface ClerkAdapterConfig extends AuthAdapterConfig {
   audiences?: string | string[];
 
   /**
-   * Clock skew tolerance in milliseconds
+   * Clock tolerance in seconds for JWT validation
    *
    * Allows for slight differences in server clocks.
+   * Passed to Clerk's verifyToken as clockSkewInMs (converted internally).
    *
-   * @default 5000
+   * @default 5
    */
-  clockSkewInMs?: number;
+  clockTolerance?: number;
 
   /**
    * Custom header name for the authorization token
@@ -250,7 +245,7 @@ export class ClerkAdapter extends BaseAuthAdapter<ClerkAdapterConfig> {
   private clerk: ClerkClient | null = null;
   private authorizedParties?: string[];
   private audiences?: string | string[];
-  private clockSkewInMs: number = 5000;
+  private clockToleranceMs: number = 5000;
   private authHeader: string = 'authorization';
   private fetchUserData: boolean = true;
 
@@ -275,7 +270,8 @@ export class ClerkAdapter extends BaseAuthAdapter<ClerkAdapterConfig> {
     this.clerk = config.clerk;
     this.authorizedParties = config.authorizedParties;
     this.audiences = config.audiences;
-    this.clockSkewInMs = config.clockSkewInMs ?? 5000;
+    // Convert clockTolerance from seconds to milliseconds for Clerk SDK
+    this.clockToleranceMs = (config.clockTolerance ?? 5) * 1000;
     this.authHeader = config.authHeader ?? 'authorization';
     this.fetchUserData = config.fetchUserData ?? true;
 
@@ -312,7 +308,7 @@ export class ClerkAdapter extends BaseAuthAdapter<ClerkAdapterConfig> {
       const claims = await this.clerk.verifyToken(token, {
         authorizedParties: this.authorizedParties,
         audiences: this.audiences,
-        clockSkewInMs: this.clockSkewInMs,
+        clockSkewInMs: this.clockToleranceMs,
       });
 
       this.debug(`Token verified for user: ${claims.sub}`);
@@ -521,16 +517,13 @@ function transformClerkSession(
  * });
  *
  * const adapter = createClerkAdapter({
- *   name: 'clerk',
  *   clerk,
  *   authorizedParties: ['http://localhost:3000'],
  *   debug: process.env.NODE_ENV === 'development',
  * });
  *
- * const authPlugin = createAuthAdapterPlugin({
- *   adapter,
- *   config: adapter.config,
- * });
+ * // Simplified API - just pass the adapter
+ * const authPlugin = createAuthAdapterPlugin(adapter);
  *
  * app.use(authPlugin);
  * ```

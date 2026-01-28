@@ -1,0 +1,405 @@
+---
+title: REST Adapter Configuration
+description: Configure the REST adapter with options for nesting, prefixes, and error handling.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The REST adapter converts procedure definitions into HTTP endpoints. Configure its behavior with adapter options.
+
+## Basic Setup
+
+```typescript
+import { rest } from '@veloxts/router';
+
+app.register(
+  rest([userProcedures, postProcedures], {
+    // Options go here
+  }),
+  { prefix: '/api' } // Fastify prefix option
+);
+```
+
+## Configuration Options
+
+### `prefix`
+
+API prefix for all routes. When using `server.register()`, Fastify's built-in prefix is recommended:
+
+```typescript
+// RECOMMENDED: Use Fastify's prefix option
+app.register(
+  rest([userProcedures]),
+  { prefix: '/api' }
+);
+// → GET /api/users
+
+// LEGACY: Adapter prefix (for direct invocation)
+rest([userProcedures], { prefix: '/v1' })(app);
+// → GET /v1/users
+```
+
+**Default:** `/api` (legacy mode only)
+
+### `shortcuts`
+
+Generate shortcut routes alongside nested routes for easier access to deeply nested resources.
+
+```typescript
+app.register(
+  rest([taskProcedures], {
+    shortcuts: true,
+  }),
+  { prefix: '/api' }
+);
+```
+
+**Effect:**
+```typescript
+// With shortcuts: true, generates BOTH:
+GET /organizations/:orgId/projects/:projectId/tasks/:id  (nested)
+GET /tasks/:id                                           (shortcut)
+
+// Collection routes remain nested-only
+GET /organizations/:orgId/projects/:projectId/tasks      (nested only)
+```
+
+**Limitations:**
+- Only works for single-resource operations (routes ending with `/:id`)
+- Collection operations (`list*`, `find*`) and creation (`create*`, `add*`) require parent context
+
+**Default:** `false`
+
+<Aside type="tip" title="When to Enable">
+Enable `shortcuts` when:
+- Your API has 3+ levels of nesting
+- Clients need direct access to resources by ID
+- You want RESTful convenience without sacrificing hierarchical context
+</Aside>
+
+### `nestingWarnings`
+
+Enable or disable warnings about deep nesting (3+ levels).
+
+```typescript
+app.register(
+  rest([featureProcedures], {
+    shortcuts: true,
+    nestingWarnings: false, // Disable warnings
+  }),
+  { prefix: '/api' }
+);
+```
+
+**Effect:**
+
+```typescript
+// With nestingWarnings: true (default):
+// ⚠️  Resource 'features/getFeature' has 4 levels of nesting.
+//     Consider using shortcuts: true or restructuring your API.
+
+// With nestingWarnings: false:
+// (no warnings)
+```
+
+**Default:** `true`
+
+<Aside type="caution" title="Use Sparingly">
+Warnings exist to encourage good API design. Deep nesting often indicates architectural issues. Consider:
+- Enabling `shortcuts` instead
+- Restructuring to use query parameters
+- Simplifying your resource hierarchy
+
+Only disable warnings if deep nesting is intentional and well-justified.
+</Aside>
+
+### `onError`
+
+Custom error handler for REST endpoints.
+
+```typescript
+app.register(
+  rest([userProcedures], {
+    onError: (error, request, reply) => {
+      console.error('REST error:', error);
+
+      // Custom error response
+      reply.status(500).send({
+        error: 'Internal Server Error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    },
+  }),
+  { prefix: '/api' }
+);
+```
+
+**Default:** Uses Fastify's default error handling
+
+<Aside type="note" title="Error Handling Strategy">
+For most cases, use Fastify's global error handler instead of per-adapter handlers. This ensures consistent error responses across your API.
+
+Use adapter-level `onError` only when REST endpoints need special error handling different from other routes.
+</Aside>
+
+## Complete Example
+
+```typescript
+import { rest, procedures, procedure } from '@veloxts/router';
+import { z } from 'zod';
+
+// Organizations at root
+const organizationProcedures = procedures('organizations', {
+  listOrganizations: procedure()
+    .query(async ({ ctx }) => {
+      return await ctx.db.organization.findMany();
+    }),
+
+  getOrganization: procedure()
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.organization.findUniqueOrThrow({
+        where: { id: input.id },
+      });
+    }),
+});
+
+// Projects nested under organizations
+const projectProcedures = procedures('projects', {
+  listProjects: procedure()
+    .parent('organizations')
+    .input(z.object({ organizationId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.project.findMany({
+        where: { organizationId: input.organizationId },
+      });
+    }),
+});
+
+// Tasks nested under organizations AND projects
+const taskProcedures = procedures('tasks', {
+  listTasks: procedure()
+    .parents([
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+    ])
+    .input(z.object({ orgId: z.string(), projectId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.task.findMany({
+        where: { projectId: input.projectId },
+      });
+    }),
+
+  getTask: procedure()
+    .parents([
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+    ])
+    .input(z.object({
+      orgId: z.string().optional(),
+      projectId: z.string().optional(),
+      id: z.string(),
+    }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.task.findUniqueOrThrow({
+        where: { id: input.id },
+      });
+    }),
+});
+
+// Register with full configuration
+app.register(
+  rest(
+    [organizationProcedures, projectProcedures, taskProcedures],
+    {
+      shortcuts: true,           // Enable shortcut routes for direct resource access
+      nestingWarnings: true,     // Keep warnings enabled (default)
+      onError: (error, request, reply) => {
+        // Custom error handling
+        console.error('REST API error:', {
+          url: request.url,
+          method: request.method,
+          error: error instanceof Error ? error.message : error,
+        });
+
+        reply.status(500).send({
+          error: 'Internal Server Error',
+          timestamp: new Date().toISOString(),
+        });
+      },
+    }
+  ),
+  { prefix: '/api' }
+);
+```
+
+This configuration generates:
+
+```
+GET  /api/organizations
+GET  /api/organizations/:id
+GET  /api/organizations/:orgId/projects
+GET  /api/organizations/:orgId/projects/:projectId/tasks
+GET  /api/organizations/:orgId/projects/:projectId/tasks/:id
+GET  /api/tasks/:id  (shortcut route)
+```
+
+## Multiple REST Adapters
+
+You can register multiple REST adapters with different configurations:
+
+```typescript
+// Public API - standard nesting
+app.register(
+  rest([publicProcedures], {
+    shortcuts: false,
+  }),
+  { prefix: '/api/v1' }
+);
+
+// Admin API - deep nesting with shortcuts
+app.register(
+  rest([adminProcedures], {
+    shortcuts: true,
+    nestingWarnings: false,  // Suppress warnings (intentional deep nesting)
+  }),
+  { prefix: '/api/admin' }
+);
+
+// Internal API - tRPC-only (no REST routes)
+app.register(
+  rest([internalProcedures], {
+    // Empty - generates no REST routes if all procedures use .rest(false)
+  }),
+  { prefix: '/api/internal' }
+);
+```
+
+Each adapter instance is independent and can have its own configuration.
+
+## Environment-Based Configuration
+
+Adjust configuration based on environment:
+
+```typescript
+const isDevelopment = process.env.NODE_ENV === 'development';
+const isProduction = process.env.NODE_ENV === 'production';
+
+app.register(
+  rest([allProcedures], {
+    shortcuts: true,
+    nestingWarnings: !isProduction, // Show warnings in dev, suppress in prod
+    onError: isDevelopment
+      ? (error, request, reply) => {
+          // Detailed errors in development
+          reply.status(500).send({
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            url: request.url,
+            method: request.method,
+          });
+        }
+      : undefined, // Use default handler in production
+  }),
+  { prefix: '/api' }
+);
+```
+
+## Best Practices
+
+### Prefer Fastify Prefix
+
+Use Fastify's built-in `prefix` option instead of adapter prefix:
+
+```typescript
+// GOOD - Fastify prefix
+app.register(rest([procs]), { prefix: '/api' });
+
+// AVOID - Adapter prefix (legacy)
+rest([procs], { prefix: '/api' })(app);
+```
+
+Fastify prefix integrates better with plugins and middleware.
+
+### Enable Shortcuts for Deep Nesting
+
+If your API exceeds 2 levels of nesting, enable `shortcuts`:
+
+```typescript
+rest([nestedProcedures], { shortcuts: true });
+```
+
+This provides both hierarchical context AND convenient direct access via shortcut routes.
+
+### Keep Nesting Shallow
+
+Aim for 2-3 levels maximum. If you need more, consider:
+- Using query parameters for filtering
+- Flattening your resource hierarchy
+- Breaking into separate API endpoints
+
+### Disable Warnings Only When Justified
+
+Only set `nestingWarnings: false` when:
+- Deep nesting is intentional and cannot be avoided
+- You've enabled `shortcuts` to mitigate complexity
+- Your API design has been thoroughly reviewed
+
+Don't disable warnings just to silence them during development.
+
+### Use Global Error Handling
+
+Prefer Fastify's global error handler over per-adapter handlers:
+
+```typescript
+// GOOD - Global handler
+app.setErrorHandler((error, request, reply) => {
+  // Handle all errors consistently
+});
+
+// AVOID - Per-adapter handler (unless truly needed)
+rest([procs], {
+  onError: (error, request, reply) => { /* ... */ },
+});
+```
+
+## Troubleshooting
+
+### Routes not generated
+
+**Cause:** Procedures don't match naming conventions and lack `.rest()` overrides
+
+**Fix:** Check console for warnings, verify naming patterns, or add `.rest()` configuration
+
+### Shortcut routes conflict with root routes
+
+**Cause:** Shortcut route path collides with root resource
+
+**Example:**
+```typescript
+// Conflict: /tasks/:id exists as both root and shortcut route
+procedures('tasks', {
+  getTask: ...,  // → GET /tasks/:id (root)
+});
+
+procedures('nestedTasks', {
+  getNestedTask: procedure()
+    .parent('projects')
+    .query(...),  // → GET /tasks/:id (shortcut - CONFLICT!)
+});
+```
+
+**Fix:** Rename resources to avoid collision or disable `shortcuts`
+
+### Warnings still appearing after disabling
+
+**Cause:** Multiple adapter registrations, only some have `nestingWarnings: false`
+
+**Fix:** Ensure all REST adapter registrations use `nestingWarnings: false`
+
+## Next Steps
+
+- [Nested Routes](/docs/router/nested-routes/) - Hierarchical resource modeling
+- [REST Conventions](/docs/router/rest-conventions/) - Naming patterns
+- [REST Overrides](/docs/router/rest-overrides/) - Manual route configuration
+- [OpenAPI](/docs/router/openapi/) - API documentation generation

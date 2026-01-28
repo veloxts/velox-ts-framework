@@ -18,8 +18,8 @@ import type { ParentResourceConfig } from '../types.js';
 
 describe('buildNestedRestPath', () => {
   const parent: ParentResourceConfig = {
-    namespace: 'posts',
-    paramName: 'postId',
+    resource: 'posts',
+    param: 'postId',
   };
 
   it('should build nested path with ID parameter', () => {
@@ -40,8 +40,8 @@ describe('buildNestedRestPath', () => {
 
   it('should handle custom parent param names', () => {
     const customParent: ParentResourceConfig = {
-      namespace: 'posts',
-      paramName: 'post_id',
+      resource: 'posts',
+      param: 'post_id',
     };
     const mapping = { method: 'GET', path: '/:id', hasIdParam: true } as const;
 
@@ -91,8 +91,8 @@ describe('procedure().parent()', () => {
       .query(async ({ input }) => ({ postId: input.postId, id: input.id }));
 
     expect(proc.parentResource).toEqual({
-      namespace: 'posts',
-      paramName: 'postId',
+      resource: 'posts',
+      param: 'postId',
     });
   });
 
@@ -103,8 +103,8 @@ describe('procedure().parent()', () => {
       .query(async ({ input }) => ({ post_id: input.post_id, id: input.id }));
 
     expect(proc.parentResource).toEqual({
-      namespace: 'posts',
-      paramName: 'post_id',
+      resource: 'posts',
+      param: 'post_id',
     });
   });
 
@@ -113,25 +113,25 @@ describe('procedure().parent()', () => {
     const usersProc = procedure()
       .parent('users')
       .query(async () => ({}));
-    expect(usersProc.parentResource?.paramName).toBe('userId');
+    expect(usersProc.parentResource?.param).toBe('userId');
 
     // -ies plural
     const categoriesProc = procedure()
       .parent('categories')
       .query(async () => ({}));
-    expect(categoriesProc.parentResource?.paramName).toBe('categoryId');
+    expect(categoriesProc.parentResource?.param).toBe('categoryId');
 
     // -es plural
     const boxesProc = procedure()
       .parent('boxes')
       .query(async () => ({}));
-    expect(boxesProc.parentResource?.paramName).toBe('boxId');
+    expect(boxesProc.parentResource?.param).toBe('boxId');
 
     // Already singular or non-standard
     const dataProc = procedure()
       .parent('data')
       .query(async () => ({}));
-    expect(dataProc.parentResource?.paramName).toBe('datumId');
+    expect(dataProc.parentResource?.param).toBe('datumId');
   });
 
   it('should preserve other builder state when adding parent', () => {
@@ -210,7 +210,7 @@ describe('generateRestRoutes with parent', () => {
         .input(z.object({ postId: z.string(), id: z.string() }))
         .query(async ({ input }) => ({ id: input.id })),
 
-      // Flat (not nested) - for admin or API access
+      // Not nested (flat) - for admin or API access
       listComments: procedure().query(async () => []),
     });
 
@@ -528,8 +528,8 @@ describe('Nested routes - Integration', () => {
 
 describe('buildMultiLevelNestedPath', () => {
   const parents: ParentResourceConfig[] = [
-    { namespace: 'organizations', paramName: 'orgId' },
-    { namespace: 'projects', paramName: 'projectId' },
+    { resource: 'organizations', param: 'orgId' },
+    { resource: 'projects', param: 'projectId' },
   ];
 
   it('should build multi-level nested path with ID parameter', () => {
@@ -549,7 +549,7 @@ describe('buildMultiLevelNestedPath', () => {
   });
 
   it('should handle single parent in array', () => {
-    const singleParent: ParentResourceConfig[] = [{ namespace: 'posts', paramName: 'postId' }];
+    const singleParent: ParentResourceConfig[] = [{ resource: 'posts', param: 'postId' }];
     const mapping = { method: 'GET', path: '/:id', hasIdParam: true } as const;
 
     const path = buildMultiLevelNestedPath(singleParent, 'comments', mapping);
@@ -559,9 +559,9 @@ describe('buildMultiLevelNestedPath', () => {
 
   it('should handle three levels of nesting', () => {
     const threeParents: ParentResourceConfig[] = [
-      { namespace: 'organizations', paramName: 'orgId' },
-      { namespace: 'projects', paramName: 'projectId' },
-      { namespace: 'tasks', paramName: 'taskId' },
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+      { resource: 'tasks', param: 'taskId' },
     ];
     const mapping = { method: 'GET', path: '/:id', hasIdParam: true } as const;
 
@@ -578,21 +578,21 @@ describe('calculateNestingDepth', () => {
   });
 
   it('should return 2 for single parent', () => {
-    const parent: ParentResourceConfig = { namespace: 'posts', paramName: 'postId' };
+    const parent: ParentResourceConfig = { resource: 'posts', param: 'postId' };
     expect(calculateNestingDepth(parent, undefined)).toBe(2);
   });
 
   it('should return depth + 1 for multi-level nesting', () => {
     const parents: ParentResourceConfig[] = [
-      { namespace: 'organizations', paramName: 'orgId' },
-      { namespace: 'projects', paramName: 'projectId' },
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
     ];
     expect(calculateNestingDepth(undefined, parents)).toBe(3);
 
     const threeParents: ParentResourceConfig[] = [
-      { namespace: 'organizations', paramName: 'orgId' },
-      { namespace: 'projects', paramName: 'projectId' },
-      { namespace: 'tasks', paramName: 'taskId' },
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+      { resource: 'tasks', param: 'taskId' },
     ];
     expect(calculateNestingDepth(undefined, threeParents)).toBe(4);
   });
@@ -610,8 +610,8 @@ describe('procedure().parents()', () => {
       }));
 
     expect(proc.parentResources).toEqual([
-      { namespace: 'organizations', paramName: 'organizationId' },
-      { namespace: 'projects', paramName: 'projectId' },
+      { resource: 'organizations', param: 'organizationId' },
+      { resource: 'projects', param: 'projectId' },
     ]);
   });
 
@@ -624,8 +624,8 @@ describe('procedure().parents()', () => {
       .query(async () => ({}));
 
     expect(proc.parentResources).toEqual([
-      { namespace: 'organizations', paramName: 'orgId' },
-      { namespace: 'projects', paramName: 'proj_id' },
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'proj_id' },
     ]);
   });
 
@@ -635,8 +635,8 @@ describe('procedure().parents()', () => {
       .query(async () => ({}));
 
     expect(proc.parentResources).toEqual([
-      { namespace: 'categories', paramName: 'categoryId' },
-      { namespace: 'items', paramName: 'itemId' },
+      { resource: 'categories', param: 'categoryId' },
+      { resource: 'items', param: 'itemId' },
     ]);
   });
 });
@@ -696,8 +696,8 @@ describe('generateRestRoutes with multi-level parents', () => {
   });
 });
 
-describe('flatAccess option', () => {
-  it('should generate flat routes alongside nested routes when enabled', () => {
+describe('shortcuts option', () => {
+  it('should generate shortcut routes alongside nested routes when enabled', () => {
     const collection = defineProcedures('comments', {
       getComment: procedure()
         .parent('posts')
@@ -715,9 +715,9 @@ describe('flatAccess option', () => {
         .query(async () => []),
     });
 
-    const routes = generateRestRoutes(collection, { flatAccess: true });
+    const routes = generateRestRoutes(collection, { shortcuts: true });
 
-    // Should have nested routes + flat routes for those with :id
+    // Should have nested routes + shortcut routes for those with :id
     expect(routes.length).toBe(5); // 3 nested + 2 flat (getComment, updateComment)
 
     // Nested routes
@@ -731,15 +731,15 @@ describe('flatAccess option', () => {
       routes.find((r) => r.path === '/posts/:postId/comments' && r.method === 'GET')
     ).toBeDefined();
 
-    // Flat routes (only for :id operations)
+    // Shortcut routes (only for :id operations)
     expect(routes.find((r) => r.path === '/comments/:id' && r.method === 'GET')).toBeDefined();
     expect(routes.find((r) => r.path === '/comments/:id' && r.method === 'PUT')).toBeDefined();
 
-    // Should NOT have flat route for listComments (no :id)
+    // Should NOT have shortcut route for listComments (no :id)
     expect(routes.filter((r) => r.path === '/comments' && r.method === 'GET')).toHaveLength(0);
   });
 
-  it('should generate flat routes for multi-level nested routes', () => {
+  it('should generate shortcut routes for multi-level nested routes', () => {
     const collection = defineProcedures('tasks', {
       getTask: procedure()
         .parents([
@@ -750,7 +750,7 @@ describe('flatAccess option', () => {
         .query(async ({ input }) => ({ id: input.id })),
     });
 
-    const routes = generateRestRoutes(collection, { flatAccess: true });
+    const routes = generateRestRoutes(collection, { shortcuts: true });
 
     expect(routes).toHaveLength(2);
 
@@ -758,13 +758,13 @@ describe('flatAccess option', () => {
     const nestedRoute = routes.find((r) => r.path.includes('/organizations/'));
     expect(nestedRoute?.path).toBe('/organizations/:orgId/projects/:projectId/tasks/:id');
 
-    // Flat route
+    // Shortcut route
     const flatRoute = routes.find((r) => r.path === '/tasks/:id');
     expect(flatRoute).toBeDefined();
     expect(flatRoute?.method).toBe('GET');
   });
 
-  it('should not generate flat routes when disabled', () => {
+  it('should not generate shortcut routes when disabled', () => {
     const collection = defineProcedures('comments', {
       getComment: procedure()
         .parent('posts')
@@ -772,20 +772,20 @@ describe('flatAccess option', () => {
         .query(async ({ input }) => ({ id: input.id })),
     });
 
-    const routes = generateRestRoutes(collection, { flatAccess: false });
+    const routes = generateRestRoutes(collection, { shortcuts: false });
 
     expect(routes).toHaveLength(1);
     expect(routes[0].path).toBe('/posts/:postId/comments/:id');
   });
 
-  it('should not generate flat routes for flat (non-nested) routes', () => {
+  it('should not generate shortcut routes for flat (non-nested) routes', () => {
     const collection = defineProcedures('users', {
       getUser: procedure()
         .input(z.object({ id: z.string() }))
         .query(async ({ input }) => ({ id: input.id })),
     });
 
-    const routes = generateRestRoutes(collection, { flatAccess: true });
+    const routes = generateRestRoutes(collection, { shortcuts: true });
 
     // Should only have the original flat route, not a duplicate
     expect(routes).toHaveLength(1);
@@ -807,7 +807,7 @@ describe('nesting depth warnings', () => {
         .query(async () => ({})),
     });
 
-    generateRestRoutes(collection, { suppressNestingWarnings: false });
+    generateRestRoutes(collection, { nestingWarnings: true });
 
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining("Resource 'subtasks/getSubtask' has 4 levels of nesting")
@@ -825,14 +825,14 @@ describe('nesting depth warnings', () => {
         .query(async () => ({})),
     });
 
-    generateRestRoutes(collection, { suppressNestingWarnings: false });
+    generateRestRoutes(collection, { nestingWarnings: true });
 
     expect(consoleSpy).not.toHaveBeenCalled();
 
     consoleSpy.mockRestore();
   });
 
-  it('should suppress warnings when suppressNestingWarnings is true', () => {
+  it('should suppress warnings when nestingWarnings is false', () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const collection = defineProcedures('subtasks', {
@@ -845,7 +845,7 @@ describe('nesting depth warnings', () => {
         .query(async () => ({})),
     });
 
-    generateRestRoutes(collection, { suppressNestingWarnings: true });
+    generateRestRoutes(collection, { nestingWarnings: false });
 
     expect(consoleSpy).not.toHaveBeenCalled();
 

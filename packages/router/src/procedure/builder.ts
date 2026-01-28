@@ -274,10 +274,10 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     /**
      * Declares a parent resource for nested routes (single level)
      */
-    parent(namespace: string, paramName?: string): ProcedureBuilder<TInput, TOutput, TContext> {
+    parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext> {
       const parentConfig: ParentResourceConfig = {
-        namespace,
-        paramName: paramName ?? deriveParentParamName(namespace),
+        resource,
+        param: param ?? deriveParentParamName(resource),
       };
 
       return createBuilder<TInput, TOutput, TContext>({
@@ -293,8 +293,8 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       config: Array<{ resource: string; param?: string }>
     ): ProcedureBuilder<TInput, TOutput, TContext> {
       const parentConfigs: ParentResourceConfig[] = config.map((item) => ({
-        namespace: item.resource,
-        paramName: item.param ?? deriveParentParamName(item.resource),
+        resource: item.resource,
+        param: item.param ?? deriveParentParamName(item.resource),
       }));
 
       return createBuilder<TInput, TOutput, TContext>({

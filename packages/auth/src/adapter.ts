@@ -250,11 +250,12 @@ export interface AdapterRoute {
  */
 export interface AuthAdapterConfig {
   /**
-   * Adapter name for identification and logging
+   * Adapter name for identification and logging (optional)
    *
    * Should be a unique identifier like 'better-auth', 'clerk', 'auth0'.
+   * If not provided, the factory function or adapter class will supply a default.
    */
-  name: string;
+  name?: string;
 
   /**
    * Enable debug logging
@@ -633,6 +634,9 @@ function validateAdapter(adapter: AuthAdapter<AuthAdapterConfig>): void {
 
 /**
  * Plugin options for the auth adapter plugin
+ *
+ * @deprecated Use the simplified form: `createAuthAdapterPlugin(adapter)` where adapter
+ * is created via a factory function like `createClerkAdapter()` that attaches config.
  */
 export interface AuthAdapterPluginOptions<TConfig extends AuthAdapterConfig = AuthAdapterConfig> {
   /**
@@ -645,6 +649,19 @@ export interface AuthAdapterPluginOptions<TConfig extends AuthAdapterConfig = Au
    */
   config: TConfig;
 }
+
+/**
+ * Adapter with attached configuration (returned by factory functions)
+ *
+ * Factory functions like `createClerkAdapter()` return an adapter with its
+ * configuration attached, enabling the simplified plugin registration:
+ * `createAuthAdapterPlugin(adapter)` instead of
+ * `createAuthAdapterPlugin({ adapter, config: adapter.config })`
+ */
+export type AdapterWithConfig<
+  TAdapter extends AuthAdapter<TConfig>,
+  TConfig extends AuthAdapterConfig = AuthAdapterConfig,
+> = TAdapter & { config: TConfig };
 
 /**
  * Default user transformer
@@ -705,34 +722,51 @@ function matchesExcludePattern(path: string, patterns: string[]): boolean {
  * - Cleanup on shutdown
  *
  * @template TConfig - Adapter-specific configuration type
- * @param options - Plugin options with adapter and config
+ * @param adapterOrOptions - Either an adapter with attached config (from factory), or legacy options object
  * @returns VeloxTS plugin ready for registration
  *
- * @example
+ * @example Simplified API (recommended)
  * ```typescript
  * import { createAuthAdapterPlugin } from '@veloxts/auth';
- * import { betterAuthAdapter } from './adapters/better-auth';
+ * import { createClerkAdapter } from '@veloxts/auth/adapters/clerk';
  *
- * const authPlugin = createAuthAdapterPlugin({
- *   adapter: betterAuthAdapter,
- *   config: {
- *     name: 'better-auth',
- *     auth: betterAuth({
- *       database: db,
- *       trustedOrigins: ['http://localhost:3000'],
- *     }),
- *     debug: process.env.NODE_ENV === 'development',
- *   },
+ * const adapter = createClerkAdapter({
+ *   clerk: createClerkClient({ secretKey: '...' }),
+ *   debug: process.env.NODE_ENV === 'development',
  * });
  *
- * // Register with VeloxApp
+ * // Simple: just pass the adapter
+ * const authPlugin = createAuthAdapterPlugin(adapter);
+ *
  * app.use(authPlugin);
+ * ```
+ *
+ * @example Legacy API (still supported)
+ * ```typescript
+ * const authPlugin = createAuthAdapterPlugin({
+ *   adapter: myAdapter,
+ *   config: { ... },
+ * });
  * ```
  */
 export function createAuthAdapterPlugin<TConfig extends AuthAdapterConfig>(
-  options: AuthAdapterPluginOptions<TConfig>
+  adapterOrOptions:
+    | AdapterWithConfig<AuthAdapter<TConfig>, TConfig>
+    | AuthAdapterPluginOptions<TConfig>
 ): VeloxPlugin<AuthAdapterPluginOptions<TConfig>> {
-  const { adapter, config } = options;
+  // Support both new simplified API and legacy options object
+  let adapter: AuthAdapter<TConfig>;
+  let config: TConfig;
+
+  if ('adapter' in adapterOrOptions && 'config' in adapterOrOptions) {
+    // Legacy: { adapter, config } object
+    adapter = adapterOrOptions.adapter;
+    config = adapterOrOptions.config;
+  } else {
+    // New: adapter with attached config
+    adapter = adapterOrOptions;
+    config = adapterOrOptions.config;
+  }
   const debug = config.debug ?? false;
   const excludeRoutes = config.excludeRoutes ?? [];
   const transformUser = config.transformUser ?? defaultTransformUser;
@@ -743,7 +777,8 @@ export function createAuthAdapterPlugin<TConfig extends AuthAdapterConfig>(
     dependencies: ['@veloxts/core'],
 
     async register(server: FastifyInstance, _opts: AuthAdapterPluginOptions<TConfig>) {
-      const mergedConfig = { ...config, ..._opts.config };
+      // Config is already captured from adapter - _opts.config is for legacy override support
+      const mergedConfig = _opts?.config ? { ...config, ..._opts.config } : config;
 
       // Prevent double-registration of auth systems
       checkDoubleRegistration(server, `adapter:${adapter.name}`);

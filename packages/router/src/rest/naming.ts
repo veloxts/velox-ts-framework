@@ -219,7 +219,7 @@ export function buildRestPath(namespace: string, mapping: RestMapping): string {
  *
  * @example
  * ```typescript
- * const parent = { namespace: 'posts', paramName: 'postId' };
+ * const parent = { resource: 'posts', param: 'postId' };
  *
  * buildNestedRestPath(parent, 'comments', { method: 'GET', path: '/:id', hasIdParam: true })
  * // Returns: '/posts/:postId/comments/:id'
@@ -236,8 +236,8 @@ export function buildNestedRestPath(
   childNamespace: string,
   mapping: RestMapping
 ): string {
-  // Build parent path segment: /{parentNamespace}/:{parentParamName}
-  const parentPath = `/${parentResource.namespace}/:${parentResource.paramName}`;
+  // Build parent path segment: /{parentResource}/:{parentParam}
+  const parentPath = `/${parentResource.resource}/:${parentResource.param}`;
 
   // Build child path segment
   const childBasePath = `/${childNamespace}`;
@@ -265,8 +265,8 @@ export function buildNestedRestPath(
  * @example
  * ```typescript
  * const parents = [
- *   { namespace: 'organizations', paramName: 'orgId' },
- *   { namespace: 'projects', paramName: 'projectId' },
+ *   { resource: 'organizations', param: 'orgId' },
+ *   { resource: 'projects', param: 'projectId' },
  * ];
  *
  * buildMultiLevelNestedPath(parents, 'tasks', { method: 'GET', path: '/:id', hasIdParam: true })
@@ -283,7 +283,7 @@ export function buildMultiLevelNestedPath(
 ): string {
   // Build all parent path segments
   const parentSegments = parentResources
-    .map((parent) => `/${parent.namespace}/:${parent.paramName}`)
+    .map((parent) => `/${parent.resource}/:${parent.param}`)
     .join('');
 
   // Build child path segment

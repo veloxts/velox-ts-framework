@@ -33,6 +33,31 @@ procedures('stats', {
 If you need `/api/stats/hourly`, use `.rest()` override or a separate resource.
 </Aside>
 
+## Resource Nesting
+
+VeloxTS supports nested resources for modeling hierarchical relationships. See the [Nested Routes](/docs/router/nested-routes/) guide for full documentation.
+
+```typescript
+// Single-level nesting: GET /posts/:postId/comments/:id
+export const commentProcedures = procedures('comments', {
+  getComment: procedure()
+    .parent('posts')
+    .input(z.object({ postId: z.string(), id: z.string() }))
+    .query(async ({ input, ctx }) => { ... }),
+});
+
+// Multi-level nesting: GET /organizations/:orgId/projects/:projectId/tasks/:id
+export const taskProcedures = procedures('tasks', {
+  getTask: procedure()
+    .parents([
+      { resource: 'organizations', param: 'orgId' },
+      { resource: 'projects', param: 'projectId' },
+    ])
+    .input(z.object({ orgId: z.string(), projectId: z.string(), id: z.string() }))
+    .query(async ({ input, ctx }) => { ... }),
+});
+```
+
 ## Naming Patterns
 
 ### GET - Read Operations
@@ -504,6 +529,7 @@ findUsers: procedure()
 
 ## Next Steps
 
+- [Nested Routes](/docs/router/nested-routes/) - Hierarchical resource relationships
 - [REST Overrides](/docs/router/rest-overrides/) - Custom path configuration
 - [Validation Coercion](/docs/validation/coercion/) - Type conversion patterns
 - [OpenAPI](/docs/router/openapi/) - API documentation

@@ -90,6 +90,25 @@ Guards narrow `ctx.user` type - after `authenticated`, `ctx.user` is guaranteed 
 
 [Learn more about Guards](/docs/authentication/guards/)
 
+## Authentication Adapters
+
+Integrate third-party authentication providers like Clerk, Auth0, or Better Auth:
+
+```typescript
+import { createClerkAdapter } from '@veloxts/auth/adapters';
+import { createAuthAdapterPlugin } from '@veloxts/auth';
+
+const adapter = createClerkAdapter({
+  name: 'clerk',
+  clerk: createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! }),
+});
+
+const authPlugin = createAuthAdapterPlugin({ adapter, config: adapter.config });
+app.use(authPlugin);
+```
+
+[Learn more about Auth Adapters](/docs/authentication/auth-adapters/)
+
 ## Templates
 
 Quick start with authentication:
@@ -101,6 +120,7 @@ npx create-velox-app my-app --rsc-auth
 
 ## Next Steps
 
+- [Auth Adapters](/docs/authentication/auth-adapters/) - Clerk, Auth0, Better Auth integration
 - [JWT](/docs/authentication/jwt/) - Token authentication
 - [Sessions](/docs/authentication/sessions/) - Cookie-based auth
 - [Guards](/docs/authentication/guards/) - Authorization
