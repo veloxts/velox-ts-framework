@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.85
+
+### Patch Changes
+
+- implement missing features from original requirements
+- Updated dependencies
+  - @veloxts/core@0.6.85
+  - @veloxts/router@0.6.85
+
 ## 0.6.84
 
 ### Patch Changes

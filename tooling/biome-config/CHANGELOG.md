@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.85
+
+### Patch Changes
+
+- implement missing features from original requirements
+
 ## 0.6.84
 
 ### Patch Changes

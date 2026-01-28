@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.85
+
+### Patch Changes
+
+- implement missing features from original requirements
+- Updated dependencies
+  - @veloxts/cli@0.6.85
+  - @veloxts/router@0.6.85
+  - @veloxts/validation@0.6.85
+
 ## 0.6.84
 
 ### Patch Changes
