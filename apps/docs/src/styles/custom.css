@@ -2,13 +2,13 @@
 
 :root {
   /* Primary - Deep Indigo */
-  --sl-color-accent-low: #312e81;
-  --sl-color-accent: #4f46e5;
-  --sl-color-accent-high: #818cf8;
+  --sl-color-accent-low: #1f609f;
+  --sl-color-accent: #327cc7;
+  --sl-color-accent-high: #4ea0f2;
 
   /* Text - Light mode */
   --sl-color-text: #1a1a1a;
-  --sl-color-text-accent: #4f46e5;
+  --sl-color-text-accent: #327cc7;
 
   /* Background - Light mode */
   --sl-color-bg: #fafafa;
@@ -31,27 +31,27 @@
 /* Dark mode overrides */
 :root[data-theme="dark"] {
   /* Primary - Lighter for dark mode */
-  --sl-color-accent-low: #3730a3;
-  --sl-color-accent: #6366f1;
-  --sl-color-accent-high: #a5b4fc;
+  --sl-color-accent-low: #1f609f;
+  --sl-color-accent: #327cc7;
+  --sl-color-accent-high: #4ea0f2;
 
   /* Background - Deep Navy */
-  --sl-color-bg: #0f172a;
+  --sl-color-bg: #0f1c29;
   --sl-color-bg-nav: #1e293b;
-  --sl-color-bg-sidebar: #1e293b;
+  --sl-color-bg-sidebar: #1e2c3b;
 
   /* Text - Dark mode */
   --sl-color-text: #f8fafc;
-  --sl-color-text-accent: #818cf8;
+  --sl-color-text-accent: #327cc7;
 
   /* Borders - Dark mode */
-  --sl-color-hairline-light: #334155;
-  --sl-color-hairline: #475569;
+  --sl-color-hairline-light: #324354;
+  --sl-color-hairline: #475869;
 }
 
 /* Code blocks always use dark theme */
 .expressive-code {
-  --ec-codeBg: #1e293b;
+  --ec-codeBg: #1e2d3b;
 }
 
 /* Accent color for primary buttons */

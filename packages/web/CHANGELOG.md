@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.87
+
+### Patch Changes
+
+- Added missing documentations in left nav + primary colors from favicon
+- Updated dependencies
+  - @veloxts/auth@0.6.87
+  - @veloxts/client@0.6.87
+  - @veloxts/core@0.6.87
+  - @veloxts/router@0.6.87
+
 ## 0.6.86
 
 ### Patch Changes

@@ -2,7 +2,7 @@ import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'https://www.veloxts.dev',
+  site: 'https://veloxts.dev',
   base: '/docs',
   outDir: './dist/docs',
   integrations: [
