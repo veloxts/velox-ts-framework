@@ -90,6 +90,7 @@ export default defineConfig({
             { slug: 'authentication/overview' },
             { slug: 'authentication/jwt' },
             { slug: 'authentication/sessions' },
+            { slug: 'authentication/auth-adapters' },
             { slug: 'authentication/guards' },
             { slug: 'authentication/policies' },
             { slug: 'authentication/password-hashing' },
