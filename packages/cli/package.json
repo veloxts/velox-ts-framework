@@ -55,7 +55,8 @@
     "pg": "8.16.0",
     "picocolors": "1.1.1",
     "pluralize": "8.0.0",
-    "tsx": "4.21.0"
+    "tsx": "4.21.0",
+    "yaml": "2.8.0"
   },
   "peerDependencies": {
     "@prisma/client": ">=7.0.0"

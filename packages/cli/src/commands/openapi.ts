@@ -1,18 +1,23 @@
 /**
- * OpenAPI command - Generate OpenAPI specifications
+ * OpenAPI command - Generate and serve OpenAPI specifications
  *
- * Provides subcommands for generating OpenAPI documentation:
- * - openapi:generate - Generate OpenAPI JSON specification from procedures
+ * Provides subcommands for generating and serving OpenAPI documentation:
+ * - openapi generate - Generate OpenAPI JSON/YAML specification from procedures
+ * - openapi serve - Start a local Swagger UI server
  */
 
-import { existsSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { existsSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, extname, resolve } from 'node:path';
+
+import YAML from 'yaml';
 
 import {
   type DiscoveryOptions,
   discoverProceduresVerbose,
   generateOpenApiSpec,
+  generateSwaggerUIHtml,
   isDiscoveryError,
   type OpenAPIGeneratorOptions,
   type OpenAPISpec,
@@ -36,9 +41,12 @@ function loadEnvironment(): void {
 // Types
 // ============================================================================
 
+type OutputFormat = 'json' | 'yaml';
+
 interface GenerateOptions {
   path?: string;
   output?: string;
+  format?: OutputFormat;
   title?: string;
   version?: string;
   description?: string;
@@ -50,9 +58,43 @@ interface GenerateOptions {
   quiet?: boolean;
 }
 
+interface ServeOptions {
+  file?: string;
+  port?: string;
+  host?: string;
+  watch?: boolean;
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+/**
+ * Detect output format from file extension
+ */
+function detectFormat(outputPath: string, explicitFormat?: OutputFormat): OutputFormat {
+  if (explicitFormat) {
+    return explicitFormat;
+  }
+
+  const ext = extname(outputPath).toLowerCase();
+  if (ext === '.yaml' || ext === '.yml') {
+    return 'yaml';
+  }
+
+  return 'json';
+}
+
+/**
+ * Serialize OpenAPI spec to string
+ */
+function serializeSpec(spec: OpenAPISpec, format: OutputFormat, pretty: boolean): string {
+  if (format === 'yaml') {
+    return YAML.stringify(spec, { indent: 2 });
+  }
+
+  return pretty ? JSON.stringify(spec, null, 2) : JSON.stringify(spec);
+}
 
 /**
  * Parse server URLs into OpenAPI Server objects
@@ -89,7 +131,8 @@ function printSuccess(
   outputPath: string,
   spec: OpenAPISpec,
   warnings: string[],
-  quiet: boolean
+  quiet: boolean,
+  format: OutputFormat = 'json'
 ): void {
   if (quiet) {
     return;
@@ -102,6 +145,7 @@ function printSuccess(
   console.log(pc.green('✓') + pc.bold(' OpenAPI specification generated'));
   console.log();
   console.log(`  ${pc.dim('Output:')}  ${outputPath}`);
+  console.log(`  ${pc.dim('Format:')}  ${format.toUpperCase()}`);
   console.log(`  ${pc.dim('Title:')}   ${spec.info.title}`);
   console.log(`  ${pc.dim('Version:')} ${spec.info.version}`);
   console.log(`  ${pc.dim('Paths:')}   ${pathCount}`);
@@ -134,14 +178,15 @@ function createGenerateCommand(): Command {
     .description('Generate OpenAPI specification from procedures')
     .option('-p, --path <path>', 'Path to procedures directory', './src/procedures')
     .option('-o, --output <file>', 'Output file path', './openapi.json')
+    .option('-f, --format <format>', 'Output format (json or yaml), auto-detected from file extension if not specified')
     .option('-t, --title <title>', 'API title', 'VeloxTS API')
     .option('-V, --version <version>', 'API version', '1.0.0')
     .option('-d, --description <desc>', 'API description')
     .option('-s, --server <url>', 'Server URL (can be specified multiple times)', collectOption)
     .option('--prefix <prefix>', 'API route prefix', '/api')
     .option('-r, --recursive', 'Scan subdirectories for procedures', false)
-    .option('--pretty', 'Pretty-print JSON output', true)
-    .option('--no-pretty', 'Minify JSON output')
+    .option('--pretty', 'Pretty-print output', true)
+    .option('--no-pretty', 'Minify output')
     .option('--validate', 'Validate generated spec for issues', true)
     .option('--no-validate', 'Skip validation')
     .option('-q, --quiet', 'Suppress output except errors', false)
@@ -208,14 +253,16 @@ function createGenerateCommand(): Command {
         // Add discovery warnings
         warnings.push(...discovery.warnings.map((w) => `${w.filePath}: ${w.message}`));
 
+        // Determine output format
+        const format = detectFormat(outputPath, options.format as OutputFormat | undefined);
+
         // Write output
         await ensureDir(outputPath);
-        const jsonContent =
-          options.pretty !== false ? JSON.stringify(spec, null, 2) : JSON.stringify(spec);
-        writeFileSync(outputPath, jsonContent, 'utf-8');
+        const content = serializeSpec(spec, format, options.pretty !== false);
+        writeFileSync(outputPath, content, 'utf-8');
 
         // Print success message
-        printSuccess(outputPath, spec, warnings, options.quiet ?? false);
+        printSuccess(outputPath, spec, warnings, options.quiet ?? false, format);
 
         // Exit explicitly - dynamic imports may keep event loop running
         process.exit(0);
@@ -238,27 +285,132 @@ function collectOption(value: string, previous: string[] = []): string[] {
 }
 
 /**
- * Create the openapi:serve command (placeholder for future Swagger UI serving)
+ * Create the openapi:serve command
  */
 function createServeCommand(): Command {
   return new Command('serve')
-    .description('Start a local Swagger UI server (coming soon)')
-    .option('-f, --file <file>', 'OpenAPI spec file', './openapi.json')
+    .description('Start a local Swagger UI server to preview OpenAPI documentation')
+    .option('-f, --file <file>', 'OpenAPI spec file (JSON or YAML)', './openapi.json')
     .option('--port <port>', 'Server port', '8080')
-    .action((_options) => {
-      console.log(pc.yellow('The serve command will be available in a future version.'));
-      console.log(pc.dim('For now, use the swaggerUIPlugin in your Fastify app:'));
-      console.log();
-      console.log(pc.cyan(`  import { swaggerUIPlugin } from '@veloxts/router';`));
-      console.log();
-      console.log(pc.cyan(`  app.register(swaggerUIPlugin, {`));
-      console.log(pc.cyan(`    routePrefix: '/docs',`));
-      console.log(pc.cyan(`    collections: [userProcedures],`));
-      console.log(pc.cyan(`    openapi: { info: { title: 'My API', version: '1.0.0' } },`));
-      console.log(pc.cyan(`  });`));
-      console.log();
-      process.exit(0);
+    .option('--host <host>', 'Host to bind', 'localhost')
+    .option('-w, --watch', 'Watch for file changes and hot-reload', false)
+    .action(async (options: ServeOptions) => {
+      const filePath = resolve(process.cwd(), options.file ?? './openapi.json');
+      const port = parseInt(options.port ?? '8080', 10);
+      const host = options.host ?? 'localhost';
+      const watchMode = options.watch ?? false;
+
+      // Verify spec file exists
+      if (!existsSync(filePath)) {
+        console.error(pc.red(`Error: OpenAPI spec file not found: ${filePath}`));
+        console.log(pc.dim('Run `velox openapi generate` first to create the spec.'));
+        process.exit(1);
+      }
+
+      // Load spec file
+      let spec: OpenAPISpec;
+      try {
+        spec = loadSpecFile(filePath);
+      } catch (error) {
+        console.error(pc.red(`Error: Failed to parse OpenAPI spec: ${(error as Error).message}`));
+        process.exit(1);
+      }
+
+      // Generate Swagger UI HTML
+      const title = spec.info?.title ?? 'API Documentation';
+      let htmlContent = generateSwaggerUIHtml({
+        specUrl: '/openapi.json',
+        title,
+        config: { tryItOutEnabled: true },
+      });
+
+      // Create HTTP server
+      const server = createServer((req, res) => {
+        // Handle CORS
+        res.setHeader('Access-Control-Allow-Origin', '*');
+
+        if (req.url === '/' || req.url === '/index.html') {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(htmlContent);
+        } else if (req.url === '/openapi.json') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(spec, null, 2));
+        } else {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('Not Found');
+        }
+      });
+
+      // Watch for file changes
+      let watcher: ReturnType<typeof watch> | undefined;
+      if (watchMode) {
+        let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+        watcher = watch(filePath, () => {
+          // Debounce rapid changes
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+          }
+
+          debounceTimer = setTimeout(() => {
+            try {
+              spec = loadSpecFile(filePath);
+              htmlContent = generateSwaggerUIHtml({
+                specUrl: '/openapi.json',
+                title: spec.info?.title ?? 'API Documentation',
+                config: { tryItOutEnabled: true },
+              });
+              console.log(pc.green('✓') + pc.dim(' Spec reloaded'));
+            } catch (error) {
+              console.error(pc.yellow('⚠') + pc.dim(` Failed to reload spec: ${(error as Error).message}`));
+            }
+          }, 100);
+        });
+      }
+
+      // Handle graceful shutdown
+      const shutdown = () => {
+        console.log();
+        console.log(pc.dim('Shutting down...'));
+        watcher?.close();
+        server.close(() => {
+          process.exit(0);
+        });
+      };
+
+      process.on('SIGINT', shutdown);
+      process.on('SIGTERM', shutdown);
+
+      // Start server
+      server.listen(port, host, () => {
+        console.log();
+        console.log(pc.green('✓') + pc.bold(' Swagger UI server started'));
+        console.log();
+        console.log(`  ${pc.dim('URL:')}     http://${host}:${port}`);
+        console.log(`  ${pc.dim('Spec:')}    ${filePath}`);
+        console.log(`  ${pc.dim('Title:')}   ${title}`);
+        if (watchMode) {
+          console.log(`  ${pc.dim('Watch:')}   ${pc.green('enabled')}`);
+        }
+        console.log();
+        console.log(pc.dim('Press Ctrl+C to stop'));
+        console.log();
+      });
     });
+}
+
+/**
+ * Load and parse an OpenAPI spec file (JSON or YAML)
+ */
+function loadSpecFile(filePath: string): OpenAPISpec {
+  const content = readFileSync(filePath, 'utf-8');
+  const ext = extname(filePath).toLowerCase();
+
+  if (ext === '.yaml' || ext === '.yml') {
+    return YAML.parse(content) as OpenAPISpec;
+  }
+
+  return JSON.parse(content) as OpenAPISpec;
 }
 
 /**

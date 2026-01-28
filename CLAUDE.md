@@ -158,6 +158,68 @@ process.on('SIGINT', shutdown);
 
 All scaffolded templates include these patterns by default.
 
+### OpenAPI Documentation
+
+VeloxTS provides automatic OpenAPI specification generation from procedure definitions.
+
+#### CLI Commands
+
+```bash
+# Generate OpenAPI specification from procedures
+velox openapi generate                    # JSON output to ./openapi.json
+velox openapi generate -o api.yaml        # YAML output (auto-detected)
+velox openapi generate --format yaml      # Explicit YAML format
+velox openapi generate -t "My API" -V 2.0 # Custom title and version
+velox openapi generate -s "http://localhost:3030|Dev" # Add server URL
+
+# Start a local Swagger UI server
+velox openapi serve                       # Serve at http://localhost:8080
+velox openapi serve -f api.yaml           # Serve YAML spec
+velox openapi serve --port 9000           # Custom port
+velox openapi serve --watch               # Auto-reload on file changes
+```
+
+#### Fastify Plugin (Recommended for Production)
+
+```typescript
+import { swaggerUIPlugin } from '@veloxts/router';
+
+app.register(swaggerUIPlugin, {
+  routePrefix: '/docs',
+  collections: [userProcedures, postProcedures],
+  openapi: {
+    info: {
+      title: 'My API',
+      version: '1.0.0',
+      description: 'API documentation',
+    },
+    servers: [
+      { url: 'http://localhost:3030', description: 'Development' },
+    ],
+  },
+});
+```
+
+The Swagger UI is then available at `/docs` with the raw spec at `/docs/openapi.json`.
+
+#### Procedure Annotations
+
+Enhance your OpenAPI documentation with Zod descriptions and deprecation flags:
+
+```typescript
+// Field descriptions appear in OpenAPI schema
+const CreateUserSchema = z.object({
+  name: z.string().min(1).describe('Display name for the user'),
+  email: z.string().email().describe('Email address for authentication'),
+});
+
+// Mark procedures as deprecated
+const getOldUser = procedure()
+  .deprecated('Use getUserById instead. This will be removed in v2.0.')
+  .input(z.object({ id: z.string() }))
+  .query(handler);
+```
+
 ### Publishing to npm (or Verdaccio for local testing)
 
 **IMPORTANT: Always use `pnpm publish`, never `npm publish`**

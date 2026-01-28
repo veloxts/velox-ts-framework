@@ -97,6 +97,66 @@ describe('schema-converter', () => {
       const result = zodSchemaToJsonSchema(schema);
       expect(result?.$schema).toBeUndefined();
     });
+
+    it('preserves schema-level description', () => {
+      const schema = z.object({
+        name: z.string(),
+      }).describe('A user object representing a registered user');
+
+      const result = zodSchemaToJsonSchema(schema);
+      expect(result?.description).toBe('A user object representing a registered user');
+    });
+
+    it('preserves field-level descriptions', () => {
+      const schema = z.object({
+        email: z.string().email().describe('The user email address for authentication'),
+        name: z.string().min(1).max(100).describe('Display name shown in the UI'),
+      });
+
+      const result = zodSchemaToJsonSchema(schema);
+      const properties = result?.properties as Record<string, { description?: string }>;
+
+      expect(properties?.email?.description).toBe('The user email address for authentication');
+      expect(properties?.name?.description).toBe('Display name shown in the UI');
+    });
+
+    it('preserves descriptions for nested objects', () => {
+      const AddressSchema = z.object({
+        street: z.string().describe('Street address'),
+        city: z.string().describe('City name'),
+      }).describe('Physical mailing address');
+
+      const schema = z.object({
+        user: z.object({
+          name: z.string().describe('Full name'),
+          address: AddressSchema,
+        }).describe('User profile information'),
+      });
+
+      const result = zodSchemaToJsonSchema(schema);
+      const properties = result?.properties as Record<string, { description?: string; properties?: Record<string, { description?: string }> }>;
+
+      expect(properties?.user?.description).toBe('User profile information');
+    });
+
+    it('preserves array item descriptions', () => {
+      const schema = z.array(
+        z.string().describe('Tag identifier')
+      ).describe('List of tags');
+
+      const result = zodSchemaToJsonSchema(schema);
+      expect(result?.description).toBe('List of tags');
+
+      const items = result?.items as { description?: string };
+      expect(items?.description).toBe('Tag identifier');
+    });
+
+    it('preserves enum descriptions', () => {
+      const schema = z.enum(['active', 'inactive', 'pending']).describe('Current account status');
+
+      const result = zodSchemaToJsonSchema(schema);
+      expect(result?.description).toBe('Current account status');
+    });
   });
 
   describe('removeSchemaProperties', () => {

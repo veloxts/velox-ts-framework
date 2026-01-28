@@ -299,6 +299,30 @@ export interface ProcedureBuilder<
   rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext>;
 
   /**
+   * Marks the procedure as deprecated
+   *
+   * Deprecated procedures will be marked in OpenAPI documentation with the
+   * deprecated flag, helping API consumers know they should migrate to alternatives.
+   *
+   * @param message - Optional message explaining the deprecation and suggesting alternatives
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * // Simple deprecation
+   * procedure()
+   *   .deprecated()
+   *   .query(handler);
+   *
+   * // With migration message
+   * procedure()
+   *   .deprecated('Use getUserById instead. This endpoint will be removed in v2.0.')
+   *   .query(handler);
+   * ```
+   */
+  deprecated(message?: string): ProcedureBuilder<TInput, TOutput, TContext>;
+
+  /**
    * Declares a parent resource for nested routes (single level)
    *
    * When a procedure has a parent resource, the REST path will be nested
@@ -429,6 +453,10 @@ export interface BuilderRuntimeState {
   parentResource?: ParentResourceConfig;
   /** Multi-level parent resource configuration for deeply nested routes */
   parentResources?: ParentResourceConfig[];
+  /** Whether this procedure is deprecated */
+  deprecated?: boolean;
+  /** Deprecation message */
+  deprecationMessage?: string;
 }
 
 // ============================================================================

@@ -150,6 +150,8 @@ export function procedure<TContext extends BaseContext = BaseContext>(): Procedu
     restOverride: undefined,
     parentResource: undefined,
     parentResources: undefined,
+    deprecated: undefined,
+    deprecationMessage: undefined,
   });
 }
 
@@ -273,6 +275,17 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
+     * Marks the procedure as deprecated
+     */
+    deprecated(message?: string): ProcedureBuilder<TInput, TOutput, TContext> {
+      return createBuilder<TInput, TOutput, TContext>({
+        ...state,
+        deprecated: true,
+        deprecationMessage: message,
+      });
+    },
+
+    /**
      * Declares a parent resource for nested routes (single level)
      */
     parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext> {
@@ -363,6 +376,8 @@ function compileProcedure<
     middlewares: typedMiddlewares,
     guards: state.guards as ReadonlyArray<GuardLike<TContext>>,
     restOverride: state.restOverride,
+    deprecated: state.deprecated,
+    deprecationMessage: state.deprecationMessage,
     parentResource: state.parentResource,
     parentResources: state.parentResources,
     // Store pre-compiled executor for performance

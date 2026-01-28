@@ -204,6 +204,17 @@ function generateOperation(
     operation.security = security;
   }
 
+  // Add deprecation flag
+  if (procedure.deprecated) {
+    operation.deprecated = true;
+    // Add deprecation message as description suffix if present
+    if (procedure.deprecationMessage) {
+      operation.description = operation.description
+        ? `${operation.description}\n\n**Deprecated:** ${procedure.deprecationMessage}`
+        : `**Deprecated:** ${procedure.deprecationMessage}`;
+    }
+  }
+
   return operation;
 }
 

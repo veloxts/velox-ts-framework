@@ -356,6 +356,10 @@ export interface CompiledProcedure<
   readonly guards: ReadonlyArray<GuardLike<TContext>>;
   /** REST route override (if specified) */
   readonly restOverride?: RestRouteOverride;
+  /** Whether this procedure is deprecated */
+  readonly deprecated?: boolean;
+  /** Deprecation message explaining why and what to use instead */
+  readonly deprecationMessage?: string;
   /**
    * Parent resource configuration for nested routes (single level)
    *

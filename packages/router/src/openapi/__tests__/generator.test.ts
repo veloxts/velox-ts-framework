@@ -349,6 +349,100 @@ describe('generator', () => {
     });
   });
 
+  describe('Zod description extraction', () => {
+    it('includes field descriptions in request body schema', () => {
+      const describedProcedures = defineProcedures('users', {
+        createUser: procedure()
+          .input(
+            z.object({
+              name: z.string().describe('The display name for the user'),
+              email: z.string().email().describe('Email address for authentication'),
+            })
+          )
+          .mutation(async ({ input }) => ({ id: '1', ...input })),
+      });
+
+      const spec = generateOpenApiSpec([describedProcedures], {
+        info: { title: 'Test API', version: '1.0.0' },
+      });
+
+      const createUser = spec.paths['/api/users']?.post;
+      const bodySchema = createUser?.requestBody?.content['application/json']?.schema;
+      const properties = bodySchema?.properties as Record<string, { description?: string }>;
+
+      expect(properties?.name?.description).toBe('The display name for the user');
+      expect(properties?.email?.description).toBe('Email address for authentication');
+    });
+
+    it('includes query parameter descriptions', () => {
+      const describedProcedures = defineProcedures('users', {
+        listUsers: procedure()
+          .input(
+            z.object({
+              page: z.number().optional().describe('Page number for pagination'),
+              limit: z.number().optional().describe('Number of results per page'),
+            })
+          )
+          .query(async () => []),
+      });
+
+      const spec = generateOpenApiSpec([describedProcedures], {
+        info: { title: 'Test API', version: '1.0.0' },
+      });
+
+      const listUsers = spec.paths['/api/users']?.get;
+      const pageParam = listUsers?.parameters?.find((p) => p.name === 'page');
+      const limitParam = listUsers?.parameters?.find((p) => p.name === 'limit');
+
+      expect(pageParam?.description).toBe('Page number for pagination');
+      expect(limitParam?.description).toBe('Number of results per page');
+    });
+  });
+
+  describe('deprecated procedures', () => {
+    it('marks deprecated procedures in OpenAPI spec', () => {
+      const deprecatedProcedures = defineProcedures('legacy', {
+        getOldUser: procedure()
+          .input(z.object({ id: z.string() }))
+          .deprecated()
+          .query(async () => ({ id: '1', name: 'Test' })),
+      });
+
+      const spec = generateOpenApiSpec([deprecatedProcedures], {
+        info: { title: 'Test API', version: '1.0.0' },
+      });
+
+      const getOldUser = spec.paths['/api/legacy/{id}']?.get;
+      expect(getOldUser?.deprecated).toBe(true);
+    });
+
+    it('includes deprecation message in description', () => {
+      const deprecatedProcedures = defineProcedures('legacy', {
+        listOldData: procedure()
+          .deprecated('Use listNewData instead. This will be removed in v2.0.')
+          .query(async () => [{ data: 'old' }]),
+      });
+
+      const spec = generateOpenApiSpec([deprecatedProcedures], {
+        info: { title: 'Test API', version: '1.0.0' },
+      });
+
+      const listOldData = spec.paths['/api/legacy']?.get;
+      expect(listOldData?.deprecated).toBe(true);
+      expect(listOldData?.description).toContain('Use listNewData instead');
+      expect(listOldData?.description).toContain('Deprecated');
+    });
+
+    it('does not mark non-deprecated procedures', () => {
+      const spec = generateOpenApiSpec([userProcedures], {
+        info: { title: 'Test API', version: '1.0.0' },
+      });
+
+      const getUser = spec.paths['/api/users/{id}']?.get;
+      expect(getUser?.deprecated).toBeUndefined();
+    });
+  });
+
   describe('validateOpenApiSpec', () => {
     it('returns empty array for valid spec', () => {
       const spec = generateOpenApiSpec([userProcedures], {

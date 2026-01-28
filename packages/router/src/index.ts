@@ -336,6 +336,7 @@ export type {
   SchemaConversionOptions,
   SecuritySchemeType,
   SwaggerUIConfig,
+  SwaggerUIHtmlOptions,
   SwaggerUIPluginOptions,
 } from './openapi/index.js';
 export {
@@ -351,6 +352,8 @@ export {
   createSwaggerUI,
   DEFAULT_GUARD_MAPPINGS,
   DEFAULT_SECURITY_SCHEMES,
+  DEFAULT_UI_CONFIG,
+  escapeHtml,
   extractGuardScopes,
   extractPathParamNames,
   extractQueryParameters,
@@ -360,6 +363,8 @@ export {
   filterUsedSecuritySchemes,
   // Generator
   generateOpenApiSpec,
+  // HTML Generator
+  generateSwaggerUIHtml,
   getOpenApiRouteSummary,
   getOpenApiSpec,
   guardsRequireAuth,
@@ -374,6 +379,7 @@ export {
   registerDocs,
   removeSchemaProperties,
   schemaHasProperties,
+  SWAGGER_UI_CDN,
   swaggerUIPlugin,
   validateOpenApiSpec,
   zodSchemaToJsonSchema,
