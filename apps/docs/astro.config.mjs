@@ -17,9 +17,6 @@ export default defineConfig({
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/veloxts/velox-ts-framework' },
       ],
-      editLink: {
-        baseUrl: 'https://github.com/veloxts/velox-ts-framework/edit/main/apps/docs/',
-      },
       customCss: ['./src/styles/custom.css'],
       sidebar: [
         {
