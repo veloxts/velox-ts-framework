@@ -25,7 +25,11 @@ import type {
 /**
  * Maps procedure naming convention to HTTP method
  *
- * Matches the same logic used in @veloxts/router REST adapter
+ * IMPORTANT: This must stay in sync with @veloxts/validation's PROCEDURE_METHOD_MAP.
+ * We duplicate it here to avoid adding @veloxts/validation as a dependency for the
+ * lightweight frontend client package.
+ *
+ * @see {@link @veloxts/validation!PROCEDURE_METHOD_MAP} for the canonical definition
  */
 const PROCEDURE_METHOD_MAP: Record<string, HttpMethod> = {
   get: 'GET',
@@ -66,20 +70,6 @@ function inferMethodFromName(procedureName: string): HttpMethod {
   // Default to POST for mutations (conservative default)
   return 'POST';
 }
-
-// Note: extractResourceFromName is reserved for future use in path building enhancements
-// Keeping it commented for now to avoid unused code warnings
-// function extractResourceFromName(procedureName: string): string | undefined {
-//   for (const prefix of Object.keys(PROCEDURE_METHOD_MAP)) {
-//     if (procedureName.startsWith(prefix)) {
-//       const remainder = procedureName.slice(prefix.length);
-//       if (remainder.length > 0) {
-//         return remainder.charAt(0).toLowerCase() + remainder.slice(1);
-//       }
-//     }
-//   }
-//   return undefined;
-// }
 
 /**
  * Type guard for RouteEntry objects

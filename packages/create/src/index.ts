@@ -436,6 +436,21 @@ export function getInstallCommand(packageManager: string): string {
   }
 }
 
+/**
+ * Get the prisma generate command for the package manager
+ * @internal Exported for testing
+ */
+export function getPrismaGenerateCommand(packageManager: string): string {
+  switch (packageManager) {
+    case 'pnpm':
+      return 'pnpm exec prisma generate';
+    case 'yarn':
+      return 'yarn exec prisma generate';
+    default:
+      return 'npx prisma generate';
+  }
+}
+
 // ============================================================================
 // Prisma Client Generation
 // ============================================================================
@@ -461,7 +476,9 @@ async function generatePrismaClient(config: ProjectConfig): Promise<void> {
         ? config.directory
         : path.join(config.directory, 'apps', 'api');
 
-    await execAsync('npx prisma generate', {
+    // Use the detected package manager for prisma generate
+    const prismaCmd = getPrismaGenerateCommand(config.packageManager);
+    await execAsync(prismaCmd, {
       cwd: prismaDir,
       timeout: EXEC_TIMEOUT_MS,
     });

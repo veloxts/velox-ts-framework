@@ -24,9 +24,33 @@ export interface MiddlewareResult<TOutput> {
  * Builds the chain from end to start and executes it, allowing each
  * middleware to extend the context before calling the next middleware.
  *
+ * ## Implementation Notes: Closure Capture Pattern
+ *
+ * This function uses a deliberate closure capture pattern in the loop:
+ *
+ * ```typescript
+ * for (let i = middlewares.length - 1; i >= 0; i--) {
+ *   const middleware = middlewares[i];  // Captured in closure
+ *   const currentNext = next;           // Captured in closure
+ *   next = async () => { ... };         // Creates new closure
+ * }
+ * ```
+ *
+ * **Why closures in a loop?**
+ * Each iteration creates a new closure that captures:
+ * 1. `middleware` - The specific middleware function for that position
+ * 2. `currentNext` - The accumulated chain from previous iterations
+ *
+ * This builds the chain backwards (handler → last middleware → ... → first middleware)
+ * so that when executed, it runs forwards (first middleware → ... → handler).
+ *
+ * **Why not use Array.reduceRight?**
+ * The closure pattern is more explicit and easier to debug. Each closure
+ * captures exactly what it needs, and the chain structure is visible.
+ *
  * @param middlewares - Array of middleware functions to execute
  * @param input - The input to pass to each middleware
- * @param ctx - The context object (will be mutated by middleware)
+ * @param ctx - The context object (will be mutated by middleware via Object.assign)
  * @param handler - The final handler to execute after all middleware
  * @returns The output from the handler
  *
@@ -47,22 +71,28 @@ export async function executeMiddlewareChain<TInput, TOutput, TContext extends B
   handler: () => Promise<TOutput>
 ): Promise<TOutput> {
   // Build the chain from the end (handler) back to the start
+  // Start with the handler wrapped in a MiddlewareResult
   let next = async (): Promise<MiddlewareResult<TOutput>> => {
     const output = await handler();
     return { output };
   };
 
   // Wrap each middleware from last to first
+  // Each iteration captures `middleware` and `currentNext` in a new closure
+  // This builds: handler <- MW[n] <- MW[n-1] <- ... <- MW[0]
+  // So execution flows: MW[0] -> MW[1] -> ... -> MW[n] -> handler
   for (let i = middlewares.length - 1; i >= 0; i--) {
     const middleware = middlewares[i];
-    const currentNext = next;
+    const currentNext = next; // Capture the accumulated chain so far
 
+    // Create a new closure that wraps the middleware with the chain
     next = async (): Promise<MiddlewareResult<TOutput>> => {
       return middleware({
         input,
         ctx,
         next: async (opts) => {
-          // Allow middleware to extend context
+          // Allow middleware to extend context via Object.assign
+          // This mutates ctx in place, which is intentional
           if (opts?.ctx) {
             Object.assign(ctx, opts.ctx);
           }

@@ -8,6 +8,7 @@
  */
 
 import type { BaseContext } from '@veloxts/core';
+import type { HttpMethod } from '@veloxts/validation';
 
 // ============================================================================
 // Procedure Types
@@ -25,11 +26,17 @@ export type ProcedureType = 'query' | 'mutation';
  * HTTP methods supported by the REST adapter
  *
  * Full REST support: GET, POST, PUT, PATCH, DELETE
+ *
+ * @see {@link PROCEDURE_METHOD_MAP} for naming convention mapping
  */
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export type { HttpMethod };
 
 /**
  * Maps procedure naming conventions to HTTP methods
+ *
+ * Re-exported from @veloxts/validation for consistency across router and client.
+ *
+ * @see {@link @veloxts/validation!PROCEDURE_METHOD_MAP} for the canonical definition
  *
  * @example
  * - getUser -> GET
@@ -39,18 +46,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
  * - patchUser -> PATCH
  * - deleteUser -> DELETE
  */
-export const PROCEDURE_METHOD_MAP: Record<string, HttpMethod> = {
-  get: 'GET',
-  list: 'GET',
-  find: 'GET',
-  create: 'POST',
-  add: 'POST',
-  update: 'PUT',
-  edit: 'PUT',
-  patch: 'PATCH',
-  delete: 'DELETE',
-  remove: 'DELETE',
-} as const;
+export { PROCEDURE_METHOD_MAP } from '@veloxts/validation';
 
 // ============================================================================
 // Context Types
@@ -121,9 +117,9 @@ export type ProcedureHandler<TInput, TOutput, TContext extends BaseContext = Bas
  */
 export type GuardCheckFunction<TContext = unknown> = (
   ctx: TContext,
-  // biome-ignore lint/suspicious/noExplicitAny: Required for bivariant compatibility with FastifyRequest/FastifyReply
+  // biome-ignore lint/suspicious/noExplicitAny: Using `any` for interoperability - allows guards typed with specific FastifyRequest/FastifyReply to work with generic guards without contravariance issues in function parameters
   request: any,
-  // biome-ignore lint/suspicious/noExplicitAny: Required for bivariant compatibility with FastifyRequest/FastifyReply
+  // biome-ignore lint/suspicious/noExplicitAny: Using `any` for interoperability - see comment above
   reply: any
 ) => boolean | Promise<boolean>;
 

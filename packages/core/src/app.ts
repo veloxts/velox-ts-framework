@@ -11,7 +11,7 @@ import fastify, {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { type BaseContext, createContext } from './context.js';
+import { setupContextHook } from './context.js';
 import { type Container, container } from './di/index.js';
 import { isVeloxError, VeloxError } from './errors.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
@@ -200,14 +200,7 @@ export class VeloxApp {
    * @internal
    */
   private _setupContext(): void {
-    // Create context for each request via direct assignment
-    // TypeScript's declaration merging provides type safety
-    this._server.addHook('onRequest', async (request, reply) => {
-      // Direct assignment is ~100-400ns faster than Object.defineProperty
-      // We use a mutable type assertion here because this is the framework's
-      // initialization code - the readonly constraint is for user code safety
-      (request as { context: BaseContext }).context = createContext(request, reply);
-    });
+    setupContextHook(this._server);
   }
 
   /**

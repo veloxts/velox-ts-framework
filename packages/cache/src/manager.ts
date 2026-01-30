@@ -275,8 +275,15 @@ export async function createCacheManager(options: CachePluginOptions = {}): Prom
       }
 
       const value = await callback();
-      // Use a very long TTL (10 years)
-      await store.put(key, value, '3650d');
+      // Use a very long TTL (10 years) with atomic add to prevent race conditions
+      const added = await store.add(key, value, '3650d');
+      if (!added) {
+        // Another process set the value - return that instead
+        const existing = await store.get<T>(key);
+        if (existing !== null) {
+          return existing;
+        }
+      }
       return value;
     },
 

@@ -7,6 +7,8 @@
  * @module plugin
  */
 
+import { createRequire } from 'node:module';
+
 import { ConfigurationError, definePlugin } from '@veloxts/core';
 
 import { createDatabase, type Database } from './client.js';
@@ -14,6 +16,10 @@ import { registerOrmProviders } from './providers.js';
 import { DATABASE } from './tokens.js';
 import type { DatabaseClient, OrmPluginConfig } from './types.js';
 import { isDatabaseClient } from './types.js';
+
+// Read version from package.json dynamically
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version: string };
 
 // ============================================================================
 // Context Extension
@@ -60,9 +66,9 @@ import { isDatabaseClient } from './types.js';
 // ============================================================================
 
 /**
- * Version of the ORM plugin
+ * Version of the ORM plugin (read from package.json)
  */
-const ORM_PLUGIN_VERSION = '0.1.0';
+const ORM_PLUGIN_VERSION = packageJson.version ?? '0.0.0-unknown';
 
 /**
  * Default plugin name

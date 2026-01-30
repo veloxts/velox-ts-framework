@@ -35,7 +35,7 @@ export type { StartOptions } from './app.js';
 export { VeloxApp, velox, veloxApp } from './app.js';
 // Context system
 export type { BaseContext } from './context.js';
-export { createContext, isContext, setupTestContext } from './context.js';
+export { createContext, isContext, setupContextHook, setupTestContext } from './context.js';
 export type {
   AbstractClass,
   ClassConstructor,

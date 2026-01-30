@@ -56,7 +56,8 @@ describe('databasePlugin', () => {
 
       expect(plugin).toBeDefined();
       expect(plugin.name).toBe('@veloxts/orm');
-      expect(plugin.version).toBe('0.1.0');
+      // Version is dynamically read from package.json - verify it's a valid semver format
+      expect(plugin.version).toMatch(/^\d+\.\d+\.\d+/);
       expect(typeof plugin.register).toBe('function');
     });
 

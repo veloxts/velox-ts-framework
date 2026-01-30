@@ -34,6 +34,25 @@ import type {
 } from './types.js';
 
 /**
+ * Symbol for accessing events manager from Fastify instance.
+ * Using a symbol prevents naming conflicts with other plugins.
+ */
+const EVENTS_KEY = Symbol.for('velox.events');
+
+/**
+ * Extend Fastify types with events manager.
+ */
+declare module 'fastify' {
+  interface FastifyInstance {
+    [EVENTS_KEY]?: EventsManager;
+  }
+
+  interface FastifyRequest {
+    events?: EventsManager;
+  }
+}
+
+/**
  * Extend BaseContext with events manager.
  *
  * After registering the events plugin, `ctx.events` becomes available
@@ -59,11 +78,6 @@ declare module '@veloxts/core' {
     events: EventsManager;
   }
 }
-
-/**
- * Symbol for accessing events manager from Fastify instance.
- */
-const EVENTS_KEY = Symbol.for('velox.events');
 
 /**
  * Default channel authorizer that allows public channels and denies private/presence.
@@ -227,14 +241,20 @@ export function eventsPlugin(options: EventsPluginOptions = {}) {
       // Create events manager
       const events = createManagerFromDriver(driver);
 
-      // Store on fastify instance
-      (fastify as unknown as Record<symbol, EventsManager>)[EVENTS_KEY] = events;
+      // Store on fastify instance using Object.defineProperty for type safety
+      Object.defineProperty(fastify, EVENTS_KEY, {
+        value: events,
+        writable: false,
+        enumerable: false,
+        configurable: false,
+      });
 
-      // Decorate request with events accessor
-      fastify.decorateRequest('events', {
-        getter() {
-          return events;
-        },
+      // Decorate request with events accessor (matching cache/mail/queue/storage pattern)
+      fastify.decorateRequest('events', undefined);
+
+      // Add events to request context
+      fastify.addHook('onRequest', async (request) => {
+        request.events = events;
       });
 
       // Register cleanup hook
@@ -276,7 +296,9 @@ function parseChannel(name: string): { name: string; type: 'public' | 'private' 
  * ```
  */
 export function getEventsFromInstance(fastify: FastifyInstance): EventsManager {
-  const events = (fastify as unknown as Record<symbol, EventsManager>)[EVENTS_KEY];
+  // Type-safe property access using Object.getOwnPropertyDescriptor
+  const descriptor = Object.getOwnPropertyDescriptor(fastify, EVENTS_KEY);
+  const events = descriptor?.value as EventsManager | undefined;
 
   if (!events) {
     throw new Error(

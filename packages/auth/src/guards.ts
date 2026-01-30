@@ -67,6 +67,13 @@ export interface GuardBuilder<TContext> {
 
 /**
  * Counter for generating unique guard names when not provided
+ *
+ * **IMPORTANT for testing:** This counter is module-level state that persists
+ * across test runs. If your tests create guards without explicit names and
+ * assert on the generated names (e.g., 'guard_1', 'guard_2'), you MUST call
+ * `_resetGuardCounter()` in your test setup (beforeEach) to ensure deterministic
+ * results.
+ *
  * @internal
  */
 let guardCounter = 0;
@@ -74,16 +81,30 @@ let guardCounter = 0;
 /**
  * Resets the guard counter to zero.
  *
- * This is intended for testing purposes only to ensure deterministic
- * guard naming across test runs. Should not be used in production code.
+ * **IMPORTANT:** This function MUST be called in test setup (beforeEach/beforeAll)
+ * when tests depend on deterministic auto-generated guard names. Without this,
+ * tests may pass individually but fail when run together due to counter pollution.
  *
- * @internal
+ * @internal - Exported for testing purposes only. Do not use in production code.
+ *
  * @example
  * ```typescript
- * import { _resetGuardCounter } from '@veloxts/auth';
+ * import { guard, _resetGuardCounter } from '@veloxts/auth';
+ * import { describe, beforeEach, it, expect } from 'vitest';
  *
- * beforeEach(() => {
- *   _resetGuardCounter();
+ * describe('Guard tests', () => {
+ *   // Reset counter before each test for deterministic naming
+ *   beforeEach(() => {
+ *     _resetGuardCounter();
+ *   });
+ *
+ *   it('should generate sequential names', () => {
+ *     const guard1 = guard((ctx) => true);
+ *     const guard2 = guard((ctx) => false);
+ *
+ *     expect(guard1.name).toBe('guard_1'); // Always 1, not affected by previous tests
+ *     expect(guard2.name).toBe('guard_2');
+ *   });
  * });
  * ```
  */

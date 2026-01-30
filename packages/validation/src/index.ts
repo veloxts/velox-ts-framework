@@ -142,6 +142,13 @@ export {
 } from './schemas/query.js';
 
 // ============================================================================
+// Naming Conventions (Shared between router and client)
+// ============================================================================
+
+export type { HttpMethod } from './naming.js';
+export { inferMethodFromName, isQueryProcedure, PROCEDURE_METHOD_MAP } from './naming.js';
+
+// ============================================================================
 // Serialization Utilities
 // ============================================================================
 
