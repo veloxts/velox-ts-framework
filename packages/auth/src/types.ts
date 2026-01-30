@@ -262,7 +262,33 @@ export interface AuthConfig {
   /**
    * Token blacklist checker - check if token is revoked
    * Called on every authenticated request
-   * @deprecated Use `tokenStore` with TokenStore interface instead
+   *
+   * @deprecated Since v0.5.0. Use `tokenStore` with TokenStore interface instead.
+   * This option will be removed in v1.0.0.
+   *
+   * **Migration guide:**
+   * ```typescript
+   * // Before (deprecated)
+   * authPlugin({
+   *   jwt: { secret: '...' },
+   *   isTokenRevoked: async (tokenId) => {
+   *     return await redis.sismember('revoked_tokens', tokenId);
+   *   },
+   * });
+   *
+   * // After (recommended)
+   * authPlugin({
+   *   jwt: { secret: '...' },
+   *   tokenStore: {
+   *     isRevoked: async (tokenId) => {
+   *       return await redis.sismember('revoked_tokens', tokenId);
+   *     },
+   *     revoke: async (tokenId) => {
+   *       await redis.sadd('revoked_tokens', tokenId);
+   *     },
+   *   },
+   * });
+   * ```
    */
   isTokenRevoked?: (tokenId: string) => Promise<boolean>;
   /**

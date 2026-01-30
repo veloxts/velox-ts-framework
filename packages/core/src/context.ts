@@ -105,6 +105,27 @@ export function isContext(value: unknown): value is BaseContext {
 }
 
 /**
+ * Sets up the context hook on a Fastify server
+ *
+ * This is the internal implementation used by both VeloxApp and setupTestContext
+ * to populate `request.context` on every request.
+ *
+ * @param server - Fastify server instance
+ *
+ * @internal
+ */
+export function setupContextHook(server: FastifyInstance): void {
+  // Create context for each request via direct assignment
+  // TypeScript's declaration merging provides type safety
+  server.addHook('onRequest', async (request, reply) => {
+    // Direct assignment is ~100-400ns faster than Object.defineProperty
+    // We use a mutable type assertion here because this is the framework's
+    // initialization code - the readonly constraint is for user code safety
+    (request as { context: BaseContext }).context = createContext(request, reply);
+  });
+}
+
+/**
  * Sets up the test context hook on a Fastify server
  *
  * This replicates the `onRequest` hook that VeloxApp uses internally
@@ -129,9 +150,7 @@ export function isContext(value: unknown): value is BaseContext {
  * ```
  */
 export function setupTestContext(server: FastifyInstance): void {
-  server.addHook('onRequest', async (request, reply) => {
-    (request as { context: BaseContext }).context = createContext(request, reply);
-  });
+  setupContextHook(server);
 }
 
 /**
