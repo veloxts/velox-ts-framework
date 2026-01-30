@@ -32,6 +32,7 @@ set -e
 TEMPLATE="spa"
 DATABASE="sqlite"
 TEST_ALL=false
+TEST_PORT=3030
 
 # Parse arguments
 for arg in "$@"; do
@@ -77,11 +78,15 @@ TEST_DIR="/tmp/velox-smoke-test-$$"
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MONOREPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Detect if running in CI
+# Detect if running in CI and set appropriate timeouts
 if [ "$CI" = "true" ] || [ "$CI" = "1" ]; then
   IS_CI="true"
+  MAX_SERVER_WAIT=60  # Longer timeout in CI
+  MAX_RSC_WAIT=45
 else
   IS_CI="false"
+  MAX_SERVER_WAIT=30  # Shorter timeout locally
+  MAX_RSC_WAIT=30
 fi
 
 # Cleanup function
@@ -89,35 +94,153 @@ cleanup() {
   echo ""
   echo "=== Cleaning up ==="
   # Kill any server running on test port
-  lsof -ti :3030 2>/dev/null | xargs kill -9 2>/dev/null || true
+  lsof -ti :"${TEST_PORT:-3030}" 2>/dev/null | xargs kill -9 2>/dev/null || true
   # Remove test directory
   rm -rf "$TEST_DIR"
+  # Clean up temp files
+  rm -f /tmp/register_body.json /tmp/login_body.json /tmp/me_body.json /tmp/create_body.json
+  rm -f /tmp/rsc-server.log /tmp/rsc-auth-server.log
   echo "Done."
 }
 
 # Set trap to cleanup on exit
 trap cleanup EXIT
 
-# Build function (only run once)
+#============================================================================
+# Helper Functions
+#============================================================================
+
+# Kill server process safely
+# Usage: kill_server
+kill_server() {
+  if [ -n "$SERVER_PID" ]; then
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+  fi
+}
+
+# Fail test with context and cleanup
+# Usage: fail_test "message" ["optional details"]
+fail_test() {
+  local message=$1
+  local details=${2:-""}
+  echo "✗ $message"
+  [ -n "$details" ] && echo "  Details: ${details:0:500}"
+  kill_server
+  exit 1
+}
+
+# Make HTTP request and capture status + body
+# Usage: http_request METHOD URL [data] [auth_header]
+# Sets: HTTP_CODE, HTTP_BODY
+http_request() {
+  local method=$1
+  local url=$2
+  local data=${3:-""}
+  local auth_header=${4:-""}
+  local tmp_file="$TEST_DIR/tmp/response_$$.json"
+
+  mkdir -p "$TEST_DIR/tmp"
+
+  local curl_args=(-s -o "$tmp_file" -w "%{http_code}")
+  [ "$method" != "GET" ] && curl_args+=(-X "$method")
+  [ -n "$data" ] && curl_args+=(-H "Content-Type: application/json" -d "$data")
+  [ -n "$auth_header" ] && curl_args+=(-H "Authorization: Bearer $auth_header")
+
+  HTTP_CODE=$(curl "${curl_args[@]}" "$url")
+  HTTP_BODY=$(cat "$tmp_file" 2>/dev/null || echo "")
+  rm -f "$tmp_file"
+}
+
+# Extract JSON field value (robust parsing)
+# Usage: json_field "$json" "field_name"
+# Tries jq first, falls back to grep/sed
+json_field() {
+  local json=$1
+  local field=$2
+  if command -v jq &>/dev/null; then
+    echo "$json" | jq -r ".$field // empty" 2>/dev/null
+  else
+    echo "$json" | grep -o "\"$field\":\"[^\"]*\"" | sed "s/\"$field\":\"//;s/\"//"
+  fi
+}
+
+# Verify port is available before starting server
+# Usage: ensure_port_available PORT [max_wait_seconds]
+ensure_port_available() {
+  local port=$1
+  local max_wait=${2:-5}
+  local waited=0
+
+  while lsof -ti :"$port" &>/dev/null && [ $waited -lt $max_wait ]; do
+    lsof -ti :"$port" | xargs kill -9 2>/dev/null || true
+    sleep 1
+    waited=$((waited + 1))
+  done
+
+  if lsof -ti :"$port" &>/dev/null; then
+    echo "✗ Port $port still in use after ${max_wait}s"
+    return 1
+  fi
+  return 0
+}
+
+#============================================================================
+# Logging Helpers
+#============================================================================
+
+log_section() { echo ""; echo "=== $1 ==="; }
+log_subsection() { echo ""; echo "--- $1 ---"; }
+log_success() { echo "✓ $1"; }
+log_failure() { echo "✗ $1"; }
+log_info() { echo "  $1"; }
+log_warning() { echo "⚠ $1"; }
+
+#============================================================================
+# Build & Test Functions
+#============================================================================
+
+#----------------------------------------------------------------------------
+# build_all - Build scaffolder and all monorepo packages (run once per session)
+#----------------------------------------------------------------------------
 build_all() {
-  echo "=== Building scaffolder ==="
+  log_section "Building scaffolder"
   cd "$SCRIPT_DIR"
   pnpm build
-  echo "✓ Scaffolder built"
+  log_success "Scaffolder built"
   echo ""
 
-  echo "=== Building monorepo packages ==="
+  log_section "Building monorepo packages"
   cd "$MONOREPO_ROOT"
   pnpm build
-  echo "✓ Monorepo packages built"
+  log_success "Monorepo packages built"
   echo ""
 }
 
-# Test a specific template
+#============================================================================
+# test_template - Test a standard (non-RSC) template
+#
+# Arguments:
+#   $1 - Template name (spa, auth, trpc)
+#
+# Tests performed:
+#   - Project scaffolding
+#   - Package linking (monorepo packages via file: references)
+#   - Prisma client generation and database schema push
+#   - TypeScript type checking
+#   - CLI command verification (velox procedures list)
+#   - API build
+#   - Web app build
+#   - Server startup and health endpoint
+#   - Template-specific endpoint tests (auth, trpc, REST CRUD)
+#   - Error handling validation (401, 400, 404 responses)
+#
+# Returns: 0 on success, exits with 1 on failure
+#============================================================================
 test_template() {
   local template=$1
   local project_name="smoke-test-$template"
-  local test_port=3030
+  local test_port=$TEST_PORT
 
   echo ""
   echo "=========================================="
@@ -271,8 +394,9 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
 
   # Start server from apps/api (where .env is located)
   echo "=== Testing endpoints ==="
-  lsof -ti :$test_port 2>/dev/null | xargs kill -9 2>/dev/null || true
-  sleep 1
+  if ! ensure_port_available "$test_port"; then
+    fail_test "Port $test_port unavailable after cleanup attempts"
+  fi
 
   PORT=$test_port node dist/index.js &
   SERVER_PID=$!
@@ -280,7 +404,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   # Wait for server to be ready
   # tRPC template uses tRPC health endpoint, others use REST
   echo "Waiting for server to start..."
-  MAX_WAIT=30
+  MAX_WAIT=$MAX_SERVER_WAIT
   ELAPSED=0
   SERVER_READY=false
 
@@ -313,7 +437,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
 
   if [ "$SERVER_READY" = false ]; then
     echo "✗ Server failed to start within ${MAX_WAIT} seconds"
-    kill $SERVER_PID 2>/dev/null || true
+    kill_server
     exit 1
   fi
 
@@ -324,7 +448,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ Health endpoint working"
     else
       echo "✗ Health endpoint failed: $HEALTH_RESPONSE"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -334,7 +458,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ GET /api/users working"
     else
       echo "✗ GET /api/users failed: $USERS_RESPONSE"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
   fi
@@ -349,12 +473,12 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       -H "Content-Type: application/json" \
       -d '{"name": "Test User", "email": "test@smoke.com", "password": "SecurePass123!"}')
     REGISTER_BODY=$(cat /tmp/register_body.json)
-    if [ "$REGISTER_STATUS" = "200" ] || [ "$REGISTER_STATUS" = "201" ] && echo "$REGISTER_BODY" | grep -q '"accessToken"'; then
+    if { [ "$REGISTER_STATUS" = "200" ] || [ "$REGISTER_STATUS" = "201" ]; } && echo "$REGISTER_BODY" | grep -q '"accessToken"'; then
       echo "✓ POST /auth/register returned $REGISTER_STATUS"
-      ACCESS_TOKEN=$(echo "$REGISTER_BODY" | grep -o '"accessToken":"[^"]*"' | sed 's/"accessToken":"//;s/"//')
+      ACCESS_TOKEN=$(json_field "$REGISTER_BODY" "accessToken")
     else
       echo "✗ POST /auth/register failed: status=$REGISTER_STATUS, body=$REGISTER_BODY"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -363,12 +487,12 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       -H "Content-Type: application/json" \
       -d '{"email": "test@smoke.com", "password": "SecurePass123!"}')
     LOGIN_BODY=$(cat /tmp/login_body.json)
-    if [ "$LOGIN_STATUS" = "200" ] || [ "$LOGIN_STATUS" = "201" ] && echo "$LOGIN_BODY" | grep -q '"accessToken"'; then
+    if { [ "$LOGIN_STATUS" = "200" ] || [ "$LOGIN_STATUS" = "201" ]; } && echo "$LOGIN_BODY" | grep -q '"accessToken"'; then
       echo "✓ POST /auth/login returned $LOGIN_STATUS"
-      ACCESS_TOKEN=$(echo "$LOGIN_BODY" | grep -o '"accessToken":"[^"]*"' | sed 's/"accessToken":"//;s/"//')
+      ACCESS_TOKEN=$(json_field "$LOGIN_BODY" "accessToken")
     else
       echo "✗ POST /auth/login failed: status=$LOGIN_STATUS, body=$LOGIN_BODY"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -380,7 +504,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ GET /auth/me returned 200 (protected)"
     else
       echo "✗ GET /auth/me failed: status=$ME_STATUS, body=$ME_BODY"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -392,7 +516,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ POST /api/users requires auth (401)"
     else
       echo "✗ POST /api/users should require auth: got $CREATE_NOAUTH_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -405,7 +529,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ POST /api/users with auth returned 201"
     else
       echo "✗ POST /api/users with auth failed: $CREATE_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -420,7 +544,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ Invalid credentials returns 401"
     else
       echo "✗ Invalid credentials should return 401, got $INVALID_LOGIN_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -431,7 +555,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ Invalid token returns 401"
     else
       echo "✗ Invalid token should return 401, got $INVALID_TOKEN_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -444,7 +568,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ Invalid email returns 400"
     else
       echo "✗ Invalid email should return 400, got $VALIDATION_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -455,7 +579,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ Non-existent user returns 404"
     else
       echo "✗ Non-existent user should return 404, got $NOTFOUND_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -471,7 +595,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
         echo "✓ @veloxts/client integration test passed"
       else
         echo "✗ @veloxts/client integration test FAILED"
-        kill $SERVER_PID 2>/dev/null || true
+        kill_server
         exit 1
       fi
     else
@@ -489,7 +613,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ tRPC health.getHealth query working"
     else
       echo "✗ tRPC health.getHealth failed: $TRPC_HEALTH"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -499,7 +623,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ tRPC users.listUsers query working"
     else
       echo "✗ tRPC users.listUsers failed: $TRPC_USERS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -510,10 +634,10 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
     if echo "$TRPC_CREATE" | grep -q '"result"'; then
       echo "✓ tRPC users.createUser mutation working"
       # Extract created user ID for further tests
-      TRPC_USER_ID=$(echo "$TRPC_CREATE" | grep -o '"id":"[^"]*"' | sed 's/"id":"//;s/"//')
+      TRPC_USER_ID=$(json_field "$TRPC_CREATE" "id")
     else
       echo "✗ tRPC users.createUser failed: $TRPC_CREATE"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -523,7 +647,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ tRPC users.getUser query working"
     else
       echo "✗ tRPC users.getUser failed: $TRPC_GET"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -535,7 +659,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ tRPC users.deleteUser mutation working"
     else
       echo "✗ tRPC users.deleteUser failed: $TRPC_DELETE"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -548,7 +672,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ REST /api/users returns 404 (not registered)"
     else
       echo "✗ REST /api/users should return 404 (tRPC-only), got $REST_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -563,11 +687,11 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       -d '{"name": "Test User", "email": "test@smoke.com"}')
     CREATE_BODY=$(cat /tmp/create_body.json)
     if [ "$CREATE_STATUS" = "201" ] && echo "$CREATE_BODY" | grep -q '"id"'; then
-      USER_ID=$(echo "$CREATE_BODY" | grep -o '"id":"[^"]*"' | sed 's/"id":"//;s/"//')
+      USER_ID=$(json_field "$CREATE_BODY" "id")
       echo "✓ POST /api/users returned 201"
     else
       echo "✗ POST /api/users failed: status=$CREATE_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -579,7 +703,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ PUT /api/users/:id returned 200"
     else
       echo "✗ PUT /api/users/:id failed: $UPDATE_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -591,7 +715,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ PATCH /api/users/:id returned 200"
     else
       echo "✗ PATCH /api/users/:id failed: $PATCH_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -601,7 +725,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ DELETE /api/users/:id returned 200"
     else
       echo "✗ DELETE /api/users/:id failed: $DELETE_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -616,7 +740,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ Invalid email returns 400"
     else
       echo "✗ Invalid email should return 400, got $VALIDATION_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -628,7 +752,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ Missing email returns 400"
     else
       echo "✗ Missing email should return 400, got $MISSING_FIELD_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -638,7 +762,7 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ Non-existent user returns 404"
     else
       echo "✗ Non-existent user should return 404, got $NOTFOUND_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
 
@@ -655,13 +779,13 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
       echo "✓ Duplicate email rejected ($DUPLICATE_STATUS)"
     else
       echo "✗ Duplicate email should return 400 or 409, got $DUPLICATE_STATUS"
-      kill $SERVER_PID 2>/dev/null || true
+      kill_server
       exit 1
     fi
   fi
 
   # Kill the server
-  kill $SERVER_PID 2>/dev/null || true
+  kill_server
 
   # Return to project root (we were in apps/api)
   cd ../..
@@ -674,11 +798,29 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
   rm -rf "$TEST_DIR/$project_name" 2>/dev/null || true
 }
 
-# Test RSC template (Vinxi/RSC - different structure)
+#============================================================================
+# test_rsc_template - Test RSC (React Server Components) template with Vinxi
+#
+# Tests performed:
+#   - Project scaffolding (single-package structure)
+#   - Package linking (monorepo packages via file: references)
+#   - Required file structure verification (29 files)
+#   - Prisma client generation and database schema push
+#   - TypeScript type checking
+#   - Vinxi dev server startup
+#   - API endpoints: health, users CRUD, nested posts CRUD (14 tests)
+#   - RSC page rendering: home, users, dynamic routes (12 tests)
+#   - Nested dynamic routes (/users/:id/posts/:postId)
+#   - Route groups and catch-all routes
+#   - Layout inheritance and replace mode
+#   - Client hydration verification
+#
+# Returns: 0 on success, exits with 1 on failure
+#============================================================================
 test_rsc_template() {
   local project_name="smoke-test-rsc"
-  local test_port=3030
-  local dev_timeout=30
+  local test_port=$TEST_PORT
+  local dev_timeout=$MAX_RSC_WAIT
 
   echo ""
   echo "=========================================="
@@ -865,6 +1007,11 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   # Currently WIP - defineVeloxApp needs to use Vinxi's createApp()
   echo "=== Testing Vinxi runtime ==="
 
+  # Ensure port is available before starting dev server
+  if ! ensure_port_available "$test_port"; then
+    fail_test "Port $test_port unavailable for RSC dev server"
+  fi
+
   # Try to start the dev server briefly to check if Vinxi integration works
   npm run dev > /tmp/rsc-server.log 2>&1 &
   SERVER_PID=$!
@@ -920,8 +1067,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  This may indicate API handler configuration issues"
     echo "Server log:"
     tail -20 /tmp/rsc-server.log
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
 
     # Still pass - structure validation succeeded
     echo ""
@@ -950,14 +1096,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /api/health returned invalid JSON"
       echo "  Response: $BODY"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /api/health returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -973,14 +1117,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /api/users returned unexpected data"
       echo "  Response: $BODY"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /api/users returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -995,19 +1137,17 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   if [ "$HTTP_CODE" = "201" ]; then
     if echo "$BODY" | grep -q '"id"' && echo "$BODY" | grep -q '"Test User"'; then
       echo "  ✓ POST /api/users (201 Created)"
-      USER_ID=$(echo "$BODY" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+      USER_ID=$(json_field "$BODY" "id")
     else
       echo "  ✗ POST /api/users returned invalid user data"
       echo "  Response: $BODY"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ POST /api/users returned $HTTP_CODE"
     echo "  Response: $BODY"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1023,14 +1163,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /api/users/:id returned incorrect data"
       echo "  Response: $BODY"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /api/users/:id returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1048,15 +1186,13 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ PUT /api/users/:id did not update user"
       echo "  Response: $BODY"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ PUT /api/users/:id returned $HTTP_CODE"
     echo "  Response: $BODY"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1069,8 +1205,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ DELETE /api/users/:id ($HTTP_CODE)"
   else
     echo "  ✗ DELETE /api/users/:id returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1087,8 +1222,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   else
     echo "  ✗ POST /api/users with invalid data returned $HTTP_CODE (expected 400)"
     echo "  Response: $BODY"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1101,8 +1235,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET /api/users/:id with non-existent ID (404 Not Found)"
   else
     echo "  ✗ GET /api/users/:id with non-existent ID returned $HTTP_CODE (expected 404)"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1113,7 +1246,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   RESPONSE=$(curl -s -X POST "http://localhost:$test_port/api/users" \
     -H "Content-Type: application/json" \
     -d '{"name":"Posts Test User","email":"posts@example.com"}')
-  POSTS_USER_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+  POSTS_USER_ID=$(json_field "$RESPONSE" "id")
 
   # Create post for user
   # Note: userId is automatically merged from path param via .parent('users') in procedure
@@ -1127,19 +1260,17 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   if [ "$HTTP_CODE" = "201" ]; then
     if echo "$BODY" | grep -q '"id"' && echo "$BODY" | grep -q '"Test Post"'; then
       echo "  ✓ POST /api/users/:userId/posts (201 Created)"
-      POST_ID=$(echo "$BODY" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+      POST_ID=$(json_field "$BODY" "id")
     else
       echo "  ✗ POST /api/users/:userId/posts returned invalid post data"
       echo "  Response: $BODY"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ POST /api/users/:userId/posts returned $HTTP_CODE"
     echo "  Response: $BODY"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1155,14 +1286,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /api/users/:userId/posts missing post data"
       echo "  Response: $BODY"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /api/users/:userId/posts returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1178,14 +1307,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /api/users/:userId/posts/:postId missing data"
       echo "  Response: $BODY"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /api/users/:userId/posts/:postId returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1198,8 +1325,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ DELETE /api/users/:userId/posts/:postId (200 OK)"
   else
     echo "  ✗ DELETE /api/users/:userId/posts/:postId returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1212,8 +1338,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET /api/users/:userId/posts/:postId (404 Not Found)"
   else
     echo "  ✗ GET /api/users/:userId/posts/:postId should return 404, got $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1226,8 +1351,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET /api/users/:userId/posts for non-existent user (404 Not Found)"
   else
     echo "  ✗ GET /api/users/:userId/posts for non-existent user should return 404, got $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1242,7 +1366,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   RESPONSE=$(curl -s -X POST "http://localhost:$test_port/api/users" \
     -H "Content-Type: application/json" \
     -d '{"name":"Page Test User","email":"pagetest@example.com"}')
-  PAGE_USER_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+  PAGE_USER_ID=$(json_field "$RESPONSE" "id")
 
   # Test home page
   echo "Testing GET / (home page)..."
@@ -1258,21 +1382,18 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
       else
         echo "  ✗ GET / missing user count section"
         echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-        kill $SERVER_PID 2>/dev/null
-        wait $SERVER_PID 2>/dev/null
+        kill_server
         exit 1
       fi
     else
       echo "  ✗ GET / missing welcome header"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET / returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1289,14 +1410,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /users missing user data"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /users returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1314,22 +1433,19 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
       else
         echo "  ✗ GET /users/:id missing user email"
         echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-        kill $SERVER_PID 2>/dev/null
-        wait $SERVER_PID 2>/dev/null
+        kill_server
         exit 1
       fi
     else
       echo "  ✗ GET /users/:id missing user name"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /users/:id returned $HTTP_CODE"
     echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1346,15 +1462,13 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /users/:id missing 'not found' message"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /users/:id (non-existent) returned $HTTP_CODE"
     echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1365,7 +1479,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   RESPONSE=$(curl -s -X POST "http://localhost:$test_port/api/users/$PAGE_USER_ID/posts" \
     -H "Content-Type: application/json" \
     -d '{"title":"Page Test Post","content":"Content for page test","published":true}')
-  PAGE_POST_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+  PAGE_POST_ID=$(json_field "$RESPONSE" "id")
 
   # Test user posts list page (/users/:id/posts)
   echo "Testing GET /users/:id/posts (posts list page)..."
@@ -1379,14 +1493,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /users/:id/posts missing expected content"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /users/:id/posts returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1402,14 +1514,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /users/:id/posts/:postId missing expected content"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /users/:id/posts/:postId returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1425,14 +1535,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /users/:id/posts/new missing 'New Post' content"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /users/:id/posts/new returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1451,14 +1559,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /settings missing expected content or layout indicator"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /settings returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1474,14 +1580,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /profile missing expected content or layout indicator"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /profile returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1500,14 +1604,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /docs/getting-started missing expected content"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /docs/getting-started returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1523,14 +1625,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /docs/api/reference/types missing expected content"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /docs/api/reference/types returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1549,14 +1649,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     else
       echo "  ✗ GET /nonexistent-page returned 404 but missing custom content"
       echo "  Response snippet: $(echo "$BODY" | head -c 500)"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /nonexistent-page should return 404, got $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1577,8 +1675,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   RESPONSE=$(curl -s "http://localhost:$test_port/print")
   if echo "$RESPONSE" | grep -q "nav-list"; then
     echo "  ✗ /print should use MinimalLayout without nav"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   else
     echo "  ✓ /print uses MinimalLayout (no nav - replace mode)"
@@ -1605,10 +1702,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   # Cleanup
   echo "=== Cleaning up ==="
-  kill $SERVER_PID 2>/dev/null || true
-  wait $SERVER_PID 2>/dev/null || true
-  # Give processes time to fully terminate before cleanup
-  sleep 1
+  kill_server
   echo "✓ Server stopped"
   echo ""
 
@@ -1629,11 +1723,26 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   rm -rf "$project_name" 2>/dev/null || true
 }
 
-# Test RSC Auth template (RSC + JWT Authentication)
+#============================================================================
+# test_rsc_auth_template - Test RSC + JWT Authentication template
+#
+# Tests performed:
+#   - Project scaffolding (single-package structure with auth)
+#   - Package linking (monorepo packages via file: references)
+#   - Required file structure verification (auth pages, actions, schemas)
+#   - Prisma client generation and database schema push
+#   - Vinxi dev server startup
+#   - API endpoints: health, users
+#   - Auth endpoints: register, login, me (protected)
+#   - Unauthorized access validation (401 response)
+#   - RSC pages: home, login, register, users, dashboard
+#
+# Returns: 0 on success, exits with 1 on failure
+#============================================================================
 test_rsc_auth_template() {
   local project_name="smoke-test-rsc-auth"
-  local test_port=3030
-  local dev_timeout=30
+  local test_port=$TEST_PORT
+  local dev_timeout=$MAX_RSC_WAIT
 
   echo ""
   echo "=========================================="
@@ -1796,6 +1905,11 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   # Check if Vinxi runtime tests should run
   echo "=== Testing Vinxi runtime ==="
 
+  # Ensure port is available before starting dev server
+  if ! ensure_port_available "$test_port"; then
+    fail_test "Port $test_port unavailable for RSC-auth dev server"
+  fi
+
   npm run dev > /tmp/rsc-auth-server.log 2>&1 &
   SERVER_PID=$!
   sleep 5
@@ -1833,8 +1947,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "⚠ Server started but health endpoint not responding"
     echo "Server log:"
     tail -20 /tmp/rsc-auth-server.log
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     echo ""
     echo "✓ Template 'rsc-auth' passed structure validation!"
     echo ""
@@ -1858,8 +1971,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET /api/health (200 OK)"
   else
     echo "  ✗ GET /api/health returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1872,8 +1984,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET /api/users (200 OK)"
   else
     echo "  ✗ GET /api/users returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1891,19 +2002,17 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
     if echo "$BODY" | grep -q '"accessToken"'; then
       echo "  ✓ POST /api/auth/register (${HTTP_CODE}, tokens returned)"
-      ACCESS_TOKEN=$(echo "$BODY" | grep -o '"accessToken":"[^"]*"' | sed 's/"accessToken":"//;s/"//')
+      ACCESS_TOKEN=$(json_field "$BODY" "accessToken")
     else
       echo "  ✗ POST /api/auth/register missing accessToken"
       echo "  Response: $BODY"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ POST /api/auth/register returned $HTTP_CODE"
     echo "  Response: $BODY"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1918,17 +2027,15 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
     if echo "$BODY" | grep -q '"accessToken"'; then
       echo "  ✓ POST /api/auth/login (${HTTP_CODE}, tokens returned)"
-      ACCESS_TOKEN=$(echo "$BODY" | grep -o '"accessToken":"[^"]*"' | sed 's/"accessToken":"//;s/"//')
+      ACCESS_TOKEN=$(json_field "$BODY" "accessToken")
     else
       echo "  ✗ POST /api/auth/login missing accessToken"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ POST /api/auth/login returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1944,14 +2051,12 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
       echo "  ✓ GET /api/auth/me (200 OK, authenticated)"
     else
       echo "  ✗ GET /api/auth/me missing user data"
-      kill $SERVER_PID 2>/dev/null
-      wait $SERVER_PID 2>/dev/null
+      kill_server
       exit 1
     fi
   else
     echo "  ✗ GET /api/auth/me returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1964,8 +2069,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET /api/auth/me without token (401 Unauthorized)"
   else
     echo "  ✗ GET /api/auth/me without token should return 401, got $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -1982,8 +2086,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET / (200 OK)"
   else
     echo "  ✗ GET / returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -2001,8 +2104,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     fi
   else
     echo "  ✗ GET /auth/login returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -2020,8 +2122,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     fi
   else
     echo "  ✗ GET /auth/register returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -2034,8 +2135,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET /users (200 OK)"
   else
     echo "  ✗ GET /users returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -2048,8 +2148,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET /dashboard (200 OK)"
   else
     echo "  ✗ GET /dashboard returned $HTTP_CODE"
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    kill_server
     exit 1
   fi
 
@@ -2059,8 +2158,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   # Cleanup
   echo "=== Cleaning up ==="
-  kill $SERVER_PID 2>/dev/null || true
-  wait $SERVER_PID 2>/dev/null || true
+  kill_server
   echo "✓ Server stopped"
   echo ""
 
