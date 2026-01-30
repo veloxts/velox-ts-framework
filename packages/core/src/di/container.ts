@@ -241,23 +241,22 @@ export class Container {
   // ==========================================================================
 
   /**
-   * Resolves a service from the container
+   * Validates token and retrieves provider with circular dependency checking
+   *
+   * This is the shared resolution logic used by both resolve() and resolveAsync().
+   * It handles:
+   * - Token validation
+   * - Circular dependency detection
+   * - Provider lookup (local and parent)
+   * - Auto-registration for unregistered class tokens
    *
    * @param token - The token to resolve
-   * @param context - Optional resolution context (for request scope)
-   * @returns The resolved service instance
-   * @throws {VeloxError} If the service cannot be resolved
+   * @returns The normalized provider for the token
+   * @throws {VeloxError} If circular dependency detected or no provider found
    *
-   * @example
-   * ```typescript
-   * // Basic resolution
-   * const userService = container.resolve(UserService);
-   *
-   * // With request context (for request-scoped services)
-   * const userContext = container.resolve(UserContext, { request });
-   * ```
+   * @internal
    */
-  resolve<T>(token: InjectionToken<T>, context?: ResolutionContext): T {
+  private getValidatedProvider<T>(token: InjectionToken<T>): NormalizedProvider<T> {
     validateToken(token);
 
     // Check for circular dependencies
@@ -290,7 +289,28 @@ export class Container {
       }
     }
 
-    // Resolve based on scope
+    return provider;
+  }
+
+  /**
+   * Resolves a service from the container
+   *
+   * @param token - The token to resolve
+   * @param context - Optional resolution context (for request scope)
+   * @returns The resolved service instance
+   * @throws {VeloxError} If the service cannot be resolved
+   *
+   * @example
+   * ```typescript
+   * // Basic resolution
+   * const userService = container.resolve(UserService);
+   *
+   * // With request context (for request-scoped services)
+   * const userContext = container.resolve(UserContext, { request });
+   * ```
+   */
+  resolve<T>(token: InjectionToken<T>, context?: ResolutionContext): T {
+    const provider = this.getValidatedProvider(token);
     return this.resolveWithScope(token, provider, context);
   }
 
@@ -562,36 +582,7 @@ export class Container {
    * ```
    */
   async resolveAsync<T>(token: InjectionToken<T>, context?: ResolutionContext): Promise<T> {
-    validateToken(token);
-
-    // Check for circular dependencies
-    if (this.resolutionStack.has(token)) {
-      const stack = [...this.resolutionStack].map((t) => getTokenName(t as InjectionToken));
-      const current = getTokenName(token);
-      throw new VeloxError(
-        `Circular dependency detected: ${[...stack, current].join(' -> ')}`,
-        500,
-        'CIRCULAR_DEPENDENCY'
-      );
-    }
-
-    // Get provider
-    let provider = this.getProvider(token);
-
-    if (!provider) {
-      if (this.autoRegister && isClassToken(token)) {
-        provider = this.tryAutoRegister(token);
-      }
-
-      if (!provider) {
-        throw new VeloxError(
-          `No provider found for: ${getTokenName(token)}`,
-          500,
-          'SERVICE_NOT_FOUND'
-        );
-      }
-    }
-
+    const provider = this.getValidatedProvider(token);
     return this.resolveWithScopeAsync(token, provider, context);
   }
 

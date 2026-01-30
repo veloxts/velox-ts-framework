@@ -64,10 +64,6 @@ export { isSchema, isZodSchema, wrapSchema } from './types.js';
 // Validation Middleware
 // ============================================================================
 
-// ============================================================================
-// Validation Middleware
-// ============================================================================
-
 export type { Validator } from './middleware.js';
 export {
   assertSchema,

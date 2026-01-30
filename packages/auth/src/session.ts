@@ -22,322 +22,40 @@ import {
   getValidatedCookieContext,
 } from './utils/cookie-support.js';
 
-// ============================================================================
-// Constants
-// ============================================================================
+// Re-export types, constants, and store from session module
+export type {
+  Session,
+  SessionAuthContext,
+  SessionContext,
+  SessionData,
+  SessionMiddlewareOptions,
+  StoredSession,
+} from './session/types.js';
+export {
+  DEFAULT_COOKIE_NAME,
+  DEFAULT_SESSION_TTL,
+  MIN_SECRET_LENGTH,
+  SESSION_ID_BYTES,
+} from './session/types.js';
+export type { SessionStore } from './session/store.js';
+export { inMemorySessionStore } from './session/store.js';
 
-/**
- * Session ID entropy in bytes (32 bytes = 256 bits)
- * Provides sufficient entropy to prevent brute-force attacks
- */
-const SESSION_ID_BYTES = 32;
-
-/**
- * Minimum secret length for session ID signing (32 characters)
- */
-const MIN_SECRET_LENGTH = 32;
-
-/**
- * Default session TTL (24 hours in seconds)
- */
-const DEFAULT_SESSION_TTL = 86400;
-
-/**
- * Default cookie name
- */
-const DEFAULT_COOKIE_NAME = 'velox.session';
-
-// ============================================================================
-// Session Data Types
-// ============================================================================
-
-/**
- * Base session data interface
- *
- * Applications should extend this via declaration merging:
- * @example
- * ```typescript
- * declare module '@veloxts/auth' {
- *   interface SessionData {
- *     cart: CartItem[];
- *     preferences: UserPreferences;
- *   }
- * }
- * ```
- */
-export interface SessionData {
-  /** User ID if authenticated */
-  userId?: string;
-  /** User email if authenticated */
-  userEmail?: string;
-  /** Flash data - persists for one request only */
-  _flash?: Record<string, unknown>;
-  /** Previous flash data being read */
-  _flashOld?: Record<string, unknown>;
-  /** Session creation timestamp (Unix ms) */
-  _createdAt: number;
-  /** Last access timestamp (Unix ms) */
-  _lastAccessedAt: number;
-  /** Allow extension via declaration merging */
-  [key: string]: unknown;
-}
-
-/**
- * Stored session entry in the session store
- */
-export interface StoredSession {
-  /** Session ID (signed) */
-  id: string;
-  /** Session data */
-  data: SessionData;
-  /** Expiration timestamp (Unix ms) */
-  expiresAt: number;
-}
-
-// ============================================================================
-// Session Store Interface
-// ============================================================================
-
-/**
- * Pluggable session storage backend interface
- *
- * Implementations:
- * - InMemorySessionStore (default, for development)
- * - RedisSessionStore (production, distributed)
- * - DatabaseSessionStore (production, audit trail)
- *
- * @example
- * ```typescript
- * // Custom Redis implementation
- * class RedisSessionStore implements SessionStore {
- *   constructor(private redis: Redis) {}
- *
- *   async get(sessionId: string): Promise<StoredSession | null> {
- *     const data = await this.redis.get(`session:${sessionId}`);
- *     return data ? JSON.parse(data) : null;
- *   }
- *
- *   async set(sessionId: string, session: StoredSession): Promise<void> {
- *     const ttl = Math.ceil((session.expiresAt - Date.now()) / 1000);
- *     await this.redis.setex(`session:${sessionId}`, ttl, JSON.stringify(session));
- *   }
- *
- *   async delete(sessionId: string): Promise<void> {
- *     await this.redis.del(`session:${sessionId}`);
- *   }
- *
- *   async touch(sessionId: string, expiresAt: number): Promise<void> {
- *     const session = await this.get(sessionId);
- *     if (session) {
- *       session.expiresAt = expiresAt;
- *       session.data._lastAccessedAt = Date.now();
- *       await this.set(sessionId, session);
- *     }
- *   }
- *
- *   async clear(): Promise<void> {
- *     const keys = await this.redis.keys('session:*');
- *     if (keys.length > 0) {
- *       await this.redis.del(...keys);
- *     }
- *   }
- * }
- * ```
- */
-export interface SessionStore {
-  /**
-   * Retrieve a session by ID
-   * @param sessionId - The session ID to look up
-   * @returns The stored session or null if not found/expired
-   */
-  get(sessionId: string): Promise<StoredSession | null> | StoredSession | null;
-
-  /**
-   * Store or update a session
-   * @param sessionId - The session ID
-   * @param session - The session data to store
-   */
-  set(sessionId: string, session: StoredSession): Promise<void> | void;
-
-  /**
-   * Delete a session
-   * @param sessionId - The session ID to delete
-   */
-  delete(sessionId: string): Promise<void> | void;
-
-  /**
-   * Refresh session TTL without modifying data
-   * Used for sliding expiration
-   * @param sessionId - The session ID to touch
-   * @param expiresAt - New expiration timestamp (Unix ms)
-   */
-  touch(sessionId: string, expiresAt: number): Promise<void> | void;
-
-  /**
-   * Clear all sessions (useful for testing and maintenance)
-   */
-  clear(): Promise<void> | void;
-
-  /**
-   * Get all active session IDs for a user (optional)
-   * Useful for "logout from all devices" functionality
-   * @param userId - The user ID to look up
-   * @returns Array of session IDs for the user
-   */
-  getSessionsByUser?(userId: string): Promise<string[]> | string[];
-
-  /**
-   * Delete all sessions for a user (optional)
-   * Useful for "logout from all devices" functionality
-   * @param userId - The user ID whose sessions to delete
-   */
-  deleteSessionsByUser?(userId: string): Promise<void> | void;
-}
-
-// ============================================================================
-// In-Memory Session Store
-// ============================================================================
-
-/**
- * In-memory session store for development and testing
- *
- * WARNING: NOT suitable for production!
- * - Sessions are lost on server restart
- * - Does not work across multiple server instances
- * - No persistence mechanism
- *
- * For production, use Redis or database-backed storage.
- *
- * @example
- * ```typescript
- * const store = inMemorySessionStore();
- *
- * const manager = sessionManager({
- *   store,
- *   secret: process.env.SESSION_SECRET!,
- * });
- * ```
- */
-export function inMemorySessionStore(): SessionStore {
-  const sessions = new Map<string, StoredSession>();
-  const userSessions = new Map<string, Set<string>>();
-
-  /**
-   * Clean up expired sessions
-   */
-  function cleanup(): void {
-    const now = Date.now();
-    for (const [id, session] of sessions) {
-      if (session.expiresAt <= now) {
-        // Remove from user index
-        const userId = session.data.userId;
-        if (userId) {
-          const userSessionSet = userSessions.get(userId);
-          if (userSessionSet) {
-            userSessionSet.delete(id);
-            if (userSessionSet.size === 0) {
-              userSessions.delete(userId);
-            }
-          }
-        }
-        sessions.delete(id);
-      }
-    }
-  }
-
-  // Run cleanup periodically (every 5 minutes)
-  const cleanupInterval = setInterval(cleanup, 5 * 60 * 1000);
-  // Don't prevent process exit
-  cleanupInterval.unref();
-
-  return {
-    get(sessionId: string): StoredSession | null {
-      const session = sessions.get(sessionId);
-      if (!session) {
-        return null;
-      }
-
-      // Check expiration
-      if (session.expiresAt <= Date.now()) {
-        sessions.delete(sessionId);
-        return null;
-      }
-
-      return session;
-    },
-
-    set(sessionId: string, session: StoredSession): void {
-      // Track user sessions for getSessionsByUser
-      const existingSession = sessions.get(sessionId);
-      const oldUserId = existingSession?.data.userId;
-      const newUserId = session.data.userId;
-
-      // Update user index if userId changed
-      if (oldUserId && oldUserId !== newUserId) {
-        const oldSet = userSessions.get(oldUserId);
-        if (oldSet) {
-          oldSet.delete(sessionId);
-          if (oldSet.size === 0) {
-            userSessions.delete(oldUserId);
-          }
-        }
-      }
-
-      if (newUserId) {
-        let userSet = userSessions.get(newUserId);
-        if (!userSet) {
-          userSet = new Set();
-          userSessions.set(newUserId, userSet);
-        }
-        userSet.add(sessionId);
-      }
-
-      sessions.set(sessionId, session);
-    },
-
-    delete(sessionId: string): void {
-      const session = sessions.get(sessionId);
-      if (session?.data.userId) {
-        const userSet = userSessions.get(session.data.userId);
-        if (userSet) {
-          userSet.delete(sessionId);
-          if (userSet.size === 0) {
-            userSessions.delete(session.data.userId);
-          }
-        }
-      }
-      sessions.delete(sessionId);
-    },
-
-    touch(sessionId: string, expiresAt: number): void {
-      const session = sessions.get(sessionId);
-      if (session) {
-        session.expiresAt = expiresAt;
-        session.data._lastAccessedAt = Date.now();
-      }
-    },
-
-    clear(): void {
-      sessions.clear();
-      userSessions.clear();
-    },
-
-    getSessionsByUser(userId: string): string[] {
-      const userSet = userSessions.get(userId);
-      return userSet ? [...userSet] : [];
-    },
-
-    deleteSessionsByUser(userId: string): void {
-      const userSet = userSessions.get(userId);
-      if (userSet) {
-        for (const sessionId of userSet) {
-          sessions.delete(sessionId);
-        }
-        userSessions.delete(userId);
-      }
-    },
-  };
-}
+// Import types and constants for internal use
+import type {
+  Session,
+  SessionAuthContext,
+  SessionContext,
+  SessionData,
+  SessionMiddlewareOptions,
+} from './session/types.js';
+import {
+  DEFAULT_COOKIE_NAME,
+  DEFAULT_SESSION_TTL,
+  MIN_SECRET_LENGTH,
+  SESSION_ID_BYTES,
+} from './session/types.js';
+import type { SessionStore } from './session/store.js';
+import { inMemorySessionStore } from './session/store.js';
 
 // ============================================================================
 // Session Configuration
@@ -444,136 +162,6 @@ export interface SessionConfig {
 // ============================================================================
 // Session Manager Interface
 // ============================================================================
-
-/**
- * Session handle for accessing and modifying session data
- */
-export interface Session {
-  /** Session ID */
-  readonly id: string;
-
-  /** Whether this is a new session */
-  readonly isNew: boolean;
-
-  /** Whether the session has been modified */
-  readonly isModified: boolean;
-
-  /** Whether the session has been destroyed */
-  readonly isDestroyed: boolean;
-
-  /** Session data */
-  readonly data: SessionData;
-
-  /**
-   * Get a session value
-   */
-  get<K extends keyof SessionData>(key: K): SessionData[K];
-
-  /**
-   * Set a session value
-   */
-  set<K extends keyof SessionData>(key: K, value: SessionData[K]): void;
-
-  /**
-   * Delete a session value
-   */
-  delete<K extends keyof SessionData>(key: K): void;
-
-  /**
-   * Check if a key exists
-   */
-  has<K extends keyof SessionData>(key: K): boolean;
-
-  /**
-   * Set flash data (persists for one request only)
-   */
-  flash(key: string, value: unknown): void;
-
-  /**
-   * Get flash data (clears after read)
-   */
-  getFlash<T = unknown>(key: string): T | undefined;
-
-  /**
-   * Get all flash data
-   */
-  getAllFlash(): Record<string, unknown>;
-
-  /**
-   * Regenerate session ID (for security after privilege change)
-   * Preserves session data with new ID
-   */
-  regenerate(): Promise<void>;
-
-  /**
-   * Destroy the session completely
-   */
-  destroy(): Promise<void>;
-
-  /**
-   * Save session changes
-   * Called automatically by middleware, but can be called manually
-   */
-  save(): Promise<void>;
-
-  /**
-   * Reload session data from store
-   */
-  reload(): Promise<void>;
-
-  // ============================================================================
-  // Authentication Methods (Laravel-style fluent API)
-  // ============================================================================
-
-  /**
-   * Log in a user to the session
-   *
-   * Regenerates the session ID to prevent session fixation attacks,
-   * then stores the user's ID and email in the session.
-   *
-   * @example
-   * ```typescript
-   * const login = procedure()
-   *   .input(LoginSchema)
-   *   .mutation(async ({ input, ctx }) => {
-   *     const user = await verifyCredentials(input.email, input.password);
-   *     await ctx.session.login(user);
-   *     return { success: true };
-   *   });
-   * ```
-   */
-  login(user: User): Promise<void>;
-
-  /**
-   * Log out the current user by destroying the session
-   *
-   * @example
-   * ```typescript
-   * const logout = procedure()
-   *   .use(session.requireAuth())
-   *   .mutation(async ({ ctx }) => {
-   *     await ctx.session.logout();
-   *     return { success: true };
-   *   });
-   * ```
-   */
-  logout(): Promise<void>;
-
-  /**
-   * Check if the session is authenticated (has a logged-in user)
-   *
-   * @returns true if a user is logged in, false otherwise
-   *
-   * @example
-   * ```typescript
-   * if (ctx.session.check()) {
-   *   // User is authenticated
-   *   console.log('User ID:', ctx.session.get('userId'));
-   * }
-   * ```
-   */
-  check(): boolean;
-}
 
 /**
  * Session manager for creating and managing sessions
@@ -1094,28 +682,6 @@ export function sessionManager(config: SessionConfig): SessionManager {
 }
 
 // ============================================================================
-// Session Context Types
-// ============================================================================
-
-/**
- * Session context added to request context
- */
-export interface SessionContext {
-  /** Current session */
-  session: Session;
-}
-
-/**
- * Extended context with session and optional user
- */
-export interface SessionAuthContext extends SessionContext {
-  /** Authenticated user (if logged in) */
-  user?: User;
-  /** Whether user is authenticated via session */
-  isAuthenticated: boolean;
-}
-
-// ============================================================================
 // Context Declaration Merging
 // ============================================================================
 
@@ -1131,27 +697,6 @@ declare module 'fastify' {
     /** Session on request */
     session?: Session;
   }
-}
-
-// ============================================================================
-// Session Middleware Options
-// ============================================================================
-
-/**
- * Options for session middleware
- */
-export interface SessionMiddlewareOptions {
-  /**
-   * Create session lazily (only when data is set)
-   * @default false
-   */
-  lazy?: boolean;
-
-  /**
-   * Require authentication (session with userId)
-   * @default false
-   */
-  requireAuth?: boolean;
 }
 
 // ============================================================================

@@ -31,39 +31,29 @@ const MIN_SECRET_ENTROPY_CHARS = 16;
 // ============================================================================
 
 /**
- * Minimum access token expiry: 1 minute
- * Shorter tokens increase security but may impact UX
+ * Token expiration bounds for security validation
+ *
+ * Groups all token lifetime constraints into a single configuration object.
+ * Used by validateTokenExpiry() to enforce security policies.
  */
-const MIN_ACCESS_TOKEN_SECONDS = 60;
-
-/**
- * Maximum access token expiry: 1 hour
- * Longer lived tokens are a security risk if stolen
- */
-const MAX_ACCESS_TOKEN_SECONDS = 60 * 60;
-
-/**
- * Minimum refresh token expiry: 1 hour
- * Too short reduces usability
- */
-const MIN_REFRESH_TOKEN_SECONDS = 60 * 60;
-
-/**
- * Maximum refresh token expiry: 30 days
- * Longer lived refresh tokens increase risk window
- */
-const MAX_REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
-
-/**
- * Recommended maximum access token expiry: 15 minutes
- * Beyond this, consider shorter lived tokens with refresh
- */
-const RECOMMENDED_MAX_ACCESS_SECONDS = 15 * 60;
-
-/**
- * Recommended maximum refresh token expiry: 7 days
- */
-const RECOMMENDED_MAX_REFRESH_SECONDS = 7 * 24 * 60 * 60;
+const TOKEN_BOUNDS = {
+  access: {
+    /** Minimum: 1 minute - shorter tokens cause excessive refreshes */
+    min: 60,
+    /** Maximum: 1 hour - longer tokens are a security risk */
+    max: 60 * 60,
+    /** Recommended: 15 minutes - balance of security and UX */
+    recommended: 15 * 60,
+  },
+  refresh: {
+    /** Minimum: 1 hour - shorter tokens impact usability */
+    min: 60 * 60,
+    /** Maximum: 30 days - longer tokens increase attack window */
+    max: 30 * 24 * 60 * 60,
+    /** Recommended: 7 days - standard refresh cycle */
+    recommended: 7 * 24 * 60 * 60,
+  },
+} as const;
 
 /**
  * Reserved JWT claims that cannot be overridden via additionalClaims
@@ -177,52 +167,52 @@ export function validateTokenExpiration(accessExpiry: string, refreshExpiry: str
   const refreshSeconds = parseTimeToSeconds(refreshExpiry);
 
   // Validate access token bounds
-  if (accessSeconds < MIN_ACCESS_TOKEN_SECONDS) {
+  if (accessSeconds < TOKEN_BOUNDS.access.min) {
     throw new AuthError(
       `Access token expiry (${accessExpiry} = ${accessSeconds}s) is below minimum of ` +
-        `${MIN_ACCESS_TOKEN_SECONDS}s (1 minute). Very short tokens cause excessive refreshes.`,
+        `${TOKEN_BOUNDS.access.min}s (1 minute). Very short tokens cause excessive refreshes.`,
       400,
       'INVALID_TOKEN_EXPIRY'
     );
   }
 
-  if (accessSeconds > MAX_ACCESS_TOKEN_SECONDS) {
+  if (accessSeconds > TOKEN_BOUNDS.access.max) {
     throw new AuthError(
       `Access token expiry (${accessExpiry} = ${accessSeconds}s) exceeds maximum of ` +
-        `${MAX_ACCESS_TOKEN_SECONDS}s (1 hour). Long-lived access tokens are a security risk.`,
+        `${TOKEN_BOUNDS.access.max}s (1 hour). Long-lived access tokens are a security risk.`,
       400,
       'INVALID_TOKEN_EXPIRY'
     );
   }
 
   // Validate refresh token bounds
-  if (refreshSeconds < MIN_REFRESH_TOKEN_SECONDS) {
+  if (refreshSeconds < TOKEN_BOUNDS.refresh.min) {
     throw new AuthError(
       `Refresh token expiry (${refreshExpiry} = ${refreshSeconds}s) is below minimum of ` +
-        `${MIN_REFRESH_TOKEN_SECONDS}s (1 hour). Very short refresh tokens impact usability.`,
+        `${TOKEN_BOUNDS.refresh.min}s (1 hour). Very short refresh tokens impact usability.`,
       400,
       'INVALID_TOKEN_EXPIRY'
     );
   }
 
-  if (refreshSeconds > MAX_REFRESH_TOKEN_SECONDS) {
+  if (refreshSeconds > TOKEN_BOUNDS.refresh.max) {
     throw new AuthError(
       `Refresh token expiry (${refreshExpiry} = ${refreshSeconds}s) exceeds maximum of ` +
-        `${MAX_REFRESH_TOKEN_SECONDS}s (30 days). Long-lived refresh tokens increase attack window.`,
+        `${TOKEN_BOUNDS.refresh.max}s (30 days). Long-lived refresh tokens increase attack window.`,
       400,
       'INVALID_TOKEN_EXPIRY'
     );
   }
 
   // Warn about exceeding recommended limits (non-fatal)
-  if (accessSeconds > RECOMMENDED_MAX_ACCESS_SECONDS) {
+  if (accessSeconds > TOKEN_BOUNDS.access.recommended) {
     console.warn(
       `[Security] Access token expiry (${accessExpiry}) exceeds recommended maximum of 15 minutes. ` +
         'Consider using shorter-lived access tokens with refresh.'
     );
   }
 
-  if (refreshSeconds > RECOMMENDED_MAX_REFRESH_SECONDS) {
+  if (refreshSeconds > TOKEN_BOUNDS.refresh.recommended) {
     console.warn(
       `[Security] Refresh token expiry (${refreshExpiry}) exceeds recommended maximum of 7 days. ` +
         'Long-lived refresh tokens increase the window for token theft attacks.'
