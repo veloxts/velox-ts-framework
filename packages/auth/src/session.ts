@@ -22,6 +22,8 @@ import {
   getValidatedCookieContext,
 } from './utils/cookie-support.js';
 
+export type { SessionStore } from './session/store.js';
+export { inMemorySessionStore } from './session/store.js';
 // Re-export types, constants, and store from session module
 export type {
   Session,
@@ -37,9 +39,9 @@ export {
   MIN_SECRET_LENGTH,
   SESSION_ID_BYTES,
 } from './session/types.js';
-export type { SessionStore } from './session/store.js';
-export { inMemorySessionStore } from './session/store.js';
 
+import type { SessionStore } from './session/store.js';
+import { inMemorySessionStore } from './session/store.js';
 // Import types and constants for internal use
 import type {
   Session,
@@ -54,8 +56,6 @@ import {
   MIN_SECRET_LENGTH,
   SESSION_ID_BYTES,
 } from './session/types.js';
-import type { SessionStore } from './session/store.js';
-import { inMemorySessionStore } from './session/store.js';
 
 // ============================================================================
 // Session Configuration

@@ -6,6 +6,9 @@
  * @module session
  */
 
+// Store
+export type { SessionStore } from './store.js';
+export { inMemorySessionStore } from './store.js';
 // Types
 export type {
   Session,
@@ -21,7 +24,3 @@ export {
   MIN_SECRET_LENGTH,
   SESSION_ID_BYTES,
 } from './types.js';
-
-// Store
-export type { SessionStore } from './store.js';
-export { inMemorySessionStore } from './store.js';
