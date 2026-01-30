@@ -634,7 +634,8 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
     if echo "$TRPC_CREATE" | grep -q '"result"'; then
       echo "✓ tRPC users.createUser mutation working"
       # Extract created user ID for further tests
-      TRPC_USER_ID=$(json_field "$TRPC_CREATE" "id")
+      # tRPC responses wrap data in {"result":{"data":{...}}}
+      TRPC_USER_ID=$(echo "$TRPC_CREATE" | jq -r '.result.data.id // empty' 2>/dev/null)
     else
       echo "✗ tRPC users.createUser failed: $TRPC_CREATE"
       kill_server
