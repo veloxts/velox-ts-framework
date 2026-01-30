@@ -63,11 +63,11 @@
     "@aws-sdk/lib-storage": "3.821.0",
     "@aws-sdk/s3-request-presigner": "3.821.0",
     "@types/mime-types": "2.1.4",
-    "@types/node": "22.15.29",
+    "@types/node": "25.0.3",
     "@veloxts/testing": "workspace:*",
     "@vitest/coverage-v8": "4.0.16",
     "fastify": "5.6.2",
-    "typescript": "5.8.3",
+    "typescript": "5.9.3",
     "vitest": "4.0.16"
   },
   "publishConfig": {
