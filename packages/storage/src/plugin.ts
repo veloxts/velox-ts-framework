@@ -166,12 +166,31 @@ export async function getStorage(options?: StoragePluginOptions): Promise<Storag
 }
 
 /**
- * Reset the standalone storage instance.
- * Primarily used for testing.
+ * Close the standalone storage instance.
+ *
+ * Call this when shutting down your application to release resources.
+ *
+ * @example
+ * ```typescript
+ * import { closeStorage } from '@veloxts/storage';
+ *
+ * // On shutdown
+ * await closeStorage();
+ * ```
  */
-export async function _resetStandaloneStorage(): Promise<void> {
+export async function closeStorage(): Promise<void> {
   if (standaloneStorage) {
     await standaloneStorage.close();
     standaloneStorage = null;
   }
+}
+
+/**
+ * Reset the standalone storage instance.
+ * Primarily used for testing.
+ *
+ * @deprecated Use `closeStorage()` instead. Will be removed in v2.0.
+ */
+export async function _resetStandaloneStorage(): Promise<void> {
+  await closeStorage();
 }

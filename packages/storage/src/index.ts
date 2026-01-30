@@ -60,6 +60,7 @@ export { createStorageManager, type StorageManager, storage } from './manager.js
 // Plugin
 export {
   _resetStandaloneStorage,
+  closeStorage,
   getStorage,
   getStorageFromInstance,
   storagePlugin,

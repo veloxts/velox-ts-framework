@@ -345,12 +345,31 @@ export async function getEvents(options?: EventsPluginOptions): Promise<EventsMa
 }
 
 /**
- * Reset the standalone events instance.
- * Primarily used for testing.
+ * Close the standalone events instance.
+ *
+ * Call this when shutting down your application to close all connections.
+ *
+ * @example
+ * ```typescript
+ * import { closeEvents } from '@veloxts/events';
+ *
+ * // On shutdown
+ * await closeEvents();
+ * ```
  */
-export async function _resetStandaloneEvents(): Promise<void> {
+export async function closeEvents(): Promise<void> {
   if (standaloneEvents) {
     await standaloneEvents.close();
     standaloneEvents = null;
   }
+}
+
+/**
+ * Reset the standalone events instance.
+ * Primarily used for testing.
+ *
+ * @deprecated Use `closeEvents()` instead. Will be removed in v2.0.
+ */
+export async function _resetStandaloneEvents(): Promise<void> {
+  await closeEvents();
 }

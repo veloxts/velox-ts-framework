@@ -245,5 +245,8 @@ export async function createMailManager(options: MailPluginOptions = {}): Promis
 
 /**
  * Alias for createMailManager.
+ *
+ * Note: `mail` is already used as an alias for `defineMail` (for defining templates),
+ * following the same pattern as queue (`job` = `defineJob`, `queue` = `createQueueManager`).
  */
 export const mailer = createMailManager;

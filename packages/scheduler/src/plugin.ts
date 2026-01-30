@@ -196,12 +196,31 @@ export function getScheduler(options?: SchedulerPluginOptions): SchedulerManager
 }
 
 /**
- * Reset the standalone scheduler instance.
- * Primarily used for testing.
+ * Close the standalone scheduler instance.
+ *
+ * Call this when shutting down your application to stop all scheduled tasks.
+ *
+ * @example
+ * ```typescript
+ * import { closeScheduler } from '@veloxts/scheduler';
+ *
+ * // On shutdown
+ * await closeScheduler();
+ * ```
  */
-export async function _resetStandaloneScheduler(): Promise<void> {
+export async function closeScheduler(): Promise<void> {
   if (standaloneScheduler) {
     await standaloneScheduler.stop();
     standaloneScheduler = null;
   }
+}
+
+/**
+ * Reset the standalone scheduler instance.
+ * Primarily used for testing.
+ *
+ * @deprecated Use `closeScheduler()` instead. Will be removed in v2.0.
+ */
+export async function _resetStandaloneScheduler(): Promise<void> {
+  await closeScheduler();
 }

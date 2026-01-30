@@ -52,6 +52,7 @@ export {
 // Plugin
 export {
   _resetStandaloneEvents,
+  closeEvents,
   eventsPlugin,
   getEvents,
   getEventsFromInstance,

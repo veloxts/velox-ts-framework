@@ -60,6 +60,7 @@ export { createScheduler, scheduler } from './manager.js';
 // Plugin
 export {
   _resetStandaloneScheduler,
+  closeScheduler,
   getScheduler,
   getSchedulerFromInstance,
   schedulerPlugin,
