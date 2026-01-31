@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.88
+
+### Patch Changes
+
+- add ecosystem presets for environment-aware configuration
+- Updated dependencies
+  - @veloxts/auth@0.6.88
+  - @veloxts/client@0.6.88
+  - @veloxts/core@0.6.88
+  - @veloxts/router@0.6.88
+
 ## 0.6.87
 
 ### Patch Changes

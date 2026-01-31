@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.88
+
+### Patch Changes
+
+- add ecosystem presets for environment-aware configuration
+
 ## 0.6.87
 
 ### Patch Changes
