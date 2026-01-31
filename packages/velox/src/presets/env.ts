@@ -18,9 +18,8 @@ export function detectEnvironment(): Environment {
     case 'test':
     case 'testing':
       return 'test';
-    case 'development':
-    case 'dev':
     default:
+      // 'development', 'dev', undefined, or any unrecognized value
       return 'development';
   }
 }
@@ -63,7 +62,5 @@ export function validateEnvironment(env: string): Environment {
     return 'development';
   }
 
-  throw new Error(
-    `Invalid environment: "${env}". Must be one of: development, test, production`
-  );
+  throw new Error(`Invalid environment: "${env}". Must be one of: development, test, production`);
 }

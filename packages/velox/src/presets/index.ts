@@ -20,23 +20,6 @@
  * @packageDocumentation
  */
 
-// Types
-export type {
-  EcosystemPreset,
-  Environment,
-  PresetOptions,
-  PresetOverrides,
-} from './types.js';
-
-// Environment detection
-export {
-  detectEnvironment,
-  isDevelopment as isDevEnvironment,
-  isProduction as isProdEnvironment,
-  isTest as isTestEnvironment,
-  validateEnvironment,
-} from './env.js';
-
 // Preset configurations
 export {
   developmentPreset,
@@ -45,9 +28,22 @@ export {
   productionPreset,
   testPreset,
 } from './defaults.js';
-
+// Environment detection
+export {
+  detectEnvironment,
+  isDevelopment as isDevEnvironment,
+  isProduction as isProdEnvironment,
+  isTest as isTestEnvironment,
+  validateEnvironment,
+} from './env.js';
 // Merge utility
 export { mergeDeep } from './merge.js';
-
 // Plugin registration
 export { registerEcosystemPlugins, usePresets } from './plugin.js';
+// Types
+export type {
+  EcosystemPreset,
+  Environment,
+  PresetOptions,
+  PresetOverrides,
+} from './types.js';

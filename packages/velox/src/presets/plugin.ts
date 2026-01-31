@@ -69,12 +69,19 @@ export async function registerEcosystemPlugins(
   preset: EcosystemPreset,
   options?: Pick<PresetOptions, 'only' | 'except' | 'silent'>
 ): Promise<void> {
+  // Validate options - only and except are mutually exclusive
+  if (options?.only && options?.except) {
+    throw new Error(
+      'Cannot use both "only" and "except" options simultaneously. Use one or the other.'
+    );
+  }
+
   const packages = Object.keys(preset) as (keyof EcosystemPreset)[];
 
   // Apply filters
   const packagesToRegister = packages.filter((pkg) => {
     if (options?.only && !options.only.includes(pkg)) return false;
-    if (options?.except && options.except.includes(pkg)) return false;
+    if (options?.except?.includes(pkg)) return false;
     return preset[pkg] !== undefined;
   });
 
@@ -138,10 +145,7 @@ export async function registerEcosystemPlugins(
  * });
  * ```
  */
-export async function usePresets(
-  app: VeloxApp,
-  options: PresetOptions = {}
-): Promise<void> {
+export async function usePresets(app: VeloxApp, options: PresetOptions = {}): Promise<void> {
   const env = options.env ?? detectEnvironment();
   const basePreset = getPreset(env);
 
@@ -149,7 +153,10 @@ export async function usePresets(
   const merge = <T>(base: T | undefined, override: Partial<T> | undefined): T | undefined => {
     if (!base) return undefined;
     if (!override) return base;
-    return mergeDeep(base as unknown as Record<string, unknown>, override as unknown as Record<string, unknown>) as T;
+    return mergeDeep(
+      base as unknown as Record<string, unknown>,
+      override as unknown as Record<string, unknown>
+    ) as T;
   };
 
   const finalPreset: EcosystemPreset = {

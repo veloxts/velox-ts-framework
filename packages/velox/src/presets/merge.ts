@@ -3,6 +3,15 @@
  */
 
 /**
+ * Recursive partial type that makes all nested properties optional.
+ */
+export type DeepPartial<T> = T extends object
+  ? T extends Array<infer U>
+    ? Array<DeepPartial<U>>
+    : { [K in keyof T]?: DeepPartial<T[K]> | null }
+  : T;
+
+/**
  * Deep merge two objects, with overrides taking precedence.
  *
  * - Objects are merged recursively
@@ -12,28 +21,28 @@
  */
 export function mergeDeep<T extends Record<string, unknown>>(
   base: T,
-  overrides?: Partial<T>
+  overrides?: DeepPartial<T>
 ): T {
   if (!overrides) return base;
 
   const result = { ...base };
 
   for (const key in overrides) {
-    if (!Object.prototype.hasOwnProperty.call(overrides, key)) continue;
+    if (!Object.hasOwn(overrides, key)) continue;
 
     // Skip prototype pollution attempts
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
       continue;
     }
 
-    const overrideValue = overrides[key];
+    const overrideValue = overrides[key as keyof typeof overrides];
 
     // Skip undefined (allows partial overrides)
     if (overrideValue === undefined) {
       continue;
     }
 
-    const baseValue = base[key];
+    const baseValue = base[key as keyof T];
 
     // Recursively merge nested objects (but not arrays or null)
     if (
@@ -44,13 +53,13 @@ export function mergeDeep<T extends Record<string, unknown>>(
       typeof baseValue === 'object' &&
       !Array.isArray(baseValue)
     ) {
-      result[key] = mergeDeep(
+      (result as Record<string, unknown>)[key] = mergeDeep(
         baseValue as Record<string, unknown>,
         overrideValue as Record<string, unknown>
-      ) as T[Extract<keyof T, string>];
+      );
     } else {
       // Replace primitives, arrays, and null values
-      result[key] = overrideValue as T[Extract<keyof T, string>];
+      (result as Record<string, unknown>)[key] = overrideValue;
     }
   }
 

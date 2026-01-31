@@ -2,7 +2,51 @@
  * Default preset configurations for each environment.
  */
 
-import type { Environment, EcosystemPreset } from './types.js';
+import type { EcosystemPreset, Environment } from './types.js';
+
+/**
+ * Required environment variables for production preset.
+ */
+export const PRODUCTION_ENV_VARS = {
+  REDIS_URL: 'Redis connection URL (for cache, queue, events)',
+  RESEND_API_KEY: 'Resend API key (for transactional email)',
+  S3_BUCKET: 'S3 bucket name (for file storage)',
+  AWS_REGION: 'AWS region (optional, defaults to us-east-1)',
+} as const;
+
+interface ProductionEnvVars {
+  REDIS_URL: string;
+  RESEND_API_KEY: string;
+  S3_BUCKET: string;
+  AWS_REGION: string;
+}
+
+/**
+ * Validate required environment variables for production.
+ * @returns The validated environment variables
+ * @throws Error with list of missing variables
+ */
+export function validateProductionEnv(): ProductionEnvVars {
+  const required = ['REDIS_URL', 'RESEND_API_KEY', 'S3_BUCKET'] as const;
+
+  const missing = required.filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    const details = missing.map((key) => `  - ${key}: ${PRODUCTION_ENV_VARS[key]}`).join('\n');
+
+    throw new Error(
+      `Missing required environment variables for production preset:\n${details}\n\n` +
+        `Set these in your .env file or environment, or use a different preset.`
+    );
+  }
+
+  return {
+    REDIS_URL: process.env.REDIS_URL as string,
+    RESEND_API_KEY: process.env.RESEND_API_KEY as string,
+    S3_BUCKET: process.env.S3_BUCKET as string,
+    AWS_REGION: process.env.AWS_REGION ?? 'us-east-1',
+  };
+}
 
 /**
  * Development preset - optimized for fast local iteration.
@@ -71,6 +115,85 @@ export const testPreset: EcosystemPreset = {
 };
 
 /**
+ * Create production preset with validated environment variables.
+ */
+function createProductionPreset(env: ProductionEnvVars): EcosystemPreset {
+  return {
+    cache: {
+      driver: 'redis',
+      config: {
+        url: env.REDIS_URL,
+      },
+    },
+    queue: {
+      driver: 'bullmq',
+      config: {
+        url: env.REDIS_URL,
+      },
+    },
+    mail: {
+      driver: 'resend',
+      config: {
+        apiKey: env.RESEND_API_KEY,
+      },
+    },
+    storage: {
+      driver: 's3',
+      bucket: env.S3_BUCKET,
+      region: env.AWS_REGION,
+    },
+    events: {
+      driver: 'ws',
+      path: '/ws',
+      redis: env.REDIS_URL,
+    },
+    scheduler: {
+      tasks: [],
+    },
+  };
+}
+
+/**
+ * Create production preset with current environment variables (unvalidated).
+ * Used for the module-level export. Prefer getPreset('production') which validates.
+ */
+function createProductionPresetFromEnv(): EcosystemPreset {
+  return {
+    cache: {
+      driver: 'redis',
+      config: {
+        url: process.env.REDIS_URL,
+      },
+    },
+    queue: {
+      driver: 'bullmq',
+      config: {
+        url: process.env.REDIS_URL,
+      },
+    },
+    mail: {
+      driver: 'resend',
+      config: {
+        apiKey: process.env.RESEND_API_KEY ?? '',
+      },
+    },
+    storage: {
+      driver: 's3',
+      bucket: process.env.S3_BUCKET ?? '',
+      region: process.env.AWS_REGION ?? 'us-east-1',
+    },
+    events: {
+      driver: 'ws',
+      path: '/ws',
+      redis: process.env.REDIS_URL,
+    },
+    scheduler: {
+      tasks: [],
+    },
+  };
+}
+
+/**
  * Production preset - optimized for scale and reliability.
  *
  * Uses distributed services:
@@ -83,43 +206,16 @@ export const testPreset: EcosystemPreset = {
  * - RESEND_API_KEY: Resend API key
  * - S3_BUCKET: S3 bucket name
  * - AWS_REGION: AWS region (default: us-east-1)
+ *
+ * @see validateProductionEnv() to check if all required vars are set
  */
-export const productionPreset: EcosystemPreset = {
-  cache: {
-    driver: 'redis',
-    config: {
-      url: process.env.REDIS_URL,
-    },
-  },
-  queue: {
-    driver: 'bullmq',
-    config: {
-      url: process.env.REDIS_URL,
-    },
-  },
-  mail: {
-    driver: 'resend',
-    config: {
-      apiKey: process.env.RESEND_API_KEY ?? '',
-    },
-  },
-  storage: {
-    driver: 's3',
-    bucket: process.env.S3_BUCKET ?? '',
-    region: process.env.AWS_REGION ?? 'us-east-1',
-  },
-  events: {
-    driver: 'ws',
-    path: '/ws',
-    redis: process.env.REDIS_URL,
-  },
-  scheduler: {
-    tasks: [],
-  },
-};
+export const productionPreset: EcosystemPreset = createProductionPresetFromEnv();
 
 /**
  * Get preset configuration for an environment.
+ * For production, validates required environment variables first.
+ *
+ * @throws Error if production env vars are missing
  */
 export function getPreset(env: Environment): EcosystemPreset {
   switch (env) {
@@ -127,8 +223,11 @@ export function getPreset(env: Environment): EcosystemPreset {
       return developmentPreset;
     case 'test':
       return testPreset;
-    case 'production':
-      return productionPreset;
+    case 'production': {
+      const env = validateProductionEnv();
+      // Return fresh preset to pick up env vars set after module load
+      return createProductionPreset(env);
+    }
   }
 }
 
