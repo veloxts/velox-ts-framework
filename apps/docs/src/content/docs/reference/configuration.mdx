@@ -5,7 +5,29 @@ description: Complete configuration options for VeloxTS applications.
 
 All configuration options available in VeloxTS applications.
 
+:::tip[Environment-Aware Configuration]
+For production-ready setup with sensible defaults per environment, use [`getServerConfig()`](/docs/core/environment-configuration/) and [`usePresets()`](/docs/core/environment-configuration/#ecosystem-presets) instead of manual configuration.
+:::
+
 ## Application Configuration
+
+### Recommended: Environment-Aware Config
+
+```typescript
+import { veloxApp, getServerConfig, usePresets } from '@veloxts/velox';
+
+// Auto-configure server based on NODE_ENV
+const app = await veloxApp(getServerConfig());
+
+// Auto-configure ecosystem packages (cache, queue, mail, etc.)
+await usePresets(app);
+
+await app.start();
+```
+
+See [Environment Configuration](/docs/core/environment-configuration/) for full details on presets.
+
+### Manual Configuration
 
 ```typescript
 import { veloxApp } from '@veloxts/core';
@@ -33,33 +55,88 @@ const app = veloxApp({
 
 ## Router Configuration
 
+### Unified API Registration (Recommended)
+
+The `serve()` function registers both REST and tRPC endpoints from your procedures:
+
 ```typescript
-import { createRouter } from '@veloxts/router';
+import { serve } from '@veloxts/router';
 
-const router = createRouter({
-  // Base path for all routes
-  prefix: '/api',
+// Register both REST (/api) and tRPC (/trpc) with defaults
+const router = await serve(app, [healthProcedures, userProcedures] as const);
+export type AppRouter = typeof router;
 
-  // tRPC configuration
-  trpc: {
-    endpoint: '/trpc',
-  },
+// Custom prefixes
+const router = await serve(app, [healthProcedures, userProcedures] as const, {
+  api: '/v1',     // REST prefix (default: '/api', or false to disable)
+  rpc: '/trpc',   // tRPC prefix (default: '/trpc', or false to disable)
+});
 
-  // REST adapter
-  rest: {
-    enabled: true,
-  },
+// REST only (external API)
+await serve(app, [healthProcedures, userProcedures] as const, { rpc: false });
 
-  // OpenAPI generation
+// tRPC only (internal app)
+const router = await serve(app, [healthProcedures, userProcedures] as const, { api: false });
+```
+
+### Router Helper
+
+The `createRouter()` helper combines procedure collections into a typed router object:
+
+```typescript
+import { createRouter, extractRoutes } from '@veloxts/router';
+
+// Returns { collections, router } from procedure collections
+export const { collections, router } = createRouter(
+  healthProcedures,
+  userProcedures
+);
+
+export type AppRouter = typeof router;
+export const routes = extractRoutes(collections);
+```
+
+### REST Adapter Options
+
+When using the REST adapter directly:
+
+```typescript
+import { rest } from '@veloxts/router';
+
+app.routes(rest([healthProcedures, userProcedures], {
+  prefix: '/api',        // API prefix (default: '/api')
+  shortcuts: false,      // Generate flat shortcut routes for nested resources
+  nestingWarnings: true, // Warn when nesting exceeds 3 levels
+}));
+```
+
+### OpenAPI / Swagger UI
+
+OpenAPI documentation is configured separately via the Swagger UI plugin:
+
+```typescript
+import { swaggerUIPlugin } from '@veloxts/router';
+
+app.register(swaggerUIPlugin, {
+  routePrefix: '/docs',
+  collections: [healthProcedures, userProcedures],
   openapi: {
-    enabled: true,
-    path: '/openapi.json',
     info: {
       title: 'My API',
       version: '1.0.0',
+      description: 'API documentation',
     },
+    servers: [
+      { url: 'http://localhost:3030', description: 'Development' },
+    ],
+    prefix: '/api',
+  },
+  uiConfig: {
+    deepLinking: true,
+    tryItOutEnabled: true,
   },
 });
+// Available at: /docs (UI) and /docs/openapi.json (spec)
 ```
 
 ## Auth Configuration
@@ -247,5 +324,6 @@ app.register(storagePlugin({
 
 ## Related Content
 
+- [Environment Configuration](/docs/core/environment-configuration/) - Environment-aware presets
 - [Environment Variables](/docs/reference/environment-variables/) - Required variables
 - [Troubleshooting](/docs/reference/troubleshooting/) - Common issues
