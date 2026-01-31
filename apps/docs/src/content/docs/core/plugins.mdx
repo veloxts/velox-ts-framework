@@ -8,11 +8,11 @@ Plugins add functionality to your VeloxTS application. VeloxTS is built on Fasti
 ## Using Plugins
 
 ```typescript
-import { veloxApp } from '@veloxts/velox';
+import { velox } from '@veloxts/velox';
 import { databasePlugin } from '@veloxts/orm';
 import { authPlugin } from '@veloxts/auth';
 
-const app = await veloxApp({ port: 3030 });
+const app = await velox({ port: 3030 });
 
 await app.register(databasePlugin);
 await app.register(authPlugin, { secret: process.env.JWT_SECRET });

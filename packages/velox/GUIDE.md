@@ -18,9 +18,9 @@ Your web app is running at `http://localhost:8080`.
 ## Basic Usage
 
 ```typescript
-import { veloxApp, procedure, procedures, z } from '@veloxts/velox';
+import { velox, procedure, procedures, z } from '@veloxts/velox';
 
-const app = await veloxApp({ port: 3030 });
+const app = await velox({ port: 3030 });
 
 const greetProcedures = procedures('greet', {
   sayHello: procedure()
@@ -46,14 +46,14 @@ Separate packages: `@veloxts/client`, `@veloxts/cli`, `create-velox-app`
 
 ```typescript
 // Main export
-import { veloxApp, procedure, z } from '@veloxts/velox';
+import { velox, procedure, z } from '@veloxts/velox';
 
 // Subpath imports (better tree-shaking)
-import { veloxApp } from '@veloxts/velox/core';
+import { velox } from '@veloxts/velox/core';
 import { procedure } from '@veloxts/velox/router';
 
 // Direct packages (best tree-shaking)
-import { veloxApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { procedure } from '@veloxts/router';
 ```
 

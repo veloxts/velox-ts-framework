@@ -18,10 +18,10 @@ pnpm add resend
 Logs emails to console instead of sending:
 
 ```typescript
-import { createApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { mailPlugin } from '@veloxts/mail';
 
-const app = createApp();
+const app = velox();
 
 app.register(mailPlugin({
   driver: 'log',
@@ -34,10 +34,10 @@ await app.start();
 ### Production (SMTP)
 
 ```typescript
-import { createApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { mailPlugin } from '@veloxts/mail';
 
-const app = createApp();
+const app = velox();
 
 app.register(mailPlugin({
   driver: 'smtp',
@@ -59,10 +59,10 @@ await app.start();
 ### Production (Resend)
 
 ```typescript
-import { createApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { mailPlugin } from '@veloxts/mail';
 
-const app = createApp();
+const app = velox();
 
 app.register(mailPlugin({
   driver: 'resend',

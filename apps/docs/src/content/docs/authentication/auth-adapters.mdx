@@ -78,7 +78,7 @@ const adapter = createClerkAdapter({
 });
 
 // Create and register plugin
-app.use(createAuthAdapterPlugin(adapter));
+app.register(createAuthAdapterPlugin(adapter));
 ```
 
 ### Configuration Options
@@ -200,7 +200,7 @@ const adapter = createAuth0Adapter({
   debug: process.env.NODE_ENV === 'development',
 });
 
-app.use(createAuthAdapterPlugin(adapter));
+app.register(createAuthAdapterPlugin(adapter));
 ```
 
 ### Configuration Options
@@ -375,7 +375,7 @@ const adapter = createBetterAuthAdapter({
 });
 
 // Create and register plugin
-app.use(createAuthAdapterPlugin(adapter));
+app.register(createAuthAdapterPlugin(adapter));
 ```
 
 ### How It Works
@@ -501,7 +501,7 @@ const adapter = createMyCustomAdapter({
   apiKey: process.env.MY_API_KEY!,
 });
 
-app.use(createAuthAdapterPlugin(adapter));
+app.register(createAuthAdapterPlugin(adapter));
 ```
 
 ## Migration from JWT Manager
@@ -540,7 +540,7 @@ const adapter = createJwtAdapter({
   },
 });
 
-app.use(createAuthAdapterPlugin(adapter));
+app.register(createAuthAdapterPlugin(adapter));
 ```
   </TabItem>
 </Tabs>

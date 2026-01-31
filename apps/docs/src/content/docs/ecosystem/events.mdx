@@ -18,10 +18,10 @@ pnpm add @veloxts/events
 <Tabs>
   <TabItem label="Development">
 ```typescript
-import { createApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { eventsPlugin } from '@veloxts/events';
 
-const app = createApp();
+const app = velox();
 
 app.register(eventsPlugin({
   driver: 'ws',
@@ -33,10 +33,10 @@ await app.start();
   </TabItem>
   <TabItem label="Production">
 ```typescript
-import { createApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { eventsPlugin } from '@veloxts/events';
 
-const app = createApp();
+const app = velox();
 
 app.register(eventsPlugin({
   driver: 'ws',
@@ -379,10 +379,10 @@ const members = await ctx.events.presenceMembers('presence-chat.room-1');
 ### Complete Production Configuration
 
 ```typescript title="src/index.ts"
-import { createApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { eventsPlugin } from '@veloxts/events';
 
-const app = createApp();
+const app = velox();
 
 app.register(eventsPlugin({
   driver: 'ws',

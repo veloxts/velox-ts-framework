@@ -5,12 +5,12 @@ Prisma ORM integration with automatic lifecycle management.
 ## Quick Start
 
 ```typescript
-import { veloxApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const app = await veloxApp({ port: 3030 });
+const app = await velox({ port: 3030 });
 
 await app.register(databasePlugin({ client: prisma }));
 await app.start();

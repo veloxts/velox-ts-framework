@@ -18,10 +18,10 @@ pnpm add bullmq ioredis
 Jobs execute immediately in-process:
 
 ```typescript
-import { createApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { queuePlugin } from '@veloxts/queue';
 
-const app = createApp();
+const app = velox();
 
 app.register(queuePlugin({
   driver: 'sync',
@@ -35,10 +35,10 @@ await app.start();
 Jobs are queued in Redis and processed by workers:
 
 ```typescript
-import { createApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 import { queuePlugin } from '@veloxts/queue';
 
-const app = createApp();
+const app = velox();
 
 app.register(queuePlugin({
   driver: 'bullmq',

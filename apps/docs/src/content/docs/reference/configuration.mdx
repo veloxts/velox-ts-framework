@@ -8,9 +8,9 @@ All configuration options available in VeloxTS applications.
 ## Application Configuration
 
 ```typescript
-import { createApp } from '@veloxts/core';
+import { velox } from '@veloxts/core';
 
-const app = createApp({
+const app = velox({
   // Server options
   port: 3030,
   host: '0.0.0.0',
@@ -185,7 +185,7 @@ export default defineConfig({
 ```typescript
 import { cachePlugin } from '@veloxts/cache';
 
-app.use(cachePlugin({
+app.register(cachePlugin({
   driver: 'redis',
   config: {
     url: process.env.REDIS_URL,
@@ -200,7 +200,7 @@ app.use(cachePlugin({
 ```typescript
 import { queuePlugin } from '@veloxts/queue';
 
-app.use(queuePlugin({
+app.register(queuePlugin({
   driver: 'bullmq',
   config: {
     connection: { url: process.env.REDIS_URL },
@@ -217,7 +217,7 @@ app.use(queuePlugin({
 ```typescript
 import { mailPlugin } from '@veloxts/mail';
 
-app.use(mailPlugin({
+app.register(mailPlugin({
   driver: 'resend',
   config: { apiKey: process.env.RESEND_API_KEY },
   defaults: {
@@ -232,7 +232,7 @@ app.use(mailPlugin({
 ```typescript
 import { storagePlugin } from '@veloxts/storage';
 
-app.use(storagePlugin({
+app.register(storagePlugin({
   driver: 's3',
   config: {
     bucket: process.env.S3_BUCKET,

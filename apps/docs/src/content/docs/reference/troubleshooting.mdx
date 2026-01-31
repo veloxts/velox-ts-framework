@@ -89,7 +89,7 @@ declare module '@veloxts/core' {
 
 ```typescript
 // 1. Register plugin
-app.use(authPlugin({ userLoader: loadUser }));
+app.register(authPlugin({ userLoader: loadUser }));
 
 // 2. Extend types
 declare module '@veloxts/core' {
@@ -133,7 +133,7 @@ myProcedure: procedure()
 
 ```typescript
 // Verify router registration
-app.use(router);
+app.register(router);
 
 // Check startup logs for registered routes
 // [INFO] GET /api/users

@@ -611,10 +611,10 @@ These packages provide Laravel-style infrastructure patterns. **APIs may change 
 import { cachePlugin } from '@veloxts/cache';
 
 // Memory cache (development)
-app.use(cachePlugin({ driver: 'memory', config: { maxSize: 1000 } }));
+app.register(cachePlugin({ driver: 'memory', config: { maxSize: 1000 } }));
 
 // Redis cache (production)
-app.use(cachePlugin({ driver: 'redis', config: { url: process.env.REDIS_URL } }));
+app.register(cachePlugin({ driver: 'redis', config: { url: process.env.REDIS_URL } }));
 
 // Usage
 await ctx.cache.put('user:123', user, '30m');
@@ -646,7 +646,7 @@ await dispatch(SendWelcomeEmail, { userId: '123', email: 'user@example.com' });
 import { mailPlugin, send } from '@veloxts/mail';
 
 // SMTP or Resend driver
-app.use(mailPlugin({
+app.register(mailPlugin({
   driver: 'resend',
   config: { apiKey: process.env.RESEND_API_KEY },
   defaults: { from: 'noreply@example.com' },
@@ -665,7 +665,7 @@ await send({
 import { storagePlugin } from '@veloxts/storage';
 
 // Local or S3/R2 driver
-app.use(storagePlugin({
+app.register(storagePlugin({
   driver: 'local',
   config: { root: './uploads', baseUrl: '/files' },
 }));
@@ -681,7 +681,7 @@ await ctx.storage.delete('old-file.pdf');
 ```typescript
 import { schedulerPlugin, schedule } from '@veloxts/scheduler';
 
-app.use(schedulerPlugin());
+app.register(schedulerPlugin());
 
 // Fluent API
 schedule('cleanup-expired-sessions')
@@ -701,7 +701,7 @@ schedule('send-daily-digest')
 import { eventsPlugin, broadcast } from '@veloxts/events';
 
 // WebSocket or SSE driver (optional Redis for scaling)
-app.use(eventsPlugin({
+app.register(eventsPlugin({
   driver: 'ws',
   redis: { url: process.env.REDIS_URL },  // Optional pub/sub
 }));

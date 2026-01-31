@@ -28,14 +28,14 @@ describe('userProcedures', () => {
 ## Integration Testing
 
 ```typescript
-import { veloxApp, rest, type VeloxApp } from '@veloxts/velox';
+import { velox, rest, type VeloxApp } from '@veloxts/velox';
 import { userProcedures } from '@/procedures/users';
 
 describe('API Integration', () => {
   let app: VeloxApp;
 
   beforeAll(async () => {
-    app = await veloxApp({ port: 0 }); // Port 0 = random available port
+    app = await velox({ port: 0 }); // Port 0 = random available port
     app.routes(rest([userProcedures], { prefix: '/api' }));
   });
 

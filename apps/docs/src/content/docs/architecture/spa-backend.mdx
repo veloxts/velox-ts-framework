@@ -98,9 +98,9 @@ Enable CORS for your frontend origin:
 
 ```typescript
 // api/src/index.ts
-import { veloxApp } from '@veloxts/velox';
+import { velox } from '@veloxts/velox';
 
-const app = veloxApp({
+const app = velox({
   cors: {
     origin: ['http://localhost:5173'], // Vite default
     credentials: true,

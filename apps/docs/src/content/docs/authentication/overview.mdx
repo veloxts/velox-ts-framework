@@ -104,7 +104,7 @@ const adapter = createClerkAdapter({
 });
 
 const authPlugin = createAuthAdapterPlugin({ adapter, config: adapter.config });
-app.use(authPlugin);
+app.register(authPlugin);
 ```
 
 [Learn more about Auth Adapters](/docs/authentication/auth-adapters/)

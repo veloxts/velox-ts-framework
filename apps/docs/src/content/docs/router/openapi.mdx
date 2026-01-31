@@ -8,11 +8,11 @@ VeloxTS can automatically generate OpenAPI documentation from your procedure def
 ## Quick Setup
 
 ```typescript
-import { veloxApp, rest } from '@veloxts/velox';
+import { velox, rest } from '@veloxts/velox';
 import { registerDocs } from '@veloxts/router';
 import { userProcedures, postProcedures } from './procedures';
 
-const app = await veloxApp({ port: 3030 });
+const app = await velox({ port: 3030 });
 
 // Register routes
 app.routes(rest([userProcedures, postProcedures], { prefix: '/api' }));
