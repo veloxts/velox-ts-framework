@@ -117,7 +117,8 @@ describe('detectMimeType', () => {
     expect(detectMimeType('document.pdf')).toBe('application/pdf');
     expect(detectMimeType('data.json')).toBe('application/json');
     expect(detectMimeType('style.css')).toBe('text/css');
-    expect(detectMimeType('script.js')).toBe('application/javascript');
+    // Note: text/javascript is the IANA standard, application/javascript is also valid
+    expect(detectMimeType('script.js')).toBe('text/javascript');
   });
 
   it('should return application/octet-stream for unknown types', () => {

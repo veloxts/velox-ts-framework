@@ -2,10 +2,14 @@
  * Mail Definition Tests
  */
 
+import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineMail, mail } from '../mail.js';
+
+// Helper to create React elements for tests
+const div = (props: { children?: React.ReactNode } = {}) => React.createElement('div', props);
 
 describe('defineMail', () => {
   it('should create a mail definition with required fields', () => {
@@ -13,7 +17,7 @@ describe('defineMail', () => {
       name: 'test',
       schema: z.object({ name: z.string() }),
       subject: 'Test Subject',
-      template: ({ name }) => ({ type: 'div', props: { children: `Hello ${name}` } }) as never,
+      template: ({ name }) => div({ children: `Hello ${name}` }),
     });
 
     expect(testMail.name).toBe('test');
@@ -29,7 +33,7 @@ describe('defineMail', () => {
       name: 'welcome',
       schema: z.object({ userName: z.string() }),
       subject: ({ userName }) => `Welcome, ${userName}!`,
-      template: () => ({ type: 'div', props: {} }) as never,
+      template: () => div(),
     });
 
     expect(typeof testMail.subject).toBe('function');
@@ -43,7 +47,7 @@ describe('defineMail', () => {
       name: 'test',
       schema: z.object({}),
       subject: 'Test',
-      template: () => ({ type: 'div', props: {} }) as never,
+      template: () => div(),
       from: { email: 'noreply@example.com', name: 'My App' },
     });
 
@@ -56,7 +60,7 @@ describe('defineMail', () => {
       name: 'test',
       schema: z.object({}),
       subject: 'Test',
-      template: () => ({ type: 'div', props: {} }) as never,
+      template: () => div(),
       text: textGenerator,
     });
 
@@ -69,7 +73,7 @@ describe('defineMail', () => {
         name: 'Invalid Name',
         schema: z.object({}),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       })
     ).toThrow(/Invalid template name/);
   });
@@ -80,7 +84,7 @@ describe('defineMail', () => {
         name: '',
         schema: z.object({}),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       })
     ).toThrow(/must be a non-empty string/);
   });
@@ -90,7 +94,7 @@ describe('defineMail', () => {
       name: 'password-reset',
       schema: z.object({}),
       subject: 'Reset Password',
-      template: () => ({ type: 'div', props: {} }) as never,
+      template: () => div(),
     });
 
     expect(testMail.name).toBe('password-reset');
@@ -106,7 +110,7 @@ describe('defineMail', () => {
       name: 'verification',
       schema,
       subject: 'Verify Email',
-      template: () => ({ type: 'div', props: {} }) as never,
+      template: () => div(),
     });
 
     expect(testMail.schema).toBe(schema);

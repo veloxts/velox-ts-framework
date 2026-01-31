@@ -196,6 +196,7 @@ async function collectSingleField(
     placeholder: 'e.g., title, authorId, isPublished',
     initialValue: prefill?.name ?? '',
     validate: (value) => {
+      if (!value) return 'Field name is required';
       const trimmed = value.trim();
       const error = validateFieldName(trimmed);
       if (error) return error;
@@ -379,7 +380,7 @@ async function collectDefaultValue(
     placeholder,
     initialValue: prefill ?? '',
     validate: (value) => {
-      if (!value.trim()) return 'Default value is required';
+      if (!value || !value.trim()) return 'Default value is required';
       return validateDefaultValue(fieldType, value.trim());
     },
   });
@@ -450,7 +451,7 @@ async function collectEnumDefinition(
     message: 'Enum type name (PascalCase)',
     placeholder: suggestedName,
     initialValue: prefill?.name ?? suggestedName,
-    validate: validateEnumName,
+    validate: (value) => (value ? validateEnumName(value) : 'Enum name is required'),
   });
 
   if (p.isCancel(nameResult)) {
@@ -464,6 +465,7 @@ async function collectEnumDefinition(
     placeholder: 'e.g., draft, published, archived',
     initialValue: prefill?.values?.join(', ') ?? '',
     validate: (value) => {
+      if (!value) return 'At least one enum value is required';
       const parsed = parseEnumValues(value);
       return validateEnumValues(parsed);
     },

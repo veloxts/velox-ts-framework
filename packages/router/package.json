@@ -47,18 +47,18 @@
     }
   },
   "dependencies": {
-    "@trpc/server": "11.8.0",
+    "@trpc/server": "11.9.0",
     "@veloxts/core": "workspace:*",
     "@veloxts/validation": "workspace:*",
-    "fastify": "5.6.2",
-    "zod-to-json-schema": "3.24.5"
+    "fastify": "5.7.2",
+    "zod-to-json-schema": "3.25.1"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "4.0.16",
-    "esbuild": "0.27.1",
+    "@vitest/coverage-v8": "4.0.18",
+    "esbuild": "0.27.2",
     "typescript": "5.9.3",
-    "vite": "7.3.0",
-    "vitest": "4.0.16",
+    "vite": "7.3.1",
+    "vitest": "4.0.18",
     "zod": "3.25.76"
   },
   "peerDependencies": {

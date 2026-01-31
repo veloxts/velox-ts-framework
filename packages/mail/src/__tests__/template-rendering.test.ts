@@ -5,11 +5,15 @@
  * and content edge cases.
  */
 
+import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineMail } from '../mail.js';
 import { createMailManager } from '../manager.js';
+
+// Helper to create React elements for tests
+const div = (props: { children?: React.ReactNode } = {}) => React.createElement('div', props);
 
 describe('Template Rendering', () => {
   describe('subject generation', () => {
@@ -18,7 +22,7 @@ describe('Template Rendering', () => {
         name: 'static-subject',
         schema: z.object({ name: z.string() }),
         subject: 'Static Subject Line',
-        template: ({ name }) => ({ type: 'div', props: { children: name } }) as never,
+        template: ({ name }) => div({ children: name }),
       });
 
       const manager = await createMailManager({
@@ -40,7 +44,7 @@ describe('Template Rendering', () => {
         name: 'dynamic-subject',
         schema: z.object({ userName: z.string(), orderCount: z.number() }),
         subject: ({ userName, orderCount }) => `${userName}, you have ${orderCount} new orders!`,
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -62,7 +66,7 @@ describe('Template Rendering', () => {
         name: 'special-chars',
         schema: z.object({ product: z.string() }),
         subject: ({ product }) => `🎉 Special offer: ${product} < 50% off! >`,
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -84,7 +88,7 @@ describe('Template Rendering', () => {
         name: 'empty-subject',
         schema: z.object({}),
         subject: '',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -106,7 +110,7 @@ describe('Template Rendering', () => {
         name: 'long-subject',
         schema: z.object({ description: z.string() }),
         subject: ({ description }) => description,
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -132,7 +136,7 @@ describe('Template Rendering', () => {
         name: 'simple',
         schema: z.object({}),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -155,7 +159,7 @@ describe('Template Rendering', () => {
         name: 'simple',
         schema: z.object({}),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -180,7 +184,7 @@ describe('Template Rendering', () => {
         name: 'simple',
         schema: z.object({}),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -206,7 +210,7 @@ describe('Template Rendering', () => {
         name: 'custom-from',
         schema: z.object({}),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
         from: { email: 'special@example.com', name: 'Special Sender' },
       });
 
@@ -230,7 +234,7 @@ describe('Template Rendering', () => {
         name: 'no-from',
         schema: z.object({}),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -269,15 +273,10 @@ describe('Template Rendering', () => {
         }),
         subject: ({ user }) => `Order for ${user.name}`,
         template: ({ user, items }) =>
-          ({
-            type: 'div',
-            props: {
-              children: [
-                { type: 'h1', props: { children: `Hello ${user.name}` } },
-                { type: 'p', props: { children: `Items: ${items.length}` } },
-              ],
-            },
-          }) as never,
+          React.createElement('div', null, [
+            React.createElement('h1', { key: '1' }, `Hello ${user.name}`),
+            React.createElement('p', { key: '2' }, `Items: ${items.length}`),
+          ]),
       });
 
       const manager = await createMailManager({
@@ -310,7 +309,7 @@ describe('Template Rendering', () => {
           items: z.array(z.string()),
         }),
         subject: ({ items }) => `${items.length} items`,
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -336,7 +335,7 @@ describe('Template Rendering', () => {
           title: z.string().optional(),
         }),
         subject: ({ name, nickname }) => `${nickname ?? name}`,
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -360,7 +359,7 @@ describe('Template Rendering', () => {
         name: 'text-email',
         schema: z.object({ message: z.string() }),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
         text: ({ message }) => `Plain text: ${message}`,
       });
 
@@ -378,7 +377,7 @@ describe('Template Rendering', () => {
           items: z.array(z.object({ name: z.string(), qty: z.number() })),
         }),
         subject: 'Your Order',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
         text: ({ items }) => items.map((item) => `- ${item.name} x${item.qty}`).join('\n'),
       });
 
@@ -408,7 +407,7 @@ describe('Template Rendering', () => {
           name,
           schema: z.object({}),
           subject: 'Test',
-          template: () => ({ type: 'div', props: {} }) as never,
+          template: () => div(),
         });
         expect(mail.name).toBe(name);
       }
@@ -423,7 +422,7 @@ describe('Template Rendering', () => {
             name,
             schema: z.object({}),
             subject: 'Test',
-            template: () => ({ type: 'div', props: {} }) as never,
+            template: () => div(),
           })
         ).toThrow();
       }
@@ -435,7 +434,7 @@ describe('Template Rendering', () => {
           name: 'invalid name',
           schema: z.object({}),
           subject: 'Test',
-          template: () => ({ type: 'div', props: {} }) as never,
+          template: () => div(),
         })
       ).toThrow();
     });
@@ -449,7 +448,7 @@ describe('Template Rendering', () => {
             name,
             schema: z.object({}),
             subject: 'Test',
-            template: () => ({ type: 'div', props: {} }) as never,
+            template: () => div(),
           })
         ).toThrow();
       }
@@ -465,7 +464,7 @@ describe('Template Rendering', () => {
           age: z.number().min(0).max(150),
         }),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -491,7 +490,7 @@ describe('Template Rendering', () => {
           email: z.string().email(),
         }),
         subject: 'Test',
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({
@@ -518,7 +517,7 @@ describe('Template Rendering', () => {
         name: 'shared',
         schema: z.object({ id: z.number() }),
         subject: ({ id }) => `Message #${id}`,
-        template: ({ id }) => ({ type: 'div', props: { children: `ID: ${id}` } }) as never,
+        template: ({ id }) => div({ children: `ID: ${id}` }),
       });
 
       const manager = await createMailManager({
@@ -550,14 +549,14 @@ describe('Template Rendering', () => {
         name: 'welcome',
         schema: z.object({ name: z.string() }),
         subject: ({ name }) => `Welcome ${name}`,
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const GoodbyeEmail = defineMail({
         name: 'goodbye',
         schema: z.object({ name: z.string() }),
         subject: ({ name }) => `Goodbye ${name}`,
-        template: () => ({ type: 'div', props: {} }) as never,
+        template: () => div(),
       });
 
       const manager = await createMailManager({

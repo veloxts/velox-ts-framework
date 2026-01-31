@@ -8,6 +8,7 @@
  */
 
 import { Container } from '@veloxts/core';
+import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -16,16 +17,12 @@ import type { MailManager } from '../manager.js';
 import { registerMailProviders } from '../providers.js';
 import { MAIL_CONFIG, MAIL_MANAGER } from '../tokens.js';
 
-// Test mail template for send tests (uses mock element like manager.test.ts)
+// Test mail template for send tests
 const TestEmail = defineMail({
   name: 'test-email',
   schema: z.object({ name: z.string() }),
   subject: ({ name }) => `Hello, ${name}!`,
-  template: ({ name }) =>
-    ({
-      type: 'div',
-      props: { children: `Hello ${name}` },
-    }) as never,
+  template: ({ name }) => React.createElement('div', null, `Hello ${name}`),
 });
 
 describe('Mail DI Providers', () => {

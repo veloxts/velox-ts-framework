@@ -44,17 +44,17 @@
     }
   },
   "devDependencies": {
-    "@tanstack/react-query": "5.90.12",
+    "@tanstack/react-query": "5.90.20",
     "@testing-library/jest-dom": "6.9.1",
-    "@testing-library/react": "16.3.1",
-    "@types/react": "19.2.7",
+    "@testing-library/react": "16.3.2",
+    "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3",
-    "@vitest/coverage-v8": "4.0.16",
-    "jsdom": "27.3.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "@vitest/coverage-v8": "4.0.18",
+    "jsdom": "27.4.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "typescript": "5.9.3",
-    "vitest": "4.0.16"
+    "vitest": "4.0.18"
   },
   "keywords": [
     "velox",

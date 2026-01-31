@@ -39,7 +39,7 @@
   "dependencies": {
     "@veloxts/core": "workspace:*",
     "fastify-plugin": "5.1.0",
-    "mime-types": "2.1.35"
+    "mime-types": "3.0.2"
   },
   "peerDependencies": {
     "@aws-sdk/client-s3": ">=3.0.0",
@@ -59,16 +59,16 @@
     }
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "3.821.0",
-    "@aws-sdk/lib-storage": "3.821.0",
-    "@aws-sdk/s3-request-presigner": "3.821.0",
-    "@types/mime-types": "2.1.4",
-    "@types/node": "25.0.3",
+    "@aws-sdk/client-s3": "3.980.0",
+    "@aws-sdk/lib-storage": "3.980.0",
+    "@aws-sdk/s3-request-presigner": "3.980.0",
+    "@types/mime-types": "3.0.1",
+    "@types/node": "25.1.0",
     "@veloxts/testing": "workspace:*",
-    "@vitest/coverage-v8": "4.0.16",
-    "fastify": "5.6.2",
+    "@vitest/coverage-v8": "4.0.18",
+    "fastify": "5.7.2",
     "typescript": "5.9.3",
-    "vitest": "4.0.16"
+    "vitest": "4.0.18"
   },
   "publishConfig": {
     "access": "public"
