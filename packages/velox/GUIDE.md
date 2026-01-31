@@ -80,6 +80,63 @@ const api = createClient<{ users: typeof userProcedures }>({ baseUrl: '/api' });
 const user = await api.users.getUser({ id: '123' }); // Fully typed
 ```
 
+## Ecosystem Presets
+
+Automatically configure ecosystem packages based on your environment:
+
+```typescript
+import { veloxApp, usePresets } from '@veloxts/velox';
+
+const app = await veloxApp({ port: 3030 });
+
+// Auto-configure based on NODE_ENV
+await usePresets(app);
+
+await app.start();
+```
+
+### Environment Defaults
+
+| Package | Development | Test | Production |
+|---------|-------------|------|------------|
+| Cache | memory | memory | redis |
+| Queue | sync | sync | bullmq |
+| Mail | log | log | resend |
+| Storage | local | local | s3 |
+| Events | ws | ws | ws + redis |
+
+### Production Environment Variables
+
+For production, set these environment variables:
+
+```bash
+REDIS_URL=redis://localhost:6379
+RESEND_API_KEY=re_xxxxx
+S3_BUCKET=my-bucket
+AWS_REGION=us-east-1  # optional, defaults to us-east-1
+```
+
+### Custom Overrides
+
+```typescript
+await usePresets(app, {
+  overrides: {
+    mail: { driver: 'smtp', config: { host: 'localhost' } },
+    cache: { config: { maxSize: 5000 } },
+  },
+});
+```
+
+### Selective Registration
+
+```typescript
+// Only register specific packages
+await usePresets(app, { only: ['cache', 'queue'] });
+
+// Exclude specific packages
+await usePresets(app, { except: ['scheduler'] });
+```
+
 ## Learn More
 
 - [GitHub Repository](https://github.com/veloxts/velox-ts-framework)

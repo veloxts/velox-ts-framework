@@ -700,9 +700,27 @@ importers:
         specifier: workspace:*
         version: link:../validation
       zod:
-        specifier: ^3.25.0
-        version: 3.25.76
+        specifier: 3.25.0
+        version: 3.25.0
     devDependencies:
+      '@veloxts/cache':
+        specifier: workspace:*
+        version: link:../cache
+      '@veloxts/events':
+        specifier: workspace:*
+        version: link:../events
+      '@veloxts/mail':
+        specifier: workspace:*
+        version: link:../mail
+      '@veloxts/queue':
+        specifier: workspace:*
+        version: link:../queue
+      '@veloxts/scheduler':
+        specifier: workspace:*
+        version: link:../scheduler
+      '@veloxts/storage':
+        specifier: workspace:*
+        version: link:../storage
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -8149,6 +8167,9 @@ packages:
 
   zod@3.24.4:
     resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
+
+  zod@3.25.0:
+    resolution: {integrity: sha512-ficnZKUW0mlNivqeJkosTEkGbJ6NKCtSaOHGx5aXbtfeWMdRyzXLbAIn19my4C/KB7WPY/p9vlGPt+qpOp6c4Q==}
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
@@ -17256,6 +17277,8 @@ snapshots:
       zod: 3.25.76
 
   zod@3.24.4: {}
+
+  zod@3.25.0: {}
 
   zod@3.25.76: {}
 
