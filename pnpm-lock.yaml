@@ -703,6 +703,24 @@ importers:
         specifier: ^3.25.0
         version: 3.25.76
     devDependencies:
+      '@veloxts/cache':
+        specifier: workspace:*
+        version: link:../cache
+      '@veloxts/events':
+        specifier: workspace:*
+        version: link:../events
+      '@veloxts/mail':
+        specifier: workspace:*
+        version: link:../mail
+      '@veloxts/queue':
+        specifier: workspace:*
+        version: link:../queue
+      '@veloxts/scheduler':
+        specifier: workspace:*
+        version: link:../scheduler
+      '@veloxts/storage':
+        specifier: workspace:*
+        version: link:../storage
       typescript:
         specifier: 5.9.3
         version: 5.9.3

@@ -28,3 +28,6 @@ export * from '@veloxts/validation';
 
 // Auth - Re-export from subpath module (excludes internal testing utilities)
 export * from './auth.js';
+
+// Presets - Environment-aware ecosystem package configuration
+export * from './presets/index.js';

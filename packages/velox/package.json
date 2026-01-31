@@ -55,11 +55,31 @@
     "@veloxts/auth": "workspace:*"
   },
   "devDependencies": {
+    "@veloxts/cache": "workspace:*",
+    "@veloxts/events": "workspace:*",
+    "@veloxts/mail": "workspace:*",
+    "@veloxts/queue": "workspace:*",
+    "@veloxts/scheduler": "workspace:*",
+    "@veloxts/storage": "workspace:*",
     "typescript": "5.9.3",
     "vitest": "4.0.16"
   },
   "peerDependencies": {
-    "zod": "^3.25.0"
+    "zod": "^3.25.0",
+    "@veloxts/cache": "workspace:*",
+    "@veloxts/queue": "workspace:*",
+    "@veloxts/mail": "workspace:*",
+    "@veloxts/storage": "workspace:*",
+    "@veloxts/events": "workspace:*",
+    "@veloxts/scheduler": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@veloxts/cache": { "optional": true },
+    "@veloxts/queue": { "optional": true },
+    "@veloxts/mail": { "optional": true },
+    "@veloxts/storage": { "optional": true },
+    "@veloxts/events": { "optional": true },
+    "@veloxts/scheduler": { "optional": true }
   },
   "keywords": [
     "velox",
