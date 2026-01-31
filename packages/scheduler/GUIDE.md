@@ -150,3 +150,23 @@ const scheduler = createScheduler(tasks, {
   },
 });
 ```
+
+## Standalone Usage
+
+Use scheduler outside of Fastify request context (background workers, scripts):
+
+```typescript
+import { getScheduler, closeScheduler, task } from '@veloxts/scheduler';
+
+// Get standalone scheduler instance
+const scheduler = getScheduler({
+  tasks: [
+    task('cleanup', () => db.cleanup()).daily().build(),
+  ],
+});
+
+scheduler.start();
+
+// Clean up when done
+await closeScheduler();
+```

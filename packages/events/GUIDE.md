@@ -197,3 +197,19 @@ All instances subscribe to a shared Redis channel. When you broadcast:
 1. Event is sent to local WebSocket clients
 2. Event is published to Redis
 3. Other instances receive from Redis and broadcast to their clients
+
+## Standalone Usage
+
+Use events outside of Fastify request context (background jobs, scripts):
+
+```typescript
+import { getEvents, closeEvents } from '@veloxts/events';
+
+// Get standalone events instance
+const events = await getEvents({ driver: 'ws' });
+
+await events.broadcast('channel', 'event', { data: 'value' });
+
+// Clean up when done
+await closeEvents();
+```

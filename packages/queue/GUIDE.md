@@ -125,3 +125,21 @@ velox queue:work --queue=high # Process specific queue
 velox queue:failed            # List failed jobs
 velox queue:retry <id>        # Retry a failed job
 ```
+
+## Standalone Usage
+
+Use queue outside of Fastify request context (CLI commands, scripts):
+
+```typescript
+import { getQueue, closeQueue } from '@veloxts/queue';
+
+// Get standalone queue instance
+const queue = await getQueue({
+  driver: 'sync',
+});
+
+await queue.dispatch(myJob, { data: 'value' });
+
+// Clean up when done
+await closeQueue();
+```

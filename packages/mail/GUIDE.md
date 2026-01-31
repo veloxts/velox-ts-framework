@@ -130,3 +130,22 @@ const { html, text, subject } = await ctx.mail.render(WelcomeEmail, {
 ```bash
 velox make mail WelcomeEmail     # Generate email template
 ```
+
+## Standalone Usage
+
+Use mail outside of Fastify request context (CLI commands, background jobs):
+
+```typescript
+import { getMail, closeMail } from '@veloxts/mail';
+
+// Get standalone mail instance
+const mail = await getMail({
+  driver: 'log',
+  from: { email: 'noreply@example.com' },
+});
+
+await mail.send(WelcomeEmail, { to: 'user@example.com', data: {...} });
+
+// Clean up when done
+await closeMail();
+```

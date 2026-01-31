@@ -143,3 +143,22 @@ do {
 // Set visibility
 await ctx.storage.setVisibility('file.jpg', 'public');  // or 'private'
 ```
+
+## Standalone Usage
+
+Use storage outside of Fastify request context (CLI commands, background jobs):
+
+```typescript
+import { getStorage, closeStorage } from '@veloxts/storage';
+
+// Get standalone storage instance
+const storage = await getStorage({
+  driver: 'local',
+  config: { root: './uploads' },
+});
+
+await storage.put('file.txt', Buffer.from('Hello'));
+
+// Clean up when done
+await closeStorage();
+```

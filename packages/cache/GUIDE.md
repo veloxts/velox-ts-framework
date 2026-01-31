@@ -106,3 +106,22 @@ await ctx.cache.decrement('stock:item:456');
 |--------|---------|----------|
 | `memory` | lru-cache | Development, single instance |
 | `redis` | ioredis | Production, multi-instance |
+
+## Standalone Usage
+
+Use cache outside of Fastify request context (CLI commands, background jobs):
+
+```typescript
+import { getCache, closeCache } from '@veloxts/cache';
+
+// Get standalone cache instance
+const cache = await getCache({
+  driver: 'memory',
+  config: { maxSize: 1000 },
+});
+
+await cache.put('key', 'value', '1h');
+
+// Clean up when done
+await closeCache();
+```
