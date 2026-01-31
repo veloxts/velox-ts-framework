@@ -127,10 +127,10 @@ If you later need REST endpoints (for mobile apps, third parties, webhooks), add
 
 ```typescript
 // src/index.ts
-import { velox, rest } from '@veloxts/velox';
+import { veloxApp, rest } from '@veloxts/velox';
 import { collections } from './router.js';
 
-const app = await velox({ port: 3030 });
+const app = await veloxApp({ port: 3030 });
 
 app.routes(
   rest(collections, { prefix: '/api' })  // Add this line

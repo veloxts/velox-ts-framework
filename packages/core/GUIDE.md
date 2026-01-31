@@ -11,9 +11,9 @@ npm install @veloxts/core
 ## Quick Start
 
 ```typescript
-import { velox } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 
-const app = await velox({ port: 3030 });
+const app = await veloxApp({ port: 3030 });
 await app.start();
 console.log(`Server running at ${app.address}`);
 ```
@@ -23,7 +23,7 @@ console.log(`Server running at ${app.address}`);
 Create a VeloxTS application with sensible defaults:
 
 ```typescript
-const app = await velox({
+const app = await veloxApp({
   port: 3030,          // Port to listen on
   host: '0.0.0.0',     // Host to bind to
   logger: true,        // Enable logging
@@ -175,7 +175,7 @@ await app.start();
 ## Complete Example
 
 ```typescript
-import { velox, definePlugin } from '@veloxts/core';
+import { veloxApp, definePlugin } from '@veloxts/core';
 import { PrismaClient } from '@prisma/client';
 
 // Database plugin
@@ -189,7 +189,7 @@ const databasePlugin = definePlugin({
 });
 
 // Create app
-const app = await velox({
+const app = await veloxApp({
   port: Number(process.env.PORT) || 3030,
   logger: true,
 });

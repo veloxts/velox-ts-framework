@@ -16,10 +16,10 @@ pnpm add ioredis
 ### Development (Memory)
 
 ```typescript
-import { velox } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { cachePlugin } from '@veloxts/cache';
 
-const app = velox();
+const app = veloxApp();
 
 app.register(cachePlugin({
   driver: 'memory',
@@ -32,10 +32,10 @@ await app.start();
 ### Production (Redis)
 
 ```typescript
-import { velox } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { cachePlugin } from '@veloxts/cache';
 
-const app = velox();
+const app = veloxApp();
 
 app.register(cachePlugin({
   driver: 'redis',

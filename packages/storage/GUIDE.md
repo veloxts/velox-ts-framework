@@ -16,10 +16,10 @@ pnpm add @aws-sdk/client-s3 @aws-sdk/lib-storage @aws-sdk/s3-request-presigner
 ### Development (Local)
 
 ```typescript
-import { velox } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { storagePlugin } from '@veloxts/storage';
 
-const app = velox();
+const app = veloxApp();
 
 app.register(storagePlugin({
   driver: 'local',
@@ -35,10 +35,10 @@ await app.start();
 ### Production (AWS S3)
 
 ```typescript
-import { velox } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { storagePlugin } from '@veloxts/storage';
 
-const app = velox();
+const app = veloxApp();
 
 app.register(storagePlugin({
   driver: 's3',

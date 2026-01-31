@@ -5,15 +5,15 @@ description: The VeloxTS application instance and lifecycle.
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-The `velox()` function creates your application instance, which wraps Fastify with VeloxTS conventions.
+The `veloxApp()` function creates your application instance, which wraps Fastify with VeloxTS conventions.
 
 ## Creating an App
 
 ```typescript
-import { velox, rest } from '@veloxts/velox';
+import { veloxApp, rest } from '@veloxts/velox';
 import { userProcedures } from './procedures/users.js';
 
-const app = await velox({ port: 3030 });
+const app = await veloxApp({ port: 3030 });
 
 // Register routes
 app.routes(rest([userProcedures], { prefix: '/api' }));
@@ -24,7 +24,7 @@ await app.start();
 ## Configuration Options
 
 ```typescript
-const app = await velox({
+const app = await veloxApp({
   // Server options
   port: 3030,
   host: '0.0.0.0',
@@ -43,7 +43,7 @@ const app = await velox({
 ### CORS Configuration
 
 ```typescript
-const app = await velox({
+const app = await veloxApp({
   cors: {
     origin: ['http://localhost:5173', 'https://myapp.com'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -56,7 +56,7 @@ const app = await velox({
 ### Logging
 
 ```typescript
-const app = await velox({
+const app = await veloxApp({
   logger: {
     level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
     transport: {
@@ -70,7 +70,7 @@ const app = await velox({
 ## Application Lifecycle
 
 ```
-await velox()     Create instance
+await veloxApp()     Create instance
     │
     ▼
 app.register()       Register plugins
@@ -86,7 +86,7 @@ app.stop()           Graceful shutdown
 ### Lifecycle Events
 
 ```typescript
-const app = await velox({ port: 3030 });
+const app = await veloxApp({ port: 3030 });
 
 // Called when app is ready but not yet listening
 app.server.addHook('onReady', async () => {
@@ -109,11 +109,11 @@ app.server.addHook('onClose', async () => {
 VeloxTS handles shutdown signals automatically. For database connections, add explicit cleanup:
 
 ```typescript
-import { velox, rest } from '@veloxts/velox';
+import { veloxApp, rest } from '@veloxts/velox';
 import { db } from './config/database.js';
 import { userProcedures } from './procedures/users.js';
 
-const app = await velox({ port: 3030 });
+const app = await veloxApp({ port: 3030 });
 
 app.routes(rest([userProcedures], { prefix: '/api' }));
 
@@ -188,7 +188,7 @@ The CLI listens for this message to measure actual server boot time versus proce
 The underlying Fastify instance is available via `app.server` when needed:
 
 ```typescript
-const app = await velox({ port: 3030 });
+const app = await veloxApp({ port: 3030 });
 
 // Access Fastify directly
 app.server.get('/custom', async (request, reply) => {
@@ -215,7 +215,7 @@ curl http://localhost:3030/api/health
 ## Environment-Based Configuration
 
 ```typescript
-const app = await velox({
+const app = await veloxApp({
   port: parseInt(process.env.PORT ?? '3030'),
   host: process.env.HOST ?? '0.0.0.0',
   logger: process.env.NODE_ENV === 'production'

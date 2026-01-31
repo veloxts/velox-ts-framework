@@ -13,10 +13,10 @@ pnpm add @veloxts/events
 ### Single Instance (Development)
 
 ```typescript
-import { velox } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { eventsPlugin } from '@veloxts/events';
 
-const app = velox();
+const app = veloxApp();
 
 app.register(eventsPlugin({
   driver: 'ws',
@@ -31,10 +31,10 @@ await app.start();
 For horizontal scaling across multiple server instances, enable Redis pub/sub:
 
 ```typescript
-import { velox } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { eventsPlugin } from '@veloxts/events';
 
-const app = velox();
+const app = veloxApp();
 
 app.register(eventsPlugin({
   driver: 'ws',

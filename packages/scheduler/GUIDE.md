@@ -11,10 +11,10 @@ pnpm add @veloxts/scheduler
 ## Quick Start
 
 ```typescript
-import { velox } from '@veloxts/core';
+import { veloxApp } from '@veloxts/core';
 import { schedulerPlugin, task } from '@veloxts/scheduler';
 
-const app = velox();
+const app = veloxApp();
 
 app.register(schedulerPlugin({
   timezone: 'UTC',
@@ -174,7 +174,7 @@ task('sync-inventory', syncInventory)
 Allow running tasks to complete before shutdown:
 
 ```typescript
-const app = velox();
+const app = veloxApp();
 
 app.register(schedulerPlugin({ tasks: [...] }));
 
