@@ -149,4 +149,3 @@ expectType<{ id: string }>(null as unknown as UserGetUserInput);
 type UserGetUserOutput =
   TRPCCompatible['users']['getUser'] extends TRPCQueryProcedure<infer T> ? T['output'] : never;
 expectType<{ id: string; name: string }>(null as unknown as UserGetUserOutput);
-
