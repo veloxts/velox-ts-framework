@@ -74,8 +74,8 @@
   "dependencies": {
     "@vinxi/server-functions": "0.5.1",
     "radix3": "1.1.2",
-    "vinxi": "0.5.10",
-    "vite-tsconfig-paths": "6.0.3",
+    "vinxi": "0.5.11",
+    "vite-tsconfig-paths": "6.0.5",
     "zod": "3.25.76"
   },
   "peerDependencies": {
@@ -96,21 +96,21 @@
   },
   "devDependencies": {
     "@types/jsdom": "27.0.0",
-    "@types/node": "25.0.3",
-    "@types/react": "19.2.7",
+    "@types/node": "25.1.0",
+    "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3",
     "@veloxts/auth": "workspace:*",
     "@veloxts/client": "workspace:*",
     "@veloxts/core": "workspace:*",
     "@veloxts/router": "workspace:*",
-    "@vitest/coverage-v8": "4.0.16",
-    "fastify": "5.6.2",
-    "jsdom": "27.3.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-server-dom-webpack": "19.2.3",
+    "@vitest/coverage-v8": "4.0.18",
+    "fastify": "5.7.2",
+    "jsdom": "27.4.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-server-dom-webpack": "19.2.4",
     "typescript": "5.9.3",
-    "vitest": "4.0.16"
+    "vitest": "4.0.18"
   },
   "keywords": [
     "velox",

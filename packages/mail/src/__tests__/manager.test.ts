@@ -4,6 +4,7 @@
  * Tests for the mail manager including sendBulk performance optimizations.
  */
 
+import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
@@ -15,11 +16,7 @@ const TestEmail = defineMail({
   name: 'test',
   schema: z.object({ name: z.string() }),
   subject: ({ name }) => `Hello, ${name}!`,
-  template: ({ name }) =>
-    ({
-      type: 'div',
-      props: { children: `Hello ${name}` },
-    }) as never,
+  template: ({ name }) => React.createElement('div', null, `Hello ${name}`),
 });
 
 describe('createMailManager', () => {

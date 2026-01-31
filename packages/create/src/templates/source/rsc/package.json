@@ -16,10 +16,10 @@
     "lint:client": "./scripts/check-client-imports.sh"
   },
   "dependencies": {
-    "@prisma/adapter-better-sqlite3": "7.2.0",
-    "@prisma/client": "7.2.0",
-    "@prisma/client-runtime-utils": "7.2.0",
-    "better-sqlite3": "12.5.0",
+    "@prisma/adapter-better-sqlite3": "7.3.0",
+    "@prisma/client": "7.3.0",
+    "@prisma/client-runtime-utils": "7.3.0",
+    "better-sqlite3": "12.6.2",
     "@veloxts/core": "__VELOXTS_VERSION__",
     "@veloxts/orm": "__VELOXTS_VERSION__",
     "@veloxts/router": "__VELOXTS_VERSION__",
@@ -27,18 +27,18 @@
     "@veloxts/web": "__VELOXTS_VERSION__",
     "@vinxi/server-functions": "0.5.1",
     "dotenv": "17.2.3",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "vinxi": "0.5.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "vinxi": "0.5.11",
     "zod": "3.25.76"
   },
   "devDependencies": {
-    "@types/node": "25.0.3",
-    "@types/react": "19.2.7",
+    "@types/node": "25.1.0",
+    "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3",
     "@veloxts/cli": "__VELOXTS_VERSION__",
     "@veloxts/mcp": "__VELOXTS_VERSION__",
-    "prisma": "7.2.0",
+    "prisma": "7.3.0",
     "typescript": "5.9.3"
   }
 }
