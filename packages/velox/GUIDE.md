@@ -80,22 +80,89 @@ const api = createClient<{ users: typeof userProcedures }>({ baseUrl: '/api' });
 const user = await api.users.getUser({ id: '123' }); // Fully typed
 ```
 
-## Ecosystem Presets
+## Environment-Aware Configuration
 
-Automatically configure ecosystem packages based on your environment:
+VeloxTS provides comprehensive environment-aware configuration through two complementary APIs:
+
+- **`getServerConfig()`** - Server configuration (must be set at app construction)
+- **`usePresets()`** - Ecosystem plugin registration (applied after construction)
+
+### Quick Start
 
 ```typescript
-import { veloxApp, usePresets } from '@veloxts/velox';
+import { veloxApp, getServerConfig, usePresets } from '@veloxts/velox';
 
-const app = await veloxApp({ port: 3030 });
+// 1. Environment-aware server config
+const app = await veloxApp(getServerConfig());
 
-// Auto-configure based on NODE_ENV
+// 2. Auto-configure ecosystem packages
 await usePresets(app);
 
 await app.start();
 ```
 
-### Environment Defaults
+### Server Configuration
+
+`getServerConfig()` returns environment-appropriate server settings:
+
+```typescript
+// Auto-detect from NODE_ENV
+const config = getServerConfig();
+
+// Explicit environment
+const config = getServerConfig('production');
+
+// With overrides
+const config = getServerConfig('production', {
+  port: 4000,
+  fastify: { bodyLimit: 10 * 1048576 },  // 10MB
+});
+
+const app = await veloxApp(config);
+```
+
+#### Server Defaults by Environment
+
+| Setting | Development | Test | Production |
+|---------|-------------|------|------------|
+| **Port** | 3030 | 0 (random) | PORT env or 3030 |
+| **Host** | localhost | localhost | 0.0.0.0 |
+| **Logger** | debug + pretty | false | warn |
+| **Trust Proxy** | false | false | true |
+| **Body Limit** | default | default | 1MB |
+| **Request Timeout** | default | default | 30s |
+| **Connection Timeout** | default | default | 60s |
+
+**Why these defaults?**
+- **Development:** Pretty logs, localhost binding, no restrictions
+- **Test:** Random port (parallel tests), silent logging, localhost isolation
+- **Production:** All interfaces, proxy trust, conservative limits, minimal logging
+
+### Ecosystem Presets
+
+`usePresets()` automatically registers ecosystem packages:
+
+```typescript
+await usePresets(app);  // Auto-configure based on NODE_ENV
+
+// With overrides
+await usePresets(app, {
+  overrides: {
+    mail: { driver: 'smtp', config: { host: 'localhost' } },
+    cache: { config: { maxSize: 5000 } },
+  },
+});
+
+// Selective registration
+await usePresets(app, { only: ['cache', 'queue'] });
+await usePresets(app, { except: ['scheduler'] });
+```
+
+:::note
+**Auth is NOT auto-registered** because it requires secrets. See [Auth Presets](#auth-presets) below.
+:::
+
+#### Ecosystem Defaults by Environment
 
 | Package | Development | Test | Production |
 |---------|-------------|------|------------|
@@ -105,36 +172,95 @@ await app.start();
 | Storage | local | local | s3 |
 | Events | ws | ws | ws + redis |
 
-### Production Environment Variables
+**Why these defaults?**
+- **Development:** No external services, fast startup, console email logs
+- **Test:** Smaller limits, temp storage, sync execution for deterministic tests
+- **Production:** Distributed services (Redis, S3, Resend), horizontal scaling
 
-For production, set these environment variables:
+#### Production Environment Variables
 
 ```bash
 REDIS_URL=redis://localhost:6379
-RESEND_API_KEY=re_xxxxx
+RESEND_API_KEY=re_xxxxxxxxxxxxx
 S3_BUCKET=my-bucket
 AWS_REGION=us-east-1  # optional, defaults to us-east-1
 ```
 
-### Custom Overrides
+### Auth Presets
+
+Auth requires secrets from environment variables, so it's not auto-registered. Use `getAuthPreset()` to get environment-aware defaults:
 
 ```typescript
-await usePresets(app, {
-  overrides: {
-    mail: { driver: 'smtp', config: { host: 'localhost' } },
-    cache: { config: { maxSize: 5000 } },
+import { getAuthPreset } from '@veloxts/velox';
+import { authPlugin } from '@veloxts/auth';
+
+const authPreset = getAuthPreset();
+
+await app.register(authPlugin({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    ...authPreset.jwt,  // accessTokenExpiry, refreshTokenExpiry
   },
-});
+  rateLimit: authPreset.rateLimit,
+  session: authPreset.session,
+  cookie: authPreset.cookie,
+}));
 ```
 
-### Selective Registration
+#### Auth Defaults by Environment
+
+| Setting | Development | Test | Production |
+|---------|-------------|------|------------|
+| **Access Token Expiry** | 15m | 1h | 5m |
+| **Refresh Token Expiry** | 7d | 7d | 1d |
+| **Rate Limit (max)** | 100 | 1000 | 5 |
+| **Rate Limit (window)** | 15min | 15min | 15min |
+| **Session TTL** | 7 days | 1 hour | 4 hours |
+| **Session Absolute Timeout** | 7 days | 1 hour | 24 hours |
+| **Cookie Secure** | false | false | true |
+| **Cookie SameSite** | lax | lax | strict |
+| **Cookie HttpOnly** | true | true | true |
+
+**Why these defaults?**
+- **Development:** Longer tokens (15m), relaxed rate limits (100), HTTP cookies for localhost
+- **Test:** Very relaxed limits (1000), 1-hour tokens, short sessions for isolation
+- **Production:** Short tokens (5m), strict rate limits (5), HTTPS-only, strict CSRF protection
+
+### Security Validation
+
+Validate production security requirements at startup:
 
 ```typescript
-// Only register specific packages
-await usePresets(app, { only: ['cache', 'queue'] });
+import { validateSecurityOrThrow } from '@veloxts/velox';
 
-// Exclude specific packages
-await usePresets(app, { except: ['scheduler'] });
+// Validates in production, silent in dev/test
+validateSecurityOrThrow();
+
+// Or validate auth secrets specifically
+import { validateAuthSecrets } from '@veloxts/velox';
+validateAuthSecrets();  // Throws if JWT_SECRET missing in production
+```
+
+**What it validates:**
+- Required environment variables are set (DATABASE_URL)
+- JWT secrets are present and meet minimum length (32 characters)
+- Secrets are not weak patterns (e.g., "secret", "password")
+- Secrets have sufficient entropy
+
+#### Required Production Environment Variables
+
+```bash
+DATABASE_URL=postgresql://...
+JWT_SECRET=<32+ character secret>
+JWT_REFRESH_SECRET=<32+ character secret>
+SESSION_SECRET=<32+ character secret>  # If using session middleware
+```
+
+**Generate secure secrets:**
+
+```bash
+openssl rand -base64 48
 ```
 
 ## Learn More

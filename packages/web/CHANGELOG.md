@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.89
+
+### Patch Changes
+
+- expand preset system with server config, auth presets, and security validation
+- Updated dependencies
+  - @veloxts/auth@0.6.89
+  - @veloxts/client@0.6.89
+  - @veloxts/core@0.6.89
+  - @veloxts/router@0.6.89
+
 ## 0.6.88
 
 ### Patch Changes

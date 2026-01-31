@@ -1,0 +1,821 @@
+---
+title: Environment Configuration
+description: Environment-aware configuration for VeloxTS server, ecosystem packages, and authentication.
+---
+
+VeloxTS provides comprehensive environment-aware configuration through two complementary APIs that eliminate boilerplate while maintaining flexibility:
+
+- **`getServerConfig()`** - Server configuration (must be set at app construction)
+- **`usePresets()`** - Automatic ecosystem plugin registration (applied after construction)
+
+Both automatically adapt to your `NODE_ENV`, applying appropriate defaults for development, testing, and production environments.
+
+## Quick Start
+
+```typescript
+import { veloxApp, getServerConfig, usePresets } from '@veloxts/velox';
+
+// 1. Environment-aware server configuration
+const app = await veloxApp(getServerConfig());
+
+// 2. Auto-configure ecosystem packages
+await usePresets(app);
+
+await app.start();
+```
+
+This two-line setup:
+- Configures server settings (port, host, logging, timeouts) for your environment
+- Registers ecosystem plugins (cache, queue, mail, storage, events, scheduler) with appropriate drivers
+- Validates production requirements and provides helpful error messages
+
+## Server Configuration
+
+`getServerConfig()` returns environment-appropriate server settings. This must be called when constructing your app because Fastify requires certain options (like `trustProxy`) at construction time.
+
+### Basic Usage
+
+```typescript
+import { veloxApp, getServerConfig } from '@veloxts/velox';
+
+// Auto-detect from NODE_ENV
+const app = await veloxApp(getServerConfig());
+
+// Explicit environment
+const app = await veloxApp(getServerConfig('production'));
+
+// With overrides
+const app = await veloxApp(getServerConfig('production', {
+  port: 4000,
+  fastify: { bodyLimit: 10 * 1048576 },  // 10MB
+}));
+```
+
+### Server Defaults by Environment
+
+| Setting | Development | Test | Production |
+|---------|-------------|------|------------|
+| **Port** | 3030 | 0 (random) | PORT env or 3030 |
+| **Host** | localhost | localhost | 0.0.0.0 |
+| **Logger** | debug + pretty | false | warn |
+| **Trust Proxy** | false | false | true |
+| **Body Limit** | default | default | 1MB |
+| **Request Timeout** | default | default | 30s |
+| **Connection Timeout** | default | default | 60s |
+
+#### Why These Defaults?
+
+**Development:**
+- Pretty-printed debug logs for easy troubleshooting
+- Localhost binding for security
+- No production-style restrictions for fast iteration
+
+**Test:**
+- Random port (0) enables parallel test execution without port conflicts
+- Silent logging keeps test output clean
+- Localhost binding for test isolation
+
+**Production:**
+- Reads `PORT` from environment (for containerized deployments)
+- Binds to all interfaces (`0.0.0.0`) for reverse proxy access
+- Warns on issues only (reduces log noise)
+- Trusts proxy headers for correct client IPs
+- Conservative limits prevent abuse and memory issues
+
+### Overriding Server Config
+
+```typescript
+// Custom port in development
+const app = await veloxApp(getServerConfig({ port: 4000 }));
+
+// Increase body limit for file uploads
+const app = await veloxApp(getServerConfig({
+  fastify: {
+    bodyLimit: 50 * 1048576,  // 50MB
+  },
+}));
+
+// Custom logger in production
+const app = await veloxApp(getServerConfig('production', {
+  logger: {
+    level: 'info',
+    transport: { target: 'pino-pretty' },
+  },
+}));
+```
+
+## Ecosystem Presets
+
+`usePresets()` automatically registers ecosystem plugins based on your environment. This happens after app construction, so you can control which packages get registered.
+
+### Basic Usage
+
+```typescript
+import { veloxApp, usePresets } from '@veloxts/velox';
+
+const app = await veloxApp({ port: 3030 });
+
+// Auto-configure based on NODE_ENV
+await usePresets(app);
+
+await app.start();
+```
+
+Output in development:
+```
+📦 VeloxTS Ecosystem Presets [development]
+  ✓ @veloxts/cache [memory]
+  ✓ @veloxts/queue [sync]
+  ✓ @veloxts/mail [log]
+  ✓ @veloxts/storage [local]
+  ✓ @veloxts/events [ws]
+  ✓ @veloxts/scheduler [cron]
+```
+
+:::note
+**Auth is NOT auto-registered** because it requires secrets from environment variables. See [Auth Presets](#auth-presets) below for manual setup with environment-aware defaults.
+:::
+
+### Ecosystem Defaults by Environment
+
+| Package | Development | Test | Production |
+|---------|-------------|------|------------|
+| **Cache** | memory | memory | redis |
+| **Queue** | sync | sync | bullmq |
+| **Mail** | log | log | resend |
+| **Storage** | local | local | s3 |
+| **Events** | ws | ws | ws + redis |
+| **Scheduler** | cron | cron | cron |
+
+#### Why These Defaults?
+
+**Development:**
+- No external services required (Redis, S3, SMTP)
+- Fast startup and restarts
+- Emails logged to console for debugging
+- Files stored locally for easy inspection
+
+**Test:**
+- Smaller cache limits (faster cleanup)
+- Temp directory for storage (easy cleanup between tests)
+- Synchronous job execution for predictable, deterministic tests
+- Silent logging keeps test output clean
+
+**Production:**
+- Distributed services scale horizontally (Redis, S3, BullMQ)
+- Reliable email delivery via Resend
+- S3-compatible storage works with AWS, Cloudflare R2, MinIO
+- Redis pub/sub for multi-instance WebSocket broadcasting
+
+### Production Environment Variables
+
+The production preset requires these environment variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `REDIS_URL` | Redis connection URL (for cache, queue, events) | Yes |
+| `RESEND_API_KEY` | Resend API key (for transactional email) | Yes |
+| `S3_BUCKET` | S3 bucket name (for file storage) | Yes |
+| `AWS_REGION` | AWS region (defaults to `us-east-1`) | No |
+
+Example `.env.production` file:
+
+```bash
+NODE_ENV=production
+
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/myapp
+
+# Ecosystem packages
+REDIS_URL=redis://localhost:6379
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+S3_BUCKET=my-app-uploads
+AWS_REGION=us-east-1
+
+# Auth (see Auth Presets section)
+JWT_SECRET=<generate-with-openssl-rand-base64-48>
+JWT_REFRESH_SECRET=<generate-with-openssl-rand-base64-48>
+```
+
+If any required variables are missing, `usePresets()` throws a helpful error:
+
+```
+Missing required environment variables for production preset:
+  - REDIS_URL: Redis connection URL (for cache, queue, events)
+  - S3_BUCKET: S3 bucket name (for file storage)
+
+Set these in your .env file or environment, or use a different preset.
+```
+
+**Generating secure secrets:**
+
+```bash
+# Generate 48 random bytes (64 characters base64)
+openssl rand -base64 48
+```
+
+## Customizing Ecosystem Presets
+
+### Override Specific Packages
+
+Use the `overrides` option to customize specific package configurations while keeping defaults for others:
+
+```typescript
+await usePresets(app, {
+  overrides: {
+    // Use SMTP instead of log driver in development
+    mail: {
+      driver: 'smtp',
+      config: { host: 'localhost', port: 1025 },
+    },
+    // Increase cache size
+    cache: {
+      config: { maxSize: 5000 },
+    },
+  },
+});
+```
+
+Overrides are deep-merged with the base preset, so you only need to specify what you want to change.
+
+**Example: MailHog for local email testing**
+
+```typescript
+// In development, use MailHog to preview emails
+await usePresets(app, {
+  overrides: {
+    mail: {
+      driver: 'smtp',
+      config: {
+        host: 'localhost',
+        port: 1025,  // MailHog default port
+      },
+    },
+  },
+});
+```
+
+### Force a Specific Environment
+
+Override the detected environment:
+
+```typescript
+// Use production drivers even in development (for integration testing)
+await usePresets(app, { env: 'production' });
+```
+
+This is useful for:
+- Testing production configuration locally
+- Staging environments that should behave like production
+- Running integration tests against real services
+
+### Selective Registration
+
+Register only specific packages:
+
+```typescript
+// Only register cache and queue
+await usePresets(app, {
+  only: ['cache', 'queue'],
+});
+```
+
+Exclude specific packages:
+
+```typescript
+// Register everything except scheduler
+await usePresets(app, {
+  except: ['scheduler'],
+});
+```
+
+:::note
+You cannot use `only` and `except` together. Choose one approach.
+:::
+
+**When to use selective registration:**
+- Microservices that only need specific features
+- Gradual migration to ecosystem packages
+- Testing individual packages in isolation
+
+### Silent Mode
+
+Suppress console output during registration:
+
+```typescript
+await usePresets(app, { silent: true });
+```
+
+Useful for:
+- Cleaner test output
+- Production deployments with minimal logging
+- CI/CD environments
+
+## Auth Presets
+
+Auth is **not auto-registered** by `usePresets()` because it requires secrets from environment variables. Instead, use `getAuthPreset()` to get environment-aware defaults, then manually register the auth plugin with your secrets.
+
+### Basic Usage
+
+```typescript
+import { veloxApp, getServerConfig, usePresets, getAuthPreset } from '@veloxts/velox';
+import { authPlugin } from '@veloxts/auth';
+
+const app = await veloxApp(getServerConfig());
+await usePresets(app);
+
+// Get environment-aware auth defaults
+const authPreset = getAuthPreset();
+
+// Manually register auth with secrets + preset defaults
+await app.register(authPlugin({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    ...authPreset.jwt,  // accessTokenExpiry, refreshTokenExpiry
+  },
+  rateLimit: authPreset.rateLimit,
+  session: authPreset.session,
+  cookie: authPreset.cookie,
+}));
+
+await app.start();
+```
+
+### Auth Defaults by Environment
+
+| Setting | Development | Test | Production |
+|---------|-------------|------|------------|
+| **Access Token Expiry** | 15m | 1h | 5m |
+| **Refresh Token Expiry** | 7d | 7d | 1d |
+| **Rate Limit (max)** | 100 | 1000 | 5 |
+| **Rate Limit (window)** | 15min | 15min | 15min |
+| **Session TTL** | 7 days | 1 hour | 4 hours |
+| **Session Absolute Timeout** | 7 days | 1 hour | 24 hours |
+| **Cookie Secure** | false | false | true |
+| **Cookie SameSite** | lax | lax | strict |
+| **Cookie HttpOnly** | true | true | true |
+
+#### Why These Defaults?
+
+**Development:**
+- Longer token expiry (15m) reduces reauthentication during testing
+- Relaxed rate limits (100 req/15min) for easier debugging
+- HTTP cookies allowed for localhost development
+- 7-day sessions for convenience
+
+**Test:**
+- Very relaxed rate limits (1000 req/15min) for test automation
+- 1-hour tokens prevent expiration during test runs
+- Short session TTL for test isolation
+- Same security settings as dev
+
+**Production:**
+- Short-lived access tokens (5m) minimize exposure window
+- Strict rate limiting (5 req/15min on auth endpoints) prevents brute force
+- HTTPS-only cookies (`secure: true`)
+- Strict CSRF protection (`sameSite: 'strict'`)
+- 4-hour session with 24-hour absolute timeout
+
+### Overriding Auth Presets
+
+```typescript
+// Custom token expiry in production
+const authPreset = getAuthPreset('production', {
+  jwt: { accessTokenExpiry: '10m' },
+  rateLimit: { max: 10 },
+});
+
+await app.register(authPlugin({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    ...authPreset.jwt,
+  },
+  rateLimit: authPreset.rateLimit,
+}));
+```
+
+### Required Auth Environment Variables
+
+Production auth requires strong secrets:
+
+```bash
+JWT_SECRET=<32+ character secret>
+JWT_REFRESH_SECRET=<32+ character secret>
+SESSION_SECRET=<32+ character secret>  # If using session middleware
+```
+
+Generate secure secrets:
+
+```bash
+# Generate 48 random bytes (64 characters base64)
+openssl rand -base64 48
+```
+
+See [Security Validation](#security-validation) for automatic validation.
+
+## Security Validation
+
+VeloxTS provides security validation utilities to ensure production deployments meet security requirements.
+
+### Validate at Startup
+
+```typescript
+import { validateSecurityOrThrow } from '@veloxts/velox';
+
+// Validates in production, silent in dev/test
+validateSecurityOrThrow();
+
+const app = await veloxApp(getServerConfig());
+// ... rest of setup
+```
+
+**What it validates:**
+- Required environment variables are set (`DATABASE_URL`)
+- JWT secrets are present and meet minimum length (32 characters)
+- Secrets are not weak patterns (e.g., "secret", "password", "123456")
+- Secrets have sufficient entropy (character diversity)
+
+**Example error message:**
+
+```
+Production security validation failed:
+
+  [env] DATABASE_URL: Missing required environment variable
+    Suggestion: Database connection string
+
+  [secret] JWT_SECRET: Secret too short (16 chars, minimum 32)
+    Suggestion: Generate with: openssl rand -base64 48
+
+Warnings:
+  [secret] JWT_REFRESH_SECRET: Secret appears to have low entropy
+    Suggestion: Use a cryptographically random value: openssl rand -base64 48
+```
+
+### Validate Auth Secrets Only
+
+```typescript
+import { validateAuthSecrets } from '@veloxts/velox';
+
+// Throws if JWT_SECRET or JWT_REFRESH_SECRET are missing/weak
+validateAuthSecrets();
+```
+
+This is a convenience function focused specifically on JWT secrets. Use `validateSecurityOrThrow()` for comprehensive validation.
+
+### Custom Security Requirements
+
+```typescript
+import { validateSecurityOrThrow } from '@veloxts/velox';
+
+validateSecurityOrThrow({
+  requiredEnvVars: {
+    DATABASE_URL: 'Database connection string',
+    REDIS_URL: 'Redis connection URL',
+    API_KEY: 'Third-party API key',
+  },
+  jwtSecretMinLength: 48,  // Require longer secrets
+  secretEnvVars: ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'SESSION_SECRET', 'API_KEY'],
+});
+```
+
+### Programmatic Validation
+
+```typescript
+import { validateSecurity } from '@veloxts/velox';
+
+const result = validateSecurity();
+
+if (!result.valid) {
+  console.error('Security validation failed:');
+  result.errors.forEach(e => {
+    console.error(`  [${e.category}] ${e.key}: ${e.message}`);
+    if (e.suggestion) {
+      console.error(`    Suggestion: ${e.suggestion}`);
+    }
+  });
+  process.exit(1);
+}
+
+// Warnings don't fail validation but should be reviewed
+result.warnings.forEach(w => {
+  console.warn(`  [${w.category}] ${w.key}: ${w.message}`);
+});
+```
+
+## Manual Registration
+
+For full control, you can skip presets and use individual package plugins directly:
+
+```typescript
+import { veloxApp } from '@veloxts/velox';
+import { cachePlugin } from '@veloxts/cache';
+import { queuePlugin } from '@veloxts/queue';
+
+const app = await veloxApp({ port: 3030 });
+
+await app.register(cachePlugin({
+  driver: 'redis',
+  config: { url: process.env.REDIS_URL },
+}));
+
+await app.register(queuePlugin({
+  driver: 'bullmq',
+  config: { url: process.env.REDIS_URL },
+}));
+
+await app.start();
+```
+
+**When to use manual registration:**
+- Fine-grained control over each package configuration
+- Complex multi-environment setups not covered by presets
+- Conditional plugin registration based on runtime logic
+
+## Complete Examples
+
+### Full-Stack Application Setup
+
+```typescript
+import { veloxApp, getServerConfig, usePresets, getAuthPreset, validateSecurityOrThrow } from '@veloxts/velox';
+import { authPlugin } from '@veloxts/auth';
+
+// 1. Validate security requirements (production only)
+validateSecurityOrThrow();
+
+// 2. Create app with environment-aware server config
+const app = await veloxApp(getServerConfig());
+
+// 3. Auto-register ecosystem packages
+await usePresets(app);
+
+// 4. Manually register auth with secrets
+const authPreset = getAuthPreset();
+await app.register(authPlugin({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    ...authPreset.jwt,
+  },
+  rateLimit: authPreset.rateLimit,
+  session: authPreset.session,
+  cookie: authPreset.cookie,
+}));
+
+// 5. Register your procedures
+app.routes([userProcedures, postProcedures]);
+
+// 6. Start server
+await app.start();
+```
+
+### Microservice with Selective Packages
+
+```typescript
+import { veloxApp, getServerConfig, usePresets } from '@veloxts/velox';
+
+const app = await veloxApp(getServerConfig());
+
+// Only need cache and queue for this microservice
+await usePresets(app, {
+  only: ['cache', 'queue'],
+  overrides: {
+    cache: {
+      config: { maxSize: 5000 },  // Larger cache for this service
+    },
+  },
+});
+
+await app.start();
+```
+
+### Staging Environment Configuration
+
+```typescript
+import { veloxApp, getServerConfig, usePresets } from '@veloxts/velox';
+
+// Force production drivers but with staging-specific overrides
+const app = await veloxApp(getServerConfig('production', {
+  logger: {
+    level: 'debug',  // More verbose logging in staging
+  },
+}));
+
+await usePresets(app, {
+  env: 'production',  // Use Redis, S3, etc.
+  overrides: {
+    storage: {
+      bucket: process.env.STAGING_S3_BUCKET,  // Separate staging bucket
+    },
+  },
+});
+
+await app.start();
+```
+
+### Local Development with MailHog
+
+```typescript
+import { veloxApp, getServerConfig, usePresets } from '@veloxts/velox';
+
+const app = await veloxApp(getServerConfig());
+
+await usePresets(app, {
+  overrides: {
+    mail: {
+      driver: 'smtp',
+      config: {
+        host: 'localhost',
+        port: 1025,  // MailHog SMTP port
+      },
+    },
+  },
+});
+
+await app.start();
+// Preview emails at http://localhost:8025
+```
+
+## Environment Detection
+
+The preset system detects environments from `NODE_ENV`:
+
+| NODE_ENV Value | Detected Environment |
+|----------------|---------------------|
+| `production`, `prod` | `production` |
+| `test`, `testing` | `test` |
+| `development`, `dev`, undefined | `development` |
+
+Environment detection is case-insensitive and trims whitespace.
+
+### Manual Environment Check
+
+```typescript
+import {
+  detectEnvironment,
+  isDevEnvironment,
+  isProdEnvironment,
+  isTestEnvironment,
+} from '@veloxts/velox';
+
+const env = detectEnvironment(); // 'development' | 'test' | 'production'
+
+if (isDevEnvironment()) {
+  console.log('Running in development mode');
+}
+
+if (isProdEnvironment()) {
+  // Enable production-only features
+}
+
+if (isTestEnvironment()) {
+  // Test-specific setup
+}
+```
+
+## API Reference
+
+### getServerConfig
+
+```typescript
+function getServerConfig(overrides?: ServerConfigOverrides): VeloxAppConfig
+function getServerConfig(env: Environment, overrides?: ServerConfigOverrides): VeloxAppConfig
+```
+
+Get environment-aware server configuration for VeloxApp.
+
+**Parameters:**
+- `env` (optional) - Explicit environment, or auto-detect from NODE_ENV
+- `overrides` (optional) - Override specific settings
+
+**Returns:** `VeloxAppConfig` ready for `veloxApp()`
+
+**Example:**
+```typescript
+const app = await veloxApp(getServerConfig());
+const app = await veloxApp(getServerConfig('production'));
+const app = await veloxApp(getServerConfig({ port: 4000 }));
+```
+
+### usePresets
+
+```typescript
+function usePresets(app: VeloxApp, options?: PresetOptions): Promise<void>
+```
+
+Registers ecosystem plugins based on detected or specified environment.
+
+**Options:**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `env` | `'development' \| 'test' \| 'production'` | Override detected environment |
+| `overrides` | `PresetOverrides` | Custom configuration for specific packages |
+| `only` | `Array<keyof EcosystemPreset>` | Only register these packages |
+| `except` | `Array<keyof EcosystemPreset>` | Exclude these packages |
+| `silent` | `boolean` | Suppress console output |
+
+**Note:** Auth is not auto-registered. Use `getAuthPreset()` for manual setup.
+
+### getAuthPreset
+
+```typescript
+function getAuthPreset(env?: Environment, overrides?: Partial<AuthPreset>): AuthPreset
+```
+
+Get environment-aware auth preset configuration.
+
+**Parameters:**
+- `env` (optional) - Target environment, or auto-detect from NODE_ENV
+- `overrides` (optional) - Override specific auth settings
+
+**Returns:** `AuthPreset` with JWT, rate limit, session, and cookie defaults
+
+**Example:**
+```typescript
+const authPreset = getAuthPreset();
+await app.register(authPlugin({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    ...authPreset.jwt,
+  },
+  rateLimit: authPreset.rateLimit,
+}));
+```
+
+### validateSecurityOrThrow
+
+```typescript
+function validateSecurityOrThrow(requirements?: SecurityRequirements): void
+```
+
+Validate security requirements and throw if validation fails. Only validates in production environment.
+
+**Parameters:**
+- `requirements` (optional) - Custom security requirements
+
+**Throws:** Error with formatted list of validation failures
+
+**Example:**
+```typescript
+validateSecurityOrThrow();  // Uses default requirements
+validateSecurityOrThrow({
+  requiredEnvVars: { DATABASE_URL: 'Database connection' },
+  jwtSecretMinLength: 48,
+});
+```
+
+### validateAuthSecrets
+
+```typescript
+function validateAuthSecrets(env?: Environment): void
+```
+
+Validate that auth-related secrets (JWT_SECRET, JWT_REFRESH_SECRET) are properly configured.
+
+**Parameters:**
+- `env` (optional) - Target environment, or auto-detect from NODE_ENV
+
+**Throws:** Error if secrets are missing or too short in production
+
+### validateSecurity
+
+```typescript
+function validateSecurity(requirements?: SecurityRequirements): ValidationResult
+```
+
+Programmatically validate security requirements without throwing.
+
+**Returns:** `ValidationResult` with `valid`, `errors`, and `warnings` arrays
+
+**Example:**
+```typescript
+const result = validateSecurity();
+if (!result.valid) {
+  result.errors.forEach(e => console.error(e.message));
+  process.exit(1);
+}
+```
+
+### Environment Detection
+
+```typescript
+function detectEnvironment(): Environment
+function isDevEnvironment(): boolean
+function isProdEnvironment(): boolean
+function isTestEnvironment(): boolean
+```
+
+Detect or check the current environment from NODE_ENV.
+
+## Related
+
+- [Ecosystem Overview](/docs/ecosystem/overview) - Overview of all ecosystem packages
+- [Cache](/docs/ecosystem/cache) - Caching with memory and Redis drivers
+- [Queue](/docs/ecosystem/queue) - Background job processing with sync and BullMQ
+- [Mail](/docs/ecosystem/mail) - Email sending with log, SMTP, and Resend
+- [Storage](/docs/ecosystem/storage) - File storage with local and S3 drivers
+- [Events](/docs/ecosystem/events) - Real-time broadcasting with WebSocket
+- [Scheduler](/docs/ecosystem/scheduler) - Cron task scheduling

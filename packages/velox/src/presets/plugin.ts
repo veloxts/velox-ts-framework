@@ -6,8 +6,8 @@ import type { VeloxApp } from '@veloxts/core';
 
 import { getPreset } from './defaults.js';
 import { detectEnvironment } from './env.js';
-import { mergeDeep } from './merge.js';
-import type { EcosystemPreset, PresetOptions } from './types.js';
+import { type DeepPartial, mergeDeep } from './merge.js';
+import type { AuthPreset, EcosystemPreset, Environment, PresetOptions } from './types.js';
 
 /**
  * Package registration metadata.
@@ -19,6 +19,9 @@ interface PackageInfo {
   getDriver: (config: unknown) => string;
 }
 
+/**
+ * All ecosystem packages that can be registered.
+ */
 const PACKAGES: Record<keyof EcosystemPreset, PackageInfo> = {
   cache: {
     name: '@veloxts/cache',
@@ -56,13 +59,28 @@ const PACKAGES: Record<keyof EcosystemPreset, PackageInfo> = {
     pluginExport: 'schedulerPlugin',
     getDriver: () => 'cron',
   },
+  auth: {
+    name: '@veloxts/auth',
+    importPath: '@veloxts/auth',
+    pluginExport: 'authPlugin',
+    getDriver: () => 'jwt',
+  },
 };
+
+/**
+ * Packages that require special handling and are NOT auto-registered.
+ * Auth requires secrets from environment variables.
+ */
+const SPECIAL_PACKAGES: Set<keyof EcosystemPreset> = new Set(['auth']);
 
 /**
  * Register ecosystem plugins based on preset configuration.
  *
  * Dynamically imports packages to avoid hard dependencies.
  * Only registered packages need to be installed.
+ *
+ * Note: Auth is NOT auto-registered because it requires secrets.
+ * Use getAuthPreset() to get environment-aware defaults for manual auth setup.
  */
 export async function registerEcosystemPlugins(
   app: VeloxApp,
@@ -78,8 +96,10 @@ export async function registerEcosystemPlugins(
 
   const packages = Object.keys(preset) as (keyof EcosystemPreset)[];
 
-  // Apply filters
+  // Apply filters, excluding special packages that need manual setup
   const packagesToRegister = packages.filter((pkg) => {
+    // Skip special packages (like auth) that need manual configuration
+    if (SPECIAL_PACKAGES.has(pkg)) return false;
     if (options?.only && !options.only.includes(pkg)) return false;
     if (options?.except?.includes(pkg)) return false;
     return preset[pkg] !== undefined;
@@ -127,22 +147,28 @@ export async function registerEcosystemPlugins(
  * Automatically configures ecosystem packages based on the current environment
  * (NODE_ENV) with sensible defaults. Override specific packages as needed.
  *
+ * Note: Auth is NOT auto-registered because it requires secrets.
+ * Use getAuthPreset() to get environment-aware defaults for manual auth setup.
+ *
  * @example
  * ```typescript
- * import { veloxApp } from '@veloxts/velox';
- * import { usePresets } from '@veloxts/velox';
+ * import { veloxApp, getServerConfig, usePresets, getAuthPreset } from '@veloxts/velox';
+ * import { authPlugin } from '@veloxts/auth';
  *
- * const app = await veloxApp({ port: 3030 });
+ * const app = await veloxApp(getServerConfig());
  *
- * // Auto-configure based on NODE_ENV
+ * // Auto-configure ecosystem packages
  * await usePresets(app);
  *
- * // Or with overrides
- * await usePresets(app, {
- *   overrides: {
- *     mail: { driver: 'smtp', config: { host: 'localhost' } }
- *   }
- * });
+ * // Manually configure auth with secrets + preset defaults
+ * await app.register(authPlugin({
+ *   jwt: {
+ *     secret: process.env.JWT_SECRET!,
+ *     refreshSecret: process.env.JWT_REFRESH_SECRET,
+ *     ...getAuthPreset().jwt,
+ *   },
+ *   rateLimit: getAuthPreset().rateLimit,
+ * }));
  * ```
  */
 export async function usePresets(app: VeloxApp, options: PresetOptions = {}): Promise<void> {
@@ -150,13 +176,15 @@ export async function usePresets(app: VeloxApp, options: PresetOptions = {}): Pr
   const basePreset = getPreset(env);
 
   // Merge overrides with base preset using type-safe helper
-  const merge = <T>(base: T | undefined, override: Partial<T> | undefined): T | undefined => {
+  // Partial<T> is assignable to DeepPartial<T> for single-level overrides
+  const merge = <T extends object>(
+    base: T | undefined,
+    override: Partial<T> | undefined
+  ): T | undefined => {
     if (!base) return undefined;
     if (!override) return base;
-    return mergeDeep(
-      base as unknown as Record<string, unknown>,
-      override as unknown as Record<string, unknown>
-    ) as T;
+    // Partial<T> is compatible with DeepPartial<T> at the first level
+    return mergeDeep(base, override as DeepPartial<T>);
   };
 
   const finalPreset: EcosystemPreset = {
@@ -166,6 +194,7 @@ export async function usePresets(app: VeloxApp, options: PresetOptions = {}): Pr
     storage: merge(basePreset.storage, options.overrides?.storage),
     events: merge(basePreset.events, options.overrides?.events),
     scheduler: merge(basePreset.scheduler, options.overrides?.scheduler),
+    auth: merge(basePreset.auth, options.overrides?.auth),
   };
 
   if (!options.silent) {
@@ -177,4 +206,55 @@ export async function usePresets(app: VeloxApp, options: PresetOptions = {}): Pr
   if (!options.silent) {
     console.log('');
   }
+}
+
+/**
+ * Get environment-aware auth preset configuration.
+ *
+ * Returns configuration defaults for JWT, rate limiting, sessions, and cookies
+ * based on the current environment. Secrets are NOT included - they must be
+ * provided separately via environment variables.
+ *
+ * @param env - Target environment (defaults to NODE_ENV detection)
+ * @param overrides - Override specific settings
+ * @returns Auth preset configuration
+ *
+ * @example
+ * ```typescript
+ * import { getAuthPreset } from '@veloxts/velox';
+ * import { authPlugin } from '@veloxts/auth';
+ *
+ * // Get environment-aware auth defaults
+ * const authPreset = getAuthPreset();
+ *
+ * // Combine with your secrets
+ * await app.register(authPlugin({
+ *   jwt: {
+ *     secret: process.env.JWT_SECRET!,
+ *     refreshSecret: process.env.JWT_REFRESH_SECRET,
+ *     ...authPreset.jwt,
+ *   },
+ *   rateLimit: authPreset.rateLimit,
+ * }));
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // With custom overrides
+ * const authPreset = getAuthPreset('production', {
+ *   jwt: { accessTokenExpiry: '10m' },
+ *   rateLimit: { max: 10 },
+ * });
+ * ```
+ */
+export function getAuthPreset(env?: Environment, overrides?: Partial<AuthPreset>): AuthPreset {
+  const environment = env ?? detectEnvironment();
+  const basePreset = getPreset(environment);
+  const authPreset = basePreset.auth ?? {};
+
+  if (!overrides) {
+    return authPreset;
+  }
+
+  return mergeDeep(authPreset, overrides);
 }
