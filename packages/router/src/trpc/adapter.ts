@@ -323,16 +323,6 @@ export function appRouter<const T extends readonly ProcedureCollection[]>(
     InferRouterFromCollections<T>;
 }
 
-/**
- * Helper type to infer the AppRouter type from procedure collections
- *
- * @deprecated Use `InferRouterFromCollections<T>` instead for better type inference.
- * This type alias is kept for backward compatibility.
- */
-export type InferAppRouter<
-  T extends readonly ProcedureCollection[] = readonly ProcedureCollection[],
-> = InferRouterFromCollections<T>;
-
 // ============================================================================
 // @trpc/react-query Compatibility
 // ============================================================================
@@ -362,11 +352,6 @@ export type TRPCRouter<TRouter> =
           : never;
       }
     : never;
-
-/**
- * @deprecated Use `TRPCRouter` instead. Will be removed in v1.0.
- */
-export type AsTRPCRouter<TRouter> = TRPCRouter<TRouter>;
 
 /**
  * tRPC router structural requirements for type compatibility.

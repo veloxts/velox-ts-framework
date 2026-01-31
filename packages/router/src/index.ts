@@ -174,13 +174,10 @@ export {
 export type {
   // tRPC types
   AnyRouter,
-  /** @deprecated Use `TRPCRouter` instead */
-  AsTRPCRouter,
   // Type utilities for router type inference
   CollectionsToRouterRecord,
   ExtractNamespace,
   ExtractProcedures,
-  InferAppRouter,
   InferRouterFromCollections,
   MapProcedureRecordToTRPC,
   MapProcedureToTRPC,

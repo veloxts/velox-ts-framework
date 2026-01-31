@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 // Import from the compiled dist folders directly
 import type { BaseContext } from '../../../core/dist/index.js';
-import type { AsTRPCRouter, TRPCRouter } from '../../dist/index.js';
+import type { TRPCRouter } from '../../dist/index.js';
 import { createRouter, defineProcedures, procedure } from '../../dist/index.js';
 
 // ============================================================================
@@ -150,10 +150,3 @@ type UserGetUserOutput =
   TRPCCompatible['users']['getUser'] extends TRPCQueryProcedure<infer T> ? T['output'] : never;
 expectType<{ id: string; name: string }>(null as unknown as UserGetUserOutput);
 
-// ============================================================================
-// Test: Deprecated AsTRPCRouter alias still works (backwards compatibility)
-// ============================================================================
-
-// AsTRPCRouter should be an alias for TRPCRouter
-type DeprecatedRouter = AsTRPCRouter<AppRouter>;
-expectType<TRPCRouter<AppRouter>>(null as unknown as DeprecatedRouter);

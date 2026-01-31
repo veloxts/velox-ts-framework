@@ -164,8 +164,6 @@ await registerTRPCPlugin(app.server, { router, prefix: '/trpc' });
 export type AppRouter = TRPCRouter<typeof router>;
 ```
 
-> **Note**: `AsTRPCRouter` is deprecated. Use `TRPCRouter` instead.
-
 ## OpenAPI Documentation
 
 Auto-generate OpenAPI 3.0.3 specifications from your procedure definitions and serve interactive Swagger UI documentation.
