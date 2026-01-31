@@ -1,31 +1,44 @@
 # @veloxts/scheduler Guide
 
-## Creating a Scheduler
+Cron task scheduling for VeloxTS applications with a fluent API for defining scheduled tasks.
+
+## Installation
+
+```bash
+pnpm add @veloxts/scheduler
+```
+
+## Quick Start
 
 ```typescript
-import { createScheduler, task } from '@veloxts/scheduler';
+import { createApp } from '@veloxts/core';
+import { schedulerPlugin, task } from '@veloxts/scheduler';
 
-const scheduler = createScheduler([
-  task('cleanup-tokens', async () => {
-    await db.token.deleteMany({ where: { expiresAt: { lt: new Date() } } });
-  })
-    .daily()
-    .at('02:00')
-    .build(),
+const app = createApp();
 
-  task('send-digest', async () => {
-    await sendDailyDigest();
-  })
-    .weekdays()
-    .at('09:00')
-    .timezone('America/New_York')
-    .build(),
-], {
+app.register(schedulerPlugin({
   timezone: 'UTC',
-  debug: true,
-});
+  tasks: [
+    task('cleanup-tokens', async (ctx) => {
+      await ctx.db.token.deleteMany({
+        where: { expiresAt: { lt: new Date() } },
+      });
+    })
+      .daily()
+      .at('02:00')
+      .build(),
 
-scheduler.start();
+    task('send-digest', async (ctx) => {
+      await sendDailyDigest();
+    })
+      .weekdays()
+      .at('09:00')
+      .timezone('America/New_York')
+      .build(),
+  ],
+}));
+
+await app.start();
 ```
 
 ## Schedule Frequencies
@@ -65,9 +78,8 @@ task('name', handler)
 ## Task Options
 
 ```typescript
-task('name', handler)
-  .daily()
-  .at('09:00')
+task('sync-data', syncData)
+  .hourly()
   .timezone('America/New_York')     // Task-specific timezone
   .withoutOverlapping()             // Skip if still running
   .withoutOverlapping(30)           // Max lock time in minutes
@@ -82,36 +94,11 @@ task('name', handler)
   .build()
 ```
 
-## Running the Scheduler
-
-### In Your App
-
-```typescript
-// Start with your app
-const scheduler = createScheduler(tasks);
-scheduler.start();
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  await scheduler.stop();
-  process.exit(0);
-});
-```
-
-### From System Cron
-
-Add to your crontab to run every minute:
-
-```bash
-* * * * * cd /path/to/app && node scheduler.js >> /dev/null 2>&1
-```
-
 ## Scheduler API
 
 ```typescript
-// Start/stop
-scheduler.start();
-await scheduler.stop();
+// Access scheduler from context
+const scheduler = ctx.scheduler;
 
 // Check status
 scheduler.isRunning();
@@ -130,12 +117,12 @@ const nextRun = scheduler.getNextRun('cleanup-tokens');
 const history = scheduler.getHistory('cleanup-tokens');
 ```
 
-## Callbacks
+## Global Callbacks
 
 ```typescript
-const scheduler = createScheduler(tasks, {
+app.register(schedulerPlugin({
   timezone: 'UTC',
-  debug: false,
+  tasks: [...],
   onTaskStart: (task, ctx) => {
     console.log(`Starting: ${task.name}`);
   },
@@ -148,25 +135,137 @@ const scheduler = createScheduler(tasks, {
   onTaskSkip: (task, ctx, reason) => {
     console.log(`Skipped ${task.name}: ${reason}`);
   },
+}));
+```
+
+## Production Deployment
+
+### Key Considerations
+
+Unlike other ecosystem packages, the scheduler doesn't require external services like Redis. However, production deployments need special attention:
+
+### 1. Run on Single Instance Only
+
+Scheduled tasks should only run on ONE server instance to prevent duplicate execution:
+
+```typescript
+task('send-reports', sendReports)
+  .daily()
+  .at('09:00')
+  .when(() => process.env.SCHEDULER_ENABLED === 'true')
+  .build()
+```
+
+Set `SCHEDULER_ENABLED=true` only on one instance.
+
+### 2. Use `withoutOverlapping()` for Long Tasks
+
+Prevent task overlap if execution might exceed the schedule interval:
+
+```typescript
+task('sync-inventory', syncInventory)
+  .everyFiveMinutes()
+  .withoutOverlapping(10)  // Lock for max 10 minutes
+  .build()
+```
+
+### 3. Graceful Shutdown
+
+Allow running tasks to complete before shutdown:
+
+```typescript
+const app = createApp();
+
+app.register(schedulerPlugin({ tasks: [...] }));
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  await app.close();  // Waits for scheduler to stop
+  process.exit(0);
 });
 ```
 
-## Standalone Usage
-
-Use scheduler outside of Fastify request context (background workers, scripts):
+### 4. Monitor Task Execution
 
 ```typescript
-import { getScheduler, closeScheduler, task } from '@veloxts/scheduler';
+app.register(schedulerPlugin({
+  tasks: [...],
+  onTaskError: (task, ctx, error) => {
+    // Send to error tracking (Sentry, etc.)
+    Sentry.captureException(error, {
+      tags: { task: task.name },
+    });
+  },
+  onTaskComplete: (task, ctx, duration) => {
+    // Send to metrics (Datadog, etc.)
+    metrics.timing(`scheduler.${task.name}`, duration);
+  },
+}));
+```
 
-// Get standalone scheduler instance
-const scheduler = getScheduler({
+### Production Checklist
+
+1. **Single instance** - Only enable scheduler on one server
+2. **Graceful shutdown** - Handle SIGTERM properly
+3. **Error monitoring** - Track task failures
+4. **Overlap prevention** - Use `withoutOverlapping()` for long tasks
+5. **Timezone** - Set explicit timezone for predictable execution
+
+### Environment Variables
+
+```bash
+# .env
+SCHEDULER_ENABLED=true        # Only set on scheduler instance
+SCHEDULER_TIMEZONE=UTC        # Default timezone
+```
+
+### Running as Separate Process
+
+For better isolation, run scheduler as a separate process:
+
+```typescript
+// scheduler.ts
+import { createScheduler, task } from '@veloxts/scheduler';
+
+const scheduler = createScheduler({
+  timezone: process.env.SCHEDULER_TIMEZONE || 'UTC',
   tasks: [
-    task('cleanup', () => db.cleanup()).daily().build(),
+    task('cleanup', cleanup).daily().at('02:00').build(),
+    task('reports', sendReports).weekdays().at('09:00').build(),
   ],
 });
 
 scheduler.start();
 
-// Clean up when done
-await closeScheduler();
+process.on('SIGTERM', async () => {
+  await scheduler.stop();
+  process.exit(0);
+});
+```
+
+```bash
+# Run as separate process
+node scheduler.js
+```
+
+## Standalone Usage
+
+Use scheduler outside of Fastify context:
+
+```typescript
+import { createScheduler, task } from '@veloxts/scheduler';
+
+const scheduler = createScheduler({
+  timezone: 'UTC',
+  tasks: [
+    task('my-task', () => console.log('Running!'))
+      .everyMinute()
+      .build(),
+  ],
+});
+
+scheduler.start();
+
+// Later...
+await scheduler.stop();
 ```

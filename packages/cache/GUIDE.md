@@ -1,41 +1,63 @@
 # @veloxts/cache Guide
 
-Multi-driver caching layer for VeloxTS framework with support for memory (LRU), Redis, cache tags, and distributed locks.
+Multi-driver caching for VeloxTS applications with support for memory (LRU) and Redis, cache tags, and distributed locks.
 
 ## Installation
 
 ```bash
 pnpm add @veloxts/cache
 
-# For Redis support (optional)
+# For Redis (production)
 pnpm add ioredis
 ```
 
-## Plugin Registration
+## Quick Start
+
+### Development (Memory)
 
 ```typescript
-import { veloxApp } from '@veloxts/core';
+import { createApp } from '@veloxts/core';
 import { cachePlugin } from '@veloxts/cache';
 
-const app = await veloxApp();
+const app = createApp();
 
-// Memory cache (development)
-app.use(cachePlugin({
+app.register(cachePlugin({
   driver: 'memory',
   config: { maxSize: 1000 },
 }));
 
-// Redis cache (production)
-app.use(cachePlugin({
+await app.start();
+```
+
+### Production (Redis)
+
+```typescript
+import { createApp } from '@veloxts/core';
+import { cachePlugin } from '@veloxts/cache';
+
+const app = createApp();
+
+app.register(cachePlugin({
   driver: 'redis',
-  config: { url: process.env.REDIS_URL },
+  config: {
+    url: process.env.REDIS_URL,
+  },
 }));
+
+await app.start();
+```
+
+**Environment Variables:**
+
+```bash
+# .env
+REDIS_URL=redis://user:password@your-redis-host:6379
 ```
 
 ## Basic Usage
 
 ```typescript
-// Store a value
+// Store a value with TTL
 await ctx.cache.put('user:123', { name: 'John' }, '30m');
 
 // Get a value
@@ -46,6 +68,9 @@ if (await ctx.cache.has('user:123')) { ... }
 
 // Delete a value
 await ctx.cache.forget('user:123');
+
+// Delete multiple values
+await ctx.cache.forgetMany(['user:123', 'user:456']);
 ```
 
 ## Remember Pattern
@@ -66,7 +91,7 @@ await ctx.cache.put('key', value, '5m');   // 5 minutes
 await ctx.cache.put('key', value, '1h');   // 1 hour
 await ctx.cache.put('key', value, '1d');   // 1 day
 await ctx.cache.put('key', value, '1w');   // 1 week
-await ctx.cache.put('key', value, 3600);   // 3600 seconds
+await ctx.cache.put('key', value, 3600);   // 3600 seconds (number)
 ```
 
 ## Cache Tags
@@ -84,7 +109,7 @@ await ctx.cache.tags(['users']).flush();
 
 ## Distributed Locks
 
-Prevent concurrent execution across instances:
+Prevent concurrent execution across instances (Redis only):
 
 ```typescript
 await ctx.cache.lockAndRun('payment:process', '30s', async () => {
@@ -97,6 +122,7 @@ await ctx.cache.lockAndRun('payment:process', '30s', async () => {
 
 ```typescript
 await ctx.cache.increment('views:post:123');
+await ctx.cache.increment('views:post:123', 5);  // Increment by 5
 await ctx.cache.decrement('stock:item:456');
 ```
 
@@ -107,6 +133,44 @@ await ctx.cache.decrement('stock:item:456');
 | `memory` | lru-cache | Development, single instance |
 | `redis` | ioredis | Production, multi-instance |
 
+### Memory Driver Options
+
+```typescript
+app.register(cachePlugin({
+  driver: 'memory',
+  config: {
+    maxSize: 1000,      // Max entries
+    defaultTtl: '1h',   // Default TTL
+  },
+}));
+```
+
+### Redis Driver Options
+
+```typescript
+app.register(cachePlugin({
+  driver: 'redis',
+  config: {
+    url: process.env.REDIS_URL,
+    keyPrefix: 'myapp:cache:',  // Optional prefix
+    defaultTtl: '1h',           // Default TTL
+  },
+}));
+```
+
+## Production Deployment
+
+**Why Redis for production:**
+- Shared cache across multiple server instances
+- Cache persists across deployments
+- Distributed locks work across instances
+- Better memory management than in-process cache
+
+**Recommended Redis providers:**
+- [Upstash](https://upstash.com) - Serverless, pay-per-request
+- [Redis Cloud](https://redis.com/cloud) - Managed Redis
+- [Railway](https://railway.app) - Simple Redis add-on
+
 ## Standalone Usage
 
 Use cache outside of Fastify request context (CLI commands, background jobs):
@@ -116,11 +180,12 @@ import { getCache, closeCache } from '@veloxts/cache';
 
 // Get standalone cache instance
 const cache = await getCache({
-  driver: 'memory',
-  config: { maxSize: 1000 },
+  driver: 'redis',
+  config: { url: process.env.REDIS_URL },
 });
 
 await cache.put('key', 'value', '1h');
+const value = await cache.get('key');
 
 // Clean up when done
 await closeCache();

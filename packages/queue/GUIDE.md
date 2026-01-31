@@ -1,27 +1,46 @@
 # @veloxts/queue Guide
 
-## Drivers
+Background job processing for VeloxTS applications with support for sync execution (development) and BullMQ/Redis (production).
 
-### Sync Driver (default)
-
-Executes jobs immediately in-process. Best for development and testing.
-
-```typescript
-import { queuePlugin } from '@veloxts/queue';
-
-app.use(queuePlugin({ driver: 'sync' }));
-```
-
-### BullMQ Driver
-
-Production-ready Redis-backed queues with retries, delays, and priorities.
+## Installation
 
 ```bash
-npm install bullmq ioredis
+pnpm add @veloxts/queue
+
+# For BullMQ (production)
+pnpm add bullmq ioredis
 ```
 
+## Quick Start
+
+### Development (Sync)
+
+Jobs execute immediately in-process:
+
 ```typescript
-app.use(queuePlugin({
+import { createApp } from '@veloxts/core';
+import { queuePlugin } from '@veloxts/queue';
+
+const app = createApp();
+
+app.register(queuePlugin({
+  driver: 'sync',
+}));
+
+await app.start();
+```
+
+### Production (BullMQ)
+
+Jobs are queued in Redis and processed by workers:
+
+```typescript
+import { createApp } from '@veloxts/core';
+import { queuePlugin } from '@veloxts/queue';
+
+const app = createApp();
+
+app.register(queuePlugin({
   driver: 'bullmq',
   config: {
     url: process.env.REDIS_URL,
@@ -29,6 +48,15 @@ app.use(queuePlugin({
     defaultConcurrency: 5,
   },
 }));
+
+await app.start();
+```
+
+**Environment Variables:**
+
+```bash
+# .env
+REDIS_URL=redis://user:password@your-redis-host:6379
 ```
 
 ## Defining Jobs
@@ -43,9 +71,12 @@ export const sendWelcomeEmail = defineJob({
     userId: z.string().uuid(),
     email: z.string().email(),
   }),
-  handler: async ({ data, ctx }) => {
+  handler: async ({ data, ctx, progress }) => {
+    await progress(10);
     const user = await ctx.db.user.findUnique({ where: { id: data.userId } });
+    await progress(50);
     await ctx.mail.send(WelcomeEmail, { to: data.email, data: { user } });
+    await progress(100);
   },
   options: {
     attempts: 3,
@@ -58,10 +89,16 @@ export const sendWelcomeEmail = defineJob({
 
 ```typescript
 // Dispatch immediately
-await ctx.queue.dispatch(sendWelcomeEmail, { userId: '123', email: 'user@example.com' });
+await ctx.queue.dispatch(sendWelcomeEmail, {
+  userId: '123',
+  email: 'user@example.com',
+});
 
 // Dispatch with delay
 await ctx.queue.dispatch(sendWelcomeEmail, data, { delay: '10m' });
+
+// Dispatch with priority (lower = higher priority)
+await ctx.queue.dispatch(sendWelcomeEmail, data, { priority: 1 });
 
 // Dispatch in batch
 await ctx.queue.dispatchBatch(sendWelcomeEmail, [
@@ -75,6 +112,7 @@ await ctx.queue.dispatchBatch(sendWelcomeEmail, [
 ```typescript
 defineJob({
   name: 'my.job',
+  schema: MySchema,
   handler: async ({ data }) => { ... },
   options: {
     attempts: 3,                    // Retry count
@@ -117,7 +155,31 @@ const stats = await ctx.queue.getStats('default');
 // { waiting: 10, active: 2, completed: 100, failed: 5 }
 ```
 
-## CLI Commands
+## Production Deployment
+
+### Running Workers
+
+In production, run separate worker processes:
+
+```typescript
+// worker.ts
+import { createWorker } from '@veloxts/queue';
+import { sendWelcomeEmail, processOrder } from './jobs';
+
+const worker = await createWorker({
+  connection: { url: process.env.REDIS_URL },
+  jobs: [sendWelcomeEmail, processOrder],
+  concurrency: 5,
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  await worker.close();
+  process.exit(0);
+});
+```
+
+### CLI Commands
 
 ```bash
 velox queue:work              # Start queue worker
@@ -125,6 +187,20 @@ velox queue:work --queue=high # Process specific queue
 velox queue:failed            # List failed jobs
 velox queue:retry <id>        # Retry a failed job
 ```
+
+### Production Checklist
+
+1. **Redis for job persistence** - Required for BullMQ
+2. **Separate worker processes** - Don't process jobs in web server
+3. **Graceful shutdown** - Allow in-progress jobs to complete
+4. **Failed job monitoring** - Alert on job failures
+5. **Concurrency tuning** - Match to your workload
+
+### Recommended Redis providers
+
+- [Upstash](https://upstash.com) - Serverless, pay-per-request
+- [Redis Cloud](https://redis.com/cloud) - Managed Redis
+- [Railway](https://railway.app) - Simple Redis add-on
 
 ## Standalone Usage
 
@@ -135,7 +211,8 @@ import { getQueue, closeQueue } from '@veloxts/queue';
 
 // Get standalone queue instance
 const queue = await getQueue({
-  driver: 'sync',
+  driver: 'bullmq',
+  config: { url: process.env.REDIS_URL },
 });
 
 await queue.dispatch(myJob, { data: 'value' });

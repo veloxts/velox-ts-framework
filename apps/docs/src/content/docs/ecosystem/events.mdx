@@ -1,9 +1,11 @@
 ---
 title: Events
-description: Real-time broadcasting with WebSocket and SSE.
+description: Real-time broadcasting with WebSocket and SSE for VeloxTS applications.
 ---
 
-`@veloxts/events` provides real-time communication.
+import { Tabs, TabItem, Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+`@veloxts/events` provides real-time event broadcasting using WebSocket or Server-Sent Events (SSE), with optional Redis pub/sub for horizontal scaling.
 
 ## Installation
 
@@ -13,65 +15,484 @@ pnpm add @veloxts/events
 
 ## Quick Start
 
+<Tabs>
+  <TabItem label="Development">
 ```typescript
+import { createApp } from '@veloxts/core';
 import { eventsPlugin } from '@veloxts/events';
 
-app.register(eventsPlugin, {
+const app = createApp();
+
+app.register(eventsPlugin({
   driver: 'ws',
   path: '/ws',
-});
+}));
+
+await app.start();
 ```
-
-## Broadcasting
-
+  </TabItem>
+  <TabItem label="Production">
 ```typescript
-// Public channel
-await ctx.events.broadcast('orders', 'order.created', {
-  orderId: '123',
-  total: 99.99,
-});
+import { createApp } from '@veloxts/core';
+import { eventsPlugin } from '@veloxts/events';
 
-// Private channel (user-specific)
-await ctx.events.broadcast(`user.${userId}`, 'notification', {
-  message: 'New message received',
-});
+const app = createApp();
+
+app.register(eventsPlugin({
+  driver: 'ws',
+  path: '/ws',
+  redis: process.env.REDIS_URL,
+  authSecret: process.env.EVENTS_SECRET,
+  authorizer: async (channel, request) => {
+    if (channel.type === 'public') {
+      return { authorized: true };
+    }
+
+    const user = request.user;
+    if (!user) {
+      return { authorized: false, error: 'Authentication required' };
+    }
+
+    if (channel.type === 'presence') {
+      return {
+        authorized: true,
+        member: { id: user.id, info: { name: user.name } },
+      };
+    }
+
+    return { authorized: true };
+  },
+}));
+
+await app.start();
+```
+  </TabItem>
+</Tabs>
+
+<Aside type="caution">
+  **Production requires Redis.** Without it, broadcasts only reach clients connected to the same server instance. See [Production Deployment](#production-deployment) for complete setup.
+</Aside>
+
+## Environment Variables
+
+```bash title=".env"
+REDIS_URL=redis://localhost:6379
+EVENTS_SECRET=your-32-char-secret-for-signing-tokens
 ```
 
 ## Drivers
 
-### WebSocket
+<CardGrid>
+  <Card title="WebSocket" icon="rocket">
+    Bidirectional real-time communication. Recommended for most use cases.
+  </Card>
+  <Card title="SSE" icon="document">
+    Unidirectional server-to-client. Fallback when WebSocket unavailable.
+  </Card>
+</CardGrid>
+
+### WebSocket Driver
 
 ```typescript
-eventsPlugin({
+app.register(eventsPlugin({
   driver: 'ws',
   path: '/ws',
-  redis: process.env.REDIS_URL, // Optional for scaling
-})
+  redis: process.env.REDIS_URL,          // For horizontal scaling
+  authSecret: process.env.EVENTS_SECRET, // For private/presence channels
+  pingInterval: 30000,                   // Keep-alive (default: 30s)
+  maxPayloadSize: 1048576,               // Max message size (default: 1MB)
+}));
 ```
 
-### Server-Sent Events
+### SSE Driver
 
 ```typescript
-eventsPlugin({
+app.register(eventsPlugin({
   driver: 'sse',
   path: '/events',
-})
+  heartbeatInterval: 15000,  // Keep-alive (default: 15s)
+  retryInterval: 3000,       // Client reconnect delay (default: 3s)
+}));
 ```
 
-## Client Usage
+## Broadcasting Events
+
+### In Procedures
 
 ```typescript
-// WebSocket
-const ws = new WebSocket('ws://localhost:3030/ws');
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log(data.event, data.payload);
+import { procedure, procedures } from '@veloxts/router';
+import { z } from 'zod';
+
+export const orderProcedures = procedures('orders', {
+  createOrder: procedure()
+    .input(z.object({ productId: z.string(), quantity: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const order = await ctx.db.order.create({ data: input });
+
+      // Broadcast to public channel
+      await ctx.events.broadcast('orders', 'order.created', {
+        orderId: order.id,
+        total: order.total,
+      });
+
+      // Broadcast to user's private channel
+      await ctx.events.broadcast(
+        `private-user.${ctx.user.id}`,
+        'order.confirmed',
+        order
+      );
+
+      return order;
+    }),
+});
+```
+
+### Broadcasting Methods
+
+```typescript
+// Basic broadcast
+await ctx.events.broadcast('channel', 'event-name', { data: 'value' });
+
+// Broadcast to multiple channels
+await ctx.events.broadcastToMany(
+  ['user.1', 'user.2', 'user.3'],
+  'notification',
+  { message: 'System maintenance scheduled' }
+);
+
+// Broadcast to all except sender (e.g., chat)
+await ctx.events.broadcastExcept(
+  'chat.room-1',
+  'message.sent',
+  { text: 'Hello!' },
+  senderSocketId
+);
+```
+
+## Channel Types
+
+| Type | Prefix | Access | Use Case |
+|------|--------|--------|----------|
+| Public | (none) | Anyone | Announcements, public updates |
+| Private | `private-` | Authenticated | User notifications, private data |
+| Presence | `presence-` | Authenticated + tracking | Chat rooms, collaborative editing |
+
+### Public Channels
+
+```typescript
+// Server
+await ctx.events.broadcast('announcements', 'new-feature', {
+  title: 'Dark Mode Released!',
+});
+
+// Client
+socket.send(JSON.stringify({
+  type: 'subscribe',
+  channel: 'announcements',
+}));
+```
+
+### Private Channels
+
+```typescript
+// Server
+await ctx.events.broadcast('private-user.123', 'notification', {
+  message: 'You have a new message',
+});
+
+// Client (requires auth token)
+socket.send(JSON.stringify({
+  type: 'subscribe',
+  channel: 'private-user.123',
+  auth: authToken,
+}));
+```
+
+### Presence Channels
+
+```typescript
+// Server - track who's online
+const members = await ctx.events.presenceMembers('presence-chat.room-1');
+// [{ id: '123', info: { name: 'Alice' } }, { id: '456', info: { name: 'Bob' } }]
+
+// Client - receives member_added/member_removed automatically
+socket.send(JSON.stringify({
+  type: 'subscribe',
+  channel: 'presence-chat.room-1',
+  data: { id: 'user-123', name: 'Alice' },
+  auth: authToken,
+}));
+```
+
+## Channel Authorization
+
+```typescript
+app.register(eventsPlugin({
+  driver: 'ws',
+  path: '/ws',
+  authSecret: process.env.EVENTS_SECRET,
+  authorizer: async (channel, request) => {
+    // Public channels - allow all
+    if (channel.type === 'public') {
+      return { authorized: true };
+    }
+
+    // Require authentication
+    const user = request.user;
+    if (!user) {
+      return { authorized: false, error: 'Not authenticated' };
+    }
+
+    // Private user channels - only owner
+    if (channel.name.startsWith('private-user.')) {
+      const channelUserId = channel.name.replace('private-user.', '');
+      if (channelUserId !== user.id) {
+        return { authorized: false, error: 'Access denied' };
+      }
+    }
+
+    // Presence channels - include member info
+    if (channel.type === 'presence') {
+      return {
+        authorized: true,
+        member: {
+          id: user.id,
+          info: { name: user.name, avatar: user.avatar },
+        },
+      };
+    }
+
+    return { authorized: true };
+  },
+}));
+```
+
+## Client Integration
+
+### WebSocket (Browser)
+
+```typescript
+const socket = new WebSocket('ws://localhost:3030/ws');
+
+socket.onopen = () => {
+  // Subscribe to public channel
+  socket.send(JSON.stringify({
+    type: 'subscribe',
+    channel: 'orders',
+  }));
 };
 
-// Subscribe to channel
-ws.send(JSON.stringify({ type: 'subscribe', channel: 'orders' }));
+socket.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+
+  switch (message.type) {
+    case 'event':
+      console.log(`${message.event}:`, message.data);
+      break;
+    case 'subscription_succeeded':
+      console.log(`Subscribed to ${message.channel}`);
+      break;
+    case 'subscription_error':
+      console.error(`Failed: ${message.error}`);
+      break;
+  }
+};
+
+// Unsubscribe
+socket.send(JSON.stringify({
+  type: 'unsubscribe',
+  channel: 'orders',
+}));
+```
+
+### Private Channel Auth (Browser)
+
+```typescript
+async function subscribeToPrivateChannel(socket, channel) {
+  // Get auth token from server
+  const response = await fetch('/ws/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      socketId: socket.socketId,
+      channel,
+    }),
+  });
+
+  const { auth, channel_data } = await response.json();
+
+  socket.send(JSON.stringify({
+    type: 'subscribe',
+    channel,
+    auth,
+    channel_data,
+  }));
+}
+```
+
+### Presence Events
+
+```typescript
+socket.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+
+  if (message.event === 'member_added') {
+    console.log('User joined:', message.data);
+  }
+
+  if (message.event === 'member_removed') {
+    console.log('User left:', message.data);
+  }
+};
+```
+
+## Server API
+
+```typescript
+// Get subscriber count
+const count = await ctx.events.subscriberCount('orders');
+
+// Check if channel has subscribers
+const hasSubscribers = await ctx.events.hasSubscribers('orders');
+
+// Get all active channels
+const channels = await ctx.events.channels();
+
+// Get presence members
+const members = await ctx.events.presenceMembers('presence-chat.room-1');
+```
+
+## Production Deployment
+
+<Aside type="caution" title="Required for Production">
+  Running multiple server instances without Redis will cause missed events. Clients only receive broadcasts from the instance they're connected to.
+</Aside>
+
+### Production Checklist
+
+1. **Redis for horizontal scaling** - Required when running multiple instances
+2. **Auth secret for private channels** - Required for `private-` and `presence-` channels
+3. **Channel authorizer** - Control who can subscribe to which channels
+4. **Secure WebSocket URL** - Use `wss://` in production (TLS)
+
+### Complete Production Configuration
+
+```typescript title="src/index.ts"
+import { createApp } from '@veloxts/core';
+import { eventsPlugin } from '@veloxts/events';
+
+const app = createApp();
+
+app.register(eventsPlugin({
+  driver: 'ws',
+  path: '/ws',
+
+  // Required: Redis for multi-instance deployments
+  redis: process.env.REDIS_URL,
+
+  // Required: Secret for signing private channel tokens
+  authSecret: process.env.EVENTS_SECRET,
+
+  // Required: Control channel access
+  authorizer: async (channel, request) => {
+    // Public channels - anyone can subscribe
+    if (channel.type === 'public') {
+      return { authorized: true };
+    }
+
+    // Private/presence channels require authentication
+    const user = request.user;
+    if (!user) {
+      return { authorized: false, error: 'Authentication required' };
+    }
+
+    // Example: User can only subscribe to their own private channel
+    if (channel.name.startsWith('private-user.')) {
+      const channelUserId = channel.name.replace('private-user.', '');
+      if (channelUserId !== user.id) {
+        return { authorized: false, error: 'Access denied' };
+      }
+    }
+
+    // Presence channels - include member info for "who's online"
+    if (channel.type === 'presence') {
+      return {
+        authorized: true,
+        member: { id: user.id, info: { name: user.name } },
+      };
+    }
+
+    return { authorized: true };
+  },
+}));
+
+await app.start();
+```
+
+### Environment Variables
+
+```bash title=".env"
+# Redis connection (Upstash, Redis Cloud, or self-hosted)
+REDIS_URL=redis://user:password@your-redis-host:6379
+
+# Secret for signing auth tokens (min 32 characters)
+EVENTS_SECRET=your-very-long-secret-key-minimum-32-chars
+```
+
+### Architecture with Redis
+
+For multi-instance deployments behind a load balancer:
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Instance 1    │     │   Instance 2    │     │   Instance 3    │
+│   WebSocket     │     │   WebSocket     │     │   WebSocket     │
+└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌────────────▼────────────┐
+                    │      Redis (pub/sub)    │
+                    └─────────────────────────┘
+```
+
+**How it works:**
+1. Client calls `ctx.events.broadcast()` on Instance 1
+2. Event is sent to local WebSocket clients on Instance 1
+3. Event is published to Redis
+4. Instances 2 and 3 receive from Redis
+5. Each instance delivers to its local clients
+
+### Recommended Redis Providers
+
+| Provider | Best For |
+|----------|----------|
+| [Upstash](https://upstash.com) | Serverless, pay-per-request |
+| [Redis Cloud](https://redis.com/cloud) | Managed Redis clusters |
+| [Railway](https://railway.app) | Simple Redis add-on |
+| Self-hosted | Full control, existing infrastructure |
+
+## Standalone Usage
+
+Use events outside of Fastify request context (background jobs, CLI):
+
+```typescript
+import { getEvents, closeEvents } from '@veloxts/events';
+
+const events = await getEvents({
+  driver: 'ws',
+  redis: process.env.REDIS_URL,
+});
+
+await events.broadcast('jobs', 'job.completed', { jobId: '123' });
+
+// Clean up on shutdown
+await closeEvents();
 ```
 
 ## Related Content
 
-- [Ecosystem Overview](/docs/ecosystem/overview/) - All packages
+- [Ecosystem Overview](/docs/ecosystem/overview/) - All ecosystem packages
+- [Cache](/docs/ecosystem/cache/) - Redis caching
+- [Queue](/docs/ecosystem/queue/) - Background jobs with Redis

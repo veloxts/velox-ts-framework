@@ -1,21 +1,60 @@
 ---
 title: Queue
-description: Background job processing with BullMQ.
+description: Background job processing with BullMQ and Redis.
 ---
 
-`@veloxts/queue` provides background job processing.
+import { Tabs, TabItem, Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+`@veloxts/queue` provides background job processing with type-safe job definitions, retries, delays, and priorities.
 
 ## Installation
 
 ```bash
 pnpm add @veloxts/queue
+
+# For BullMQ (production)
+pnpm add bullmq ioredis
 ```
+
+## Quick Start
+
+<Tabs>
+  <TabItem label="Development">
+```typescript
+import { queuePlugin } from '@veloxts/queue';
+
+// Sync driver - jobs run immediately in-process
+app.register(queuePlugin({
+  driver: 'sync',
+}));
+```
+  </TabItem>
+  <TabItem label="Production">
+```typescript
+import { queuePlugin } from '@veloxts/queue';
+
+// BullMQ driver - jobs queued in Redis
+app.register(queuePlugin({
+  driver: 'bullmq',
+  config: {
+    url: process.env.REDIS_URL,
+    prefix: 'myapp:queue:',
+    defaultConcurrency: 5,
+  },
+}));
+```
+  </TabItem>
+</Tabs>
+
+<Aside type="caution">
+  **Production requires Redis.** The sync driver blocks the request and doesn't persist jobs. See [Production Deployment](#production-deployment).
+</Aside>
 
 ## Define Jobs
 
 ```typescript
 import { defineJob } from '@veloxts/queue';
-import { z } from '@veloxts/velox';
+import { z } from 'zod';
 
 export const SendWelcomeEmail = defineJob({
   name: 'send-welcome-email',
@@ -23,10 +62,14 @@ export const SendWelcomeEmail = defineJob({
     userId: z.string(),
     email: z.string().email(),
   }),
-  handler: async ({ data, progress }) => {
+  handler: async ({ data, ctx, progress }) => {
     await progress(50);
-    await sendEmail(data.email, 'Welcome!');
+    await ctx.mail.send(WelcomeEmail, { to: data.email, data: { ... } });
     await progress(100);
+  },
+  options: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 1000 },
   },
 });
 ```
@@ -34,47 +77,132 @@ export const SendWelcomeEmail = defineJob({
 ## Dispatch Jobs
 
 ```typescript
-import { dispatch } from '@veloxts/queue';
-
-await dispatch(SendWelcomeEmail, {
+// Dispatch immediately
+await ctx.queue.dispatch(SendWelcomeEmail, {
   userId: '123',
   email: 'user@example.com',
 });
-```
 
-## Drivers
+// With delay
+await ctx.queue.dispatch(SendWelcomeEmail, data, {
+  delay: '10m',
+});
 
-### Sync (Development)
+// With priority (lower = higher priority)
+await ctx.queue.dispatch(SendWelcomeEmail, data, {
+  priority: 1,
+});
 
-```typescript
-queuePlugin({
-  driver: 'sync', // Runs immediately
-})
-```
-
-### BullMQ (Production)
-
-```typescript
-queuePlugin({
-  driver: 'bullmq',
-  config: { url: process.env.REDIS_URL },
-})
+// Batch dispatch
+await ctx.queue.dispatchBatch(SendWelcomeEmail, [
+  { userId: '1', email: 'a@example.com' },
+  { userId: '2', email: 'b@example.com' },
+]);
 ```
 
 ## Job Options
 
 ```typescript
-await dispatch(SendWelcomeEmail, data, {
-  delay: 60_000,       // Delay 1 minute
-  attempts: 3,         // Retry 3 times
-  backoff: {
-    type: 'exponential',
-    delay: 1000,
+defineJob({
+  name: 'my-job',
+  schema: MySchema,
+  handler: async ({ data }) => { ... },
+  options: {
+    attempts: 3,              // Retry count
+    backoff: {
+      type: 'exponential',    // or 'fixed'
+      delay: 1000,            // Base delay (ms)
+    },
+    priority: 1,              // Lower = higher priority
+    timeout: 30000,           // Job timeout (ms)
+    removeOnComplete: true,   // Clean up completed
+    removeOnFail: false,      // Keep failed for inspection
   },
 });
 ```
 
+## Drivers
+
+<CardGrid>
+  <Card title="Sync" icon="laptop">
+    Immediate execution for development and testing.
+  </Card>
+  <Card title="BullMQ" icon="rocket">
+    Redis-backed queues for production with retries and monitoring.
+  </Card>
+</CardGrid>
+
+## Production Deployment
+
+### Why BullMQ?
+
+| Feature | Sync | BullMQ |
+|---------|------|--------|
+| Persistent jobs | No | Yes |
+| Retries with backoff | No | Yes |
+| Delayed jobs | No | Yes |
+| Priority queues | No | Yes |
+| Job progress | No | Yes |
+| Multiple workers | No | Yes |
+
+### Configuration
+
+```typescript title="src/index.ts"
+app.register(queuePlugin({
+  driver: 'bullmq',
+  config: {
+    url: process.env.REDIS_URL,
+    prefix: 'myapp:queue:',
+    defaultConcurrency: 5,
+  },
+}));
+```
+
+### Environment Variables
+
+```bash title=".env"
+REDIS_URL=redis://user:password@your-redis-host:6379
+```
+
+### Running Workers
+
+In production, run workers as separate processes:
+
+```typescript title="worker.ts"
+import { createWorker } from '@veloxts/queue';
+import { SendWelcomeEmail, ProcessOrder } from './jobs';
+
+const worker = await createWorker({
+  connection: { url: process.env.REDIS_URL },
+  jobs: [SendWelcomeEmail, ProcessOrder],
+  concurrency: 5,
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  await worker.close();
+  process.exit(0);
+});
+```
+
+### Production Checklist
+
+1. **Redis for persistence** - Jobs survive restarts
+2. **Separate worker processes** - Don't block web server
+3. **Graceful shutdown** - Let jobs complete
+4. **Monitor failed jobs** - Alert on failures
+5. **Tune concurrency** - Match workload
+
+### Recommended Providers
+
+| Provider | Best For |
+|----------|----------|
+| [Upstash](https://upstash.com) | Serverless, pay-per-request |
+| [Redis Cloud](https://redis.com/cloud) | Managed Redis clusters |
+| [Railway](https://railway.app) | Simple Redis add-on |
+
 ## Related Content
 
-- [Mail](/docs/ecosystem/mail/) - Email sending
+- [Mail](/docs/ecosystem/mail/) - Send emails (queue them!)
 - [Scheduler](/docs/ecosystem/scheduler/) - Scheduled tasks
+- [Ecosystem Overview](/docs/ecosystem/overview/) - All packages

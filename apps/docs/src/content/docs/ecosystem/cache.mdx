@@ -3,61 +3,81 @@ title: Cache
 description: Multi-driver caching with memory and Redis support.
 ---
 
-`@veloxts/cache` provides a unified caching API.
+import { Tabs, TabItem, Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+`@veloxts/cache` provides a unified caching API with memory (LRU) and Redis drivers, cache tags, and distributed locks.
 
 ## Installation
 
 ```bash
 pnpm add @veloxts/cache
+
+# For Redis (production)
+pnpm add ioredis
 ```
 
 ## Quick Start
 
+<Tabs>
+  <TabItem label="Development">
 ```typescript
 import { cachePlugin } from '@veloxts/cache';
 
-app.register(cachePlugin, {
+app.register(cachePlugin({
   driver: 'memory',
   config: { maxSize: 1000 },
-});
+}));
 ```
+  </TabItem>
+  <TabItem label="Production">
+```typescript
+import { cachePlugin } from '@veloxts/cache';
+
+app.register(cachePlugin({
+  driver: 'redis',
+  config: {
+    url: process.env.REDIS_URL,
+    keyPrefix: 'myapp:cache:',
+  },
+}));
+```
+  </TabItem>
+</Tabs>
+
+<Aside type="caution">
+  **Production requires Redis.** Memory cache doesn't persist across restarts and can't be shared between server instances. See [Production Deployment](#production-deployment).
+</Aside>
 
 ## Basic Usage
 
 ```typescript
-// Set value
+// Set value with TTL
 await ctx.cache.put('user:123', user, '30m');
 
 // Get value
 const user = await ctx.cache.get('user:123');
 
-// Remember pattern
-const data = await ctx.cache.remember('key', '1h', async () => {
-  return fetchExpensiveData();
+// Remember pattern (cache-aside)
+const data = await ctx.cache.remember('expensive:query', '1h', async () => {
+  return await fetchExpensiveData();
 });
+
+// Check existence
+if (await ctx.cache.has('user:123')) { ... }
 
 // Delete
 await ctx.cache.forget('user:123');
 ```
 
-## Drivers
-
-### Memory (Development)
+## TTL Formats
 
 ```typescript
-cachePlugin({
-  driver: 'memory',
-  config: { maxSize: 1000 },
-})
-```
-
-### Redis (Production)
-
-```typescript
-cachePlugin({
-  driver: 'redis',
-  config: { url: process.env.REDIS_URL },
-})
+'30s'   // 30 seconds
+'5m'    // 5 minutes
+'1h'    // 1 hour
+'1d'    // 1 day
+'1w'    // 1 week
+3600    // 3600 seconds (number)
 ```
 
 ## Tag-Based Invalidation
@@ -67,11 +87,77 @@ cachePlugin({
 await ctx.cache.tags(['users']).put('user:123', user);
 await ctx.cache.tags(['users']).put('user:456', user);
 
-// Flush all tagged
+// Flush all tagged entries
 await ctx.cache.tags(['users']).flush();
 ```
 
+## Distributed Locks (Redis)
+
+```typescript
+await ctx.cache.lockAndRun('payment:process', '30s', async () => {
+  // Only one instance runs this at a time
+  await processPayment();
+});
+```
+
+## Atomic Operations
+
+```typescript
+await ctx.cache.increment('views:post:123');
+await ctx.cache.decrement('stock:item:456');
+```
+
+## Drivers
+
+<CardGrid>
+  <Card title="Memory" icon="laptop">
+    LRU cache for development and single-instance deployments.
+  </Card>
+  <Card title="Redis" icon="rocket">
+    Shared cache for production with distributed locks.
+  </Card>
+</CardGrid>
+
+## Production Deployment
+
+### Why Redis?
+
+| Feature | Memory | Redis |
+|---------|--------|-------|
+| Shared across instances | No | Yes |
+| Persists across restarts | No | Yes |
+| Distributed locks | No | Yes |
+| Memory management | Limited | External |
+
+### Configuration
+
+```typescript title="src/index.ts"
+app.register(cachePlugin({
+  driver: 'redis',
+  config: {
+    url: process.env.REDIS_URL,
+    keyPrefix: 'myapp:cache:',
+    defaultTtl: '1h',
+  },
+}));
+```
+
+### Environment Variables
+
+```bash title=".env"
+REDIS_URL=redis://user:password@your-redis-host:6379
+```
+
+### Recommended Providers
+
+| Provider | Best For |
+|----------|----------|
+| [Upstash](https://upstash.com) | Serverless, pay-per-request |
+| [Redis Cloud](https://redis.com/cloud) | Managed Redis clusters |
+| [Railway](https://railway.app) | Simple Redis add-on |
+
 ## Related Content
 
-- [Queue](/docs/ecosystem/queue/) - Background jobs
+- [Queue](/docs/ecosystem/queue/) - Background jobs (also uses Redis)
+- [Events](/docs/ecosystem/events/) - Real-time broadcasting
 - [Ecosystem Overview](/docs/ecosystem/overview/) - All packages

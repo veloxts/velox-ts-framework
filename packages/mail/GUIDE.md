@@ -1,28 +1,50 @@
 # @veloxts/mail Guide
 
-## Drivers
+Email sending for VeloxTS applications with React Email templates, supporting SMTP and Resend.
 
-### Log Driver (default)
+## Installation
 
-Logs emails to console. Best for development.
+```bash
+pnpm add @veloxts/mail
 
-```typescript
-import { mailPlugin } from '@veloxts/mail';
-
-app.use(mailPlugin({ driver: 'log' }));
+# For Resend (recommended for production)
+pnpm add resend
 ```
 
-### SMTP Driver
+## Quick Start
 
-Send via any SMTP server.
+### Development (Log)
+
+Logs emails to console instead of sending:
 
 ```typescript
-app.use(mailPlugin({
+import { createApp } from '@veloxts/core';
+import { mailPlugin } from '@veloxts/mail';
+
+const app = createApp();
+
+app.register(mailPlugin({
+  driver: 'log',
+  from: { name: 'My App', email: 'noreply@myapp.com' },
+}));
+
+await app.start();
+```
+
+### Production (SMTP)
+
+```typescript
+import { createApp } from '@veloxts/core';
+import { mailPlugin } from '@veloxts/mail';
+
+const app = createApp();
+
+app.register(mailPlugin({
   driver: 'smtp',
   config: {
-    host: 'smtp.example.com',
-    port: 587,
-    secure: false,
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -30,32 +52,50 @@ app.use(mailPlugin({
   },
   from: { name: 'My App', email: 'noreply@myapp.com' },
 }));
+
+await app.start();
 ```
 
-### Resend Driver
-
-Send via Resend API.
-
-```bash
-npm install resend
-```
+### Production (Resend)
 
 ```typescript
-app.use(mailPlugin({
+import { createApp } from '@veloxts/core';
+import { mailPlugin } from '@veloxts/mail';
+
+const app = createApp();
+
+app.register(mailPlugin({
   driver: 'resend',
   config: {
     apiKey: process.env.RESEND_API_KEY,
   },
   from: { name: 'My App', email: 'noreply@myapp.com' },
 }));
+
+await app.start();
+```
+
+**Environment Variables:**
+
+```bash
+# .env (SMTP)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-username
+SMTP_PASS=your-password
+
+# .env (Resend)
+RESEND_API_KEY=re_xxxxxxxxxxxx
 ```
 
 ## Defining Email Templates
 
 Using React Email components:
 
-```typescript
+```tsx
 import { defineMail } from '@veloxts/mail';
+import { z } from 'zod';
 import { Html, Head, Body, Container, Text, Button } from '@react-email/components';
 
 export const WelcomeEmail = defineMail({
@@ -104,6 +144,13 @@ await ctx.mail.send(InvoiceEmail, {
     { filename: 'invoice.pdf', content: pdfBuffer },
   ],
 });
+
+// Override subject
+await ctx.mail.send(WelcomeEmail, {
+  to: 'user@example.com',
+  subject: 'Custom Subject',
+  data: { user, activationUrl },
+});
 ```
 
 ## Bulk Sending
@@ -117,7 +164,7 @@ const results = await ctx.mail.sendBulk(WelcomeEmail, [
 
 ## Preview Emails
 
-Render without sending (useful for testing):
+Render without sending (useful for testing or previews):
 
 ```typescript
 const { html, text, subject } = await ctx.mail.render(WelcomeEmail, {
@@ -125,10 +172,50 @@ const { html, text, subject } = await ctx.mail.render(WelcomeEmail, {
 });
 ```
 
-## CLI Commands
+## Production Deployment
 
-```bash
-velox make mail WelcomeEmail     # Generate email template
+### Choosing a Provider
+
+| Provider | Best For |
+|----------|----------|
+| [Resend](https://resend.com) | Simple API, React Email native, generous free tier |
+| [AWS SES](https://aws.amazon.com/ses/) | High volume, cost-effective |
+| [SendGrid](https://sendgrid.com) | Enterprise features |
+| [Postmark](https://postmarkapp.com) | Transactional email focus |
+
+### Production Checklist
+
+1. **Verify sending domain** - SPF, DKIM, DMARC records
+2. **Use environment variables** - Never hardcode credentials
+3. **Set proper From address** - Use verified domain email
+4. **Handle bounces** - Configure bounce/complaint webhooks
+5. **Queue emails** - Use `@veloxts/queue` for background sending
+
+### Sending Emails in Background
+
+For better performance, queue emails instead of sending synchronously:
+
+```typescript
+// Define a job for sending emails
+const sendEmailJob = defineJob({
+  name: 'email.send',
+  schema: z.object({
+    template: z.string(),
+    to: z.string().email(),
+    data: z.record(z.unknown()),
+  }),
+  handler: async ({ data, ctx }) => {
+    const template = emailTemplates[data.template];
+    await ctx.mail.send(template, { to: data.to, data: data.data });
+  },
+});
+
+// Dispatch instead of sending directly
+await ctx.queue.dispatch(sendEmailJob, {
+  template: 'welcome',
+  to: 'user@example.com',
+  data: { user, activationUrl },
+});
 ```
 
 ## Standalone Usage
@@ -140,7 +227,8 @@ import { getMail, closeMail } from '@veloxts/mail';
 
 // Get standalone mail instance
 const mail = await getMail({
-  driver: 'log',
+  driver: 'resend',
+  config: { apiKey: process.env.RESEND_API_KEY },
   from: { email: 'noreply@example.com' },
 });
 

@@ -3,6 +3,8 @@ title: Scheduler
 description: Cron task scheduling with fluent API.
 ---
 
+import { Tabs, TabItem, Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
 `@veloxts/scheduler` provides expressive, fluent task scheduling with cron expressions.
 
 ## Installation
@@ -13,57 +15,229 @@ pnpm add @veloxts/scheduler
 
 ## Quick Start
 
+<Tabs>
+  <TabItem label="Basic Setup">
 ```typescript
-import { schedulerPlugin, schedule } from '@veloxts/scheduler';
+import { schedulerPlugin, task } from '@veloxts/scheduler';
 
-await app.register(schedulerPlugin);
-
-schedule('cleanup-sessions')
-  .call(async () => {
-    await db.session.deleteMany({
-      where: { expiresAt: { lt: new Date() } },
-    });
-  })
-  .daily()
-  .at('03:00');
+app.register(schedulerPlugin({
+  timezone: 'UTC',
+  tasks: [
+    task('cleanup-sessions', async (ctx) => {
+      await ctx.db.session.deleteMany({
+        where: { expiresAt: { lt: new Date() } },
+      });
+    })
+      .daily()
+      .at('03:00')
+      .build(),
+  ],
+}));
 ```
-
-## Scheduling Patterns
-
+  </TabItem>
+  <TabItem label="Production">
 ```typescript
-// Every minute
-schedule('task').call(fn).everyMinute();
+import { schedulerPlugin, task } from '@veloxts/scheduler';
 
-// Hourly
-schedule('task').call(fn).hourly();
-
-// Daily at specific time
-schedule('task').call(fn).daily().at('09:00');
-
-// Weekly on Monday
-schedule('task').call(fn).weekly().on('monday');
-
-// Weekdays only
-schedule('task').call(fn).weekdays().at('09:00');
-
-// Custom cron
-schedule('task').call(fn).cron('0 */6 * * *');
+app.register(schedulerPlugin({
+  timezone: process.env.SCHEDULER_TIMEZONE || 'UTC',
+  tasks: [
+    task('cleanup-sessions', cleanupSessions)
+      .daily()
+      .at('03:00')
+      .when(() => process.env.SCHEDULER_ENABLED === 'true')
+      .withoutOverlapping(10)
+      .build(),
+  ],
+  onTaskError: (task, ctx, error) => {
+    errorTracker.capture(error, { task: task.name });
+  },
+}));
 ```
+  </TabItem>
+</Tabs>
 
-## Options
+<Aside type="caution">
+  **Run scheduler on ONE instance only.** Multiple instances will execute the same tasks multiple times. See [Production Deployment](#production-deployment).
+</Aside>
+
+## Schedule Frequencies
 
 ```typescript
-schedule('sync-data')
-  .call(syncData)
+task('name', handler)
+  // Time-based
+  .everyMinute()
+  .everyFiveMinutes()
+  .everyFifteenMinutes()
+  .everyThirtyMinutes()
   .hourly()
-  .timezone('America/New_York')
-  .withoutOverlapping()
+  .hourlyAt(15)              // At :15 past the hour
+  .daily()
+  .dailyAt('09:00')
+  .weekly()
+  .weeklyOn('monday', '09:00')
+  .monthly()
+  .monthlyOn(1, '00:00')     // 1st of month at midnight
+
+  // Day constraints
+  .weekdays()                // Monday-Friday
+  .weekends()                // Saturday-Sunday
+
+  // Custom cron
+  .cron('*/5 * * * *')       // Every 5 minutes
+
+  .build()
+```
+
+## Task Options
+
+```typescript
+task('sync-data', syncData)
+  .hourly()
+  .timezone('America/New_York')     // Task-specific timezone
+  .withoutOverlapping()             // Skip if still running
+  .withoutOverlapping(30)           // Max lock time in minutes
+  .when(() => isMainServer())       // Conditional execution
+  .skip(() => isMaintenanceMode())  // Skip condition
   .onSuccess((ctx, duration) => {
     console.log(`Completed in ${duration}ms`);
   })
-  .onFailure((ctx, error) => {
-    console.error('Failed:', error);
-  });
+  .onFailure((ctx, error, duration) => {
+    notifySlack(`Task failed: ${error.message}`);
+  })
+  .build()
+```
+
+## Scheduler API
+
+```typescript
+// Access scheduler from context
+const scheduler = ctx.scheduler;
+
+// Check status
+scheduler.isRunning();
+
+// Get tasks
+const tasks = scheduler.getTasks();
+const task = scheduler.getTask('cleanup-tokens');
+
+// Manual execution
+await scheduler.runTask('cleanup-tokens');
+
+// Next run time
+const nextRun = scheduler.getNextRun('cleanup-tokens');
+```
+
+## Production Deployment
+
+### Why Single Instance?
+
+Unlike other ecosystem packages, the scheduler doesn't require Redis. However, it must only run on **one server instance** to prevent duplicate task execution.
+
+| Scenario | Result |
+|----------|--------|
+| 3 instances, all with scheduler | Each task runs 3x |
+| 3 instances, 1 with scheduler | Each task runs 1x ✓ |
+
+### Configuration
+
+```typescript title="src/index.ts"
+app.register(schedulerPlugin({
+  timezone: process.env.SCHEDULER_TIMEZONE || 'UTC',
+  tasks: [
+    task('cleanup', cleanup)
+      .daily()
+      .at('02:00')
+      .when(() => process.env.SCHEDULER_ENABLED === 'true')
+      .withoutOverlapping(10)
+      .build(),
+  ],
+  onTaskStart: (task, ctx) => {
+    console.log(`Starting: ${task.name}`);
+  },
+  onTaskComplete: (task, ctx, duration) => {
+    metrics.timing(`scheduler.${task.name}`, duration);
+  },
+  onTaskError: (task, ctx, error) => {
+    Sentry.captureException(error, { tags: { task: task.name } });
+  },
+}));
+```
+
+### Environment Variables
+
+```bash title=".env"
+SCHEDULER_ENABLED=true        # Only set on scheduler instance
+SCHEDULER_TIMEZONE=UTC        # Default timezone
+```
+
+### Graceful Shutdown
+
+Allow running tasks to complete before shutdown:
+
+```typescript title="src/index.ts"
+process.on('SIGTERM', async () => {
+  await app.close();  // Waits for scheduler to stop
+  process.exit(0);
+});
+```
+
+### Running as Separate Process
+
+For better isolation, run scheduler separately from your web server:
+
+```typescript title="scheduler.ts"
+import { createScheduler, task } from '@veloxts/scheduler';
+
+const scheduler = createScheduler({
+  timezone: process.env.SCHEDULER_TIMEZONE || 'UTC',
+  tasks: [
+    task('cleanup', cleanup).daily().at('02:00').build(),
+    task('reports', sendReports).weekdays().at('09:00').build(),
+  ],
+});
+
+scheduler.start();
+
+process.on('SIGTERM', async () => {
+  await scheduler.stop();
+  process.exit(0);
+});
+```
+
+```bash
+# Run as separate process
+node scheduler.js
+```
+
+### Production Checklist
+
+1. **Single instance** - Enable scheduler on ONE server only
+2. **Graceful shutdown** - Handle SIGTERM to let tasks complete
+3. **Error monitoring** - Track failures with `onTaskError`
+4. **Overlap prevention** - Use `withoutOverlapping()` for long tasks
+5. **Explicit timezone** - Set timezone for predictable execution
+
+## Standalone Usage
+
+Use scheduler outside of Fastify context:
+
+```typescript
+import { createScheduler, task } from '@veloxts/scheduler';
+
+const scheduler = createScheduler({
+  timezone: 'UTC',
+  tasks: [
+    task('my-task', () => console.log('Running!'))
+      .everyMinute()
+      .build(),
+  ],
+});
+
+scheduler.start();
+
+// Later...
+await scheduler.stop();
 ```
 
 ## Related Content

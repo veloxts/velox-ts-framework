@@ -1,84 +1,201 @@
 ---
 title: Storage
-description: File storage abstraction for local and S3.
+description: File storage abstraction for local and S3-compatible storage.
 ---
 
-`@veloxts/storage` provides unified file storage.
+import { Tabs, TabItem, Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+`@veloxts/storage` provides unified file storage with local filesystem and S3-compatible drivers (AWS S3, Cloudflare R2, MinIO).
 
 ## Installation
 
 ```bash
 pnpm add @veloxts/storage
+
+# For S3/R2 (production)
+pnpm add @aws-sdk/client-s3 @aws-sdk/lib-storage @aws-sdk/s3-request-presigner
 ```
 
 ## Quick Start
 
+<Tabs>
+  <TabItem label="Development">
 ```typescript
 import { storagePlugin } from '@veloxts/storage';
 
-app.register(storagePlugin, {
+app.register(storagePlugin({
   driver: 'local',
   config: {
-    root: './uploads',
-    baseUrl: '/files',
+    root: './storage',
+    baseUrl: 'http://localhost:3030/files',
   },
-});
+}));
 ```
+  </TabItem>
+  <TabItem label="Production (S3)">
+```typescript
+import { storagePlugin } from '@veloxts/storage';
+
+app.register(storagePlugin({
+  driver: 's3',
+  config: {
+    bucket: process.env.S3_BUCKET,
+    region: process.env.S3_REGION,
+  },
+}));
+```
+  </TabItem>
+  <TabItem label="Production (R2)">
+```typescript
+import { storagePlugin } from '@veloxts/storage';
+
+app.register(storagePlugin({
+  driver: 's3',
+  config: {
+    bucket: process.env.R2_BUCKET,
+    region: 'auto',
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  },
+}));
+```
+  </TabItem>
+</Tabs>
+
+<Aside type="caution">
+  **Production requires S3-compatible storage.** Local filesystem doesn't scale and isn't shared across instances. See [Production Deployment](#production-deployment).
+</Aside>
 
 ## Basic Usage
 
 ```typescript
 // Upload
 await ctx.storage.put('avatars/user-123.jpg', buffer, {
+  contentType: 'image/jpeg',
   visibility: 'public',
 });
 
-// Get URL
-const url = await ctx.storage.url('avatars/user-123.jpg');
+// Download
+const content = await ctx.storage.get('avatars/user-123.jpg');
 
 // Stream large files
 const stream = await ctx.storage.stream('large-file.zip');
 
-// Delete
-await ctx.storage.delete('old-file.pdf');
+// Get URL
+const url = await ctx.storage.url('avatars/user-123.jpg');
 
 // Check existence
 const exists = await ctx.storage.exists('avatars/user-123.jpg');
-```
 
-## Drivers
-
-### Local
-
-```typescript
-storagePlugin({
-  driver: 'local',
-  config: { root: './uploads', baseUrl: '/files' },
-})
-```
-
-### S3/R2
-
-```typescript
-storagePlugin({
-  driver: 's3',
-  config: {
-    bucket: 'my-bucket',
-    region: 'us-east-1',
-    accessKeyId: process.env.AWS_KEY,
-    secretAccessKey: process.env.AWS_SECRET,
-  },
-})
+// Delete
+await ctx.storage.delete('old-file.pdf');
 ```
 
 ## Signed URLs
 
+Temporary access to private files:
+
 ```typescript
-const signedUrl = await ctx.storage.temporaryUrl(
-  'private/document.pdf',
-  { expiresIn: '1h' }
-);
+const signedUrl = await ctx.storage.signedUrl('private/document.pdf', {
+  expiresIn: 3600, // 1 hour
+});
 ```
+
+## File Operations
+
+```typescript
+// Copy
+await ctx.storage.copy('old/path.jpg', 'new/path.jpg');
+
+// Move
+await ctx.storage.move('temp/upload.jpg', 'permanent/file.jpg');
+
+// Metadata
+const meta = await ctx.storage.metadata('file.jpg');
+// { path, size, lastModified, contentType }
+
+// List files
+const { files, hasMore, cursor } = await ctx.storage.list('uploads/', {
+  limit: 100,
+});
+```
+
+## Drivers
+
+<CardGrid>
+  <Card title="Local" icon="laptop">
+    Filesystem storage for development.
+  </Card>
+  <Card title="S3" icon="rocket">
+    AWS S3, Cloudflare R2, MinIO, DigitalOcean Spaces.
+  </Card>
+</CardGrid>
+
+## Production Deployment
+
+### Why S3-Compatible Storage?
+
+| Feature | Local | S3/R2 |
+|---------|-------|-------|
+| Shared across instances | No | Yes |
+| Persists across deploys | Maybe | Yes |
+| CDN integration | Manual | Built-in |
+| Scalability | Limited | Unlimited |
+| Signed URLs | No | Yes |
+
+### Choosing a Provider
+
+| Provider | Best For |
+|----------|----------|
+| [Cloudflare R2](https://developers.cloudflare.com/r2/) | Zero egress fees, global edge |
+| [AWS S3](https://aws.amazon.com/s3/) | Mature ecosystem |
+| [DigitalOcean Spaces](https://www.digitalocean.com/products/spaces) | Simple pricing |
+| [MinIO](https://min.io/) | Self-hosted |
+
+### Environment Variables
+
+```bash title=".env (AWS S3)"
+S3_BUCKET=my-bucket
+S3_REGION=us-east-1
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+```
+
+```bash title=".env (Cloudflare R2)"
+R2_BUCKET=my-bucket
+R2_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+```
+
+### Complete Configuration
+
+```typescript title="src/index.ts"
+app.register(storagePlugin({
+  driver: 's3',
+  config: {
+    bucket: process.env.S3_BUCKET,
+    region: process.env.S3_REGION,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+
+    // Optional
+    endpoint: process.env.S3_ENDPOINT,     // For R2, MinIO
+    forcePathStyle: false,                  // true for MinIO
+    defaultVisibility: 'private',
+    publicUrl: 'https://cdn.example.com',  // CDN URL
+  },
+}));
+```
+
+### Production Checklist
+
+1. **S3-compatible storage** - Local doesn't scale
+2. **Bucket policies** - Least privilege access
+3. **CORS configuration** - For browser uploads
+4. **Signed URLs** - Time-limited private access
+5. **CDN** - For public files
 
 ## Related Content
 
