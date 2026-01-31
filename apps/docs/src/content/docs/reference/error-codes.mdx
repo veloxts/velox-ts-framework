@@ -126,14 +126,14 @@ export const getUser = procedure()
 ### Custom Error Classes
 
 ```typescript
-import { AppError } from '@veloxts/core';
+import { VeloxError, NotFoundError } from '@veloxts/core';
 
-// Throw domain-specific errors
-throw new AppError('USER_NOT_FOUND', {
-  statusCode: 404,
-  message: 'User not found',
-  details: { userId: input.id },
-});
+// Use built-in error classes for common cases
+throw new NotFoundError('User', input.id);
+// Message: "User with id {id} not found"
+
+// Or create custom domain errors
+throw new VeloxError('User account is suspended', 403, 'USER_SUSPENDED');
 ```
 
 ### Client-Side Handling

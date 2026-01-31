@@ -26,16 +26,14 @@ const session = sessionMiddleware({
 ## Login Flow
 
 ```typescript
-import { loginSession } from '@veloxts/auth';
-
 login: procedure()
   .use(session.optionalAuth())
   .input(LoginSchema)
   .mutation(async ({ input, ctx }) => {
     const user = await verifyCredentials(input);
 
-    // Create session
-    await loginSession(ctx.session, {
+    // Create session (regenerates session ID to prevent fixation)
+    await ctx.session.login({
       id: user.id,
       email: user.email,
     });
@@ -47,12 +45,10 @@ login: procedure()
 ## Logout
 
 ```typescript
-import { logoutSession } from '@veloxts/auth';
-
 logout: procedure()
   .use(session.requireAuth())
   .mutation(async ({ ctx }) => {
-    await logoutSession(ctx.session);
+    await ctx.session.logout();
     return { success: true };
   }),
 ```
@@ -80,15 +76,35 @@ ctx.session.flash('success', 'Profile updated!');
 const message = ctx.session.getFlash('success');
 ```
 
-## Production: Redis Store
+## Production: Custom Store
+
+For production, implement the `SessionStore` interface with Redis or another persistent store:
 
 ```typescript
-import { createRedisSessionStore } from '@veloxts/auth';
+import type { SessionStore, StoredSession } from '@veloxts/auth';
+import Redis from 'ioredis';
+
+function createRedisStore(redis: Redis): SessionStore {
+  return {
+    async get(id: string): Promise<StoredSession | null> {
+      const data = await redis.get(`session:${id}`);
+      return data ? JSON.parse(data) : null;
+    },
+    async set(id: string, session: StoredSession, ttl: number): Promise<void> {
+      await redis.setex(`session:${id}`, ttl, JSON.stringify(session));
+    },
+    async destroy(id: string): Promise<void> {
+      await redis.del(`session:${id}`);
+    },
+    async touch(id: string, ttl: number): Promise<void> {
+      await redis.expire(`session:${id}`, ttl);
+    },
+  };
+}
 
 const session = sessionMiddleware({
-  store: createRedisSessionStore({
-    url: process.env.REDIS_URL,
-  }),
+  store: createRedisStore(new Redis(process.env.REDIS_URL)),
+  // ...
 });
 ```
 

@@ -542,12 +542,7 @@ const adminOnly = procedure()
 Cookie-based sessions as alternative to JWT. Useful for SSR apps or when token storage is a concern:
 
 ```typescript
-import {
-  sessionMiddleware,
-  loginSession,
-  logoutSession,
-  inMemorySessionStore
-} from '@veloxts/auth';
+import { sessionMiddleware, inMemorySessionStore } from '@veloxts/auth';
 
 // Create session middleware
 const session = sessionMiddleware({
@@ -578,14 +573,14 @@ const publicPage = procedure()
   .use(session.optionalAuth())  // User optional
   .query(({ ctx }) => ({ user: ctx.user ?? null }));
 
-// Login helper - regenerates session ID for security
-await loginSession(ctx.session, { id: user.id, email: user.email });
+// Login - regenerates session ID to prevent fixation attacks
+await ctx.session.login({ id: user.id, email: user.email });
 
-// Logout helper - destroys session completely
-await logoutSession(ctx.session);
+// Logout - destroys session completely
+await ctx.session.logout();
 
 // Check authentication status
-if (isSessionAuthenticated(ctx)) {
+if (ctx.session.check()) {
   // ctx.user is available
 }
 
