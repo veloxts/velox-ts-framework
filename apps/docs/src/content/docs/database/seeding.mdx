@@ -3,69 +3,126 @@ title: Seeding
 description: Populate your database with test data.
 ---
 
-VeloxTS provides an expressive seeding system for populating your database with test data.
+import { Aside } from '@astrojs/starlight/components';
+
+VeloxTS provides database seeding through Prisma's built-in system, with a Laravel-style API planned for future releases.
 
 ## Quick Start
 
 ```bash
-velox db:seed
+pnpm db:seed
 ```
 
-## Creating Seeders
+## Setup
 
-```bash
-velox make seeder users
+Add to your `package.json`:
+
+```json
+{
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
 ```
 
-Creates `database/seeders/users.ts`:
+## Create Seed File
+
+Create `prisma/seed.ts`:
 
 ```typescript
-import { defineSeeder } from '@veloxts/orm';
 import { db } from '@/database';
 
-export default defineSeeder({
-  name: 'users',
-  run: async () => {
-    await db.user.createMany({
-      data: [
-        { name: 'Alice', email: 'alice@example.com' },
-        { name: 'Bob', email: 'bob@example.com' },
-      ],
-    });
-  },
-});
+async function main() {
+  // Clean existing data
+  await db.user.deleteMany();
+
+  // Create seed data
+  await db.user.createMany({
+    data: [
+      { name: 'Alice', email: 'alice@example.com' },
+      { name: 'Bob', email: 'bob@example.com' },
+    ],
+  });
+
+  console.log('Seeding completed');
+}
+
+main()
+  .catch(console.error)
+  .finally(() => db.$disconnect());
 ```
 
-## Factories
+## Factories with Faker
 
-Generate realistic data with factories:
+For realistic test data, use `@faker-js/faker`:
 
 ```typescript
-import { defineFactory } from '@veloxts/orm';
 import { faker } from '@faker-js/faker';
+import { db } from '@/database';
 
-export const userFactory = defineFactory({
-  model: 'user',
-  definition: () => ({
+function createFakeUser() {
+  return {
     name: faker.person.fullName(),
     email: faker.internet.email(),
     createdAt: faker.date.past(),
-  }),
-});
+  };
+}
 
-// Usage
-await userFactory.create();           // Single user
-await userFactory.createMany(10);     // 10 users
-await userFactory.make();             // Create without saving
+// Create multiple users
+await db.user.createMany({
+  data: Array.from({ length: 10 }, createFakeUser),
+});
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
+| `pnpm db:seed` | Run seed file |
+| `pnpm db:push --force-reset` | Reset database (then run `db:seed`) |
+
+---
+
+## Future: VeloxTS Seeding API
+
+<Aside type="tip" title="Planned Feature">
+  We're developing a Laravel-style seeding API with `defineSeeder` and `defineFactory`.
+  The Prisma approach above works great until then.
+</Aside>
+
+The planned API will provide an expressive, Laravel-inspired interface:
+
+```typescript
+// 🚧 Planned API - not yet available
+import { defineSeeder, defineFactory } from '@veloxts/orm';
+
+// Factory for generating fake data
+export const userFactory = defineFactory({
+  model: 'user',
+  definition: (faker) => ({
+    name: faker.person.fullName(),
+    email: faker.internet.email(),
+    createdAt: faker.date.past(),
+  }),
+});
+
+// Seeder using factory
+export default defineSeeder({
+  name: 'users',
+  run: async () => {
+    await userFactory.createMany(10);
+  },
+});
+```
+
+**Planned CLI commands:**
+
+| Command | Description |
+|---------|-------------|
 | `velox db:seed` | Run all seeders |
 | `velox db:seed --seeder=users` | Run specific seeder |
 | `velox db:seed --fresh` | Fresh database + seed |
+| `velox make seeder users` | Generate seeder file |
 
 ## Related Content
 

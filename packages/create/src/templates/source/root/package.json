@@ -13,6 +13,7 @@
     "velox": "velox",
     "db:push": "__WS_API__ db:push",
     "db:generate": "__WS_API__ db:generate",
+    "db:seed": "__WS_API__ db:seed",
     "db:studio": "__WS_API__ db:studio"
   },
   "dependencies": {
