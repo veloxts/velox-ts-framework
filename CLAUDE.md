@@ -879,6 +879,38 @@ dotenv.config({ path: resolve(projectRoot, '.env') });
 - Follow Laravel-inspired naming (e.g., procedures, guards, policies)
 - Write self-documenting code - comments only where logic isn't self-evident
 
+### Git Workflow
+
+**IMPORTANT: Never push directly to main.** Always use feature branches and pull requests.
+
+```bash
+# 1. Create a new branch from main
+git checkout main
+git pull
+git checkout -b <branch-name>   # e.g., feat/add-caching, fix/auth-bug, chore/update-deps
+
+# 2. Make changes and commit
+git add <files>
+git commit -m "type(scope): description"
+
+# 3. Push and create PR
+git push -u origin <branch-name>
+gh pr create --title "type(scope): description" --body "..."
+
+# 4. After PR approval, merge via GitHub UI or:
+gh pr merge <pr-number> --squash --delete-branch
+```
+
+**Branch naming conventions:**
+- `feat/<name>` - New features
+- `fix/<name>` - Bug fixes
+- `chore/<name>` - Maintenance tasks (deps, refactoring, docs)
+- `test/<name>` - Test additions or fixes
+
+**Commit message format:** `type(scope): description`
+- Types: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`, `perf`
+- Scope: package name or area (e.g., `router`, `auth`, `cli`, `deps`)
+
 ### Dependency Versioning
 - **Always use fixed versions** (no caret `^` or tilde `~`) for all dependencies
 - ✅ `"zod": "3.24.4"` - Fixed version, reproducible builds
