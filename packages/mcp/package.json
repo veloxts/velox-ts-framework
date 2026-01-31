@@ -31,7 +31,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.25.1",
+    "@modelcontextprotocol/sdk": "1.25.3",
     "@veloxts/cli": "workspace:*",
     "@veloxts/router": "workspace:*",
     "@veloxts/validation": "workspace:*",
