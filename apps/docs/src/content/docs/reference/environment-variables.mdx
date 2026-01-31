@@ -5,28 +5,36 @@ description: Required and optional environment variables for VeloxTS.
 
 Environment variables configure VeloxTS applications at runtime.
 
+:::tip[Environment-Aware Presets]
+Most configuration is handled automatically by [`getServerConfig()`](/docs/core/environment-configuration/) and [`usePresets()`](/docs/core/environment-configuration/#ecosystem-presets). You only need to set secrets and service URLs - driver selection is handled by presets based on `NODE_ENV`.
+:::
+
 ## Required Variables
 
 ### Core
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `NODE_ENV` | Environment mode | `development`, `production` |
-| `PORT` | Server port | `3030` |
+| `NODE_ENV` | Environment mode | `development`, `test`, `production` |
+| `DATABASE_URL` | Database connection string | `file:./dev.db` or `postgresql://...` |
 
-### Database
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | Database connection string | `postgresql://user:pass@host:5432/db` |
-
-### Authentication
+### Authentication (Production)
 
 | Variable | Description | Minimum |
 |----------|-------------|---------|
 | `JWT_SECRET` | Access token signing key | 32 characters |
 | `JWT_REFRESH_SECRET` | Refresh token signing key | 32 characters |
-| `SESSION_SECRET` | Session signing key | 32 chars, 16 unique |
+| `SESSION_SECRET` | Session signing key (if using sessions) | 32 characters |
+
+### Production Services
+
+These are required when using `usePresets()` in production:
+
+| Variable | Description | Used By |
+|----------|-------------|---------|
+| `REDIS_URL` | Redis connection URL | Cache, Queue, Events |
+| `RESEND_API_KEY` | Resend API key | Mail |
+| `S3_BUCKET` | S3 bucket name | Storage |
 
 ## Optional Variables
 
@@ -34,40 +42,31 @@ Environment variables configure VeloxTS applications at runtime.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `HOST` | Server bind address | `0.0.0.0` |
-| `LOG_LEVEL` | Logging verbosity | `info` |
-| `CORS_ORIGINS` | Allowed origins (comma-separated) | `*` |
+| `PORT` | Server port | `3030` (prod reads from env) |
+| `LOG_LEVEL` | Logging verbosity | `debug` (dev), `warn` (prod) |
 
-### Cache (Redis)
+:::note
+Host binding is handled by presets: `localhost` for development/test, `0.0.0.0` for production.
+:::
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `REDIS_URL` | Redis connection URL | - |
-| `CACHE_PREFIX` | Key prefix | `app:` |
-| `CACHE_TTL` | Default TTL (seconds) | `3600` |
-
-### Mail
+### AWS/S3 Storage
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MAIL_DRIVER` | Mail driver | `smtp` |
+| `AWS_REGION` | AWS region | `us-east-1` |
+| `AWS_ACCESS_KEY_ID` | AWS access key | - |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key | - |
+
+### SMTP Mail (Alternative to Resend)
+
+When using SMTP driver instead of Resend:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
 | `SMTP_HOST` | SMTP server host | - |
 | `SMTP_PORT` | SMTP server port | `587` |
 | `SMTP_USER` | SMTP username | - |
 | `SMTP_PASS` | SMTP password | - |
-| `RESEND_API_KEY` | Resend API key | - |
-| `MAIL_FROM` | Default from address | - |
-
-### Storage
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `STORAGE_DRIVER` | Storage driver | `local` |
-| `STORAGE_PATH` | Local storage path | `./uploads` |
-| `S3_BUCKET` | S3 bucket name | - |
-| `S3_REGION` | AWS region | - |
-| `AWS_ACCESS_KEY_ID` | AWS access key | - |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key | - |
 
 ## Example .env Files
 
@@ -76,7 +75,6 @@ Environment variables configure VeloxTS applications at runtime.
 ```bash
 # .env
 NODE_ENV=development
-PORT=3030
 
 # Database (SQLite for dev)
 DATABASE_URL=file:./dev.db
@@ -85,7 +83,7 @@ DATABASE_URL=file:./dev.db
 JWT_SECRET=dev-jwt-secret-min-32-characters-long
 JWT_REFRESH_SECRET=dev-refresh-secret-min-32-chars-here
 
-# Optional: Enable pretty logging
+# Optional: Override log level
 LOG_LEVEL=debug
 ```
 
@@ -94,33 +92,30 @@ LOG_LEVEL=debug
 ```bash
 # .env.production
 NODE_ENV=production
-PORT=3030
 
 # Database (PostgreSQL)
 DATABASE_URL=postgresql://user:password@host:5432/myapp?sslmode=require
 
-# Auth (generate secure secrets!)
-JWT_SECRET=your-production-jwt-secret-min-32-chars
-JWT_REFRESH_SECRET=your-production-refresh-secret-32-chars
+# Auth (generate with: openssl rand -base64 48)
+JWT_SECRET=<secure-random-secret-min-32-chars>
+JWT_REFRESH_SECRET=<secure-random-secret-min-32-chars>
+SESSION_SECRET=<secure-random-secret-min-32-chars>
 
-# Redis (for cache, queue, sessions)
+# Redis (for cache, queue, events)
 REDIS_URL=redis://user:password@host:6379
 
-# Mail
-MAIL_DRIVER=resend
+# Mail (Resend)
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-MAIL_FROM=noreply@yourdomain.com
 
-# Storage
-STORAGE_DRIVER=s3
+# Storage (S3)
 S3_BUCKET=your-bucket
-S3_REGION=us-east-1
+AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=...
 
-# Security
-CORS_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
-LOG_LEVEL=warn
+# Optional: Override defaults
+PORT=8080
+LOG_LEVEL=info
 ```
 
 ## Generating Secrets
@@ -161,7 +156,31 @@ dotenv.config({ path: resolve(__dirname, '..', '.env') });
 
 ## Validation
 
-Validate required environment variables at startup:
+### Built-in Security Validation
+
+VeloxTS provides built-in validation for production deployments:
+
+```typescript
+import { validateSecurityOrThrow } from '@veloxts/velox';
+
+// Validates in production, silent in dev/test
+validateSecurityOrThrow();
+
+// Or validate auth secrets specifically
+import { validateAuthSecrets } from '@veloxts/velox';
+validateAuthSecrets();
+```
+
+This validates:
+- Required environment variables are set (`DATABASE_URL`)
+- JWT secrets meet minimum length (32 characters)
+- Secrets are not weak patterns (e.g., "password", "secret")
+
+See [Security Validation](/docs/core/environment-configuration/#security-validation) for details.
+
+### Custom Validation with Zod
+
+For additional validation:
 
 ```typescript
 import { z } from 'zod';
@@ -178,5 +197,6 @@ const env = envSchema.parse(process.env);
 
 ## Related Content
 
+- [Environment Configuration](/docs/core/environment-configuration/) - Presets and security validation
 - [Configuration Reference](/docs/reference/configuration/) - Full config options
 - [Troubleshooting](/docs/reference/troubleshooting/) - Common issues

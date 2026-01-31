@@ -5,6 +5,10 @@ description: Configure your VeloxTS application.
 
 VeloxTS uses environment variables and configuration objects.
 
+:::tip[Environment-Aware Presets]
+For production-ready configuration with sensible defaults, use [`getServerConfig()`](/docs/core/environment-configuration/) and [`usePresets()`](/docs/core/environment-configuration/#ecosystem-presets) instead of manual configuration.
+:::
+
 ## Environment Variables
 
 Create a `.env` file:
@@ -13,44 +17,96 @@ Create a `.env` file:
 # Database
 DATABASE_URL="file:./dev.db"
 
-# Server
-PORT=3030
-HOST=0.0.0.0
-
 # Auth (if using @veloxts/auth)
 JWT_SECRET="your-secret-key-min-32-chars"
 JWT_REFRESH_SECRET="your-refresh-secret-min-32-chars"
 ```
 
+See [Environment Variables Reference](/docs/reference/environment-variables/) for the complete list.
+
 ## Server Configuration
 
+### Recommended: Environment-Aware Config
+
 ```typescript
-const app = veloxApp({
-  port: process.env.PORT || 3030,
-  host: process.env.HOST || 'localhost',
-  logger: process.env.NODE_ENV === 'development',
+import { veloxApp, getServerConfig } from '@veloxts/velox';
+
+// Auto-configures port, host, logger based on NODE_ENV
+const app = await veloxApp(getServerConfig());
+```
+
+### Manual Configuration
+
+```typescript
+import { veloxApp } from '@veloxts/velox';
+
+const app = await veloxApp({
+  port: 3030,
+  host: 'localhost',
+  logger: true,  // or { level: 'debug' } for verbose logging
 });
 ```
 
 ## Plugin Configuration
 
-```typescript
-// Database
-app.register(databasePlugin, {
-  url: process.env.DATABASE_URL,
-});
+### Database Plugin
 
-// Auth
-app.register(authPlugin, {
-  secret: process.env.JWT_SECRET,
-  accessTokenExpiry: '15m',
-  refreshTokenExpiry: '7d',
-});
+The database plugin requires a pre-instantiated Prisma client:
+
+```typescript
+import { databasePlugin } from '@veloxts/orm';
+import { db } from './config/database.js';  // Your PrismaClient instance
+
+await app.register(databasePlugin({ client: db }));
+```
+
+### Auth Plugin
+
+The auth plugin requires JWT configuration nested under `jwt`:
+
+```typescript
+import { authPlugin } from '@veloxts/auth';
+
+await app.register(authPlugin({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    accessTokenExpiry: '15m',
+    refreshTokenExpiry: '7d',
+  },
+  userLoader: async (userId) => {
+    // Fetch user from database - only returned fields are on ctx.user
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user) return null;
+    return { id: user.id, email: user.email, name: user.name };
+  },
+  rateLimit: {
+    max: 100,
+    windowMs: 60000,
+  },
+}));
+```
+
+Or use environment-aware auth presets:
+
+```typescript
+import { getAuthPreset } from '@veloxts/velox';
+
+const authPreset = getAuthPreset();
+await app.register(authPlugin({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    ...authPreset.jwt,  // Environment-aware expiry times
+  },
+  userLoader,
+  rateLimit: authPreset.rateLimit,
+}));
 ```
 
 ## Prisma Configuration
 
-Prisma 7 requires `prisma.config.ts`:
+Prisma 7 requires `prisma.config.ts` (database URL is configured here, NOT in schema.prisma):
 
 ```typescript
 import 'dotenv/config';
@@ -64,7 +120,25 @@ export default defineConfig({
 });
 ```
 
+Create your Prisma client with a driver adapter:
+
+```typescript
+// SQLite
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '@prisma/client';
+
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
+export const db = new PrismaClient({ adapter });
+
+// PostgreSQL
+import { PrismaPg } from '@prisma/adapter-pg';
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+export const db = new PrismaClient({ adapter });
+```
+
 ## Related Content
 
+- [Environment Configuration](/docs/core/environment-configuration/) - Presets and security validation
 - [Environment Variables](/docs/reference/environment-variables/) - Full reference
 - [Deployment](/docs/deployment/overview/) - Production config

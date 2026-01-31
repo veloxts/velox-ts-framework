@@ -7,15 +7,31 @@ Plugins add functionality to your VeloxTS application. VeloxTS is built on Fasti
 
 ## Using Plugins
 
+VeloxTS plugins are typically **factory functions** that return a plugin:
+
 ```typescript
 import { veloxApp } from '@veloxts/velox';
 import { databasePlugin } from '@veloxts/orm';
 import { authPlugin } from '@veloxts/auth';
+import { db } from './config/database.js';
 
 const app = await veloxApp({ port: 3030 });
 
-await app.register(databasePlugin);
-await app.register(authPlugin, { secret: process.env.JWT_SECRET });
+// databasePlugin is a factory - pass options to create the plugin
+await app.register(databasePlugin({ client: db }));
+
+// authPlugin is also a factory - pass full config object
+await app.register(authPlugin({
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    accessTokenExpiry: '15m',
+    refreshTokenExpiry: '7d',
+  },
+  userLoader: async (userId) => {
+    return db.user.findUnique({ where: { id: userId } });
+  },
+}));
 
 await app.start();
 ```
@@ -24,29 +40,54 @@ await app.start();
 
 | Package | Plugin | Purpose |
 |---------|--------|---------|
-| @veloxts/orm | `databasePlugin` | Prisma database connection |
-| @veloxts/auth | `authPlugin` | Authentication setup |
-| @veloxts/router | `registerDocs` | OpenAPI documentation |
+| @veloxts/orm | `databasePlugin({ client })` | Prisma database connection |
+| @veloxts/auth | `authPlugin({ jwt, userLoader, ... })` | JWT authentication |
+| @veloxts/router | `swaggerUIPlugin` | OpenAPI documentation |
+| @veloxts/cache | `cachePlugin({ driver, config })` | Multi-driver caching |
+| @veloxts/queue | `queuePlugin({ driver, config })` | Background job processing |
+| @veloxts/mail | `mailPlugin({ driver, config })` | Email sending |
+| @veloxts/storage | `storagePlugin({ driver, ... })` | File storage |
 
 ## Creating Plugins
+
+Use `definePlugin` to create type-safe plugins:
 
 ```typescript
 import { definePlugin } from '@veloxts/core';
 
-export const myPlugin = definePlugin({
+interface MyPluginOptions {
+  apiKey: string;
+  timeout?: number;
+}
+
+export const myPlugin = definePlugin<MyPluginOptions>({
   name: 'my-plugin',
-  register: async (app, options) => {
-    // Add hooks, decorators, routes
-    app.addHook('onRequest', async (request) => {
+  version: '1.0.0',
+  register: async (server, options) => {
+    const { apiKey, timeout = 5000 } = options;
+
+    // Add hooks
+    server.addHook('onRequest', async (request) => {
       // ...
+    });
+
+    // Add decorators
+    server.decorate('myService', createService(apiKey));
+
+    // Add shutdown hook
+    server.addHook('onClose', async () => {
+      // Cleanup resources
     });
   },
 });
+
+// Usage
+await app.register(myPlugin, { apiKey: 'xxx' });
 ```
 
 ## Fastify Plugins
 
-You can use any Fastify plugin:
+You can use any Fastify plugin directly:
 
 ```typescript
 import cors from '@fastify/cors';
@@ -60,3 +101,4 @@ await app.register(helmet);
 
 - [Application](/docs/core/application/) - App lifecycle
 - [Context](/docs/core/context/) - Request context
+- [Configuration](/docs/core/configuration/) - Plugin configuration
