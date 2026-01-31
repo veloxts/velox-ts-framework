@@ -1,26 +1,30 @@
 /**
- * Environment-aware presets for VeloxTS ecosystem packages.
+ * Environment-aware presets for VeloxTS ecosystem packages and server configuration.
  *
- * Automatically configure cache, queue, mail, storage, events, and scheduler
- * based on the current environment (NODE_ENV).
+ * Provides two complementary APIs:
+ * - `getServerConfig()` - Environment-aware server configuration (construction-time)
+ * - `usePresets()` - Automatic ecosystem plugin registration (runtime)
  *
  * @example
  * ```typescript
- * import { veloxApp, usePresets } from '@veloxts/velox';
+ * import { veloxApp, getServerConfig, usePresets } from '@veloxts/velox';
  *
- * const app = await veloxApp({ port: 3030 });
+ * // Environment-aware server configuration
+ * const app = await veloxApp(getServerConfig());
  *
- * // One line configures all ecosystem packages
+ * // Auto-configure ecosystem packages
  * await usePresets(app);
  *
- * // Development: memory cache, sync queue, log mail, local storage
- * // Production: redis cache, bullmq queue, resend mail, s3 storage
+ * await app.start();
  * ```
  *
  * @packageDocumentation
  */
 
-// Preset configurations
+// ============================================================================
+// Preset Configurations
+// ============================================================================
+
 export {
   developmentPreset,
   getPreset,
@@ -28,7 +32,34 @@ export {
   productionPreset,
   testPreset,
 } from './defaults.js';
-// Environment detection
+
+// ============================================================================
+// Server Configuration
+// ============================================================================
+
+export type { ServerConfigOverrides } from './server.js';
+export { getServerConfig, getServerPreset, serverPresets } from './server.js';
+
+// ============================================================================
+// Security Validation
+// ============================================================================
+
+export type {
+  SecurityRequirements,
+  SecurityValidationIssue,
+  ValidationResult,
+} from './validate.js';
+export {
+  isWeakSecret,
+  validateAuthSecrets,
+  validateSecurity,
+  validateSecurityOrThrow,
+} from './validate.js';
+
+// ============================================================================
+// Environment Detection
+// ============================================================================
+
 export {
   detectEnvironment,
   isDevelopment as isDevEnvironment,
@@ -36,12 +67,31 @@ export {
   isTest as isTestEnvironment,
   validateEnvironment,
 } from './env.js';
-// Merge utility
+
+// ============================================================================
+// Plugin Registration
+// ============================================================================
+
+export { getAuthPreset, registerEcosystemPlugins, usePresets } from './plugin.js';
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
 export { mergeDeep } from './merge.js';
-// Plugin registration
-export { registerEcosystemPlugins, usePresets } from './plugin.js';
+
+// ============================================================================
 // Types
+// ============================================================================
+
 export type {
+  // Auth preset types
+  AuthCookiePreset,
+  AuthJwtPreset,
+  AuthPreset,
+  AuthRateLimitPreset,
+  AuthSessionPreset,
+  // Ecosystem types
   EcosystemPreset,
   Environment,
   PresetOptions,

@@ -55,6 +55,7 @@ export function validateProductionEnv(): ProductionEnvVars {
  * - No external services required (Redis, S3, SMTP)
  * - Fast startup and restarts
  * - Emails logged to console
+ * - Relaxed auth settings for easier testing
  */
 export const developmentPreset: EcosystemPreset = {
   cache: {
@@ -79,6 +80,26 @@ export const developmentPreset: EcosystemPreset = {
   scheduler: {
     tasks: [],
   },
+  auth: {
+    jwt: {
+      accessTokenExpiry: '15m',
+      refreshTokenExpiry: '7d',
+    },
+    rateLimit: {
+      max: 100, // Relaxed for development
+      windowMs: 900000, // 15 minutes
+    },
+    session: {
+      ttl: 604800, // 7 days
+      sliding: true,
+      absoluteTimeout: 604800,
+    },
+    cookie: {
+      secure: false, // Allow HTTP in development
+      sameSite: 'lax',
+      httpOnly: true,
+    },
+  },
 };
 
 /**
@@ -88,6 +109,7 @@ export const developmentPreset: EcosystemPreset = {
  * - No persistence between tests
  * - Synchronous job execution for predictable tests
  * - Temp directory for storage
+ * - Very relaxed rate limits for test automation
  */
 export const testPreset: EcosystemPreset = {
   cache: {
@@ -111,6 +133,50 @@ export const testPreset: EcosystemPreset = {
   },
   scheduler: {
     tasks: [],
+  },
+  auth: {
+    jwt: {
+      accessTokenExpiry: '1h', // Longer for test convenience
+      refreshTokenExpiry: '7d',
+    },
+    rateLimit: {
+      max: 1000, // Very relaxed for test automation
+      windowMs: 900000,
+    },
+    session: {
+      ttl: 3600, // 1 hour - shorter for test isolation
+      sliding: true,
+      absoluteTimeout: 3600,
+    },
+    cookie: {
+      secure: false,
+      sameSite: 'lax',
+      httpOnly: true,
+    },
+  },
+};
+
+/**
+ * Production auth preset - strict security settings.
+ */
+const productionAuthPreset = {
+  jwt: {
+    accessTokenExpiry: '5m', // Short-lived for security
+    refreshTokenExpiry: '1d', // 1 day (shorter than dev)
+  },
+  rateLimit: {
+    max: 5, // Strict rate limiting
+    windowMs: 900000, // 15 minutes
+  },
+  session: {
+    ttl: 14400, // 4 hours
+    sliding: true,
+    absoluteTimeout: 86400, // 24 hours max
+  },
+  cookie: {
+    secure: true, // HTTPS required in production
+    sameSite: 'strict' as const, // Strict CSRF protection
+    httpOnly: true,
   },
 };
 
@@ -150,6 +216,7 @@ function createProductionPreset(env: ProductionEnvVars): EcosystemPreset {
     scheduler: {
       tasks: [],
     },
+    auth: productionAuthPreset,
   };
 }
 
@@ -190,6 +257,7 @@ function createProductionPresetFromEnv(): EcosystemPreset {
     scheduler: {
       tasks: [],
     },
+    auth: productionAuthPreset,
   };
 }
 

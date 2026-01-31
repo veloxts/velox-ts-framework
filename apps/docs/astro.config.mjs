@@ -49,6 +49,7 @@ export default defineConfig({
             { slug: 'core/plugins' },
             { slug: 'core/error-handling' },
             { slug: 'core/configuration' },
+            { slug: 'core/environment-configuration' },
           ],
         },
         {
