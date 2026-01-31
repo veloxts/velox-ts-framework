@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.89
+
+### Patch Changes
+
+- expand preset system with server config, auth presets, and security validation
+
 ## 0.6.88
 
 ### Patch Changes
