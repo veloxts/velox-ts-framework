@@ -17,6 +17,7 @@
     "test": "turbo test",
     "test:coverage": "turbo test:coverage",
     "test:types": "turbo run test:types",
+    "test:ecosystem": "pnpm --filter @veloxts/testing test:integration",
     "test:summary": "./scripts/test-summary.sh",
     "smoke": "pnpm packages/create/scripts/smoke-test.sh",
     "changeset": "changeset",

@@ -50,6 +50,28 @@ export interface MinioContainerResult {
 }
 
 /**
+ * Result from starting a PostgreSQL container
+ */
+export interface PostgresContainerResult {
+  /** PostgreSQL connection URL (postgresql://user:pass@host:port/db) */
+  url: string;
+  /** Container host */
+  host: string;
+  /** Mapped port */
+  port: number;
+  /** Database name */
+  database: string;
+  /** Username for authentication */
+  username: string;
+  /** Password for authentication */
+  password: string;
+  /** Stop the container */
+  stop: () => Promise<void>;
+  /** The underlying container (for advanced use) */
+  container: StartedTestContainer;
+}
+
+/**
  * Result from starting a MailHog container
  */
 export interface MailhogContainerResult {
@@ -185,6 +207,79 @@ export async function startMinioContainer(options?: {
     port,
     accessKey: rootUser,
     secretKey: rootPassword,
+    stop: async () => {
+      await container.stop();
+    },
+    container,
+  };
+}
+
+/**
+ * Starts a PostgreSQL container for database integration tests.
+ *
+ * Uses PostgreSQL 16 Alpine image for minimal size and fast startup.
+ * Perfect for testing @veloxts/orm Prisma integration with real database.
+ *
+ * @param options.database - Database name (default: 'testdb')
+ * @param options.username - Database user (default: 'testuser')
+ * @param options.password - Database password (default: 'testpass')
+ *
+ * @example
+ * ```typescript
+ * import { startPostgresContainer } from '@veloxts/testing';
+ *
+ * describe('Database integration', () => {
+ *   let postgres: PostgresContainerResult;
+ *
+ *   beforeAll(async () => {
+ *     postgres = await startPostgresContainer();
+ *   });
+ *
+ *   afterAll(async () => {
+ *     await postgres.stop();
+ *   });
+ *
+ *   it('should connect to PostgreSQL', async () => {
+ *     // Use with Prisma driver adapter
+ *     const adapter = new PrismaPg({ connectionString: postgres.url });
+ *     const db = new PrismaClient({ adapter });
+ *
+ *     // Or use environment variable
+ *     process.env.DATABASE_URL = postgres.url;
+ *     // ... run migrations and tests
+ *   });
+ * });
+ * ```
+ */
+export async function startPostgresContainer(options?: {
+  database?: string;
+  username?: string;
+  password?: string;
+}): Promise<PostgresContainerResult> {
+  const database = options?.database ?? 'testdb';
+  const username = options?.username ?? 'testuser';
+  const password = options?.password ?? 'testpass';
+
+  const container = await new GenericContainer('postgres:16-alpine')
+    .withExposedPorts(5432)
+    .withEnvironment({
+      POSTGRES_DB: database,
+      POSTGRES_USER: username,
+      POSTGRES_PASSWORD: password,
+    })
+    .withWaitStrategy(Wait.forLogMessage('database system is ready to accept connections'))
+    .start();
+
+  const host = container.getHost();
+  const port = container.getMappedPort(5432);
+
+  return {
+    url: `postgresql://${username}:${password}@${host}:${port}/${database}`,
+    host,
+    port,
+    database,
+    username,
+    password,
     stop: async () => {
       await container.stop();
     },

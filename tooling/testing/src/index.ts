@@ -82,6 +82,7 @@ export type {
   DescribeFn,
   MailhogContainerResult,
   MinioContainerResult,
+  PostgresContainerResult,
   RedisContainerResult,
 } from './containers.js';
 export {
@@ -89,5 +90,6 @@ export {
   isDockerAvailable,
   startMailhogContainer,
   startMinioContainer,
+  startPostgresContainer,
   startRedisContainer,
 } from './containers.js';
