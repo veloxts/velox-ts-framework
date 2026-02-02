@@ -9,11 +9,11 @@ VeloxTS provides 5 project templates to match different use cases.
 
 | Template | API Style | Frontend | Auth | Best For |
 |----------|-----------|----------|------|----------|
-| `default` | REST + tRPC | None | No | Simple APIs, microservices |
-| `--auth` | REST + tRPC | None | JWT | APIs with authentication |
-| `--trpc` | tRPC only | None | No | Internal TypeScript clients |
-| `--rsc` | REST + tRPC | RSC | No | Full-stack apps |
-| `--rsc-auth` | REST + tRPC | RSC | JWT | Full-stack with auth |
+| `default` | REST + tRPC | SPA Client | No | Simple APIs, microservices |
+| `--auth` | REST + tRPC | SPA Client | JWT | APIs with authentication |
+| `--trpc` | tRPC only | SPA Client | No | Internal TypeScript clients |
+| `--rsc` | REST + tRPC | RSC (React 19) | No | Full-stack apps |
+| `--rsc-auth` | REST + tRPC | RSC (React 19) | JWT | Full-stack with auth |
 
 ## Default Template
 
@@ -21,12 +21,13 @@ VeloxTS provides 5 project templates to match different use cases.
 npx create-velox-app my-app
 ```
 
-A minimal API-only setup with:
+A minimal API setup with:
 - Basic user CRUD procedures
 - SQLite database
 - REST + tRPC endpoints
+- `@veloxts/client` for type-safe frontend integration
 
-**Use when:** Building a backend API, microservice, or BFF.
+**Use when:** Building a backend API, microservice, or BFF with a separate SPA frontend.
 
 ## Auth Template
 
@@ -39,8 +40,9 @@ Adds to default:
 - `authenticated` and `hasRole` guards
 - Login/register/logout procedures
 - Protected routes
+- `@veloxts/client` for type-safe frontend integration
 
-**Use when:** Your API needs user authentication.
+**Use when:** Your API needs user authentication with a separate SPA frontend.
 
 ## tRPC Template
 
@@ -50,10 +52,10 @@ npx create-velox-app my-app --trpc
 
 tRPC-only mode:
 - No REST adapter
-- Type-safe client for TypeScript frontends
+- `@veloxts/client` for type-safe SPA integration
 - Smaller bundle, faster startup
 
-**Use when:** All clients are TypeScript and you want maximum type safety.
+**Use when:** All clients are TypeScript SPAs and you want maximum type safety.
 
 ## RSC Template
 
