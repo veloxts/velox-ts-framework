@@ -93,30 +93,3 @@ export {
   parseTtl,
   parseTtlMs,
 } from './utils.js';
-
-// ============================================================================
-// Dependency Injection
-// ============================================================================
-
-/**
- * DI tokens and providers for @veloxts/cache
- *
- * Use these to integrate cache services with the @veloxts/core DI container.
- *
- * @example
- * ```typescript
- * import { Container } from '@veloxts/core';
- * import { registerCacheProviders, CACHE_MANAGER } from '@veloxts/cache';
- *
- * const container = new Container();
- * await registerCacheProviders(container, { driver: 'memory' });
- *
- * const cache = container.resolve(CACHE_MANAGER);
- * await cache.put('key', 'value', '1h');
- * ```
- */
-
-// Provider exports - factory functions for registering services
-export { registerCacheProviders } from './providers.js';
-// Token exports - unique identifiers for DI resolution
-export { CACHE_CONFIG, CACHE_MANAGER, CACHE_STORE } from './tokens.js';

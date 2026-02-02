@@ -117,33 +117,3 @@ export {
   uniqueFileName,
   validatePath,
 } from './utils.js';
-
-// ============================================================================
-// Dependency Injection
-// ============================================================================
-
-/**
- * DI tokens and providers for @veloxts/storage
- *
- * Use these to integrate storage services with the @veloxts/core DI container.
- *
- * @example
- * ```typescript
- * import { Container } from '@veloxts/core';
- * import { registerStorageProviders, STORAGE_MANAGER } from '@veloxts/storage';
- *
- * const container = new Container();
- * await registerStorageProviders(container, {
- *   driver: 'local',
- *   config: { root: './uploads' },
- * });
- *
- * const storage = container.resolve(STORAGE_MANAGER);
- * await storage.put('file.txt', Buffer.from('Hello'));
- * ```
- */
-
-// Provider exports - factory functions for registering services
-export { registerStorageProviders } from './providers.js';
-// Token exports - unique identifiers for DI resolution
-export { STORAGE_CONFIG, STORAGE_MANAGER, STORAGE_STORE } from './tokens.js';

@@ -11,7 +11,7 @@ import type { GuardFunction, JwtConfig, TokenPayload, User } from '../auth.js';
 // Import from subpath exports
 import * as auth from '../auth.js';
 // Type imports for expectTypeOf tests
-import type { BaseContext, Container, InjectionToken, VeloxApp } from '../core.js';
+import type { BaseContext, VeloxApp } from '../core.js';
 import * as core from '../core.js';
 // Import everything from main entry point
 import * as velox from '../index.js';
@@ -32,30 +32,9 @@ describe('Main entry point (@veloxts/velox)', () => {
       expect(typeof velox.veloxApp).toBe('function');
     });
 
-    it('should export Container class', () => {
-      expect(velox.Container).toBeDefined();
-    });
-
-    it('should export container singleton', () => {
-      expect(velox.container).toBeDefined();
-    });
-
     it('should export definePlugin', () => {
       expect(velox.definePlugin).toBeDefined();
       expect(typeof velox.definePlugin).toBe('function');
-    });
-
-    it('should export DI decorators', () => {
-      expect(velox.Injectable).toBeDefined();
-      expect(velox.Inject).toBeDefined();
-      expect(velox.Optional).toBeDefined();
-      expect(velox.Scope).toBeDefined();
-    });
-
-    it('should export token utilities', () => {
-      expect(velox.token).toBeDefined();
-      expect(velox.singleton).toBeDefined();
-      expect(velox.transient).toBeDefined();
     });
 
     it('should export error classes', () => {
@@ -118,10 +97,6 @@ describe('Main entry point (@veloxts/velox)', () => {
     it('should export database utilities', () => {
       expect(velox.createDatabase).toBeDefined();
     });
-
-    it('should export DI tokens', () => {
-      expect(velox.DATABASE_CLIENT).toBeDefined();
-    });
   });
 
   describe('Auth exports', () => {
@@ -172,14 +147,12 @@ describe('Subpath exports', () => {
   describe('@veloxts/velox/core', () => {
     it('should export core functionality', () => {
       expect(core.veloxApp).toBeDefined();
-      expect(core.Container).toBeDefined();
       expect(core.definePlugin).toBeDefined();
       expect(core.VeloxError).toBeDefined();
     });
 
     it('should match main entry exports for core', () => {
       expect(core.veloxApp).toBe(velox.veloxApp);
-      expect(core.Container).toBe(velox.Container);
       expect(core.definePlugin).toBe(velox.definePlugin);
     });
   });
@@ -203,12 +176,10 @@ describe('Subpath exports', () => {
     it('should export ORM functionality', () => {
       expect(orm.databasePlugin).toBeDefined();
       expect(orm.createDatabase).toBeDefined();
-      expect(orm.DATABASE_CLIENT).toBeDefined();
     });
 
     it('should match main entry exports for orm', () => {
       expect(orm.databasePlugin).toBe(velox.databasePlugin);
-      expect(orm.DATABASE_CLIENT).toBe(velox.DATABASE_CLIENT);
     });
   });
 
@@ -262,18 +233,6 @@ describe('Integration verification', () => {
     });
 
     expect(result.success).toBe(true);
-  });
-
-  it('should allow creating a Container instance', () => {
-    const container = new velox.Container();
-    expect(container).toBeInstanceOf(velox.Container);
-  });
-
-  it('should allow creating tokens', () => {
-    const testToken = velox.token<string>('test-token');
-    expect(testToken).toBeDefined();
-    // Token is a StringToken which is just a branded string
-    expect(typeof testToken).toBe('string');
   });
 
   it('should allow using parse utilities', () => {
@@ -330,17 +289,8 @@ describe('Type exports', () => {
       expectTypeOf<VeloxApp>().toBeObject();
     });
 
-    it('should export Container type', () => {
-      expectTypeOf<Container>().toBeObject();
-    });
-
     it('should export BaseContext type', () => {
       expectTypeOf<BaseContext>().toBeObject();
-    });
-
-    it('should export InjectionToken type', () => {
-      // InjectionToken is a union type
-      expectTypeOf<InjectionToken<string>>().not.toBeNever();
     });
   });
 
@@ -397,8 +347,8 @@ describe('Export count per submodule', () => {
 
   it('should have expected number of core exports', () => {
     const coreExportCount = Object.keys(core).length;
-    // Core has ~50+ exports (classes, functions, types, decorators)
-    expect(coreExportCount).toBeGreaterThanOrEqual(45);
+    // Core has ~25+ exports (classes, functions, types)
+    expect(coreExportCount).toBeGreaterThanOrEqual(20);
   });
 
   it('should have expected number of validation exports', () => {
@@ -409,8 +359,8 @@ describe('Export count per submodule', () => {
 
   it('should have expected number of orm exports', () => {
     const ormExportCount = Object.keys(orm).length;
-    // ORM has ~25+ exports (plugin, utilities, types)
-    expect(ormExportCount).toBeGreaterThanOrEqual(20);
+    // ORM has ~5+ exports (plugin, utilities, types) - reduced after DI removal
+    expect(ormExportCount).toBeGreaterThanOrEqual(3);
   });
 
   it('should have expected number of router exports', () => {
@@ -447,16 +397,9 @@ describe('Export count per submodule', () => {
 
 describe('Internal implementation details should NOT be exported', () => {
   describe('Core internals', () => {
-    it('should not expose internal container implementation details', () => {
+    it('should not expose internal implementation details', () => {
       // These are implementation details that should not be public API
-      expect((velox as Record<string, unknown>).ContainerImpl).toBeUndefined();
-      expect((velox as Record<string, unknown>)._internalContainer).toBeUndefined();
       expect((velox as Record<string, unknown>).__private).toBeUndefined();
-    });
-
-    it('should not expose internal metadata keys', () => {
-      expect((velox as Record<string, unknown>).INJECTABLE_METADATA).toBeUndefined();
-      expect((velox as Record<string, unknown>).INJECT_METADATA).toBeUndefined();
     });
   });
 

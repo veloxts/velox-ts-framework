@@ -1,7 +1,7 @@
 {
   "name": "@veloxts/core",
   "version": "0.6.90",
-  "description": "Fastify wrapper, DI container, and plugin system for VeloxTS framework",
+  "description": "Fastify wrapper and plugin system for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./di": {
-      "types": "./dist/di/index.d.ts",
-      "import": "./dist/di/index.js"
     }
   },
   "files": [
@@ -45,8 +41,7 @@
   "dependencies": {
     "fastify": "5.7.2",
     "fastify-plugin": "5.1.0",
-    "picocolors": "1.1.1",
-    "reflect-metadata": "0.2.2"
+    "picocolors": "1.1.1"
   },
   "peerDependencies": {
     "@fastify/static": ">=8.0.0"
