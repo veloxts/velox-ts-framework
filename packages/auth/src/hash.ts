@@ -19,6 +19,32 @@ const DEFAULT_ARGON2_MEMORY_COST = 65536; // 64 MB
 const DEFAULT_ARGON2_TIME_COST = 3;
 const DEFAULT_ARGON2_PARALLELISM = 4;
 
+/**
+ * Default password hashing configuration
+ *
+ * Uses bcrypt with 12 rounds, which provides a good balance between
+ * security and performance. Increase rounds for higher security
+ * (each increment doubles the computation time).
+ *
+ * @example
+ * ```typescript
+ * import { DEFAULT_HASH_CONFIG, passwordHasher } from '@veloxts/auth';
+ *
+ * // Use defaults explicitly
+ * const hasher = passwordHasher(DEFAULT_HASH_CONFIG);
+ *
+ * // Or customize from defaults
+ * const strongerHasher = passwordHasher({
+ *   ...DEFAULT_HASH_CONFIG,
+ *   bcryptRounds: 14,
+ * });
+ * ```
+ */
+export const DEFAULT_HASH_CONFIG = {
+  algorithm: 'bcrypt',
+  bcryptRounds: DEFAULT_BCRYPT_ROUNDS,
+} as const;
+
 // ============================================================================
 // Password Hasher Class
 // ============================================================================

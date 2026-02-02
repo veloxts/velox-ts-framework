@@ -100,6 +100,7 @@ export { authenticatedNarrow, hasRoleNarrow } from './guards-narrowing.js';
 // ============================================================================
 
 export {
+  DEFAULT_HASH_CONFIG,
   hashPassword,
   PasswordHasher,
   passwordHasher,

@@ -236,6 +236,9 @@ export function authMiddleware(config: AuthConfig) {
     middleware,
     requireAuth,
     optionalAuth,
+    // Terse aliases (Laravel-inspired)
+    required: requireAuth,
+    optional: optionalAuth,
     jwt,
   };
 }

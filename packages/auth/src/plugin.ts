@@ -10,9 +10,9 @@
 import { createRequire } from 'node:module';
 
 import type { VeloxPlugin } from '@veloxts/core';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import type { AuthAdapterPluginOptions } from './adapter.js';
+import type { AdapterUser, AuthAdapterError, AuthAdapterPluginOptions } from './adapter.js';
 import { createAuthAdapterPlugin } from './adapter.js';
 import type { JwtAdapterConfig } from './adapters/jwt-adapter.js';
 import { createJwtAdapter } from './adapters/jwt-adapter.js';
@@ -20,7 +20,7 @@ import { checkDoubleRegistration, decorateAuth } from './decoration.js';
 import { PasswordHasher } from './hash.js';
 import type { JwtManager, TokenStore } from './jwt.js';
 import { authMiddleware } from './middleware.js';
-import type { AdapterAuthContext, AuthConfig, TokenPair, User } from './types.js';
+import type { AdapterAuthContext, AuthConfig, JwtConfig, TokenPair, User } from './types.js';
 
 // Read version from package.json dynamically
 const require = createRequire(import.meta.url);
@@ -328,9 +328,80 @@ export function defaultAuthPlugin(): VeloxPlugin<AuthPluginOptions> {
 /**
  * Options for jwtAuth convenience function
  *
- * Omits the 'name' field since it's auto-set to 'jwt'.
+ * Explicit interface for better discoverability (name is auto-set to 'jwt').
  */
-export type JwtAuthOptions = Omit<JwtAdapterConfig, 'name'>;
+export interface JwtAuthOptions {
+  /**
+   * JWT configuration (secret, expiry, etc.)
+   *
+   * This is passed directly to JwtManager.
+   */
+  jwt: JwtConfig;
+
+  /**
+   * Token store for revocation tracking
+   *
+   * Used to check if tokens have been revoked (e.g., on logout).
+   * Defaults to in-memory store (not suitable for production).
+   */
+  tokenStore?: TokenStore;
+
+  /**
+   * Load user by ID
+   *
+   * Called when verifying tokens to load the full user object.
+   * If not provided, a minimal user object is created from token claims.
+   */
+  userLoader?: (userId: string) => Promise<User | null>;
+
+  /**
+   * Enable built-in auth routes
+   *
+   * When true, mounts routes for token refresh and logout:
+   * - POST `${routePrefix}/refresh` - Refresh access token
+   * - POST `${routePrefix}/logout` - Revoke current token
+   *
+   * @default true
+   */
+  enableRoutes?: boolean;
+
+  /**
+   * Base path for auth routes
+   *
+   * Only used when `enableRoutes` is true.
+   *
+   * @default '/api/auth'
+   */
+  routePrefix?: string;
+
+  /**
+   * Enable debug logging
+   *
+   * @default false
+   */
+  debug?: boolean;
+
+  /**
+   * Transform adapter user to VeloxTS User
+   *
+   * Override to customize how token claims are transformed to User.
+   */
+  transformUser?: (adapterUser: AdapterUser) => User;
+
+  /**
+   * Routes to exclude from automatic session loading
+   */
+  excludeRoutes?: string[];
+
+  /**
+   * Custom error handler for adapter errors
+   */
+  onError?: (
+    error: AuthAdapterError,
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) => void | Promise<void>;
+}
 
 /**
  * Creates JWT auth using the adapter pattern directly
