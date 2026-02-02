@@ -136,7 +136,6 @@ export default defineConfig({
           collapsed: true,
           items: [
             { slug: 'advanced/type-safety' },
-            { slug: 'advanced/dependency-injection' },
             { slug: 'advanced/testing-patterns' },
             { slug: 'advanced/rsc-module-separation' },
           ],

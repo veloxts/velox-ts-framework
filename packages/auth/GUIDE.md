@@ -22,8 +22,12 @@ const session = sessionMiddleware({
 });
 
 const getProfile = procedure()
-  .use(session.requireAuth())
+  .use(session.required())
   .query(({ ctx }) => ctx.user);
+
+const publicPage = procedure()
+  .use(session.optional())
+  .query(({ ctx }) => ({ user: ctx.user ?? null }));
 
 // Login/Logout
 await ctx.session.login(user);
@@ -47,8 +51,12 @@ const auth = authMiddleware({
 });
 
 const getProfile = procedure()
-  .use(auth.requireAuth())
+  .use(auth.required())
   .query(({ ctx }) => ctx.user);
+
+const publicEndpoint = procedure()
+  .use(auth.optional())
+  .query(({ ctx }) => ({ user: ctx.user ?? null }));
 ```
 
 ## Guards
@@ -81,10 +89,18 @@ const adminWithPermission = procedure()
 ## Password Hashing
 
 ```typescript
-import { hashPassword, verifyPassword } from '@veloxts/auth';
+import { hashPassword, verifyPassword, passwordHasher, DEFAULT_HASH_CONFIG } from '@veloxts/auth';
 
-const hash = await hashPassword('password', { cost: 12 });
+// Simple usage (uses DEFAULT_HASH_CONFIG: bcrypt, 12 rounds)
+const hash = await hashPassword('password');
 const valid = await verifyPassword('password', hash);
+
+// Custom configuration
+const hasher = passwordHasher({
+  ...DEFAULT_HASH_CONFIG,
+  bcryptRounds: 14, // Increase for higher security
+});
+const customHash = await hasher.hash('password');
 ```
 
 ## Learn More

@@ -11,7 +11,6 @@
  *   velox make service user --crud      # CRUD service with Prisma
  *   velox make service order --events   # Service with event emission
  *   velox make service cache --cache    # Service with caching
- *   velox make service auth --inject    # Injectable service (DI)
  */
 
 import { BaseGenerator } from '../base.js';
@@ -51,7 +50,6 @@ Examples:
   velox make service user --crud      # CRUD service with Prisma
   velox make service order --events   # Service with event emission
   velox make service cache --cache    # Service with caching layer
-  velox make service auth --inject    # Injectable service (DI)
 `,
     aliases: ['svc', 'srv'],
     category: 'infrastructure',
@@ -79,13 +77,6 @@ Examples:
       type: 'boolean',
       default: false,
     },
-    {
-      name: 'inject',
-      short: 'i',
-      description: 'Generate injectable service for DI',
-      type: 'boolean',
-      default: false,
-    },
   ];
 
   /**
@@ -96,7 +87,6 @@ Examples:
       crud: Boolean(raw.crud ?? false),
       cache: Boolean(raw.cache ?? false),
       events: Boolean(raw.events ?? false),
-      injectable: Boolean(raw.inject ?? false),
     };
   }
 

@@ -93,30 +93,3 @@ export type {
   ServerMessage,
   Subscription,
 } from './types.js';
-
-// ============================================================================
-// Dependency Injection
-// ============================================================================
-
-/**
- * DI tokens and providers for @veloxts/events
- *
- * Use these to integrate events services with the @veloxts/core DI container.
- *
- * @example
- * ```typescript
- * import { Container } from '@veloxts/core';
- * import { registerEventsProviders, EVENTS_MANAGER } from '@veloxts/events';
- *
- * const container = new Container();
- * await registerEventsProviders(container, { driver: 'ws' });
- *
- * const events = container.resolve(EVENTS_MANAGER);
- * await events.broadcast('orders', 'order.created', { id: '123' });
- * ```
- */
-
-// Provider exports - factory functions for registering services
-export { registerEventsProviders } from './providers.js';
-// Token exports - unique identifiers for DI resolution
-export { EVENTS_CONFIG, EVENTS_DRIVER, EVENTS_MANAGER } from './tokens.js';

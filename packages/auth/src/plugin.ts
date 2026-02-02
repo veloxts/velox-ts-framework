@@ -9,10 +9,10 @@
 
 import { createRequire } from 'node:module';
 
-import type { Container, VeloxPlugin } from '@veloxts/core';
-import type { FastifyInstance } from 'fastify';
+import type { VeloxPlugin } from '@veloxts/core';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import type { AuthAdapterPluginOptions } from './adapter.js';
+import type { AdapterUser, AuthAdapterError, AuthAdapterPluginOptions } from './adapter.js';
 import { createAuthAdapterPlugin } from './adapter.js';
 import type { JwtAdapterConfig } from './adapters/jwt-adapter.js';
 import { createJwtAdapter } from './adapters/jwt-adapter.js';
@@ -20,9 +20,7 @@ import { checkDoubleRegistration, decorateAuth } from './decoration.js';
 import { PasswordHasher } from './hash.js';
 import type { JwtManager, TokenStore } from './jwt.js';
 import { authMiddleware } from './middleware.js';
-import { registerAuthProviders } from './providers.js';
-import { AUTH_SERVICE } from './tokens.js';
-import type { AdapterAuthContext, AuthConfig, TokenPair, User } from './types.js';
+import type { AdapterAuthContext, AuthConfig, JwtConfig, TokenPair, User } from './types.js';
 
 // Read version from package.json dynamically
 const require = createRequire(import.meta.url);
@@ -44,33 +42,6 @@ export interface AuthPluginOptions extends AuthConfig {
    * @default false
    */
   debug?: boolean;
-
-  /**
-   * DI container for service registration and resolution (optional)
-   *
-   * When provided, auth services are registered with the container and can be:
-   * - Resolved from the container directly
-   * - Mocked in tests by overriding registrations
-   * - Managed alongside other application services
-   *
-   * When not provided, services are created directly (legacy behavior).
-   *
-   * @example
-   * ```typescript
-   * import { Container } from '@veloxts/core';
-   * import { authPlugin, JWT_MANAGER } from '@veloxts/auth';
-   *
-   * const container = new Container();
-   * app.register(authPlugin({
-   *   jwt: { secret: '...' },
-   *   container,
-   * }));
-   *
-   * // Services now available from container
-   * const jwt = container.resolve(JWT_MANAGER);
-   * ```
-   */
-  container?: Container;
 }
 
 // ============================================================================
@@ -207,7 +178,7 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
 
     async register(server: FastifyInstance, _opts: AuthPluginOptions) {
       const config = { ...options, ..._opts };
-      const { debug = false, container } = config;
+      const { debug = false } = config;
 
       // Prevent double-registration of auth systems
       checkDoubleRegistration(server, 'authPlugin');
@@ -216,38 +187,71 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
         server.log.info('Registering @veloxts/auth plugin (adapter-based)');
       }
 
-      // DI-enabled path: Use container for service resolution
-      if (container) {
-        if (debug) {
-          server.log.info('Using DI container for auth services');
-        }
+      // Convert isTokenRevoked callback to TokenStore if provided
+      const tokenStore = config.isTokenRevoked
+        ? createCallbackTokenStore(config.isTokenRevoked)
+        : undefined;
 
-        registerAuthProviders(container, config);
-        const authService = container.resolve(AUTH_SERVICE);
+      // Create the JWT adapter
+      const { adapter, config: adapterConfig } = createJwtAdapter({
+        jwt: config.jwt,
+        userLoader: config.userLoader,
+        tokenStore,
+        enableRoutes: false, // authPlugin manages its own API
+        debug,
+      });
 
-        server.decorate('auth', authService);
+      // Initialize adapter
+      await adapter.initialize(server, adapterConfig);
 
-        // Still need to register the adapter plugin for session loading
-        const { adapter, config: adapterConfig } = createJwtAdapter({
-          jwt: config.jwt,
-          userLoader: config.userLoader,
-          tokenStore: config.isTokenRevoked
-            ? createCallbackTokenStore(config.isTokenRevoked)
-            : undefined,
-          enableRoutes: false, // Don't mount routes when using authPlugin
-          debug,
-        });
+      // Decorate requests with auth context
+      decorateAuth(server);
 
-        // Initialize the adapter for session loading
-        await adapter.initialize(server, adapterConfig);
+      // Get JWT manager from adapter
+      const jwt = adapter.getJwtManager();
+      const hasher = new PasswordHasher(config.hash);
+      const authMw = authMiddleware(config);
 
-        // Decorate requests with auth context
-        decorateAuth(server);
+      // Build AuthService from adapter
+      const authService: AuthService = {
+        jwt,
+        hasher,
+        tokenStore: adapter.getTokenStore(),
 
-        // Add preHandler hook for session loading
+        createTokens(user: User, additionalClaims?: Record<string, unknown>): TokenPair {
+          return jwt.createTokenPair(user, additionalClaims);
+        },
+
+        verifyToken(token: string): AdapterAuthContext {
+          const payload = jwt.verifyToken(token);
+          return {
+            authMode: 'adapter',
+            user: {
+              id: payload.sub,
+              email: payload.email,
+            },
+            isAuthenticated: true,
+            providerId: 'jwt',
+            session: { token, payload },
+          };
+        },
+
+        refreshTokens(refreshToken: string): Promise<TokenPair> | TokenPair {
+          if (config.userLoader) {
+            return jwt.refreshTokens(refreshToken, config.userLoader);
+          }
+          return jwt.refreshTokens(refreshToken);
+        },
+
+        middleware: authMw,
+      };
+
+      // Decorate server with auth service
+      server.decorate('auth', authService);
+
+      // Add preHandler hook for session loading (using adapter)
+      if (config.autoExtract !== false) {
         server.addHook('preHandler', async (request) => {
-          if (config.autoExtract === false) return;
-
           const session = await adapter.getSession(request);
           if (session) {
             const user: User = {
@@ -271,97 +275,6 @@ export function authPlugin(options: AuthPluginOptions): VeloxPlugin<AuthPluginOp
             request.user = user;
           }
         });
-      } else {
-        // Adapter-based path: Use JwtAdapter directly
-        // Convert isTokenRevoked callback to TokenStore if provided
-        const tokenStore = config.isTokenRevoked
-          ? createCallbackTokenStore(config.isTokenRevoked)
-          : undefined;
-
-        // Create the JWT adapter
-        const { adapter, config: adapterConfig } = createJwtAdapter({
-          jwt: config.jwt,
-          userLoader: config.userLoader,
-          tokenStore,
-          enableRoutes: false, // authPlugin manages its own API
-          debug,
-        });
-
-        // Initialize adapter
-        await adapter.initialize(server, adapterConfig);
-
-        // Decorate requests with auth context
-        decorateAuth(server);
-
-        // Get JWT manager from adapter
-        const jwt = adapter.getJwtManager();
-        const hasher = new PasswordHasher(config.hash);
-        const authMw = authMiddleware(config);
-
-        // Build AuthService from adapter
-        const authService: AuthService = {
-          jwt,
-          hasher,
-          tokenStore: adapter.getTokenStore(),
-
-          createTokens(user: User, additionalClaims?: Record<string, unknown>): TokenPair {
-            return jwt.createTokenPair(user, additionalClaims);
-          },
-
-          verifyToken(token: string): AdapterAuthContext {
-            const payload = jwt.verifyToken(token);
-            return {
-              authMode: 'adapter',
-              user: {
-                id: payload.sub,
-                email: payload.email,
-              },
-              isAuthenticated: true,
-              providerId: 'jwt',
-              session: { token, payload },
-            };
-          },
-
-          refreshTokens(refreshToken: string): Promise<TokenPair> | TokenPair {
-            if (config.userLoader) {
-              return jwt.refreshTokens(refreshToken, config.userLoader);
-            }
-            return jwt.refreshTokens(refreshToken);
-          },
-
-          middleware: authMw,
-        };
-
-        // Decorate server with auth service
-        server.decorate('auth', authService);
-
-        // Add preHandler hook for session loading (using adapter)
-        if (config.autoExtract !== false) {
-          server.addHook('preHandler', async (request) => {
-            const session = await adapter.getSession(request);
-            if (session) {
-              const user: User = {
-                id: session.user.id,
-                email: session.user.email,
-                ...(session.user.emailVerified !== undefined && {
-                  emailVerified: session.user.emailVerified,
-                }),
-                ...session.user.providerData,
-              };
-
-              const authContext: AdapterAuthContext = {
-                authMode: 'adapter',
-                isAuthenticated: true,
-                user,
-                providerId: 'jwt',
-                session: session.session.providerData,
-              };
-
-              request.auth = authContext;
-              request.user = user;
-            }
-          });
-        }
       }
 
       // Add shutdown hook for cleanup
@@ -415,9 +328,80 @@ export function defaultAuthPlugin(): VeloxPlugin<AuthPluginOptions> {
 /**
  * Options for jwtAuth convenience function
  *
- * Omits the 'name' field since it's auto-set to 'jwt'.
+ * Explicit interface for better discoverability (name is auto-set to 'jwt').
  */
-export type JwtAuthOptions = Omit<JwtAdapterConfig, 'name'>;
+export interface JwtAuthOptions {
+  /**
+   * JWT configuration (secret, expiry, etc.)
+   *
+   * This is passed directly to JwtManager.
+   */
+  jwt: JwtConfig;
+
+  /**
+   * Token store for revocation tracking
+   *
+   * Used to check if tokens have been revoked (e.g., on logout).
+   * Defaults to in-memory store (not suitable for production).
+   */
+  tokenStore?: TokenStore;
+
+  /**
+   * Load user by ID
+   *
+   * Called when verifying tokens to load the full user object.
+   * If not provided, a minimal user object is created from token claims.
+   */
+  userLoader?: (userId: string) => Promise<User | null>;
+
+  /**
+   * Enable built-in auth routes
+   *
+   * When true, mounts routes for token refresh and logout:
+   * - POST `${routePrefix}/refresh` - Refresh access token
+   * - POST `${routePrefix}/logout` - Revoke current token
+   *
+   * @default true
+   */
+  enableRoutes?: boolean;
+
+  /**
+   * Base path for auth routes
+   *
+   * Only used when `enableRoutes` is true.
+   *
+   * @default '/api/auth'
+   */
+  routePrefix?: string;
+
+  /**
+   * Enable debug logging
+   *
+   * @default false
+   */
+  debug?: boolean;
+
+  /**
+   * Transform adapter user to VeloxTS User
+   *
+   * Override to customize how token claims are transformed to User.
+   */
+  transformUser?: (adapterUser: AdapterUser) => User;
+
+  /**
+   * Routes to exclude from automatic session loading
+   */
+  excludeRoutes?: string[];
+
+  /**
+   * Custom error handler for adapter errors
+   */
+  onError?: (
+    error: AuthAdapterError,
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) => void | Promise<void>;
+}
 
 /**
  * Creates JWT auth using the adapter pattern directly

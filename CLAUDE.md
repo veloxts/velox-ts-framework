@@ -410,7 +410,7 @@ The framework is organized as a pnpm monorepo with Turborepo:
 
 ```
 packages/
-├── core/           # @veloxts/core - Fastify wrapper, DI container, plugin system
+├── core/           # @veloxts/core - Fastify wrapper, plugin system, error handling
 ├── router/         # @veloxts/router - tRPC + REST routing with procedures
 ├── validation/     # @veloxts/validation - Zod integration
 ├── orm/            # @veloxts/orm - Prisma wrapper with enhanced DX
@@ -566,11 +566,11 @@ const session = sessionMiddleware({
 
 // Apply middleware to procedures
 const getProfile = procedure()
-  .use(session.requireAuth())  // Requires authenticated session
+  .use(session.required())  // Requires authenticated session
   .query(({ ctx }) => ctx.user);
 
 const publicPage = procedure()
-  .use(session.optionalAuth())  // User optional
+  .use(session.optional())  // User optional
   .query(({ ctx }) => ({ user: ctx.user ?? null }));
 
 // Login - regenerates session ID to prevent fixation attacks
@@ -736,7 +736,6 @@ Currently building toward MVP with these constraints:
 
 ### Deferred to v1.1+
 - Nested resource routing
-- Full DI container with decorators
 - React hooks for data fetching
 - Migration runner CLI
 - Database seeding system

@@ -100,6 +100,7 @@ export { authenticatedNarrow, hasRoleNarrow } from './guards-narrowing.js';
 // ============================================================================
 
 export {
+  DEFAULT_HASH_CONFIG,
   hashPassword,
   PasswordHasher,
   passwordHasher,
@@ -321,55 +322,3 @@ export {
   PasswordStrength,
   passwordPolicy,
 } from './password-policy.js';
-
-// ============================================================================
-// Dependency Injection
-// ============================================================================
-
-/**
- * DI tokens and providers for @veloxts/auth
- *
- * Use these to integrate auth services with the @veloxts/core DI container.
- *
- * @example
- * ```typescript
- * import { Container } from '@veloxts/core';
- * import { registerAuthProviders, JWT_MANAGER, PASSWORD_HASHER } from '@veloxts/auth';
- *
- * const container = new Container();
- * registerAuthProviders(container, {
- *   jwt: { secret: process.env.JWT_SECRET! }
- * });
- *
- * const jwt = container.resolve(JWT_MANAGER);
- * const hasher = container.resolve(PASSWORD_HASHER);
- * ```
- */
-
-// Provider exports - factory functions for registering services
-export {
-  authServiceProvider,
-  jwtManagerProvider,
-  passwordHasherProvider,
-  passwordHasherProviderWithDefaults,
-  // Bulk registration helper
-  registerAuthProviders,
-} from './providers.js';
-// Token exports - unique identifiers for DI resolution
-export {
-  // Config tokens
-  AUTH_CONFIG,
-  AUTH_RATE_LIMITER,
-  // Service tokens
-  AUTH_SERVICE,
-  CSRF_CONFIG,
-  HASH_CONFIG,
-  JWT_CONFIG,
-  JWT_MANAGER,
-  PASSWORD_HASHER,
-  RATE_LIMIT_CONFIG,
-  SESSION_CONFIG,
-  // Store tokens
-  SESSION_STORE,
-  TOKEN_STORE,
-} from './tokens.js';

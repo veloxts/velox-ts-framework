@@ -1,13 +1,12 @@
 /**
  * @veloxts/core - Foundation package for the VeloxTS framework
  *
- * Provides the core Fastify wrapper, plugin system, base context,
- * and dependency injection container that all other framework
- * packages build upon.
+ * Provides the core Fastify wrapper, plugin system, and base context
+ * that all other framework packages build upon.
  *
  * @example
  * ```typescript
- * import { velox, definePlugin, Container, Injectable } from '@veloxts/core';
+ * import { velox, definePlugin } from '@veloxts/core';
  *
  * const app = await velox({ port: 3030 });
  * await app.start();
@@ -15,9 +14,6 @@
  *
  * @module @veloxts/core
  */
-
-// Import reflect-metadata for decorator support
-import 'reflect-metadata';
 
 import { createRequire } from 'node:module';
 
@@ -36,63 +32,6 @@ export { VeloxApp, velox, veloxApp } from './app.js';
 // Context system
 export type { BaseContext } from './context.js';
 export { createContext, isContext, setupContextHook, setupTestContext } from './context.js';
-export type {
-  AbstractClass,
-  ClassConstructor,
-  ClassProvider,
-  // Container types
-  ContainerOptions,
-  ExistingProvider,
-  FactoryProvider,
-  // Decorator types
-  InjectableOptions,
-  // Token types
-  InjectionToken,
-  // Provider types
-  Provider,
-  ResolutionContext,
-  StringToken,
-  SymbolToken,
-  TokenType,
-  ValueProvider,
-} from './di/index.js';
-// Dependency Injection
-export {
-  asClass,
-  asExisting,
-  asFactory,
-  asValue,
-  Container,
-  container,
-  factory,
-  getConstructorTokens,
-  getExplicitInjectTokens,
-  getInjectableScope,
-  getOptionalParams,
-  getTokenName,
-  Inject,
-  Injectable,
-  isClassProvider,
-  isClassToken,
-  isExistingProvider,
-  isFactoryProvider,
-  isInjectable,
-  isStringToken,
-  isSymbolToken,
-  isValueProvider,
-  makeInjectable,
-  Optional,
-  Scope,
-  ScopeManager,
-  scoped,
-  setInjectTokens,
-  singleton,
-  token,
-  transient,
-  validateProvider,
-  validateToken,
-  value,
-} from './di/index.js';
 // Error handling
 export type {
   ErrorCode,

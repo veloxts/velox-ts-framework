@@ -59,7 +59,7 @@ const session = sessionMiddleware({
 
 // Protect procedures
 getProfile: procedure()
-  .use(session.requireAuth())
+  .use(session.required())
   .query(({ ctx }) => ctx.user),
 ```
 

@@ -85,34 +85,3 @@ export type {
   TaskSkipCallback,
   TaskSuccessCallback,
 } from './types.js';
-
-// ============================================================================
-// Dependency Injection
-// ============================================================================
-
-/**
- * DI tokens and providers for @veloxts/scheduler
- *
- * Use these to integrate scheduler services with the @veloxts/core DI container.
- *
- * @example
- * ```typescript
- * import { Container } from '@veloxts/core';
- * import { registerSchedulerProviders, SCHEDULER_MANAGER, defineTask, defineSchedule } from '@veloxts/scheduler';
- *
- * const container = new Container();
- * registerSchedulerProviders(container, {
- *   tasks: defineSchedule([
- *     defineTask('cleanup', () => db.cleanup()).daily(),
- *   ]),
- * });
- *
- * const scheduler = container.resolve(SCHEDULER_MANAGER);
- * scheduler.start();
- * ```
- */
-
-// Provider exports - factory functions for registering services
-export { registerSchedulerProviders } from './providers.js';
-// Token exports - unique identifiers for DI resolution
-export { SCHEDULER_CONFIG, SCHEDULER_MANAGER } from './tokens.js';

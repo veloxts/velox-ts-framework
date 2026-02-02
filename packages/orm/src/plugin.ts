@@ -12,8 +12,6 @@ import { createRequire } from 'node:module';
 import { ConfigurationError, definePlugin } from '@veloxts/core';
 
 import { createDatabase, type Database } from './client.js';
-import { registerOrmProviders } from './providers.js';
-import { DATABASE } from './tokens.js';
 import type { DatabaseClient, OrmPluginConfig } from './types.js';
 import { isDatabaseClient } from './types.js';
 
@@ -118,19 +116,6 @@ interface PluginState<TClient extends DatabaseClient> {
  *
  * @example
  * ```typescript
- * // With DI container
- * import { Container } from '@veloxts/core';
- * import { databasePlugin, DATABASE } from '@veloxts/orm';
- *
- * const container = new Container();
- * await app.use(databasePlugin({ client: prisma, container }));
- *
- * // Resolve from container
- * const db = container.resolve(DATABASE);
- * ```
- *
- * @example
- * ```typescript
  * // Using ctx.db in procedures
  * import { defineProcedures, procedure } from '@veloxts/router';
  * import { z } from '@veloxts/validation';
@@ -174,7 +159,6 @@ export function databasePlugin<TClient extends DatabaseClient>(config: OrmPlugin
   }
 
   const pluginName = config.name ?? DEFAULT_PLUGIN_NAME;
-  const { container } = config;
 
   // Plugin state - holds the database wrapper
   const state: PluginState<TClient> = {
@@ -186,14 +170,8 @@ export function databasePlugin<TClient extends DatabaseClient>(config: OrmPlugin
     version: ORM_PLUGIN_VERSION,
 
     async register(server) {
-      if (container) {
-        // DI-enabled path: Register providers and resolve from container
-        registerOrmProviders(container, config);
-        state.database = container.resolve(DATABASE) as Database<TClient>;
-      } else {
-        // Legacy path: Direct instantiation (backward compatible)
-        state.database = createDatabase({ client: config.client });
-      }
+      // Create database wrapper
+      state.database = createDatabase({ client: config.client });
 
       // Connect to the database
       await state.database.connect();
