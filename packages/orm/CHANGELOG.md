@@ -1,5 +1,13 @@
 # @veloxts/orm
 
+## 0.6.91
+
+### Patch Changes
+
+- removed unused DI system
+- Updated dependencies
+  - @veloxts/core@0.6.91
+
 ## 0.6.90
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.91
+
+### Patch Changes
+
+- removed unused DI system
+
 ## 0.6.90
 
 ### Patch Changes

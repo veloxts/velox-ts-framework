@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.91
+
+### Patch Changes
+
+- removed unused DI system
+- Updated dependencies
+  - @veloxts/auth@0.6.91
+  - @veloxts/client@0.6.91
+  - @veloxts/core@0.6.91
+  - @veloxts/router@0.6.91
+
 ## 0.6.90
 
 ### Patch Changes

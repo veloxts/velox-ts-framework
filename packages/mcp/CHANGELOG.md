@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.91
+
+### Patch Changes
+
+- removed unused DI system
+- Updated dependencies
+  - @veloxts/cli@0.6.91
+  - @veloxts/router@0.6.91
+  - @veloxts/validation@0.6.91
+
 ## 0.6.90
 
 ### Patch Changes
