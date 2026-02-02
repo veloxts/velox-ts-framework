@@ -79,6 +79,54 @@ curl http://localhost:3030/api/health
 
 Your frontend is now running at **http://localhost:8080**.
 
+## Adding to an Existing Project
+
+If you want to add VeloxTS to an existing project instead of using the scaffolder:
+
+### Backend (API)
+
+```bash
+# Dependencies
+pnpm add @veloxts/velox @prisma/client @prisma/adapter-better-sqlite3 \
+  @prisma/client-runtime-utils better-sqlite3 dotenv zod
+
+# Dev dependencies
+pnpm add -D @veloxts/cli prisma tsx tsup typescript @types/node hot-hook
+```
+
+**With authentication:**
+```bash
+pnpm add @veloxts/auth bcrypt
+pnpm add -D @types/bcrypt
+```
+
+### Frontend (SPA Client)
+
+```bash
+# Dependencies
+pnpm add @veloxts/client @tanstack/react-query react react-dom
+
+# Dev dependencies
+pnpm add -D @vitejs/plugin-react vite typescript @types/react @types/react-dom
+```
+
+### PostgreSQL Instead of SQLite
+
+Replace the SQLite adapter:
+```bash
+pnpm remove @prisma/adapter-better-sqlite3 better-sqlite3
+pnpm add @prisma/adapter-pg
+```
+
+### Minimal Setup
+
+For the smallest footprint, install individual packages instead of `@veloxts/velox`:
+
+```bash
+# Core only (no auth, no ORM helpers)
+pnpm add @veloxts/core @veloxts/router @veloxts/validation
+```
+
 ## Related Content
 
 - [Quick Start](/docs/getting-started/quick-start/) - Build your first procedure
