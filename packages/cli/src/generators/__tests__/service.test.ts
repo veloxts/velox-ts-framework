@@ -61,7 +61,6 @@ describe('ServiceGenerator', () => {
       expect(options.crud).toBe(false);
       expect(options.cache).toBe(false);
       expect(options.events).toBe(false);
-      expect(options.injectable).toBe(false);
     });
 
     it('should accept crud option', () => {
@@ -78,18 +77,13 @@ describe('ServiceGenerator', () => {
       const options = generator.validateOptions({ events: true });
       expect(options.events).toBe(true);
     });
-
-    it('should accept inject option (maps to injectable)', () => {
-      const options = generator.validateOptions({ inject: true });
-      expect(options.injectable).toBe(true);
-    });
   });
 
   describe('generate', () => {
     it('should generate simple service file', async () => {
       const config: GeneratorConfig = {
         entityName: 'payment',
-        options: { crud: false, cache: false, events: false, injectable: false },
+        options: { crud: false, cache: false, events: false },
         cwd: '/test',
         project: mockProject,
         dryRun: false,
@@ -111,7 +105,7 @@ describe('ServiceGenerator', () => {
     it('should generate CRUD service when crud option is true', async () => {
       const config: GeneratorConfig = {
         entityName: 'user',
-        options: { crud: true, cache: false, events: false, injectable: false },
+        options: { crud: true, cache: false, events: false },
         cwd: '/test',
         project: mockProject,
         dryRun: false,
@@ -135,7 +129,7 @@ describe('ServiceGenerator', () => {
     it('should include caching when cache option is true', async () => {
       const config: GeneratorConfig = {
         entityName: 'product',
-        options: { crud: true, cache: true, events: false, injectable: false },
+        options: { crud: true, cache: true, events: false },
         cwd: '/test',
         project: mockProject,
         dryRun: false,
@@ -155,7 +149,7 @@ describe('ServiceGenerator', () => {
     it('should generate event service when events option is true', async () => {
       const config: GeneratorConfig = {
         entityName: 'order',
-        options: { crud: false, cache: false, events: true, injectable: false },
+        options: { crud: false, cache: false, events: true },
         cwd: '/test',
         project: mockProject,
         dryRun: false,
@@ -174,28 +168,10 @@ describe('ServiceGenerator', () => {
       expect(content).toContain('this.emit');
     });
 
-    it('should include Injectable decorator when inject option is true', async () => {
-      const config: GeneratorConfig = {
-        entityName: 'auth',
-        options: { crud: false, cache: false, events: false, injectable: true },
-        cwd: '/test',
-        project: mockProject,
-        dryRun: false,
-        force: false,
-        conflictStrategy: 'prompt',
-      };
-
-      const output = await generator.generate(config);
-      const content = output.files[0].content;
-
-      expect(content).toContain('Injectable');
-      expect(content).toContain('@Injectable()');
-    });
-
     it('should include post-generation instructions', async () => {
       const config: GeneratorConfig = {
         entityName: 'custom',
-        options: { crud: false, cache: false, events: false, injectable: false },
+        options: { crud: false, cache: false, events: false },
         cwd: '/test',
         project: mockProject,
         dryRun: false,

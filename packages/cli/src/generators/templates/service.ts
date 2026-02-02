@@ -17,8 +17,6 @@ export interface ServiceOptions {
   cache: boolean;
   /** Include event emitter */
   events: boolean;
-  /** Generate injectable service (DI) */
-  injectable: boolean;
 }
 
 // ============================================================================
@@ -41,18 +39,6 @@ export function getServicePath(entityName: string, _project: ProjectContext): st
  */
 function generateCrudService(ctx: TemplateContext<ServiceOptions>): string {
   const { entity, options } = ctx;
-
-  const injectableDecorator = options.injectable
-    ? `import { Injectable, Inject } from '@veloxts/core';
-import { DatabaseToken } from '@/di/tokens';
-
-@Injectable()
-`
-    : '';
-
-  const dbInjection = options.injectable
-    ? `  constructor(@Inject(DatabaseToken) private readonly db: PrismaClient) {}`
-    : `  constructor(private readonly db: PrismaClient) {}`;
 
   const cacheImports = options.cache
     ? `
@@ -145,7 +131,7 @@ const CACHE_TTL = 60 * 1000; // 1 minute
  */
 
 import type { PrismaClient } from '@prisma/client';
-${injectableDecorator ? injectableDecorator : ''}${cacheImports}
+${cacheImports}
 // ============================================================================
 // Types
 // ============================================================================
@@ -183,8 +169,8 @@ interface List${entity.pascalPlural}Options {
  *
  * Encapsulates business logic for ${entity.humanReadable} CRUD operations.
  */
-${injectableDecorator}export class ${entity.pascal}Service {
-${dbInjection}
+export class ${entity.pascal}Service {
+  constructor(private readonly db: PrismaClient) {}
 
   /**
    * Find ${entity.humanReadable} by ID
@@ -261,15 +247,7 @@ ${cacheHelpers}
  * Generate service with events
  */
 function generateEventService(ctx: TemplateContext<ServiceOptions>): string {
-  const { entity, options } = ctx;
-
-  const injectableDecorator = options.injectable
-    ? `import { Injectable, Inject } from '@veloxts/core';
-import { DatabaseToken } from '@/di/tokens';
-
-@Injectable()
-`
-    : '';
+  const { entity } = ctx;
 
   return `/**
  * ${entity.pascal} Service
@@ -279,7 +257,7 @@ import { DatabaseToken } from '@/di/tokens';
 
 import { EventEmitter } from 'node:events';
 import type { PrismaClient } from '@prisma/client';
-${injectableDecorator}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -316,7 +294,7 @@ export type ${entity.pascal}Events = {
 /**
  * ${entity.pascal} service with event emission
  */
-${injectableDecorator ? injectableDecorator : ''}export class ${entity.pascal}Service extends EventEmitter {
+export class ${entity.pascal}Service extends EventEmitter {
   constructor(private readonly db: PrismaClient) {
     super();
   }
@@ -403,21 +381,14 @@ const ${entity.camel} = await service.create({ name: 'Example' });
  * Generate simple service template
  */
 function generateSimpleService(ctx: TemplateContext<ServiceOptions>): string {
-  const { entity, options } = ctx;
-
-  const injectableImport = options.injectable
-    ? `import { Injectable } from '@veloxts/core';
-
-@Injectable()
-`
-    : '';
+  const { entity } = ctx;
 
   return `/**
  * ${entity.pascal} Service
  *
  * Business logic for ${entity.humanReadable} operations.
  */
-${injectableImport}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -448,7 +419,7 @@ export interface Update${entity.pascal}Input {
  * Handles business logic for ${entity.humanReadable} operations.
  * Separate from procedures to allow reuse across different endpoints.
  */
-${injectableImport ? '@Injectable()\n' : ''}export class ${entity.pascal}Service {
+export class ${entity.pascal}Service {
   /**
    * Process ${entity.humanReadable} data
    *
@@ -497,7 +468,7 @@ ${injectableImport ? '@Injectable()\n' : ''}export class ${entity.pascal}Service
 /**
  * Singleton service instance
  *
- * Use this for simple cases without DI.
+ * Use this for simple cases, or instantiate manually for dependency injection.
  */
 export const ${entity.camel}Service = new ${entity.pascal}Service();
 `;
@@ -527,15 +498,8 @@ export const serviceTemplate: TemplateFunction<ServiceOptions> = (ctx) => {
 export function getServiceInstructions(entityName: string, options: ServiceOptions): string {
   const lines = [`Your ${entityName} service has been created.`, '', 'Next steps:'];
 
-  if (options.injectable) {
-    lines.push('  1. Register the service in your DI container');
-    lines.push('  2. Inject into procedures or other services');
-  } else {
-    lines.push('  1. Import the service in your procedures');
-    lines.push(
-      `     import { ${entityName}Service } from '@/services/${entityName.toLowerCase()}';`
-    );
-  }
+  lines.push('  1. Import the service in your procedures');
+  lines.push(`     import { ${entityName}Service } from '@/services/${entityName.toLowerCase()}';`);
 
   if (options.crud) {
     lines.push('  2. Update the Prisma model name if different');
