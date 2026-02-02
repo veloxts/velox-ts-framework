@@ -133,7 +133,7 @@ All ecosystem packages support **Dependency Injection** with symbol-based tokens
 | Package | Description |
 |---------|-------------|
 | [`@veloxts/velox`](./packages/velox) | Umbrella package - all framework features in one import |
-| [`@veloxts/core`](./packages/core) | Fastify wrapper, plugin system, DI container, and application lifecycle |
+| [`@veloxts/core`](./packages/core) | Fastify wrapper, plugin system, error handling, and application lifecycle |
 | [`@veloxts/router`](./packages/router) | Procedure definitions with tRPC and REST routing |
 | [`@veloxts/validation`](./packages/validation) | Zod integration and common validation schemas |
 | [`@veloxts/orm`](./packages/orm) | Prisma wrapper with enhanced developer experience |

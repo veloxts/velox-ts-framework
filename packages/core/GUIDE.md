@@ -1,6 +1,6 @@
 # @veloxts/core
 
-Core foundation for VeloxTS Framework providing application bootstrap, plugin system, and dependency injection.
+Core foundation for VeloxTS Framework providing application bootstrap, plugin system, and error handling.
 
 ## Installation
 
@@ -74,54 +74,6 @@ declare module '@veloxts/core' {
 }
 
 // Now ctx.db is available with full type safety
-```
-
-## Dependency Injection
-
-VeloxTS provides a powerful DI container for managing service dependencies:
-
-```typescript
-import { Injectable, Inject, Scope, singleton, scoped } from '@veloxts/core';
-
-@Injectable()
-class UserService {
-  constructor(private db: PrismaClient) {}
-
-  async getUser(id: string) {
-    return this.db.user.findUniqueOrThrow({ where: { id } });
-  }
-}
-
-// Register services
-app.container.register(singleton(UserService));
-
-// Resolve in procedures
-const userService = app.container.resolve(UserService);
-```
-
-### Lifecycle Scopes
-
-- `Scope.SINGLETON` - One instance for entire application
-- `Scope.REQUEST` - One instance per HTTP request
-- `Scope.TRANSIENT` - New instance every time
-
-### Succinct Helpers
-
-```typescript
-import { singleton, scoped, transient, value, factory } from '@veloxts/core';
-
-// Class services
-app.container.register(singleton(ConfigService));
-app.container.register(scoped(UserContext));
-app.container.register(transient(RequestLogger));
-
-// Values
-app.container.register(value(CONFIG, { port: 3030 }));
-
-// Factories
-app.container.register(
-  factory(DATABASE, (config) => new PrismaClient({ url: config.dbUrl }), [ConfigService])
-);
 ```
 
 ## Error Handling

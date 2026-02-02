@@ -410,7 +410,7 @@ The framework is organized as a pnpm monorepo with Turborepo:
 
 ```
 packages/
-├── core/           # @veloxts/core - Fastify wrapper, DI container, plugin system
+├── core/           # @veloxts/core - Fastify wrapper, plugin system, error handling
 ├── router/         # @veloxts/router - tRPC + REST routing with procedures
 ├── validation/     # @veloxts/validation - Zod integration
 ├── orm/            # @veloxts/orm - Prisma wrapper with enhanced DX
@@ -736,7 +736,6 @@ Currently building toward MVP with these constraints:
 
 ### Deferred to v1.1+
 - Nested resource routing
-- Full DI container with decorators
 - React hooks for data fetching
 - Migration runner CLI
 - Database seeding system
