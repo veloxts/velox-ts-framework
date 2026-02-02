@@ -566,11 +566,11 @@ const session = sessionMiddleware({
 
 // Apply middleware to procedures
 const getProfile = procedure()
-  .use(session.requireAuth())  // Requires authenticated session
+  .use(session.required())  // Requires authenticated session
   .query(({ ctx }) => ctx.user);
 
 const publicPage = procedure()
-  .use(session.optionalAuth())  // User optional
+  .use(session.optional())  // User optional
   .query(({ ctx }) => ({ user: ctx.user ?? null }));
 
 // Login - regenerates session ID to prevent fixation attacks

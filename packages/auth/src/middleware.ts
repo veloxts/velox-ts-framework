@@ -36,18 +36,17 @@ import { AuthError } from './types.js';
  * ```typescript
  * const auth = authMiddleware(authConfig);
  *
- * // Use in procedures
+ * // Required auth (user guaranteed to exist)
  * const getProfile = procedure()
- *   .use(auth.middleware())
+ *   .use(auth.required())
  *   .query(async ({ ctx }) => {
- *     return ctx.user; // Guaranteed to exist
+ *     return ctx.user;
  *   });
  *
  * // Optional auth (user may be undefined)
  * const getPosts = procedure()
- *   .use(auth.middleware({ optional: true }))
+ *   .use(auth.optional())
  *   .query(async ({ ctx }) => {
- *     // ctx.user may be undefined
  *     return fetchPosts(ctx.user?.id);
  *   });
  *

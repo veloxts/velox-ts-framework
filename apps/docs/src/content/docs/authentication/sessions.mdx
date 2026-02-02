@@ -27,7 +27,7 @@ const session = sessionMiddleware({
 
 ```typescript
 login: procedure()
-  .use(session.optionalAuth())
+  .use(session.optional())
   .input(LoginSchema)
   .mutation(async ({ input, ctx }) => {
     const user = await verifyCredentials(input);
@@ -46,7 +46,7 @@ login: procedure()
 
 ```typescript
 logout: procedure()
-  .use(session.requireAuth())
+  .use(session.required())
   .mutation(async ({ ctx }) => {
     await ctx.session.logout();
     return { success: true };
@@ -57,12 +57,12 @@ logout: procedure()
 
 ```typescript
 getProfile: procedure()
-  .use(session.requireAuth())
+  .use(session.required())
   .query(({ ctx }) => ctx.user),
 
 // Optional auth (user may or may not be logged in)
 homePage: procedure()
-  .use(session.optionalAuth())
+  .use(session.optional())
   .query(({ ctx }) => ({ user: ctx.user ?? null })),
 ```
 
