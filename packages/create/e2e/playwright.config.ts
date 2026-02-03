@@ -5,13 +5,15 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * These tests scaffold real projects and validate frontend behavior
  * using Playwright's browser automation.
+ *
+ * Each template runs as a separate project so the scaffold fixture
+ * is created once per template, not once per test.
  */
 export default defineConfig({
   testDir: './specs',
   testMatch: '**/*.spec.ts',
 
-  // Sequential execution to avoid port conflicts
-  // Each test file scaffolds its own project on a unique port
+  // Sequential execution to avoid port conflicts between templates
   fullyParallel: false,
   workers: 1,
 
@@ -28,9 +30,6 @@ export default defineConfig({
 
   // Shared settings for all projects
   use: {
-    // Base URL will be set per-test based on dynamic port
-    // baseURL: 'http://localhost:3030',
-
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
 
@@ -48,14 +47,61 @@ export default defineConfig({
   globalSetup: './global-setup.ts',
   globalTeardown: './global-teardown.ts',
 
-  // Configure projects for different browsers (Chromium only for speed)
+  // Configure projects for each template
+  // Each project runs tests from a specific spec file
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'spa',
+      testMatch: 'spa.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Pass template to fixture via project metadata
+        template: 'spa',
+      },
+    },
+    {
+      name: 'auth',
+      testMatch: 'auth.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        template: 'auth',
+      },
+    },
+    {
+      name: 'trpc',
+      testMatch: 'trpc.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        template: 'trpc',
+      },
+    },
+    {
+      name: 'rsc',
+      testMatch: 'rsc.spec.ts',
+      timeout: 180000, // 3 minutes - Vinxi takes longer to start
+      use: {
+        ...devices['Desktop Chrome'],
+        template: 'rsc',
+      },
+    },
+    {
+      name: 'rsc-auth',
+      testMatch: 'rsc-auth.spec.ts',
+      timeout: 180000, // 3 minutes - Vinxi takes longer to start
+      use: {
+        ...devices['Desktop Chrome'],
+        template: 'rsc-auth',
+      },
     },
   ],
 
   // Output folder for test artifacts
   outputDir: 'test-results',
 });
+
+// Extend Playwright's test options to include our custom template option
+declare module '@playwright/test' {
+  interface TestOptions {
+    template: string;
+  }
+}

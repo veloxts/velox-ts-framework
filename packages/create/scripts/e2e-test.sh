@@ -21,30 +21,29 @@ SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # Parse arguments
-FILTER=""
+PROJECT=""
 EXTRA_ARGS=""
+SKIP_SEPARATOR=false
 
 for arg in "$@"; do
+  # Skip the -- separator if present
+  if [ "$arg" = "--" ]; then
+    SKIP_SEPARATOR=true
+    continue
+  fi
+
   case $arg in
     spa|auth|trpc|rsc|rsc-auth)
-      FILTER="--grep $arg"
-      shift
+      PROJECT="--project=$arg"
       ;;
-    --headed)
-      EXTRA_ARGS="$EXTRA_ARGS --headed"
-      shift
+    --project=*)
+      PROJECT="$arg"
       ;;
-    --debug)
-      EXTRA_ARGS="$EXTRA_ARGS --debug"
-      shift
-      ;;
-    --ui)
-      EXTRA_ARGS="$EXTRA_ARGS --ui"
-      shift
+    --headed|--debug|--ui)
+      EXTRA_ARGS="$EXTRA_ARGS $arg"
       ;;
     *)
       EXTRA_ARGS="$EXTRA_ARGS $arg"
-      shift
       ;;
   esac
 done
@@ -65,7 +64,7 @@ echo "Running E2E tests..."
 echo ""
 
 # Use --config to point to the e2e directory
-npx playwright test --config=e2e/playwright.config.ts $FILTER $EXTRA_ARGS
+npx playwright test --config=e2e/playwright.config.ts $PROJECT $EXTRA_ARGS
 
 echo ""
 echo "=== E2E Tests Complete ==="
