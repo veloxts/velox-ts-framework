@@ -7,6 +7,7 @@
 
 import type { Readable } from 'node:stream';
 
+import { StorageObjectNotFoundError } from '../errors.js';
 import type {
   CopyOptions,
   FileMetadata,
@@ -16,6 +17,7 @@ import type {
   ListResult,
   PutOptions,
   S3StorageConfig,
+  SignedUploadOptions,
   SignedUrlOptions,
   StorageStore,
 } from '../types.js';
@@ -83,6 +85,7 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
     forcePathStyle,
     defaultVisibility,
     prefix,
+    publicUrl,
   } = options;
 
   // Dynamic import of AWS SDK (peer dependency)
@@ -159,6 +162,21 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
   const { Upload } = await import('@aws-sdk/lib-storage');
 
   const store: StorageStore = {
+    async init(): Promise<void> {
+      // Verify connectivity by listing a single object
+      try {
+        await client.send(
+          new ListObjectsV2Command({
+            Bucket: bucket,
+            MaxKeys: 1,
+          })
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`S3 storage init failed for bucket "${bucket}": ${message}`);
+      }
+    },
+
     async put(
       path: string,
       content: Buffer | string | Readable,
@@ -309,30 +327,37 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
         return 0;
       }
 
-      // S3 supports batch delete of up to 1000 objects
-      const keys = paths.map((path) => ({ Key: getKey(path) }));
+      // S3 supports batch delete of up to 1000 objects per request
+      const BATCH_SIZE = 1000;
+      let totalDeleted = 0;
 
-      try {
-        const response = await client.send(
-          new DeleteObjectsCommand({
-            Bucket: bucket,
-            Delete: {
-              Objects: keys,
-              Quiet: false,
-            },
-          })
-        );
+      // Process in batches to respect S3 API limit
+      for (let i = 0; i < paths.length; i += BATCH_SIZE) {
+        const batch = paths.slice(i, i + BATCH_SIZE);
+        const keys = batch.map((path) => ({ Key: getKey(path) }));
 
-        return response.Deleted?.length ?? 0;
-      } catch {
-        // Fall back to individual deletes if batch fails
-        let count = 0;
-        const results = await Promise.all(paths.map((path) => store.delete(path)));
-        for (const deleted of results) {
-          if (deleted) count++;
+        try {
+          const response = await client.send(
+            new DeleteObjectsCommand({
+              Bucket: bucket,
+              Delete: {
+                Objects: keys,
+                Quiet: false,
+              },
+            })
+          );
+
+          totalDeleted += response.Deleted?.length ?? 0;
+        } catch {
+          // Fall back to individual deletes if batch fails
+          const results = await Promise.all(batch.map((path) => store.delete(path)));
+          for (const deleted of results) {
+            if (deleted) totalDeleted++;
+          }
         }
-        return count;
       }
+
+      return totalDeleted;
     },
 
     async copy(
@@ -351,8 +376,11 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
       await client.send(
         new CopyObjectCommand({
           Bucket: bucket,
-          // CopySource must be URL-encoded for special characters in paths
-          CopySource: encodeURIComponent(`${bucket}/${sourceKey}`),
+          // CopySource format: bucket/key - encode key segments but not the bucket/key separator
+          CopySource: `${bucket}/${sourceKey
+            .split('/')
+            .map((s) => encodeURIComponent(s))
+            .join('/')}`,
           Key: destKey,
           ACL: visibilityToAcl(visibility),
         })
@@ -397,6 +425,14 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
       }
     },
 
+    async head(path: string): Promise<FileMetadata> {
+      const result = await store.metadata(path);
+      if (result === null) {
+        throw new StorageObjectNotFoundError(path);
+      }
+      return result;
+    },
+
     async list(listPrefix = '', listOptions: ListOptions = {}): Promise<ListResult> {
       const { recursive = false, limit = 1000, cursor } = listOptions;
 
@@ -432,7 +468,20 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
 
     async url(path: string): Promise<string> {
       const key = getKey(path);
-      return `${getBaseUrl()}/${key}`;
+      // URL-encode each path segment separately to preserve `/` delimiters
+      // but properly encode special characters like spaces, ?, #, etc.
+      const encodedKey = key
+        .split('/')
+        .map((segment) => encodeURIComponent(segment))
+        .join('/');
+
+      // Use custom publicUrl (e.g., CDN) if provided, otherwise use S3 URL
+      if (publicUrl) {
+        const base = publicUrl.endsWith('/') ? publicUrl.slice(0, -1) : publicUrl;
+        return `${base}/${encodedKey}`;
+      }
+
+      return `${getBaseUrl()}/${encodedKey}`;
     },
 
     async signedUrl(path: string, signedOptions: SignedUrlOptions = {}): Promise<string> {
@@ -449,6 +498,19 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
       return await getSignedUrl(client, command, { expiresIn });
     },
 
+    async signedUploadUrl(options: SignedUploadOptions): Promise<string> {
+      const { key, expiresIn = 3600, contentType } = options;
+      const fullKey = getKey(key);
+
+      const command = new PutObjectCommand({
+        Bucket: bucket,
+        Key: fullKey,
+        ContentType: contentType,
+      });
+
+      return await getSignedUrl(client, command, { expiresIn });
+    },
+
     async setVisibility(path: string, visibility: FileVisibility): Promise<void> {
       const key = getKey(path);
 
@@ -456,8 +518,11 @@ export async function createS3Store(config: S3StorageConfig): Promise<StorageSto
       await client.send(
         new CopyObjectCommand({
           Bucket: bucket,
-          // CopySource must be URL-encoded for special characters in paths
-          CopySource: encodeURIComponent(`${bucket}/${key}`),
+          // CopySource format: bucket/key - encode key segments but not the bucket/key separator
+          CopySource: `${bucket}/${key
+            .split('/')
+            .map((s) => encodeURIComponent(s))
+            .join('/')}`,
           Key: key,
           ACL: visibilityToAcl(visibility),
           MetadataDirective: 'COPY',
