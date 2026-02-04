@@ -12,7 +12,12 @@ import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core'
 
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
-import type { OutputForTag, ResourceSchema } from '../resource/index.js';
+import {
+  type AccessLevel,
+  type OutputForTag,
+  Resource,
+  type ResourceSchema,
+} from '../resource/index.js';
 import type { ContextTag, ExtractTag, TaggedContext } from '../resource/tags.js';
 import type {
   CompiledProcedure,
@@ -352,6 +357,8 @@ function compileProcedure<
     parentResources: state.parentResources,
     // Store pre-compiled executor for performance
     _precompiledExecutor: precompiledExecutor,
+    // Store resource schema for auto-projection
+    _resourceSchema: state.resourceSchema,
   };
 }
 
@@ -573,6 +580,9 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   rawInput: unknown,
   ctx: TContext
 ): Promise<TOutput> {
+  // Track the highest access level from narrowing guards
+  let accessLevel: AccessLevel = 'public';
+
   // Step 1: Execute guards if any
   if (procedure.guards.length > 0) {
     // Defensive check: ensure request and reply exist in context
@@ -596,8 +606,24 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
         const message = guard.message ?? `Guard "${guard.name}" check failed`;
         throw new GuardError(guard.name, message, statusCode);
       }
+
+      // Track highest access level from narrowing guards
+      const guardWithLevel = guard as { accessLevel?: AccessLevel };
+      if (guardWithLevel.accessLevel) {
+        // Admin > authenticated > public
+        if (
+          guardWithLevel.accessLevel === 'admin' ||
+          (guardWithLevel.accessLevel === 'authenticated' && accessLevel === 'public')
+        ) {
+          accessLevel = guardWithLevel.accessLevel;
+        }
+      }
     }
   }
+
+  // Set __accessLevel on context for auto-projection
+  const ctxWithLevel = ctx as TContext & { __accessLevel?: AccessLevel };
+  ctxWithLevel.__accessLevel = accessLevel;
 
   // Step 2: Validate input if schema provided
   const input: TInput = procedure.inputSchema
@@ -609,21 +635,39 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
 
   if (procedure._precompiledExecutor) {
     // PERFORMANCE: Use pre-compiled middleware chain executor
-    result = await procedure._precompiledExecutor(input, ctx);
+    result = await procedure._precompiledExecutor(input, ctxWithLevel as TContext);
   } else if (procedure.middlewares.length === 0) {
     // No middleware - execute handler directly
-    result = await procedure.handler({ input, ctx });
+    result = await procedure.handler({ input, ctx: ctxWithLevel as TContext });
   } else {
     // Fallback: Build middleware chain dynamically (should not normally happen)
     result = await executeMiddlewareChainFallback(
       procedure.middlewares as MiddlewareFunction<TInput, TContext, TContext, TOutput>[],
       input,
-      ctx,
-      async () => procedure.handler({ input, ctx })
+      ctxWithLevel as TContext,
+      async () => procedure.handler({ input, ctx: ctxWithLevel as TContext })
     );
   }
 
-  // Step 4: Validate output if schema provided
+  // Step 4: Auto-project if resource schema is set
+  if (procedure._resourceSchema) {
+    const schema = procedure._resourceSchema as ResourceSchema;
+    const resourceInstance = new Resource(result as Record<string, unknown>, schema);
+
+    // Project based on access level
+    switch (accessLevel) {
+      case 'admin':
+        result = resourceInstance.forAdmin() as TOutput;
+        break;
+      case 'authenticated':
+        result = resourceInstance.forAuthenticated() as TOutput;
+        break;
+      default:
+        result = resourceInstance.forAnonymous() as TOutput;
+    }
+  }
+
+  // Step 5: Validate output if schema provided
   if (procedure.outputSchema) {
     return procedure.outputSchema.parse(result);
   }

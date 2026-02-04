@@ -345,6 +345,8 @@ export {
 // ============================================================================
 
 export type {
+  // Runtime access level (for auto-projection)
+  AccessLevel,
   // Phantom tags (type-only - these are ambient declarations)
   ADMIN,
   AdminOutput,

@@ -4,8 +4,23 @@
  * Provides compile-time only type tags that carry access level information
  * through the type system without any runtime overhead.
  *
+ * Additionally provides runtime `__accessLevel` property for auto-projection
+ * when using the chained `.resource()` method on procedures.
+ *
  * @module resource/tags
  */
+
+// ============================================================================
+// Runtime Access Level
+// ============================================================================
+
+/**
+ * Runtime access level values
+ *
+ * These values are set by narrowing guards at runtime and used for
+ * automatic resource projection in the procedure builder.
+ */
+export type AccessLevel = 'public' | 'authenticated' | 'admin';
 
 // ============================================================================
 // Phantom Type Symbols
@@ -51,6 +66,10 @@ export type ContextTag = typeof ANONYMOUS | typeof AUTHENTICATED | typeof ADMIN;
  * and is never present at runtime. This allows us to carry type information
  * without any memory overhead.
  *
+ * The `__accessLevel` field is a runtime field set by narrowing guards.
+ * It enables automatic resource projection when using `.resource()` in
+ * the procedure builder chain.
+ *
  * @template TTag - The context tag type (defaults to ANONYMOUS)
  *
  * @example
@@ -72,6 +91,19 @@ export interface TaggedContext<TTag extends ContextTag = typeof ANONYMOUS> {
    * @internal Never exists at runtime - purely for type inference
    */
   readonly __tag?: TTag;
+
+  /**
+   * Runtime access level set by narrowing guards
+   *
+   * This field IS present at runtime (unlike __tag) and is used for
+   * automatic resource projection when using `.resource()` in procedures.
+   *
+   * Set automatically by:
+   * - `authenticatedNarrow` → 'authenticated'
+   * - `adminNarrow` → 'admin'
+   * - No guard → 'public' (default)
+   */
+  __accessLevel?: AccessLevel;
 }
 
 // ============================================================================

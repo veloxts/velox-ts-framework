@@ -162,9 +162,9 @@ import { UserSchema, GetUserInput } from '../schemas/user.js'; // Zod schemas
 
 export const userProcedures = procedures('users', {
   getUser: procedure()
-    .guards(authenticated, hasOrganization)
     .input(GetUserInput)
-    .output(UserSchema)
+    .guards(authenticated, hasOrganization)
+    .resource(UserSchema)
     .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
       where: { id: input.id }
     })),

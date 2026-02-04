@@ -573,3 +573,67 @@ describe('Security - Prototype Pollution Prevention', () => {
     expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
   });
 });
+
+// ============================================================================
+// Auto-Projection with executeProcedure Tests
+// ============================================================================
+
+describe('Auto-Projection with .resource() in Procedure Builder', () => {
+  // Note: Full integration tests with executeProcedure require mocking
+  // Fastify request/reply. These tests verify the Resource class behavior
+  // that underlies auto-projection.
+
+  it('should project based on access level', () => {
+    // Simulate what executeProcedure does with different access levels
+    const data = {
+      id: '123',
+      name: 'John',
+      email: 'john@example.com',
+      internalNotes: 'VIP',
+    };
+
+    const schema = resourceSchema()
+      .public('id', z.string())
+      .public('name', z.string())
+      .authenticated('email', z.string())
+      .admin('internalNotes', z.string())
+      .build();
+
+    // Public access level
+    const publicResult = new Resource(data, schema).forAnonymous();
+    expect(publicResult).toEqual({ id: '123', name: 'John' });
+
+    // Authenticated access level
+    const authResult = new Resource(data, schema).forAuthenticated();
+    expect(authResult).toEqual({ id: '123', name: 'John', email: 'john@example.com' });
+
+    // Admin access level
+    const adminResult = new Resource(data, schema).forAdmin();
+    expect(adminResult).toEqual({
+      id: '123',
+      name: 'John',
+      email: 'john@example.com',
+      internalNotes: 'VIP',
+    });
+  });
+
+  it('should handle missing fields gracefully', () => {
+    const partialData = {
+      id: '123',
+      name: 'John',
+      // email and internalNotes are missing
+    };
+
+    const schema = resourceSchema()
+      .public('id', z.string())
+      .public('name', z.string())
+      .authenticated('email', z.string())
+      .admin('internalNotes', z.string())
+      .build();
+
+    // Should only include fields that exist in data
+    const authResult = new Resource(partialData, schema).forAuthenticated();
+    expect(authResult).toEqual({ id: '123', name: 'John' });
+    expect('email' in authResult).toBe(false);
+  });
+});

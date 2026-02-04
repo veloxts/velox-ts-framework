@@ -34,14 +34,14 @@ This guide walks you through creating a simple user API with VeloxTS.
      .build();
 
    export const userProcedures = procedures('users', {
-     // GET /api/users
+     // GET /api/users - public endpoint, manual projection
      listUsers: procedure()
        .query(async ({ ctx }) => {
          const users = await ctx.db.user.findMany();
          return users.map(user => resource(user, UserSchema).forAnonymous());
        }),
 
-     // GET /api/users/:id
+     // GET /api/users/:id - public endpoint, manual projection
      getUser: procedure()
        .input(z.object({ id: z.string() }))
        .query(async ({ input, ctx }) => {
@@ -51,7 +51,7 @@ This guide walks you through creating a simple user API with VeloxTS.
          return resource(user, UserSchema).forAnonymous();
        }),
 
-     // POST /api/users
+     // POST /api/users - public endpoint, manual projection
      createUser: procedure()
        .input(z.object({
          name: z.string().min(1),
@@ -62,6 +62,22 @@ This guide walks you through creating a simple user API with VeloxTS.
          return resource(user, UserSchema).forAnonymous();
        }),
    });
+   ```
+
+   For authenticated endpoints, use automatic projection with `.guardNarrow().resource()`:
+
+   ```typescript
+   import { authenticatedNarrow } from '@veloxts/auth';
+
+   // Authenticated endpoint - auto-projects based on guard
+   getProfile: procedure()
+     .guardNarrow(authenticatedNarrow)
+     .resource(UserSchema)
+     .input(z.object({ id: z.string() }))
+     .query(async ({ input, ctx }) => {
+       // Just return data - projection is automatic!
+       return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+     }),
    ```
 
 3. **Start the dev server**

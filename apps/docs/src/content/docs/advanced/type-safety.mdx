@@ -52,7 +52,8 @@ export type CreateUserInput = z.infer<typeof CreateUserSchema>;
 
 ```typescript
 // procedures/users.ts
-import { procedures, procedure, resourceSchema, resource } from '@veloxts/velox';
+import { procedures, procedure, resourceSchema } from '@veloxts/velox';
+import { authenticatedNarrow } from '@veloxts/auth';
 import { CreateUserSchema } from '../schemas/user';
 
 // Define resource schema with field visibility
@@ -65,25 +66,26 @@ const UserSchema = resourceSchema()
   .build();
 
 export const userProcedures = procedures('users', {
+  // Automatic projection (recommended) - guard determines output type
   getUser: procedure()
+    .guardNarrow(authenticatedNarrow)
+    .resource(UserSchema)
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       // input is typed: { id: string }
-      const user = await ctx.db.user.findUniqueOrThrow({
-        where: { id: input.id }
-      });
-      // Return type depends on projection method used
-      return resource(user, UserSchema).forAnonymous();
-      // Returns: { id: string; name: string; role: 'user' | 'admin' }
+      // Just return data - projection is automatic based on guard
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      // Returns: { id: string; name: string; role: ...; email: string; createdAt: Date }
     }),
 
   createUser: procedure()
+    .guardNarrow(authenticatedNarrow)
+    .resource(UserSchema)
     .input(CreateUserSchema)
     .mutation(async ({ input, ctx }) => {
       // input is typed: { name: string; email: string; role: 'user' | 'admin' }
-      const user = await ctx.db.user.create({ data: input });
-      return resource(user, UserSchema).forAuthenticated();
-      // Returns: { id: string; name: string; role: ...; email: string; createdAt: Date }
+      return ctx.db.user.create({ data: input });
+      // Auto-projected to authenticated fields
     }),
 });
 ```

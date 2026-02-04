@@ -509,14 +509,49 @@ const UserSchema = resourceSchema()
   .build();
 ```
 
-### Resource Projection
+### Automatic Projection (Recommended)
 
-Use the `resource()` function to wrap your data and project it based on access level:
+The most elegant approach is to chain `.resource()` with a narrowing guard. The procedure executor automatically projects fields based on the guard's access level:
+
+```typescript
+import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
+
+export const userProcedures = procedures('users', {
+  // Authenticated endpoint - auto-projects { id, name, avatarUrl, email, createdAt }
+  getProfile: procedure()
+    .guardNarrow(authenticatedNarrow)
+    .resource(UserSchema)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      // Just return the full data - projection is automatic!
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    }),
+
+  // Admin endpoint - auto-projects all fields
+  getFullProfile: procedure()
+    .guardNarrow(adminNarrow)
+    .resource(UserSchema)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    }),
+});
+```
+
+**How it works:**
+1. The `guardNarrow()` accepts guards with an `accessLevel` property
+2. After the guard passes, the executor tracks the access level
+3. When the handler returns, fields are automatically projected
+4. No manual `.forX()` calls needed - output types are inferred
+
+### Manual Projection (Complex Cases)
+
+For public endpoints or conditional logic, use explicit projection methods:
 
 ```typescript
 import { resource } from '@veloxts/router';
 
-// In a public endpoint
+// In a public endpoint - no guard, explicit projection
 const user = await ctx.db.user.findUnique({ where: { id } });
 return resource(user, UserSchema).forAnonymous();
 // Returns: { id, name, avatarUrl }
@@ -529,6 +564,12 @@ return resource(user, UserSchema).forAuthenticated();
 return resource(user, UserSchema).forAdmin();
 // Returns: all fields including internalNotes, lastLoginIp
 ```
+
+**When to use manual projection:**
+- Public endpoints (no guard)
+- Conditional logic (e.g., show more fields for own profile)
+- Mixed access levels in one handler
+- Non-guard-based access decisions
 
 ### Resource Collections
 

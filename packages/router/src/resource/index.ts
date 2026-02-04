@@ -78,7 +78,9 @@ export type {
 // Schema builder
 export { isResourceSchema, ResourceSchemaBuilder, resourceSchema } from './schema.js';
 // Phantom tags - exported as types since they're ambient declarations (declare const)
+// AccessLevel is a runtime type used for auto-projection
 export type {
+  AccessLevel,
   ADMIN,
   ANONYMOUS,
   AUTHENTICATED,
