@@ -104,13 +104,33 @@ async function getOrCreateFixture(template: TemplateType): Promise<ScaffoldFixtu
   mkdirSync(TEST_BASE_DIR, { recursive: true });
 
   // Run scaffolder
-  execSync(
-    `SKIP_INSTALL=true node "${SCRIPT_DIR}/dist/cli.js" "${projectName}" --template="${template}" --database="sqlite"`,
-    {
-      cwd: TEST_BASE_DIR,
-      stdio: 'pipe',
-    }
-  );
+  try {
+    execSync(
+      `SKIP_INSTALL=true node "${SCRIPT_DIR}/dist/cli.js" "${projectName}" --template="${template}" --database="sqlite"`,
+      {
+        cwd: TEST_BASE_DIR,
+        stdio: 'pipe',
+      }
+    );
+  } catch (error) {
+    const execError = error as { stderr?: Buffer; stdout?: Buffer };
+    console.error(`Scaffolder failed for ${template}:`);
+    if (execError.stderr) console.error(execError.stderr.toString());
+    if (execError.stdout) console.error(execError.stdout.toString());
+    throw error;
+  }
+
+  // Verify scaffolding succeeded by checking expected files exist
+  const expectedFile = isRSC
+    ? resolve(projectPath, 'package.json')
+    : resolve(projectPath, 'apps/api/package.json');
+
+  if (!existsSync(expectedFile)) {
+    throw new Error(
+      `Scaffolding failed: expected file not found: ${expectedFile}\n` +
+        `Template: ${template}, Project: ${projectPath}`
+    );
+  }
 
   // Link local packages
   if (isRSC) {
@@ -156,13 +176,55 @@ async function getOrCreateFixture(template: TemplateType): Promise<ScaffoldFixtu
     }
   }
 
-  // Install dependencies
+  // Install dependencies with retry logic
   const installCwd = isRSC ? projectPath : resolve(projectPath, 'apps/api');
   console.log('Installing dependencies...');
-  execSync('npm install --legacy-peer-deps', {
-    cwd: installCwd,
-    stdio: 'pipe',
-  });
+
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Clean node_modules to avoid corruption from previous failed attempts
+      const nodeModulesPath = resolve(installCwd, 'node_modules');
+      if (existsSync(nodeModulesPath)) {
+        execSync(`rm -rf "${nodeModulesPath}"`, { stdio: 'pipe' });
+      }
+      // Also clean root node_modules for workspace templates (packages get hoisted)
+      if (!isRSC) {
+        const rootNodeModules = resolve(projectPath, 'node_modules');
+        if (existsSync(rootNodeModules)) {
+          execSync(`rm -rf "${rootNodeModules}"`, { stdio: 'pipe' });
+        }
+      }
+
+      // Run npm install with explicit shell to avoid spawn issues
+      execSync('npm install --legacy-peer-deps', {
+        cwd: installCwd,
+        stdio: 'pipe',
+        shell: '/bin/bash',
+        env: { ...process.env, npm_config_fund: 'false', npm_config_audit: 'false' },
+      });
+
+      // Success - break out of retry loop
+      lastError = null;
+      break;
+    } catch (error) {
+      lastError = error as Error;
+      const execError = error as { stderr?: Buffer; stdout?: Buffer };
+      console.warn(`npm install attempt ${attempt}/${maxRetries} failed for ${template}:`);
+      if (execError.stderr) console.warn(execError.stderr.toString().slice(0, 500));
+
+      if (attempt < maxRetries) {
+        console.log(`Retrying in 2 seconds...`);
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
 
   // Create .env file for RSC templates
   if (isRSC) {
@@ -173,10 +235,19 @@ async function getOrCreateFixture(template: TemplateType): Promise<ScaffoldFixtu
     }
   }
 
-  // Generate Prisma client and push schema
+  // Generate Prisma client and push schema (with retry for transient failures)
   console.log('Setting up database...');
-  execSync('npx prisma generate', { cwd: installCwd, stdio: 'pipe' });
-  execSync('npx prisma db push', { cwd: installCwd, stdio: 'pipe' });
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      execSync('npx prisma generate', { cwd: installCwd, stdio: 'pipe', shell: '/bin/bash' });
+      execSync('npx prisma db push', { cwd: installCwd, stdio: 'pipe', shell: '/bin/bash' });
+      break;
+    } catch (error) {
+      if (attempt === 2) throw error;
+      console.warn(`Prisma setup attempt ${attempt} failed, retrying...`);
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
 
   // Build for non-RSC templates
   if (!isRSC) {
@@ -286,22 +357,30 @@ function getTemplateFromFile(filePath: string): TemplateType {
   return templateMatch[1] as TemplateType;
 }
 
-// Create custom test fixture
-// Checks if server is already running before scaffolding
+// Create custom test fixture with worker scope
+// This ensures the fixture is created once per worker (i.e., once per template)
+// and reused across all tests in that template's spec file.
 // Cleanup is handled by global-teardown.ts
-export const test = base.extend<{ scaffold: ScaffoldFixture }>({
+export const test = base.extend<object, { scaffold: ScaffoldFixture }>({
   // biome-ignore lint/correctness/noEmptyPattern: Playwright fixtures require empty pattern for dependency injection
-  scaffold: async ({}, use, testInfo) => {
-    // Get template from the test file name
-    const template = getTemplateFromFile(testInfo.file);
+  scaffold: [
+    async ({}, use, workerInfo) => {
+      // Get template from the project name (set in playwright.config.ts)
+      const projectName = workerInfo.project.name as TemplateType;
+      const template = projectName || 'spa';
 
-    // Get or create the fixture
-    const fixture = await getOrCreateFixture(template);
+      console.log(`\n[Worker ${workerInfo.workerIndex}] Setting up fixture for ${template} template`);
 
-    await use(fixture);
+      // Get or create the fixture
+      const fixture = await getOrCreateFixture(template);
 
-    // No cleanup here - global-teardown handles it
-  },
+      await use(fixture);
+
+      // No cleanup here - global-teardown handles it
+      console.log(`[Worker ${workerInfo.workerIndex}] Fixture teardown for ${template} (server kept alive)`);
+    },
+    { scope: 'worker' },
+  ],
 });
 
 export { expect };
