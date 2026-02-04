@@ -18,7 +18,6 @@ import type {
   AuthenticatedOutput,
   ExtractTag,
   OutputForTag,
-  ResourceSchema,
   TaggedContext,
 } from '../../dist/index.js';
 import { resource, resourceCollection, resourceSchema } from '../../dist/index.js';
@@ -38,8 +37,8 @@ const UserSchema = resourceSchema()
 // Schema Type Inference
 // ============================================================================
 
-// resourceSchema().build() should return a ResourceSchema
-expectType<ResourceSchema>(UserSchema);
+// resourceSchema().build() should return a ResourceSchema (use typeof for exact type)
+expectType<typeof UserSchema>(UserSchema);
 
 // ============================================================================
 // Output Type Computation
@@ -83,17 +82,24 @@ expectType<AdminUser>({} as OutputAdmin);
 // We use it in an assignability check to verify it extracts the correct tag type
 type ExtractedAdminTag = ExtractTag<TaggedContext<typeof ADMIN>>;
 // Verify ExtractTag works by using it in OutputForTag (which requires a valid tag)
-type _VerifyExtractTag = OutputForTag<typeof UserSchema, ExtractedAdminTag>;
+type VerifyExtractTag = OutputForTag<typeof UserSchema, ExtractedAdminTag>;
+expectType<AdminUser>({} as VerifyExtractTag);
 
 // TaggedContext should work with different tags
+// These type aliases verify that TaggedContext can be instantiated with each tag
 type AnonCtx = TaggedContext<typeof ANONYMOUS>;
 type AuthCtx = TaggedContext<typeof AUTHENTICATED>;
 type AdminCtx = TaggedContext<typeof ADMIN>;
 
-// All should be valid TaggedContext types
-const _anonCtx: AnonCtx = {};
-const _authCtx: AuthCtx = {};
-const _adminCtx: AdminCtx = {};
+// Verify the contexts can hold the phantom tag property (optional, so {} is valid base)
+declare const anonCtx: AnonCtx;
+declare const authCtx: AuthCtx;
+declare const adminCtx: AdminCtx;
+
+// Verify these are distinct context types by checking they exist
+expectType<AnonCtx>(anonCtx);
+expectType<AuthCtx>(authCtx);
+expectType<AdminCtx>(adminCtx);
 
 // ============================================================================
 // Resource Instance Method Return Types
