@@ -448,7 +448,7 @@ const UserSchema = resourceSchema()
   .build();
 ```
 
-### Automatic Projection (Recommended)
+### Automatic Projection (Simple Cases)
 
 The most elegant approach is to chain `.resource()` with a narrowing guard. The procedure executor automatically projects fields based on the guard's access level:
 
@@ -541,7 +541,7 @@ export const userProcedures = procedures('users', {
 For arrays of items, use `resourceCollection()`:
 
 ```typescript
-// Automatic projection (recommended)
+// Automatic projection (simple cases)
 const listUsers = procedure()
   .guardNarrow(authenticatedNarrow)
   .resource(UserSchema)

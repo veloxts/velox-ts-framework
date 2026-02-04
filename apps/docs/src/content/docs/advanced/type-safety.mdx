@@ -66,7 +66,7 @@ const UserSchema = resourceSchema()
   .build();
 
 export const userProcedures = procedures('users', {
-  // Automatic projection (recommended) - guard determines output type
+  // Automatic projection (simple cases) - guard determines output type
   getUser: procedure()
     .guardNarrow(authenticatedNarrow)
     .resource(UserSchema)

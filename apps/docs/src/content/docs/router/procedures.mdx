@@ -75,7 +75,7 @@ const UserSchema = resourceSchema()
   .build();
 ```
 
-#### Automatic Projection (Recommended)
+#### Automatic Projection (Simple Cases)
 
 Chain `.guardNarrow()` with `.resource()` for automatic field projection. The procedure executor reads the guard's `accessLevel` and projects fields automatically.
 
