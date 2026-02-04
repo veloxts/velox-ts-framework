@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.92
+
+### Patch Changes
+
+- feat(storage): add provider factories, lifecycle hooks, and presigned uploads
+
 ## 0.6.91
 
 ### Patch Changes

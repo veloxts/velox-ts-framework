@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.6.92
+
+### Patch Changes
+
+- feat(storage): add provider factories, lifecycle hooks, and presigned uploads
+- Updated dependencies
+  - @veloxts/auth@0.6.92
+  - @veloxts/cache@0.6.92
+  - @veloxts/core@0.6.92
+  - @veloxts/events@0.6.92
+  - @veloxts/mail@0.6.92
+  - @veloxts/orm@0.6.92
+  - @veloxts/queue@0.6.92
+  - @veloxts/router@0.6.92
+  - @veloxts/scheduler@0.6.92
+  - @veloxts/storage@0.6.92
+  - @veloxts/validation@0.6.92
+
 ## 0.6.91
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @veloxts/scheduler
 
+## 0.6.92
+
+### Patch Changes
+
+- feat(storage): add provider factories, lifecycle hooks, and presigned uploads
+- Updated dependencies
+  - @veloxts/core@0.6.92
+
 ## 0.6.91
 
 ### Patch Changes
