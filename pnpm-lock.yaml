@@ -642,6 +642,9 @@ importers:
       mime-types:
         specifier: 3.0.2
         version: 3.0.2
+      zod:
+        specifier: 3.24.4
+        version: 3.24.4
     devDependencies:
       '@aws-sdk/client-s3':
         specifier: 3.980.0

@@ -10,6 +10,7 @@ import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:
 import { dirname, join, relative } from 'node:path';
 import type { Readable } from 'node:stream';
 
+import { StorageObjectNotFoundError } from '../errors.js';
 import type {
   CopyOptions,
   FileMetadata,
@@ -19,6 +20,7 @@ import type {
   ListResult,
   LocalStorageConfig,
   PutOptions,
+  SignedUploadOptions,
   SignedUrlOptions,
   StorageStore,
 } from '../types.js';
@@ -131,6 +133,11 @@ export function createLocalStore(config: LocalStorageConfig): StorageStore {
   }
 
   const store: StorageStore = {
+    async init(): Promise<void> {
+      // Create root directory if it doesn't exist
+      await mkdir(root, { recursive: true });
+    },
+
     async put(
       path: string,
       content: Buffer | string | Readable,
@@ -144,9 +151,22 @@ export function createLocalStore(config: LocalStorageConfig): StorageStore {
         // Stream content to file
         await new Promise<void>((resolve, reject) => {
           const writeStream = createWriteStream(fullPath);
-          (content as NodeJS.ReadableStream).pipe(writeStream);
+          const readStream = content as Readable;
+
+          // Handle errors on both streams to prevent resource leaks
+          readStream.on('error', (err) => {
+            writeStream.destroy();
+            reject(err);
+          });
+          writeStream.on('error', (err) => {
+            if (typeof readStream.destroy === 'function') {
+              readStream.destroy();
+            }
+            reject(err);
+          });
           writeStream.on('finish', resolve);
-          writeStream.on('error', reject);
+
+          readStream.pipe(writeStream);
         });
       } else {
         // Write buffer/string directly
@@ -302,6 +322,14 @@ export function createLocalStore(config: LocalStorageConfig): StorageStore {
       }
     },
 
+    async head(path: string): Promise<FileMetadata> {
+      const result = await store.metadata(path);
+      if (result === null) {
+        throw new StorageObjectNotFoundError(path);
+      }
+      return result;
+    },
+
     async list(prefix = '', listOptions: ListOptions = {}): Promise<ListResult> {
       const { recursive = false, limit = 1000 } = listOptions;
       const files: FileMetadata[] = [];
@@ -356,6 +384,13 @@ export function createLocalStore(config: LocalStorageConfig): StorageStore {
       // Local storage doesn't support true signed URLs
       // In production, you'd implement a token-based verification endpoint
       return store.url(path);
+    },
+
+    async signedUploadUrl(options: SignedUploadOptions): Promise<string> {
+      // Local storage doesn't support true presigned upload URLs
+      // Return the URL where the file would be served from
+      // In production, you'd implement a token-based upload endpoint
+      return store.url(options.key);
     },
 
     async setVisibility(path: string, visibility: FileVisibility): Promise<void> {

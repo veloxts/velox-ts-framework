@@ -84,6 +84,9 @@ export function storagePlugin(options: StoragePluginOptions = {}) {
       // Create storage manager
       const storage = await createStorageManager(options);
 
+      // Initialize the storage (create directories, verify connectivity, etc.)
+      await storage.init();
+
       // Store on fastify instance
       (fastify as unknown as Record<symbol, StorageManager>)[STORAGE_KEY] = storage;
 

@@ -22,6 +22,30 @@
     "./drivers/s3": {
       "types": "./dist/drivers/s3.d.ts",
       "import": "./dist/drivers/s3.js"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "import": "./dist/providers/index.js"
+    },
+    "./providers/r2": {
+      "types": "./dist/providers/r2.d.ts",
+      "import": "./dist/providers/r2.js"
+    },
+    "./providers/minio": {
+      "types": "./dist/providers/minio.d.ts",
+      "import": "./dist/providers/minio.js"
+    },
+    "./providers/local": {
+      "types": "./dist/drivers/local.d.ts",
+      "import": "./dist/drivers/local.js"
+    },
+    "./providers/s3": {
+      "types": "./dist/drivers/s3.d.ts",
+      "import": "./dist/drivers/s3.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
     }
   },
   "files": [
@@ -39,7 +63,8 @@
   "dependencies": {
     "@veloxts/core": "workspace:*",
     "fastify-plugin": "5.1.0",
-    "mime-types": "3.0.2"
+    "mime-types": "3.0.2",
+    "zod": "3.24.4"
   },
   "peerDependencies": {
     "@aws-sdk/client-s3": ">=3.0.0",

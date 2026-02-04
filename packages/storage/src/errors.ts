@@ -118,6 +118,20 @@ export class S3Error extends StorageError {
 }
 
 /**
+ * Error thrown when a storage object is not found.
+ * Used by head() and similar methods that require the object to exist.
+ */
+export class StorageObjectNotFoundError extends StorageError {
+  readonly code = 'STORAGE_OBJECT_NOT_FOUND';
+  readonly key: string;
+
+  constructor(key: string) {
+    super(`Storage object not found: ${key}`);
+    this.key = key;
+  }
+}
+
+/**
  * Type guard to check if an error is a StorageError.
  */
 export function isStorageError(error: unknown): error is StorageError {
@@ -136,4 +150,11 @@ export function isFileNotFoundError(error: unknown): error is FileNotFoundError 
  */
 export function isPermissionDeniedError(error: unknown): error is PermissionDeniedError {
   return error instanceof PermissionDeniedError;
+}
+
+/**
+ * Type guard to check if an error is a StorageObjectNotFoundError.
+ */
+export function isStorageObjectNotFoundError(error: unknown): error is StorageObjectNotFoundError {
+  return error instanceof StorageObjectNotFoundError;
 }

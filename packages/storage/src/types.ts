@@ -84,7 +84,7 @@ export interface ListResult {
 }
 
 /**
- * Options for generating signed URLs.
+ * Options for generating signed download URLs.
  */
 export interface SignedUrlOptions {
   /** URL expiration time in seconds (default: 3600 = 1 hour) */
@@ -93,6 +93,20 @@ export interface SignedUrlOptions {
   responseContentType?: string;
   /** Response content disposition override */
   responseContentDisposition?: string;
+}
+
+/**
+ * Options for generating signed upload URLs.
+ */
+export interface SignedUploadOptions {
+  /** Object key/path to upload to */
+  key: string;
+  /** URL expiration time in seconds (default: 3600 = 1 hour) */
+  expiresIn?: number;
+  /** Content type for the upload (required for most providers) */
+  contentType?: string;
+  /** Maximum content length in bytes (optional enforcement) */
+  maxContentLength?: number;
 }
 
 /**
@@ -144,6 +158,8 @@ export interface S3StorageConfig {
   defaultVisibility?: FileVisibility;
   /** Key prefix for all operations */
   prefix?: string;
+  /** Custom public URL for accessing files (e.g., CDN URL) */
+  publicUrl?: string;
 }
 
 /**
@@ -159,6 +175,14 @@ export type StorageConfig = LocalStorageConfig | S3StorageConfig;
  * Low-level storage store interface implemented by drivers.
  */
 export interface StorageStore {
+  /**
+   * Initialize the storage store.
+   * Called once at boot by the plugin.
+   * Use for config validation, connection verification, directory creation, etc.
+   * Throw to fail fast if the store cannot start.
+   */
+  init?(): Promise<void>;
+
   /**
    * Upload a file.
    * @param path - Destination path/key
@@ -231,6 +255,16 @@ export interface StorageStore {
   metadata(path: string): Promise<FileMetadata | null>;
 
   /**
+   * Get file metadata, throwing if not found.
+   * Unlike metadata() which returns null for missing files,
+   * head() throws StorageObjectNotFoundError.
+   * @param path - File path/key
+   * @returns File metadata
+   * @throws StorageObjectNotFoundError if file does not exist
+   */
+  head(path: string): Promise<FileMetadata>;
+
+  /**
    * List files in a directory/prefix.
    * @param prefix - Directory prefix
    * @param options - List options
@@ -246,12 +280,20 @@ export interface StorageStore {
   url(path: string): Promise<string>;
 
   /**
-   * Get a signed/temporary URL for private file access.
+   * Get a signed/temporary URL for private file access (download).
    * @param path - File path/key
    * @param options - Signed URL options
    * @returns Signed URL string
    */
   signedUrl(path: string, options?: SignedUrlOptions): Promise<string>;
+
+  /**
+   * Get a signed/temporary URL for uploading a file directly to storage.
+   * Enables direct browser-to-storage uploads without proxying through the server.
+   * @param options - Signed upload URL options
+   * @returns Signed URL string for PUT upload
+   */
+  signedUploadUrl(options: SignedUploadOptions): Promise<string>;
 
   /**
    * Set file visibility.
@@ -340,3 +382,9 @@ export type StoragePluginOptions = StorageLocalOptions | StorageS3Options | Stor
  * Storage manager options (alias for plugin options).
  */
 export type StorageManagerOptions = StoragePluginOptions;
+
+/**
+ * Backwards compatibility alias for StorageStore.
+ * @deprecated Use StorageStore instead. Will be removed in v2.0.
+ */
+export type StorageProvider = StorageStore;

@@ -16,6 +16,7 @@ import type {
   ListOptions,
   ListResult,
   PutOptions,
+  SignedUploadOptions,
   SignedUrlOptions,
   StorageDefaultOptions,
   StorageLocalOptions,
@@ -44,6 +45,13 @@ function isLocalOptions(
  * Storage manager interface providing a unified file storage API.
  */
 export interface StorageManager {
+  /**
+   * Initialize the storage manager.
+   * Called automatically by the plugin during registration.
+   * Can be called manually when using standalone storage.
+   */
+  init(): Promise<void>;
+
   /**
    * Upload a file.
    *
@@ -196,6 +204,29 @@ export interface StorageManager {
   metadata(path: string): Promise<FileMetadata | null>;
 
   /**
+   * Get file metadata, throwing if not found.
+   * Unlike metadata() which returns null for missing files,
+   * head() throws StorageObjectNotFoundError.
+   *
+   * @param path - File path/key
+   * @returns File metadata
+   * @throws StorageObjectNotFoundError if file does not exist
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   const meta = await storage.head('uploads/image.jpg');
+   *   console.log(`Size: ${meta.size}`);
+   * } catch (error) {
+   *   if (isStorageObjectNotFoundError(error)) {
+   *     console.log('File does not exist');
+   *   }
+   * }
+   * ```
+   */
+  head(path: string): Promise<FileMetadata>;
+
+  /**
    * List files in a directory/prefix.
    *
    * @param prefix - Directory prefix
@@ -251,6 +282,31 @@ export interface StorageManager {
    * ```
    */
   signedUrl(path: string, options?: SignedUrlOptions): Promise<string>;
+
+  /**
+   * Get a signed/temporary URL for uploading a file directly to storage.
+   * Enables direct browser-to-storage uploads without proxying through the server.
+   *
+   * @param options - Signed upload URL options
+   * @returns Signed URL string for PUT upload
+   *
+   * @example
+   * ```typescript
+   * const uploadUrl = await storage.signedUploadUrl({
+   *   key: 'uploads/user-123/avatar.jpg',
+   *   contentType: 'image/jpeg',
+   *   expiresIn: 300, // 5 minutes
+   * });
+   *
+   * // Client can now PUT directly to this URL
+   * await fetch(uploadUrl, {
+   *   method: 'PUT',
+   *   body: file,
+   *   headers: { 'Content-Type': 'image/jpeg' },
+   * });
+   * ```
+   */
+  signedUploadUrl(options: SignedUploadOptions): Promise<string>;
 
   /**
    * Set file visibility.
@@ -379,6 +435,7 @@ export async function createStorageManager(
 
   // Create manager that delegates to the store
   const manager: StorageManager = {
+    init: () => store.init?.() ?? Promise.resolve(),
     put: (path, content, putOptions) => store.put(path, content, putOptions),
     get: (path, getOptions) => store.get(path, getOptions),
     stream: (path, streamOptions) => store.stream(path, streamOptions),
@@ -388,9 +445,11 @@ export async function createStorageManager(
     copy: (source, destination, copyOptions) => store.copy(source, destination, copyOptions),
     move: (source, destination, moveOptions) => store.move(source, destination, moveOptions),
     metadata: (path) => store.metadata(path),
+    head: (path) => store.head(path),
     list: (prefix, listOptions) => store.list(prefix, listOptions),
     url: (path) => store.url(path),
     signedUrl: (path, signedOptions) => store.signedUrl(path, signedOptions),
+    signedUploadUrl: (options) => store.signedUploadUrl(options),
     setVisibility: (path, visibility) => store.setVisibility(path, visibility),
     getVisibility: (path) => store.getVisibility(path),
     makePublic: (path) => store.setVisibility(path, 'public'),

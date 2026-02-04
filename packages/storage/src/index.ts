@@ -49,11 +49,13 @@ export {
   isFileNotFoundError,
   isPermissionDeniedError,
   isStorageError,
+  isStorageObjectNotFoundError,
   PermissionDeniedError,
   QuotaExceededError,
   S3Error,
   StorageConfigError,
   StorageError,
+  StorageObjectNotFoundError,
 } from './errors.js';
 // Manager
 export { createStorageManager, type StorageManager, storage } from './manager.js';
@@ -78,6 +80,7 @@ export type {
   // Options
   PutOptions,
   S3StorageConfig,
+  SignedUploadOptions,
   SignedUrlOptions,
   // Plugin options
   StorageBaseOptions,
@@ -88,6 +91,8 @@ export type {
   StorageLocalOptions,
   StorageManagerOptions,
   StoragePluginOptions,
+  // Backwards compatibility
+  StorageProvider,
   StorageS3Options,
   // Store interface
   StorageStore,
