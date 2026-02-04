@@ -397,6 +397,27 @@ export interface CompiledProcedure<
    * @internal
    */
   readonly _precompiledExecutor?: (input: TInput, ctx: TContext) => Promise<TOutput>;
+  /**
+   * Resource schema for auto-projection
+   *
+   * When set via `.resource()`, the procedure executor will automatically
+   * project the handler's return value based on `ctx.__accessLevel`.
+   *
+   * This enables the elegant chained API:
+   * ```typescript
+   * procedure()
+   *   .guardNarrow(authenticatedNarrow)
+   *   .resource(UserSchema)
+   *   .query(async ({ ctx }) => {
+   *     return ctx.db.user.findUnique(...);
+   *     // Auto-projected based on __accessLevel
+   *   });
+   * ```
+   *
+   * @internal
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: ResourceSchema type would create circular dependency
+  readonly _resourceSchema?: any;
 }
 
 // ============================================================================

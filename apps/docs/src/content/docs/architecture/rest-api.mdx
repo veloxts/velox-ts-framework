@@ -27,41 +27,64 @@ Define procedures with naming conventions, and VeloxTS generates REST endpoints:
 
 ```typescript
 // src/procedures/posts.ts
-import { procedures, procedure } from '@veloxts/velox';
+import { procedures, procedure, resourceSchema, resource, resourceCollection } from '@veloxts/velox';
 import { z } from '@veloxts/velox';
+
+// Define resource schema with field visibility
+const PostSchema = resourceSchema()
+  .public('id', z.string())
+  .public('title', z.string())
+  .public('excerpt', z.string())
+  .authenticated('content', z.string())
+  .authenticated('authorId', z.string())
+  .admin('createdAt', z.date())
+  .admin('updatedAt', z.date())
+  .build();
 
 export const postProcedures = procedures('posts', {
   // GET /api/posts
   listPosts: procedure()
-    .output(z.array(PostSchema))
-    .query(({ ctx }) => ctx.db.post.findMany()),
+    .query(async ({ ctx }) => {
+      const posts = await ctx.db.post.findMany();
+      return resourceCollection(posts, PostSchema).forAnonymous();
+    }),
 
   // GET /api/posts/:id
   getPost: procedure()
     .input(z.object({ id: z.string() }))
-    .query(({ input, ctx }) => ctx.db.post.findUniqueOrThrow({
-      where: { id: input.id }
-    })),
+    .query(async ({ input, ctx }) => {
+      const post = await ctx.db.post.findUniqueOrThrow({
+        where: { id: input.id }
+      });
+      return resource(post, PostSchema).forAnonymous();
+    }),
 
   // POST /api/posts
   createPost: procedure()
     .input(CreatePostSchema)
-    .mutation(({ input, ctx }) => ctx.db.post.create({ data: input })),
+    .mutation(async ({ input, ctx }) => {
+      const post = await ctx.db.post.create({ data: input });
+      return resource(post, PostSchema).forAuthenticated();
+    }),
 
   // PUT /api/posts/:id
   updatePost: procedure()
     .input(z.object({ id: z.string(), data: UpdatePostSchema }))
-    .mutation(({ input, ctx }) => ctx.db.post.update({
-      where: { id: input.id },
-      data: input.data,
-    })),
+    .mutation(async ({ input, ctx }) => {
+      const post = await ctx.db.post.update({
+        where: { id: input.id },
+        data: input.data,
+      });
+      return resource(post, PostSchema).forAuthenticated();
+    }),
 
   // DELETE /api/posts/:id
   deletePost: procedure()
     .input(z.object({ id: z.string() }))
-    .mutation(({ input, ctx }) => ctx.db.post.delete({
-      where: { id: input.id }
-    })),
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db.post.delete({ where: { id: input.id } });
+      return { success: true };
+    }),
 });
 ```
 

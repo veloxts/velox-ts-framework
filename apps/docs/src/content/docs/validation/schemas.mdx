@@ -488,9 +488,178 @@ const PriceSchema = z.number()
   );
 ```
 
+## Resource API
+
+The Resource API provides context-dependent output projection with field-level visibility controls. Instead of static output schemas, you define which fields are visible to different user access levels.
+
+### Resource Schema Definition
+
+```typescript
+import { resourceSchema } from '@veloxts/router';
+import { z } from '@veloxts/velox';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())           // Visible to everyone
+  .public('name', z.string())
+  .public('avatarUrl', z.string().url().nullable())
+  .authenticated('email', z.string().email()) // Visible to logged-in users
+  .authenticated('createdAt', z.date())
+  .admin('internalNotes', z.string().nullable()) // Visible only to admins
+  .admin('lastLoginIp', z.string().nullable())
+  .build();
+```
+
+### Automatic Projection (Simple Cases)
+
+The most elegant approach is to chain `.resource()` with a narrowing guard. The procedure executor automatically projects fields based on the guard's access level:
+
+```typescript
+import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
+
+export const userProcedures = procedures('users', {
+  // Authenticated endpoint - auto-projects { id, name, avatarUrl, email, createdAt }
+  getProfile: procedure()
+    .guardNarrow(authenticatedNarrow)
+    .resource(UserSchema)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      // Just return the full data - projection is automatic!
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    }),
+
+  // Admin endpoint - auto-projects all fields
+  getFullProfile: procedure()
+    .guardNarrow(adminNarrow)
+    .resource(UserSchema)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    }),
+});
+```
+
+**How it works:**
+1. The `guardNarrow()` accepts guards with an `accessLevel` property
+2. After the guard passes, the executor tracks the access level
+3. When the handler returns, fields are automatically projected
+4. No manual `.forX()` calls needed - output types are inferred
+
+### Manual Projection (Complex Cases)
+
+For public endpoints or conditional logic, use explicit projection methods:
+
+```typescript
+import { resource } from '@veloxts/router';
+
+// In a public endpoint - no guard, explicit projection
+const user = await ctx.db.user.findUnique({ where: { id } });
+return resource(user, UserSchema).forAnonymous();
+// Returns: { id, name, avatarUrl }
+
+// In an authenticated endpoint
+return resource(user, UserSchema).forAuthenticated();
+// Returns: { id, name, avatarUrl, email, createdAt }
+
+// In an admin endpoint
+return resource(user, UserSchema).forAdmin();
+// Returns: all fields including internalNotes, lastLoginIp
+```
+
+**When to use manual projection:**
+- Public endpoints (no guard)
+- Conditional logic (e.g., show more fields for own profile)
+- Mixed access levels in one handler
+- Non-guard-based access decisions
+
+### Resource Collections
+
+Project arrays of resources using `resourceCollection()`:
+
+```typescript
+import { resourceCollection } from '@veloxts/router';
+
+const users = await ctx.db.user.findMany({ take: 10 });
+
+// Public list
+return resourceCollection(users, UserSchema).forAnonymous();
+// Returns: Array<{ id, name, avatarUrl }>
+
+// Authenticated list
+return resourceCollection(users, UserSchema).forAuthenticated();
+// Returns: Array<{ id, name, avatarUrl, email, createdAt }>
+```
+
+### Auto-Detection from Context
+
+Use `.for(ctx)` to automatically determine access level from the request context:
+
+```typescript
+import { guardNarrow, authenticatedNarrow } from '@veloxts/auth';
+
+// Public endpoint - auto-detects anonymous
+const getPublicProfile = procedure()
+  .input(z.object({ id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    return resource(user, UserSchema).for(ctx);
+    // Automatically returns anonymous view
+  });
+
+// Authenticated endpoint - auto-detects authenticated
+const getProfile = procedure()
+  .input(z.object({ id: z.string() }))
+  .guardNarrow(authenticatedNarrow) // Narrows ctx type with phantom tag
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    return resource(user, UserSchema).for(ctx);
+    // Automatically returns authenticated view
+  });
+```
+
+### Type Inference
+
+Resource API provides full type safety at compile time:
+
+```typescript
+import type { AnonymousOutput, AuthenticatedOutput, AdminOutput } from '@veloxts/router';
+
+// Extract output types for each access level
+type PublicUser = AnonymousOutput<typeof UserSchema>;
+// Result: { id: string; name: string; avatarUrl: string | null }
+
+type AuthUser = AuthenticatedOutput<typeof UserSchema>;
+// Result: { id: string; name: string; avatarUrl: string | null; email: string; createdAt: Date }
+
+type AdminUser = AdminOutput<typeof UserSchema>;
+// Result: All fields including internalNotes, lastLoginIp
+
+// Frontend client gets correct types automatically
+const { data } = api.users.getPublicProfile.useQuery({ id });
+// data is typed as PublicUser
+```
+
+### Best Practices
+
+1. **Define once, project everywhere**: Create resource schemas in `shared/schemas/` and reuse across endpoints
+2. **Fetch all fields**: Always fetch the full object from the database, let the Resource API handle filtering
+3. **Use guards with `.for(ctx)`**: Combine with type-narrowing guards for automatic projection
+4. **Sensitive data**: Mark truly sensitive fields as `admin` only
+
+```typescript
+// Good - fetch full object, let Resource API filter
+const user = await ctx.db.user.findUnique({ where: { id } });
+return resource(user, UserSchema).forAnonymous();
+
+// Bad - manual field selection loses flexibility
+const user = await ctx.db.user.findUnique({
+  where: { id },
+  select: { id: true, name: true } // Now you can't easily add authenticated fields
+});
+```
+
 ## Procedure Integration
 
-Schemas integrate seamlessly with VeloxTS procedures via `.input()` and `.output()`.
+Schemas integrate seamlessly with VeloxTS procedures via `.input()` and Resource API.
 
 ### Input Validation
 
@@ -511,11 +680,22 @@ const UpdateProductInput = CreateProductInput.partial().extend({
   id: z.string().uuid(),
 });
 
+// Define resource schema for products
+const ProductSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .public('price', z.number())
+  .authenticated('description', z.string())
+  .authenticated('categoryId', z.string().uuid())
+  .authenticated('tags', z.array(z.string()))
+  .admin('createdAt', z.date())
+  .admin('updatedAt', z.date())
+  .build();
+
 // Use in procedures
 export const productProcedures = procedures('products', {
   createProduct: procedure()
     .input(CreateProductInput)
-    .output(ProductSchema)
     .mutation(async ({ input, ctx }) => {
       // input is fully typed and validated
       const product = await ctx.db.product.create({
@@ -527,70 +707,62 @@ export const productProcedures = procedures('products', {
           tags: input.tags,
         },
       });
-      return product;
+      // Return with appropriate projection
+      return resource(product, ProductSchema).forAuthenticated();
     }),
 
   updateProduct: procedure()
     .input(UpdateProductInput)
-    .output(ProductSchema)
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;
-      return ctx.db.product.update({
+      const product = await ctx.db.product.update({
         where: { id },
         data,
       });
+      return resource(product, ProductSchema).forAuthenticated();
     }),
 });
 ```
 
-### Output Validation
+### Resource-Based Output
 
-Output schemas ensure your procedures return correctly shaped data.
+Use Resource API for context-dependent outputs:
 
 ```typescript
-// Define output schema
-const ProductSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  description: z.string(),
-  price: z.number(),
-  categoryId: z.string().uuid(),
-  tags: z.array(z.string()),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-});
+import { resource, resourceCollection, resourceSchema } from '@veloxts/router';
 
-// List with pagination metadata
-const ProductListSchema = z.object({
-  data: z.array(ProductSchema),
-  pagination: z.object({
-    page: z.number().int(),
-    limit: z.number().int(),
-    total: z.number().int(),
-    totalPages: z.number().int(),
-  }),
-});
+// Define resource schema
+const ProductSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .public('price', z.number())
+  .authenticated('description', z.string())
+  .authenticated('tags', z.array(z.string()))
+  .admin('createdAt', z.date())
+  .admin('updatedAt', z.date())
+  .build();
 
 export const productProcedures = procedures('products', {
+  // Single product
   getProduct: procedure()
     .input(z.object({ id: z.string().uuid() }))
-    .output(ProductSchema)  // Validates single product
     .query(async ({ input, ctx }) => {
       const product = await ctx.db.product.findUnique({ where: { id: input.id } });
       if (!product) {
         throw new Error('Product not found');
       }
-      return product;
+      // Project based on access level
+      return resource(product, ProductSchema).forAnonymous();
     }),
 
+  // Paginated list
   listProducts: procedure()
     .input(z.object({
       page: z.number().int().min(1).default(1),
       limit: z.number().int().min(1).max(100).default(20),
     }))
-    .output(ProductListSchema)  // Validates paginated response
     .query(async ({ input, ctx }) => {
-      const [data, total] = await Promise.all([
+      const [items, total] = await Promise.all([
         ctx.db.product.findMany({
           skip: (input.page - 1) * input.limit,
           take: input.limit,
@@ -599,7 +771,7 @@ export const productProcedures = procedures('products', {
       ]);
 
       return {
-        data,
+        data: resourceCollection(items, ProductSchema).forAnonymous(),
         pagination: {
           page: input.page,
           limit: input.limit,
@@ -611,8 +783,8 @@ export const productProcedures = procedures('products', {
 });
 ```
 
-<Aside type="caution">
-Output validation runs on every response. For performance-critical endpoints, consider validating only in development or using `.passthrough()` for trusted data sources.
+<Aside type="tip">
+Resource API filters fields at runtime without performance overhead. The projection is done in-memory after database fetch, ensuring clean separation of data access and presentation.
 </Aside>
 
 ## Type Inference
@@ -657,15 +829,23 @@ type Inferred = z.infer<typeof TransformSchema>; // Same as z.output<>
 
 ### Inferring from Procedures
 
-VeloxTS procedures automatically infer types from schemas.
+VeloxTS procedures automatically infer types from Resource API:
 
 ```typescript
+import { resourceSchema, resource } from '@veloxts/router';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .build();
+
 const createUser = procedure()
   .input(z.object({ name: z.string(), email: z.string().email() }))
-  .output(z.object({ id: z.string(), name: z.string(), email: z.string() }))
   .mutation(async ({ input, ctx }) => {
     // input: { name: string; email: string } - automatically typed
-    return ctx.db.user.create({ data: input });
+    const user = await ctx.db.user.create({ data: input });
+    return resource(user, UserSchema).forAuthenticated();
   });
 
 // Frontend client gets full type safety
@@ -676,16 +856,19 @@ const user = await api.users.createUser({
   email: 'alice@example.com',
 });
 // user: { id: string; name: string; email: string }
+// Type inferred from .forAuthenticated() projection
 ```
 
 ## Common Patterns
 
-### Input/Output Schema Pairs
+### Input and Resource Schema Pairs
 
-Typical pattern for CRUD operations.
+Typical pattern for CRUD operations with Resource API.
 
 ```typescript
-// Base creation schema
+import { resourceSchema } from '@veloxts/router';
+
+// Input schemas for mutations
 export const CreateUserSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email(),
@@ -695,12 +878,15 @@ export const CreateUserSchema = z.object({
 // Update schema - all fields optional
 export const UpdateUserSchema = CreateUserSchema.partial();
 
-// Output schema - adds server-generated fields
-export const UserSchema = CreateUserSchema.extend({
-  id: z.string().uuid(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-});
+// Resource schema - defines field visibility
+export const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .public('role', z.enum(['admin', 'editor', 'viewer']))
+  .authenticated('email', z.string().email())
+  .admin('createdAt', z.date())
+  .admin('updatedAt', z.date())
+  .build();
 
 // Filter/search schema
 export const UserFilterSchema = z.object({
@@ -720,31 +906,38 @@ import {
   idParamSchema,           // { id: string }
   paginationInputSchema,   // { page, limit, sortBy?, sortOrder? }
 } from '@veloxts/validation';
+import { resource, resourceCollection } from '@veloxts/router';
 
 // Use in procedures
 export const userProcedures = procedures('users', {
   // Get by ID
   getUser: procedure()
     .input(idParamSchema)
-    .output(UserSchema)
     .query(async ({ input, ctx }) => {
-      return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAnonymous();
     }),
 
   // Paginated list
   listUsers: procedure()
     .input(paginationInputSchema)
-    .output(z.object({
-      data: z.array(UserSchema),
-      pagination: z.object({
-        page: z.number(),
-        limit: z.number(),
-        total: z.number(),
-      }),
-    }))
     .query(async ({ input, ctx }) => {
-      // input.page, input.limit already validated
-      // ...
+      const [items, total] = await Promise.all([
+        ctx.db.user.findMany({
+          skip: (input.page - 1) * input.limit,
+          take: input.limit,
+        }),
+        ctx.db.user.count(),
+      ]);
+
+      return {
+        data: resourceCollection(items, UserSchema).forAnonymous(),
+        pagination: {
+          page: input.page,
+          limit: input.limit,
+          total,
+        },
+      };
     }),
 });
 ```
@@ -756,6 +949,7 @@ Define schemas once, use everywhere.
 ```typescript
 // shared/schemas/product.ts
 import { z } from '@veloxts/velox';
+import { resourceSchema } from '@veloxts/router';
 
 export const CreateProductSchema = z.object({
   name: z.string().min(1, 'Product name is required').max(200),
@@ -763,20 +957,24 @@ export const CreateProductSchema = z.object({
   description: z.string().max(2000),
 });
 
-export const ProductSchema = CreateProductSchema.extend({
-  id: z.string().uuid(),
-  createdAt: z.string().datetime(),
-});
+export const ProductSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .public('price', z.number())
+  .authenticated('description', z.string())
+  .admin('createdAt', z.date())
+  .build();
 
 // Backend procedure
 import { CreateProductSchema, ProductSchema } from '@shared/schemas/product';
+import { resource } from '@veloxts/router';
 
 export const productProcedures = procedures('products', {
   createProduct: procedure()
     .input(CreateProductSchema)
-    .output(ProductSchema)
     .mutation(async ({ input, ctx }) => {
-      return await ctx.db.product.create({ data: input });
+      const product = await ctx.db.product.create({ data: input });
+      return resource(product, ProductSchema).forAuthenticated();
     }),
 });
 

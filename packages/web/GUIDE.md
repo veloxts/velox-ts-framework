@@ -57,6 +57,40 @@ export const updateProfile = action()
   });
 ```
 
+### Context-Dependent Outputs with Resource API
+
+For role-based field visibility, use the Resource API:
+
+```typescript
+import { action } from '@veloxts/web';
+import { resourceSchema, resource } from '@veloxts/router';
+import { z } from 'zod';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .admin('internalNotes', z.string().nullable())
+  .build();
+
+// Public action - returns { id, name } only
+export const getPublicUser = action()
+  .input(z.object({ id: z.string() }))
+  .handler(async (input) => {
+    const user = await db.user.findUniqueOrThrow({ where: { id: input.id } });
+    return resource(user, UserSchema).forAnonymous();
+  });
+
+// Protected action - returns { id, name, email }
+export const getUser = action()
+  .input(z.object({ id: z.string() }))
+  .protected()
+  .handler(async (input, ctx) => {
+    const user = await db.user.findUniqueOrThrow({ where: { id: input.id } });
+    return resource(user, UserSchema).forAuthenticated();
+  });
+```
+
 Use in React components:
 
 ```tsx

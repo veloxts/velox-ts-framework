@@ -80,6 +80,47 @@ const api = createClient<{ users: typeof userProcedures }>({ baseUrl: '/api' });
 const user = await api.users.getUser({ id: '123' }); // Fully typed
 ```
 
+## Resource API (Context-Dependent Outputs)
+
+Return different fields based on user access level:
+
+```typescript
+import { resourceSchema, resource, procedure, procedures, z } from '@veloxts/velox';
+import { authenticated, hasRole } from '@veloxts/auth';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .admin('internalNotes', z.string().nullable())
+  .build();
+
+const userProcedures = procedures('users', {
+  // Public: returns { id, name }
+  getPublicProfile: procedure()
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+      return resource(user, UserSchema).forAnonymous();
+    }),
+
+  // Authenticated: returns { id, name, email }
+  getProfile: procedure()
+    .guard(authenticated)
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+      return resource(user, UserSchema).forAuthenticated();
+    }),
+
+  // Admin: returns all fields
+  getFullUser: procedure()
+    .guard(hasRole('admin'))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+      return resource(user, UserSchema).forAdmin();
+    }),
+});
+```
+
 ## Environment-Aware Configuration
 
 VeloxTS provides comprehensive environment-aware configuration through two complementary APIs:

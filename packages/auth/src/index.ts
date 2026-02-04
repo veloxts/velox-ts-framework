@@ -88,12 +88,20 @@ export {
 // ============================================================================
 
 export type {
+  ADMIN,
+  AdminContext,
+  AUTHENTICATED,
   AuthenticatedContext,
   InferNarrowedContext,
   NarrowingGuard,
   RoleNarrowedContext,
+  TaggedContext,
 } from './guards-narrowing.js';
-export { authenticatedNarrow, hasRoleNarrow } from './guards-narrowing.js';
+export {
+  adminNarrow,
+  authenticatedNarrow,
+  hasRoleNarrow,
+} from './guards-narrowing.js';
 
 // ============================================================================
 // Password Hashing

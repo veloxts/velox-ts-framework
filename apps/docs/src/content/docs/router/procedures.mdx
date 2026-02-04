@@ -10,16 +10,26 @@ Procedures are the core building block of VeloxTS APIs. They define type-safe en
 ## Basic Syntax
 
 ```typescript
-import { procedures, procedure } from '@veloxts/velox';
+import { procedures, procedure, resourceSchema, resource } from '@veloxts/velox';
 import { z } from '@veloxts/velox';
+
+// Define resource schema with field visibility
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .authenticated('email', z.string().email())
+  .admin('internalNotes', z.string().nullable())
+  .build();
 
 export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string() }))
-    .output(UserSchema)
-    .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
-      where: { id: input.id }
-    })),
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({
+        where: { id: input.id }
+      });
+      return resource(user, UserSchema).forAnonymous();
+    }),
 });
 ```
 
@@ -48,17 +58,87 @@ Define the input validation schema:
 }))
 ```
 
-### `.output(schema)`
+### `.resource(schema)`
 
-Define the output schema (optional but recommended):
+#### Resource API
+
+The Resource API enables **context-dependent outputs** - returning different fields based on the caller's access level (anonymous, authenticated, or admin). This solves the problem of over-fetching sensitive data while maintaining type safety.
+
+**Key concept:** Instead of defining a single output schema, you define field visibility levels. The API automatically filters fields based on who's calling.
 
 ```typescript
-.output(z.object({
-  id: z.string(),
-  name: z.string(),
-  email: z.string(),
-}))
+const UserSchema = resourceSchema()
+  .public('id', z.string())           // Everyone sees this
+  .public('name', z.string())         // Everyone sees this
+  .authenticated('email', z.string()) // Only logged-in users
+  .admin('internalNotes', z.string().nullable()) // Only admins
+  .build();
 ```
+
+#### Automatic Projection (Simple Cases)
+
+Chain `.guardNarrow()` with `.resource()` for automatic field projection. The procedure executor reads the guard's `accessLevel` and projects fields automatically.
+
+<Aside type="tip" title="Why guardNarrow?">
+Use `.guardNarrow()` instead of `.guard()` to get **TypeScript type narrowing**. After `guardNarrow(authenticatedNarrow)`, TypeScript knows `ctx.user` is non-null - no more `ctx.user?.email` checks needed.
+
+Both methods work for runtime auto-projection, but only `.guardNarrow()` improves your types.
+</Aside>
+
+```typescript
+import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
+
+// Authenticated endpoint - auto-projects { id, name, email }
+getProfile: procedure()
+  .guardNarrow(authenticatedNarrow)
+  .resource(UserSchema)
+  .input(z.object({ id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    // ctx.user is guaranteed non-null (TypeScript knows this!)
+    // Just return data - projection happens automatically
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+  }),
+
+// Admin endpoint - auto-projects all fields including internalNotes
+getFullProfile: procedure()
+  .guardNarrow(adminNarrow)
+  .resource(UserSchema)
+  .input(z.object({ id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+  }),
+```
+
+#### Manual Projection (Complex Cases)
+
+For public endpoints (no guard) or conditional logic, use explicit `.forX()` methods:
+
+```typescript
+import { resource } from '@veloxts/router';
+
+// Public endpoint - no guard, must project manually
+getPublicProfile: procedure()
+  .input(z.object({ id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    return resource(user, UserSchema).forAnonymous();
+  }),
+
+// Conditional projection - different output based on ownership
+getOwnProfile: procedure()
+  .guard(authenticated)
+  .input(z.object({ id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    // Show more fields if viewing own profile
+    if (user.id === ctx.user?.id) {
+      return resource(user, UserSchema).forAuthenticated();
+    }
+    return resource(user, UserSchema).forAnonymous();
+  }),
+```
+
+See [Validation > Schemas](/docs/validation/schemas/) for detailed Resource API documentation.
 
 ### `.query(handler)` / `.mutation(handler)`
 
@@ -110,8 +190,9 @@ Methods must be called in this order:
 ```typescript
 procedure()
   .input(schema)       // 1. Input validation (optional)
-  .output(schema)      // 2. Output validation (optional)
-  .guard(guardFn)      // 3. Authorization (optional, can have multiple)
+  .guard(guardFn)      // 2. Authorization (optional, can have multiple)
+  .guardNarrow(guard)  // 2b. Narrowing guard (optional, sets access level)
+  .resource(schema)    // 3. Resource schema for auto-projection (optional)
   .use(middleware)     // 4. Middleware (optional, can have multiple)
   .rest(options)       // 5. REST override (optional) - BEFORE handler
   .query(handler)      // 6. Handler - MUST be last
@@ -158,18 +239,26 @@ The first argument (`'posts'`) becomes:
 
 ## Type Inference
 
-Types flow automatically:
+Types flow automatically through the Resource API:
 
 ```typescript
-// Backend
+// Backend - Define resource schema
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .build();
+
 const createUser = procedure()
   .input(z.object({ name: z.string(), email: z.string().email() }))
-  .output(z.object({ id: z.string(), name: z.string() }))
-  .mutation(...)
+  .mutation(async ({ input, ctx }) => {
+    const user = await ctx.db.user.create({ data: input });
+    return resource(user, UserSchema).forAuthenticated();
+  });
 
 // Frontend (via tRPC or client)
 // Input is typed: { name: string; email: string }
-// Output is typed: { id: string; name: string }
+// Output is typed: { id: string; name: string; email: string }
 ```
 
 ## Discovery

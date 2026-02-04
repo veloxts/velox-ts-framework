@@ -52,27 +52,40 @@ export type CreateUserInput = z.infer<typeof CreateUserSchema>;
 
 ```typescript
 // procedures/users.ts
-import { procedures, procedure } from '@veloxts/velox';
-import { UserSchema, CreateUserSchema } from '../schemas/user';
+import { procedures, procedure, resourceSchema } from '@veloxts/velox';
+import { authenticatedNarrow } from '@veloxts/auth';
+import { CreateUserSchema } from '../schemas/user';
+
+// Define resource schema with field visibility
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .public('role', z.enum(['user', 'admin']))
+  .authenticated('email', z.string().email())
+  .authenticated('createdAt', z.date())
+  .build();
 
 export const userProcedures = procedures('users', {
+  // Automatic projection (simple cases) - guard determines output type
   getUser: procedure()
+    .guardNarrow(authenticatedNarrow)
+    .resource(UserSchema)
     .input(z.object({ id: z.string().uuid() }))
-    .output(UserSchema)
     .query(async ({ input, ctx }) => {
       // input is typed: { id: string }
-      // return must match UserSchema
-      return ctx.db.user.findUniqueOrThrow({
-        where: { id: input.id }
-      });
+      // Just return data - projection is automatic based on guard
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      // Returns: { id: string; name: string; role: ...; email: string; createdAt: Date }
     }),
 
   createUser: procedure()
+    .guardNarrow(authenticatedNarrow)
+    .resource(UserSchema)
     .input(CreateUserSchema)
-    .output(UserSchema)
     .mutation(async ({ input, ctx }) => {
       // input is typed: { name: string; email: string; role: 'user' | 'admin' }
       return ctx.db.user.create({ data: input });
+      // Auto-projected to authenticated fields
     }),
 });
 ```
@@ -281,7 +294,6 @@ import { TRPCError } from '@trpc/server';
 
 getUser: procedure()
   .input(z.object({ id: z.string().uuid() }))
-  .output(UserSchema)
   .query(async ({ input, ctx }) => {
     const user = await ctx.db.user.findUnique({
       where: { id: input.id },
@@ -295,7 +307,8 @@ getUser: procedure()
       });
     }
 
-    return user; // TypeScript ensures this matches UserSchema
+    // Resource API provides type-safe projection
+    return resource(user, UserSchema).forAuthenticated();
   }),
 ```
 
@@ -453,21 +466,31 @@ declare module '@veloxts/core' {
 }
 ```
 
-### Output Type Mismatch
+### Resource Projection Errors
 
-**Problem:** Return value doesn't match output schema.
+**Problem:** Return value doesn't match expected projection.
 
-**Solution:** Ensure your return matches the schema exactly:
+**Solution:** Ensure you're using the correct projection method and your data has all required fields:
 
 ```typescript
-// Schema expects { id, name, email }
-.output(z.object({ id: z.string(), name: z.string(), email: z.string() }))
+// Define schema with required fields
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .build();
 
-// Wrong - missing email
-.query(() => ({ id: '1', name: 'Alice' }))
+// Wrong - data missing required field 'name'
+.query(async ({ ctx }) => {
+  const user = await ctx.db.user.findUnique({ select: { id: true } });
+  return resource(user, UserSchema).forAnonymous(); // Runtime error - name is undefined
+})
 
-// Correct - all fields present
-.query(() => ({ id: '1', name: 'Alice', email: 'alice@example.com' }))
+// Correct - fetch all required fields
+.query(async ({ ctx }) => {
+  const user = await ctx.db.user.findUnique({ where: { id } });
+  return resource(user, UserSchema).forAnonymous(); // Works - all fields present
+})
 ```
 
 ## Related Content

@@ -492,6 +492,59 @@ REST endpoints are auto-generated from procedure naming conventions:
 
 Manual overrides available via `.rest()` method.
 
+#### Resource API (Context-Dependent Outputs)
+
+The Resource API provides phantom type-based output typing for returning different fields based on access level:
+
+```typescript
+import { resourceSchema, resource, procedure, procedures } from '@veloxts/router';
+import { authenticated, hasRole } from '@veloxts/auth';
+import { z } from 'zod';
+
+// Define field visibility
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())           // Visible to everyone
+  .public('name', z.string())                // Visible to everyone
+  .authenticated('email', z.string().email()) // Logged-in users only
+  .admin('internalNotes', z.string().nullable()) // Admins only
+  .build();
+
+export const userProcedures = procedures('users', {
+  // Public: returns { id, name }
+  getPublicProfile: procedure()
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+      return resource(user, UserSchema).forAnonymous();
+    }),
+
+  // Authenticated: returns { id, name, email }
+  getProfile: procedure()
+    .guard(authenticated)
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+      return resource(user, UserSchema).forAuthenticated();
+    }),
+
+  // Admin: returns all fields
+  getFullUser: procedure()
+    .guard(hasRole('admin'))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+      return resource(user, UserSchema).forAdmin();
+    }),
+});
+```
+
+**Key methods:**
+- `.forAnonymous()` - Returns only `public` fields
+- `.forAuthenticated()` - Returns `public` + `authenticated` fields
+- `.forAdmin()` - Returns all fields
+- `.for(ctx)` - Auto-detects level from context
+
+**When to use `.output()` vs `.resource()`:**
+- `.output(zodSchema)` - Same fields for all users
+- `resourceSchema()` + `resource()` - Different fields per role
+
 #### Context Object
 Request-scoped state extended via TypeScript declaration merging:
 

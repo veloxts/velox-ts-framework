@@ -86,6 +86,45 @@ const adminWithPermission = procedure()
   .mutation(handler);
 ```
 
+## Resource API Integration
+
+Guards work seamlessly with the Resource API for context-dependent outputs:
+
+```typescript
+import { resource, resourceSchema } from '@veloxts/router';
+import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .admin('internalNotes', z.string().nullable())
+  .build();
+
+// Anonymous - returns { id, name }
+const getPublicUser = procedure()
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    return resource(user, UserSchema).forAnonymous();
+  });
+
+// Authenticated - returns { id, name, email }
+const getUser = procedure()
+  .guardNarrow(authenticatedNarrow)
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    return resource(user, UserSchema).for(ctx); // Auto-detects level
+  });
+
+// Admin - returns all fields
+const getFullUser = procedure()
+  .guardNarrow(adminNarrow)
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    return resource(user, UserSchema).forAdmin();
+  });
+```
+
 ## Password Hashing
 
 ```typescript

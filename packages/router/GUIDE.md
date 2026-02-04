@@ -28,9 +28,11 @@ export const userProcedures = procedures('users', {
 ## Procedure API
 
 - `.input(schema)` - Validate input with Zod
-- `.output(schema)` - Validate output with Zod
+- `.output(schema)` - Validate output with Zod (same fields for all users)
+- `.resource(schema)` - Context-dependent output with field visibility
 - `.use(middleware)` - Add middleware
 - `.guard(guard)` - Add authorization guard
+- `.guardNarrow(guard)` - Add guard with TypeScript type narrowing
 - `.rest({ method, path })` - Override REST path
 - `.query(handler)` - Finalize as read operation
 - `.mutation(handler)` - Finalize as write operation
@@ -425,6 +427,195 @@ console.table(routes);
 //   { method: 'POST', path: '/api/users', operationId: 'users_createUser', namespace: 'users' },
 // ]
 ```
+
+## Resource API (Context-Dependent Outputs)
+
+The Resource API provides context-dependent output types using phantom types. Unlike `.output()` which returns the same fields to all users, `.resource()` lets you define field visibility per access level.
+
+### Defining a Resource Schema
+
+```typescript
+import { resourceSchema } from '@veloxts/router';
+import { z } from '@veloxts/validation';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())           // Visible to everyone
+  .public('name', z.string())                // Visible to everyone
+  .authenticated('email', z.string().email()) // Visible to logged-in users
+  .authenticated('createdAt', z.date())       // Visible to logged-in users
+  .admin('internalNotes', z.string().nullable()) // Visible to admins only
+  .admin('lastLoginIp', z.string().nullable())   // Visible to admins only
+  .build();
+```
+
+### Automatic Projection (Simple Cases)
+
+The most elegant approach is to chain `.resource()` with a narrowing guard. The procedure executor automatically projects fields based on the guard's access level:
+
+```typescript
+import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
+
+export const userProcedures = procedures('users', {
+  // Authenticated endpoint - auto-projects { id, name, email, createdAt }
+  getProfile: procedure()
+    .guardNarrow(authenticatedNarrow)
+    .resource(UserSchema)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      // Just return the full data - projection is automatic!
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    }),
+
+  // Admin endpoint - auto-projects all fields
+  getFullProfile: procedure()
+    .guardNarrow(adminNarrow)
+    .resource(UserSchema)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    }),
+});
+```
+
+**How it works:**
+
+1. The `guardNarrow()` method accepts guards with an `accessLevel` property (`'public'`, `'authenticated'`, or `'admin'`)
+2. After the guard passes, the procedure executor tracks the highest access level
+3. When the handler returns, the executor automatically projects the result using the resource schema
+4. No manual `.forX()` calls needed - the output type is inferred at compile time
+
+**Benefits:**
+- Clean, declarative code - no projection logic in handlers
+- Type-safe - return types are inferred from guard + schema
+- Less boilerplate - handlers just return data
+- Consistent - impossible to forget projection
+
+### Manual Projection (Complex Cases)
+
+For situations where automatic projection doesn't fit, use explicit projection methods:
+
+```typescript
+import { resource, resourceCollection } from '@veloxts/router';
+
+export const userProcedures = procedures('users', {
+  // Public endpoint - explicitly returns { id, name }
+  getPublicProfile: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAnonymous();
+    }),
+
+  // Conditional projection based on ownership
+  getOwnProfile: procedure()
+    .guard(authenticated)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      // Show more fields if viewing own profile
+      if (user.id === ctx.user?.id) {
+        return resource(user, UserSchema).forAuthenticated();
+      }
+      return resource(user, UserSchema).forAnonymous();
+    }),
+
+  // Admin with explicit projection
+  getUserForAdmin: procedure()
+    .guard(hasRole('admin'))
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAdmin();
+    }),
+});
+```
+
+**When to use manual projection:**
+- Conditional logic (e.g., show more fields for own profile)
+- Mixed access levels in one handler
+- Non-guard-based access decisions
+- Legacy code migration
+
+### Resource Collections
+
+For arrays of items, use `resourceCollection()`:
+
+```typescript
+// Automatic projection (simple cases)
+const listUsers = procedure()
+  .guardNarrow(authenticatedNarrow)
+  .resource(UserSchema)
+  .query(async ({ ctx }) => {
+    return ctx.db.user.findMany({ take: 50 });
+  });
+
+// Manual projection (when needed)
+const listUsersManual = procedure()
+  .guard(authenticated)
+  .query(async ({ ctx }) => {
+    const users = await ctx.db.user.findMany({ take: 50 });
+    return resourceCollection(users, UserSchema).forAuthenticated();
+  });
+```
+
+### Context-Aware Projection
+
+For manual projection with dynamic access level, use `.for(ctx)`:
+
+```typescript
+const getUser = procedure()
+  .guardNarrow(authenticatedNarrow)
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    // Reads access level from ctx.__accessLevel
+    return resource(user, UserSchema).for(ctx);
+  });
+```
+
+### Visibility Levels
+
+| Method | Fields Included | Use Case |
+|--------|-----------------|----------|
+| `.forAnonymous()` | `public` only | Public APIs, unauthenticated users |
+| `.forAuthenticated()` | `public` + `authenticated` | Logged-in users |
+| `.forAdmin()` | All fields | Admin dashboards, internal tools |
+| `.for(ctx)` | Auto-detected from context | Dynamic access control |
+
+### Type Safety
+
+The Resource API provides compile-time type safety:
+
+```typescript
+// Automatic projection - type inferred from guard
+const getProfile = procedure()
+  .guardNarrow(authenticatedNarrow)
+  .resource(UserSchema)
+  .query(async ({ ctx }) => {
+    return ctx.db.user.findFirst();
+  });
+// Return type: { id: string; name: string; email: string; createdAt: Date }
+
+// Manual projection - type inferred from method
+const result = resource(user, UserSchema).forAnonymous();
+// Type: { id: string; name: string }
+
+const authResult = resource(user, UserSchema).forAuthenticated();
+// Type: { id: string; name: string; email: string; createdAt: Date }
+
+const adminResult = resource(user, UserSchema).forAdmin();
+// Type: { id: string; name: string; email: string; createdAt: Date; internalNotes: string | null; lastLoginIp: string | null }
+```
+
+### Choosing an Approach
+
+| Scenario | Approach |
+|----------|----------|
+| Guard determines access level | **Automatic** (`.guardNarrow().resource()`) |
+| Public endpoints (no guard) | Manual (`.forAnonymous()`) |
+| Conditional/dynamic projection | Manual (`.forX()` in handler) |
+| Simple, declarative code | **Automatic** |
+| Complex access logic | Manual
 
 ## Middleware
 

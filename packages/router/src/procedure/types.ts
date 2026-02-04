@@ -13,6 +13,8 @@
 import type { BaseContext } from '@veloxts/core';
 import type { ZodType, ZodTypeDef } from 'zod';
 
+import type { OutputForTag, ResourceSchema } from '../resource/index.js';
+import type { ContextTag, ExtractTag, TaggedContext } from '../resource/tags.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -426,6 +428,46 @@ export interface ProcedureBuilder<
   mutation(
     handler: ProcedureHandler<TInput, TOutput, TContext>
   ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
+
+  /**
+   * Sets the output type based on a resource schema and context tag
+   *
+   * This method enables context-dependent output types using phantom types.
+   * The output type is computed based on the fields visible to the context's
+   * access level (anonymous, authenticated, or admin).
+   *
+   * **IMPORTANT**: This method is for type documentation only. You must still
+   * call `.forAnonymous()`, `.forAuthenticated()`, or `.forAdmin()` on the
+   * resource instance in your handler to perform the actual field filtering.
+   *
+   * @template TSchema - The resource schema type
+   * @param schema - The resource schema defining field visibility
+   * @returns New builder with output type set based on context's tag
+   *
+   * @example
+   * ```typescript
+   * // The output type is automatically computed from the context tag
+   * const getUser = procedure()
+   *   .guardNarrow(authenticatedNarrow) // Tags context with AUTHENTICATED
+   *   .input(z.object({ id: z.string() }))
+   *   .resource(UserSchema) // Output type: { id, name, email }
+   *   .query(async ({ input, ctx }) => {
+   *     const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+   *     return resource(user, UserSchema).forAuthenticated();
+   *   });
+   * ```
+   */
+  resource<TSchema extends ResourceSchema>(
+    schema: TSchema
+  ): ProcedureBuilder<
+    TInput,
+    TContext extends TaggedContext<infer TTag>
+      ? TTag extends ContextTag
+        ? OutputForTag<TSchema, TTag>
+        : OutputForTag<TSchema, ExtractTag<TContext>>
+      : OutputForTag<TSchema, ExtractTag<TContext>>,
+    TContext
+  >;
 }
 
 // ============================================================================
@@ -443,6 +485,8 @@ export interface BuilderRuntimeState {
   inputSchema?: ValidSchema;
   /** Output validation schema */
   outputSchema?: ValidSchema;
+  /** Resource schema for context-dependent output */
+  resourceSchema?: ResourceSchema;
   /** Middleware chain */
   middlewares: MiddlewareFunction<unknown, BaseContext, BaseContext, unknown>[];
   /** Guards to execute before handler */

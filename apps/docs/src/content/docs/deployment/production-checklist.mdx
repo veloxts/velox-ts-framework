@@ -54,7 +54,6 @@ process.on('SIGINT', shutdown);
 
 ```typescript
 health: procedure()
-  .output(z.object({ status: z.string(), timestamp: z.string() }))
   .query(() => ({
     status: 'ok',
     timestamp: new Date().toISOString(),

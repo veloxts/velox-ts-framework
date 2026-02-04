@@ -5,14 +5,22 @@
  * When using `guardNarrow(authenticatedNarrow)`, the context type
  * is narrowed to guarantee `ctx.user` is non-null.
  *
+ * Additionally, these guards add phantom type tags for use with the
+ * Resource API, enabling context-dependent output types.
+ *
  * EXPERIMENTAL: This API may change. The current recommended approach
  * is to use middleware for context type extension.
  *
  * @module auth/guards-narrowing
  */
 
+import type { AccessLevel, ADMIN, AUTHENTICATED, TaggedContext } from '@veloxts/router';
+
 import { authenticated, hasRole as hasRoleBase } from './guards.js';
 import type { AuthContext, GuardFunction, User } from './types.js';
+
+// Re-export phantom type tags from @veloxts/router for convenience (type-only)
+export type { AccessLevel, ADMIN, AUTHENTICATED, TaggedContext };
 
 // ============================================================================
 // Narrowing Guard Types
@@ -23,6 +31,9 @@ import type { AuthContext, GuardFunction, User } from './types.js';
  *
  * The `_narrows` phantom type indicates what the guard guarantees
  * about the context after it passes.
+ *
+ * The `accessLevel` property is used by the procedure builder to
+ * automatically set `ctx.__accessLevel` for resource auto-projection.
  *
  * @template TRequired - Context properties required to run the guard
  * @template TGuaranteed - Context properties guaranteed after guard passes
@@ -42,16 +53,36 @@ export interface NarrowingGuard<TRequired, TGuaranteed> {
    * @internal
    */
   readonly _narrows: TGuaranteed;
+  /**
+   * Runtime access level for automatic resource projection.
+   *
+   * When set, the procedure builder will automatically assign this
+   * value to `ctx.__accessLevel` after the guard passes, enabling
+   * auto-projection with `.resource()`.
+   */
+  accessLevel?: AccessLevel;
 }
 
 /**
  * Context type with a guaranteed authenticated user.
  *
  * After `authenticatedNarrow` passes, the context is narrowed to this type.
+ * Includes a phantom tag for the Resource API.
  */
-export interface AuthenticatedContext {
+export interface AuthenticatedContext extends TaggedContext<typeof AUTHENTICATED> {
   auth: AuthContext & { isAuthenticated: true };
   user: User;
+}
+
+/**
+ * Context type with a guaranteed user having admin role.
+ *
+ * After `adminNarrow` passes, the context is narrowed to this type.
+ * Includes a phantom tag for the Resource API.
+ */
+export interface AdminContext extends TaggedContext<typeof ADMIN> {
+  auth: AuthContext & { isAuthenticated: true };
+  user: User & { roles: string[] };
 }
 
 /**
@@ -100,6 +131,37 @@ export const authenticatedNarrow: NarrowingGuard<{ auth?: AuthContext }, Authent
   // Phantom type: value is never used at runtime, only carries type info.
   // The `undefined as unknown as T` pattern is standard for phantom types.
   _narrows: undefined as unknown as AuthenticatedContext,
+  // Runtime access level for auto-projection with .resource()
+  accessLevel: 'authenticated',
+};
+
+/**
+ * Admin guard with type narrowing and phantom tag.
+ *
+ * When used with `guardNarrow()`, narrows `ctx.user` to a User with admin role
+ * and tags the context with ADMIN for use with the Resource API.
+ *
+ * @example
+ * ```typescript
+ * import { adminNarrow } from '@veloxts/auth';
+ * import { resource, UserSchema } from '@veloxts/router';
+ *
+ * procedure()
+ *   .guardNarrow(adminNarrow)
+ *   .query(({ ctx }) => {
+ *     // ctx.user is typed as User with roles: string[]
+ *     // When used with resource(), returns all fields including admin-only
+ *     const user = await ctx.db.user.findUnique({ where: { id } });
+ *     return resource(user, UserSchema).forAdmin();
+ *   });
+ * ```
+ */
+export const adminNarrow: NarrowingGuard<{ user?: User }, AdminContext> = {
+  ...hasRoleBase('admin'),
+  // Phantom type: carries type info for guardNarrow() and Resource API
+  _narrows: undefined as unknown as AdminContext,
+  // Runtime access level for auto-projection with .resource()
+  accessLevel: 'admin',
 };
 
 /**

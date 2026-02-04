@@ -28,20 +28,33 @@ npm create vite@latest my-frontend -- --template react-ts
 
 ```typescript
 // api/src/procedures/products.ts
-import { procedures, procedure } from '@veloxts/velox';
+import { procedures, procedure, resourceSchema, resource, resourceCollection } from '@veloxts/velox';
 import { z } from '@veloxts/velox';
+
+// Define resource schema with field visibility
+const ProductSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .public('price', z.number())
+  .authenticated('description', z.string())
+  .admin('costPrice', z.number())
+  .build();
 
 export const productProcedures = procedures('products', {
   listProducts: procedure()
-    .output(z.array(ProductSchema))
-    .query(({ ctx }) => ctx.db.product.findMany()),
+    .query(async ({ ctx }) => {
+      const products = await ctx.db.product.findMany();
+      return resourceCollection(products, ProductSchema).forAnonymous();
+    }),
 
   getProduct: procedure()
     .input(z.object({ id: z.string() }))
-    .output(ProductSchema)
-    .query(({ input, ctx }) => ctx.db.product.findUniqueOrThrow({
-      where: { id: input.id },
-    })),
+    .query(async ({ input, ctx }) => {
+      const product = await ctx.db.product.findUniqueOrThrow({
+        where: { id: input.id },
+      });
+      return resource(product, ProductSchema).forAnonymous();
+    }),
 });
 ```
 

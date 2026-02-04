@@ -17,13 +17,24 @@ Use this architecture when you have both TypeScript and non-TypeScript clients.
 VeloxTS generates both REST and tRPC endpoints from the same procedures:
 
 ```typescript
+import { resourceSchema, resourceCollection } from '@veloxts/router';
+
+const OrderSchema = resourceSchema()
+  .public('id', z.string())
+  .public('total', z.number())
+  .authenticated('userId', z.string())
+  .admin('paymentDetails', z.object({ /* ... */ }))
+  .build();
+
 export const orderProcedures = procedures('orders', {
   // Available as:
   // - REST: GET /api/orders
   // - tRPC: trpc.orders.listOrders.query()
   listOrders: procedure()
-    .output(z.array(OrderSchema))
-    .query(({ ctx }) => ctx.db.order.findMany()),
+    .query(async ({ ctx }) => {
+      const orders = await ctx.db.order.findMany();
+      return resourceCollection(orders, OrderSchema).forAuthenticated();
+    }),
 });
 ```
 
