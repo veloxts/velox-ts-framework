@@ -24,7 +24,7 @@ async function fetchWithRetry(
   options?: RequestInit,
   maxRetries = 2
 ): Promise<Response> {
-  let lastResponse: Response | undefined;
+  let lastResponse: Response | null = null;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     lastResponse = await fetch(url, options);
     if (lastResponse.status !== 429) {
@@ -33,7 +33,8 @@ async function fetchWithRetry(
     // Wait before retry
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
-  return lastResponse!;
+  // lastResponse is guaranteed to be set since maxRetries >= 1
+  return lastResponse as Response;
 }
 
 /**

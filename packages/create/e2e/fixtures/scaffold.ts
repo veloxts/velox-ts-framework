@@ -343,33 +343,20 @@ async function getOrCreateFixture(template: TemplateType): Promise<ScaffoldFixtu
   };
 }
 
-/**
- * Extract template from test file name.
- */
-function getTemplateFromFile(filePath: string): TemplateType {
-  const fileName = filePath.split('/').pop() ?? '';
-  const templateMatch = fileName.match(/^(spa|auth|trpc|rsc-auth|rsc)\.spec\.ts$/);
-
-  if (!templateMatch) {
-    throw new Error(`Could not determine template from test file: ${fileName}`);
-  }
-
-  return templateMatch[1] as TemplateType;
-}
-
 // Create custom test fixture with worker scope
 // This ensures the fixture is created once per worker (i.e., once per template)
 // and reused across all tests in that template's spec file.
 // Cleanup is handled by global-teardown.ts
 export const test = base.extend<object, { scaffold: ScaffoldFixture }>({
-  // biome-ignore lint/correctness/noEmptyPattern: Playwright fixtures require empty pattern for dependency injection
   scaffold: [
-    async ({}, use, workerInfo) => {
+    async (_deps, use, workerInfo) => {
       // Get template from the project name (set in playwright.config.ts)
       const projectName = workerInfo.project.name as TemplateType;
       const template = projectName || 'spa';
 
-      console.log(`\n[Worker ${workerInfo.workerIndex}] Setting up fixture for ${template} template`);
+      console.log(
+        `\n[Worker ${workerInfo.workerIndex}] Setting up fixture for ${template} template`
+      );
 
       // Get or create the fixture
       const fixture = await getOrCreateFixture(template);
@@ -377,7 +364,9 @@ export const test = base.extend<object, { scaffold: ScaffoldFixture }>({
       await use(fixture);
 
       // No cleanup here - global-teardown handles it
-      console.log(`[Worker ${workerInfo.workerIndex}] Fixture teardown for ${template} (server kept alive)`);
+      console.log(
+        `[Worker ${workerInfo.workerIndex}] Fixture teardown for ${template} (server kept alive)`
+      );
     },
     { scope: 'worker' },
   ],
