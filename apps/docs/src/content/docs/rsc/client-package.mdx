@@ -205,15 +205,17 @@ Types flow automatically from backend to frontend:
 export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
-    .output(UserSchema)
-    .query(handler),
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAuthenticated();
+    }),
 });
 
 // Frontend gets full type safety
 // Input is typed: { id: string }
-// Output is typed: User
+// Output is typed based on Resource API projection
 const user = await api.users.getUser({ id: '123' });
-//    ^? User
+//    ^? { id: string; name: string; email: string }
 
 // TypeScript catches errors
 await api.users.getUser({ id: 123 }); // Error: Expected string

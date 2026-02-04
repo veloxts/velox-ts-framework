@@ -25,17 +25,17 @@ Traditional page-based pagination with page numbers.
 ### Basic Usage
 
 ```typescript
-import { paginationInputSchema, createPaginatedResponseSchema } from '@veloxts/validation';
+import { paginationInputSchema } from '@veloxts/validation';
+import { resourceCollection } from '@veloxts/router';
 import { z } from '@veloxts/velox';
 
 listUsers: procedure()
   .input(paginationInputSchema)
-  .output(createPaginatedResponseSchema(UserSchema))
   .query(async ({ input, ctx }) => {
     const { page, limit, sortBy, sortOrder } = input;
     const skip = (page - 1) * limit;
 
-    const [users, total] = await Promise.all([
+    const [items, total] = await Promise.all([
       ctx.db.user.findMany({
         skip,
         take: limit,
@@ -45,7 +45,7 @@ listUsers: procedure()
     ]);
 
     return {
-      data: users,
+      data: resourceCollection(items, UserSchema).forAnonymous(),
       meta: {
         page,
         limit,

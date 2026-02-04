@@ -310,6 +310,59 @@ await loginSession(ctx.session, { id: user.id, email: user.email });
 await logoutSession(ctx.session);
 ```
 
+## Resource API (Context-Dependent Outputs)
+
+Return different fields based on access level using the Resource API:
+
+```typescript
+import { resourceSchema, resource, procedure, procedures } from '@veloxts/router';
+import { authenticated, hasRole } from '@veloxts/auth';
+import { z } from '@veloxts/validation';
+
+// Define field visibility
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())           // Everyone sees this
+  .public('name', z.string())                // Everyone sees this
+  .authenticated('email', z.string().email()) // Logged-in users see this
+  .admin('internalNotes', z.string().nullable()) // Admins only
+  .build();
+
+export const userProcedures = procedures('users', {
+  // Public endpoint - returns { id, name }
+  getPublicProfile: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAnonymous();
+    }),
+
+  // Authenticated - returns { id, name, email }
+  getProfile: procedure()
+    .guard(authenticated)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAuthenticated();
+    }),
+
+  // Admin - returns all fields
+  getFullUser: procedure()
+    .guard(hasRole('admin'))
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAdmin();
+    }),
+});
+```
+
+**When to use `.output()` vs `.resource()`:**
+
+| Scenario | Method |
+|----------|--------|
+| Same fields for all users | `.output(zodSchema)` |
+| Different fields per role | `resourceSchema()` + `resource()` |
+
 ## CLI Generators
 
 Use `velox make` to scaffold common patterns:

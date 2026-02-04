@@ -10,17 +10,29 @@ Velox TS is designed to be flexible. You choose the architecture that fits you
 At the heart of Velox TS is the **procedure** — a type-safe function that can be exposed as both tRPC and REST:
 
 ```typescript
+import { resourceSchema, resource } from '@veloxts/router';
+
+// Define resource schema with field visibility
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .build();
+
 const getUser = procedure()
   .input(z.object({ id: z.string() }))
-  .output(UserSchema)
-  .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
-    where: { id: input.id }
-  }));
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUniqueOrThrow({
+      where: { id: input.id }
+    });
+    return resource(user, UserSchema).forAnonymous();
+  });
 ```
 
 This single definition generates:
 - **tRPC endpoint** - Full type inference for TypeScript clients
 - **REST endpoint** - `GET /api/users/:id` for any HTTP client
+- **Context-dependent outputs** - Different fields based on user access level
 
 ## Architectural Patterns
 

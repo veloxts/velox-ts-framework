@@ -150,41 +150,51 @@ procedures('posts', {
 <Tabs>
   <TabItem label="Users CRUD">
 ```typescript
+import { resourceSchema, resource, resourceCollection } from '@veloxts/router';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .build();
+
 procedures('users', {
   listUsers: procedure()
-    .output(z.array(UserSchema))
     .query(async ({ ctx }) => {
-      return await ctx.db.user.findMany();
+      const users = await ctx.db.user.findMany();
+      return resourceCollection(users, UserSchema).forAnonymous();
     }),
   // → GET /api/users
 
   getUser: procedure()
     .input(z.object({ id: z.string() }))
-    .output(UserSchema)
     .query(async ({ input, ctx }) => {
-      return await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAnonymous();
     }),
   // → GET /api/users/:id
 
   createUser: procedure()
     .input(CreateUserSchema)
-    .output(UserSchema)
     .mutation(async ({ input, ctx }) => {
-      return await ctx.db.user.create({ data: input });
+      const user = await ctx.db.user.create({ data: input });
+      return resource(user, UserSchema).forAuthenticated();
     }),
   // → POST /api/users (201)
 
   updateUser: procedure()
     .input(z.object({ id: z.string(), data: UpdateUserSchema }))
     .mutation(async ({ input, ctx }) => {
-      return await ctx.db.user.update({ where: { id: input.id }, data: input.data });
+      const user = await ctx.db.user.update({ where: { id: input.id }, data: input.data });
+      return resource(user, UserSchema).forAuthenticated();
     }),
   // → PUT /api/users/:id
 
   deleteUser: procedure()
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      return await ctx.db.user.delete({ where: { id: input.id } });
+      await ctx.db.user.delete({ where: { id: input.id } });
+      return { success: true };
     }),
   // → DELETE /api/users/:id
 });
@@ -192,12 +202,21 @@ procedures('users', {
   </TabItem>
   <TabItem label="Search/Filter">
 ```typescript
+import { resourceSchema, resourceCollection } from '@veloxts/router';
+
+const ProductSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .public('price', z.number())
+  .authenticated('category', z.string())
+  .build();
+
 procedures('products', {
   // Collection endpoint
   listProducts: procedure()
-    .output(z.array(ProductSchema))
     .query(async ({ ctx }) => {
-      return await ctx.db.product.findMany();
+      const products = await ctx.db.product.findMany();
+      return resourceCollection(products, ProductSchema).forAnonymous();
     }),
   // → GET /api/products
 
@@ -208,9 +227,8 @@ procedures('products', {
       minPrice: z.coerce.number().optional(),
       maxPrice: z.coerce.number().optional(),
     }))
-    .output(z.array(ProductSchema))
     .query(async ({ input, ctx }) => {
-      return await ctx.db.product.findMany({
+      const products = await ctx.db.product.findMany({
         where: {
           category: input.category,
           price: {
@@ -219,6 +237,7 @@ procedures('products', {
           },
         },
       });
+      return resourceCollection(products, ProductSchema).forAnonymous();
     }),
   // → GET /api/products?category=electronics&minPrice=100
 });

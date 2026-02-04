@@ -138,8 +138,10 @@ createUser: procedure()
     tags: ['Users'],
   })
   .input(CreateUserSchema)
-  .output(UserSchema)
-  .mutation(handler),
+  .mutation(async ({ input, ctx }) => {
+    const user = await ctx.db.user.create({ data: input });
+    return resource(user, UserSchema).forAuthenticated();
+  }),
 ```
 
 ## Tags

@@ -183,6 +183,42 @@ export const userProcedures = procedures('users', {
 });
 ```
 
+## Resource API with Zod Schemas
+
+For context-dependent outputs, use `resourceSchema()` with Zod field schemas:
+
+```typescript
+import { resourceSchema, resource } from '@veloxts/router';
+import { z } from '@veloxts/validation';
+
+// Define field visibility with Zod schemas
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .authenticated('email', z.string().email())
+  .admin('internalNotes', z.string().nullable())
+  .build();
+
+// Returns different fields based on access level
+const publicUser = resource(user, UserSchema).forAnonymous();
+// Type: { id: string; name: string }
+
+const authUser = resource(user, UserSchema).forAuthenticated();
+// Type: { id: string; name: string; email: string }
+
+const adminUser = resource(user, UserSchema).forAdmin();
+// Type: { id: string; name: string; email: string; internalNotes: string | null }
+```
+
+### When to Use Each Approach
+
+| Scenario | Approach |
+|----------|----------|
+| Same output for all users | `.output(zodSchema)` |
+| Different fields per role | `resourceSchema()` + `resource()` |
+| Input validation | `.input(zodSchema)` |
+| Complex transforms | `.output()` with Zod transforms |
+
 ## Error Handling
 
 Validation errors include field-level details:

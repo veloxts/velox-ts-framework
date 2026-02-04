@@ -24,23 +24,39 @@ With `--trpc`, VeloxTS skips REST generation. You get pure tRPC:
 
 ```typescript
 // src/procedures/users.ts
-import { procedures, procedure } from '@veloxts/velox';
+import { procedures, procedure, resourceSchema, resource, resourceCollection } from '@veloxts/velox';
 import { z } from '@veloxts/velox';
+
+// Define resource schema with field visibility
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .admin('lastLoginAt', z.date().nullable())
+  .build();
 
 export const userProcedures = procedures('users', {
   list: procedure()
-    .output(z.array(UserSchema))
-    .query(({ ctx }) => ctx.db.user.findMany()),
+    .query(async ({ ctx }) => {
+      const users = await ctx.db.user.findMany();
+      return resourceCollection(users, UserSchema).forAuthenticated();
+    }),
 
   get: procedure()
     .input(z.object({ id: z.string() }))
-    .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
-      where: { id: input.id }
-    })),
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({
+        where: { id: input.id }
+      });
+      return resource(user, UserSchema).forAuthenticated();
+    }),
 
   create: procedure()
     .input(CreateUserSchema)
-    .mutation(({ input, ctx }) => ctx.db.user.create({ data: input })),
+    .mutation(async ({ input, ctx }) => {
+      const user = await ctx.db.user.create({ data: input });
+      return resource(user, UserSchema).forAuthenticated();
+    }),
 });
 ```
 

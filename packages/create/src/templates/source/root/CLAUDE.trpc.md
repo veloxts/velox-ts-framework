@@ -134,6 +134,41 @@ export const appRouter = createRouter({
 export type AppRouter = typeof appRouter;
 ```
 
+### Resource API (Context-Dependent Outputs)
+
+For different field visibility per access level, use the Resource API:
+
+```typescript
+import { resourceSchema, resource, procedure, procedures, z } from '@veloxts/velox';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())           // Everyone
+  .public('name', z.string())                // Everyone
+  .authenticated('email', z.string().email()) // Logged-in users
+  .admin('internalNotes', z.string().nullable()) // Admins only
+  .build();
+
+export const userProcedures = procedures('users', {
+  // Public: returns { id, name }
+  publicProfile: procedure()
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+      return resource(user, UserSchema).forAnonymous();
+    }),
+
+  // Authenticated: returns { id, name, email }
+  profile: procedure()
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+      return resource(user, UserSchema).forAuthenticated();
+    }),
+});
+```
+
+**When to use `.output()` vs `.resource()`:**
+- `.output(zodSchema)` - Same fields for all users
+- `resourceSchema()` + `resource()` - Different fields per role
+
 ## Prisma 7 Configuration
 
 This project uses Prisma 7 which has breaking changes:

@@ -111,12 +111,15 @@ export const authedProcedure = procedure()
 // Use in procedures
 export const userProcedures = procedures('users', {
   listUsers: loggedProcedure
-    .output(z.array(UserSchema))
-    .query(handler),
+    .query(async ({ ctx }) => {
+      const users = await ctx.db.user.findMany();
+      return resourceCollection(users, UserSchema).forAuthenticated();
+    }),
 
   getProfile: authedProcedure
-    .output(UserSchema)
-    .query(({ ctx }) => ctx.user),
+    .query(({ ctx }) => {
+      return resource(ctx.user, UserSchema).forAuthenticated();
+    }),
 });
 ```
 

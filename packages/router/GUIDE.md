@@ -28,9 +28,11 @@ export const userProcedures = procedures('users', {
 ## Procedure API
 
 - `.input(schema)` - Validate input with Zod
-- `.output(schema)` - Validate output with Zod
+- `.output(schema)` - Validate output with Zod (same fields for all users)
+- `.resource(schema)` - Context-dependent output with field visibility
 - `.use(middleware)` - Add middleware
 - `.guard(guard)` - Add authorization guard
+- `.guardNarrow(guard)` - Add guard with TypeScript type narrowing
 - `.rest({ method, path })` - Override REST path
 - `.query(handler)` - Finalize as read operation
 - `.mutation(handler)` - Finalize as write operation
@@ -425,6 +427,121 @@ console.table(routes);
 //   { method: 'POST', path: '/api/users', operationId: 'users_createUser', namespace: 'users' },
 // ]
 ```
+
+## Resource API (Context-Dependent Outputs)
+
+The Resource API provides context-dependent output types using phantom types. Unlike `.output()` which returns the same fields to all users, `.resource()` lets you define field visibility per access level.
+
+### Defining a Resource Schema
+
+```typescript
+import { resourceSchema, resource, resourceCollection } from '@veloxts/router';
+import { z } from '@veloxts/validation';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())           // Visible to everyone
+  .public('name', z.string())                // Visible to everyone
+  .authenticated('email', z.string().email()) // Visible to logged-in users
+  .authenticated('createdAt', z.date())       // Visible to logged-in users
+  .admin('internalNotes', z.string().nullable()) // Visible to admins only
+  .admin('lastLoginIp', z.string().nullable())   // Visible to admins only
+  .build();
+```
+
+### Using Resources in Procedures
+
+```typescript
+export const userProcedures = procedures('users', {
+  // Public endpoint - returns { id, name }
+  getPublicProfile: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAnonymous();
+    }),
+
+  // Authenticated endpoint - returns { id, name, email, createdAt }
+  getProfile: procedure()
+    .guard(authenticated)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAuthenticated();
+    }),
+
+  // Admin endpoint - returns all fields
+  getFullProfile: procedure()
+    .guard(hasRole('admin'))
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(user, UserSchema).forAdmin();
+    }),
+});
+```
+
+### Resource Collections
+
+For arrays of items, use `resourceCollection()`:
+
+```typescript
+const listUsers: procedure()
+  .guard(authenticated)
+  .query(async ({ ctx }) => {
+    const users = await ctx.db.user.findMany({ take: 50 });
+    return resourceCollection(users, UserSchema).forAuthenticated();
+  });
+```
+
+### Context-Aware Projection
+
+Use `.for(ctx)` to automatically determine the access level from context:
+
+```typescript
+import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
+
+const getUser = procedure()
+  .guardNarrow(authenticatedNarrow)
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    // Automatically infers access level from ctx
+    return resource(user, UserSchema).for(ctx);
+  });
+```
+
+### Visibility Levels
+
+| Method | Fields Included | Use Case |
+|--------|-----------------|----------|
+| `.forAnonymous()` | `public` only | Public APIs, unauthenticated users |
+| `.forAuthenticated()` | `public` + `authenticated` | Logged-in users |
+| `.forAdmin()` | All fields | Admin dashboards, internal tools |
+| `.for(ctx)` | Auto-detected from context | Dynamic access control |
+
+### Type Safety
+
+The Resource API provides compile-time type safety:
+
+```typescript
+const result = resource(user, UserSchema).forAnonymous();
+// Type: { id: string; name: string }
+
+const authResult = resource(user, UserSchema).forAuthenticated();
+// Type: { id: string; name: string; email: string; createdAt: Date }
+
+const adminResult = resource(user, UserSchema).forAdmin();
+// Type: { id: string; name: string; email: string; createdAt: Date; internalNotes: string | null; lastLoginIp: string | null }
+```
+
+### When to Use `.output()` vs `.resource()`
+
+| Use Case | Method |
+|----------|--------|
+| Same fields for all users | `.output(zodSchema)` |
+| Different fields per access level | `.resource(resourceSchema)` |
+| Simple validation | `.output()` |
+| Role-based field visibility | `.resource()` |
 
 ## Middleware
 

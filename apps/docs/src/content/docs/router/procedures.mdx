@@ -10,16 +10,26 @@ Procedures are the core building block of VeloxTS APIs. They define type-safe en
 ## Basic Syntax
 
 ```typescript
-import { procedures, procedure } from '@veloxts/velox';
+import { procedures, procedure, resourceSchema, resource } from '@veloxts/velox';
 import { z } from '@veloxts/velox';
+
+// Define resource schema with field visibility
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .authenticated('email', z.string().email())
+  .admin('internalNotes', z.string().nullable())
+  .build();
 
 export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string() }))
-    .output(UserSchema)
-    .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
-      where: { id: input.id }
-    })),
+    .query(async ({ input, ctx }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({
+        where: { id: input.id }
+      });
+      return resource(user, UserSchema).forAnonymous();
+    }),
 });
 ```
 
@@ -48,17 +58,35 @@ Define the input validation schema:
 }))
 ```
 
-### `.output(schema)`
+### Resource API
 
-Define the output schema (optional but recommended):
+Define context-dependent outputs using the Resource API:
 
 ```typescript
-.output(z.object({
-  id: z.string(),
-  name: z.string(),
-  email: z.string(),
-}))
+// Define a resource schema with field visibility
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .admin('internalNotes', z.string().nullable())
+  .build();
+
+// In your procedure handler, use resource() to project fields
+.query(async ({ input, ctx }) => {
+  const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+
+  // Return only public fields for anonymous users
+  return resource(user, UserSchema).forAnonymous();
+
+  // Or authenticated fields for logged-in users
+  // return resource(user, UserSchema).forAuthenticated();
+
+  // Or all fields for admins
+  // return resource(user, UserSchema).forAdmin();
+})
 ```
+
+See [Validation > Schemas](/docs/validation/schemas/) for detailed Resource API documentation.
 
 ### `.query(handler)` / `.mutation(handler)`
 
@@ -110,11 +138,10 @@ Methods must be called in this order:
 ```typescript
 procedure()
   .input(schema)       // 1. Input validation (optional)
-  .output(schema)      // 2. Output validation (optional)
-  .guard(guardFn)      // 3. Authorization (optional, can have multiple)
-  .use(middleware)     // 4. Middleware (optional, can have multiple)
-  .rest(options)       // 5. REST override (optional) - BEFORE handler
-  .query(handler)      // 6. Handler - MUST be last
+  .guard(guardFn)      // 2. Authorization (optional, can have multiple)
+  .use(middleware)     // 3. Middleware (optional, can have multiple)
+  .rest(options)       // 4. REST override (optional) - BEFORE handler
+  .query(handler)      // 5. Handler - MUST be last (use Resource API inside)
 ```
 
 **Wrong:**
@@ -158,18 +185,26 @@ The first argument (`'posts'`) becomes:
 
 ## Type Inference
 
-Types flow automatically:
+Types flow automatically through the Resource API:
 
 ```typescript
-// Backend
+// Backend - Define resource schema
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .build();
+
 const createUser = procedure()
   .input(z.object({ name: z.string(), email: z.string().email() }))
-  .output(z.object({ id: z.string(), name: z.string() }))
-  .mutation(...)
+  .mutation(async ({ input, ctx }) => {
+    const user = await ctx.db.user.create({ data: input });
+    return resource(user, UserSchema).forAuthenticated();
+  });
 
 // Frontend (via tRPC or client)
 // Input is typed: { name: string; email: string }
-// Output is typed: { id: string; name: string }
+// Output is typed: { id: string; name: string; email: string }
 ```
 
 ## Discovery

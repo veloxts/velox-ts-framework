@@ -23,30 +23,33 @@ This guide walks you through creating a simple user API with VeloxTS.
    Edit `src/procedures/users.ts`:
 
    ```typescript
-   import { procedures, procedure } from '@veloxts/velox';
+   import { procedures, procedure, resourceSchema, resource } from '@veloxts/velox';
    import { z } from '@veloxts/velox';
+
+   // Define resource schema with field visibility
+   const UserSchema = resourceSchema()
+     .public('id', z.string())
+     .public('name', z.string())
+     .authenticated('email', z.string())
+     .build();
 
    export const userProcedures = procedures('users', {
      // GET /api/users
      listUsers: procedure()
-       .output(z.array(z.object({
-         id: z.string(),
-         name: z.string(),
-         email: z.string(),
-       })))
-       .query(({ ctx }) => ctx.db.user.findMany()),
+       .query(async ({ ctx }) => {
+         const users = await ctx.db.user.findMany();
+         return users.map(user => resource(user, UserSchema).forAnonymous());
+       }),
 
      // GET /api/users/:id
      getUser: procedure()
        .input(z.object({ id: z.string() }))
-       .output(z.object({
-         id: z.string(),
-         name: z.string(),
-         email: z.string(),
-       }))
-       .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
-         where: { id: input.id }
-       })),
+       .query(async ({ input, ctx }) => {
+         const user = await ctx.db.user.findUniqueOrThrow({
+           where: { id: input.id }
+         });
+         return resource(user, UserSchema).forAnonymous();
+       }),
 
      // POST /api/users
      createUser: procedure()
@@ -54,7 +57,10 @@ This guide walks you through creating a simple user API with VeloxTS.
          name: z.string().min(1),
          email: z.string().email(),
        }))
-       .mutation(({ input, ctx }) => ctx.db.user.create({ data: input })),
+       .mutation(async ({ input, ctx }) => {
+         const user = await ctx.db.user.create({ data: input });
+         return resource(user, UserSchema).forAnonymous();
+       }),
    });
    ```
 

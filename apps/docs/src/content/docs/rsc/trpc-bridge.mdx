@@ -62,16 +62,21 @@ export default async function UsersPage() {
 Types flow from procedure definitions:
 
 ```typescript
-// Procedure defines types
+// Procedure defines types via Resource API
 const createUser = procedure()
   .input(CreateUserSchema)
-  .output(UserSchema)
-  .mutation(...)
+  .mutation(async ({ input, ctx }) => {
+    const user = await ctx.db.user.create({ data: input });
+    return resource(user, UserSchema).forAuthenticated();
+  });
 
 // Action gets same types
 export const createUser = validated(CreateUserSchema, async (input) => {
   // input is typed: CreateUserInput
-  // return is typed: User
+  const { db } = await import('@/api/database');
+  const user = await db.user.create({ data: input });
+  return resource(user, UserSchema).forAuthenticated();
+  // return is typed based on projection
 });
 ```
 

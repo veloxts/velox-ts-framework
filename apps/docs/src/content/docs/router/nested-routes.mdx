@@ -316,18 +316,18 @@ import { z } from 'zod';
 // Posts at root level
 export const postProcedures = procedures('posts', {
   listPosts: procedure()
-    .output(z.array(PostSchema))
     .query(async ({ ctx }) => {
-      return await ctx.db.post.findMany();
+      const posts = await ctx.db.post.findMany();
+      return resourceCollection(posts, PostSchema).forAnonymous();
     }),
 
   getPost: procedure()
     .input(z.object({ id: z.string() }))
-    .output(PostSchema)
     .query(async ({ input, ctx }) => {
-      return await ctx.db.post.findUniqueOrThrow({
+      const post = await ctx.db.post.findUniqueOrThrow({
         where: { id: input.id },
       });
+      return resource(post, PostSchema).forAnonymous();
     }),
 });
 
@@ -337,23 +337,23 @@ export const commentProcedures = procedures('comments', {
   listComments: procedure()
     .parent('posts')
     .input(z.object({ postId: z.string() }))
-    .output(z.array(CommentSchema))
     .query(async ({ input, ctx }) => {
-      return await ctx.db.comment.findMany({
+      const comments = await ctx.db.comment.findMany({
         where: { postId: input.postId },
         orderBy: { createdAt: 'desc' },
       });
+      return resourceCollection(comments, CommentSchema).forAnonymous();
     }),
 
   // GET /posts/:postId/comments/:id
   getComment: procedure()
     .parent('posts')
     .input(z.object({ postId: z.string(), id: z.string() }))
-    .output(CommentSchema)
     .query(async ({ input, ctx }) => {
-      return await ctx.db.comment.findUniqueOrThrow({
+      const comment = await ctx.db.comment.findUniqueOrThrow({
         where: { id: input.id, postId: input.postId },
       });
+      return resource(comment, CommentSchema).forAnonymous();
     }),
 
   // POST /posts/:postId/comments
@@ -364,15 +364,15 @@ export const commentProcedures = procedures('comments', {
       content: z.string().min(1),
       authorId: z.string(),
     }))
-    .output(CommentSchema)
     .mutation(async ({ input, ctx }) => {
-      return await ctx.db.comment.create({
+      const comment = await ctx.db.comment.create({
         data: {
           content: input.content,
           authorId: input.authorId,
           postId: input.postId,
         },
       });
+      return resource(comment, CommentSchema).forAuthenticated();
     }),
 
   // DELETE /posts/:postId/comments/:id
@@ -380,9 +380,10 @@ export const commentProcedures = procedures('comments', {
     .parent('posts')
     .input(z.object({ postId: z.string(), id: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      return await ctx.db.comment.delete({
+      await ctx.db.comment.delete({
         where: { id: input.id, postId: input.postId },
       });
+      return { success: true };
     }),
 });
 
