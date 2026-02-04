@@ -339,3 +339,85 @@ export {
   validateOpenApiSpec,
   zodSchemaToJsonSchema,
 } from './openapi/index.js';
+
+// ============================================================================
+// Resource API (Phantom Types)
+// ============================================================================
+
+export type {
+  // Phantom tags (type-only - these are ambient declarations)
+  ADMIN,
+  AdminOutput,
+  AdminTaggedContext,
+  ANONYMOUS,
+  AnonymousOutput,
+  AnonymousTaggedContext,
+  AnyResourceOutput,
+  AUTHENTICATED,
+  AuthenticatedOutput,
+  AuthenticatedTaggedContext,
+  // Tag types
+  ContextTag,
+  ExtractTag,
+  HasTag,
+  IfAdmin,
+  IfAuthenticated,
+  // Type utilities
+  InferResourceData,
+  InferResourceOutput,
+  IsVisibleToTag,
+  OutputForTag,
+  ResourceField,
+  // Schema types
+  ResourceSchema,
+  RuntimeField,
+  TaggedContext,
+  // Visibility types
+  VisibilityLevel,
+  WithTag,
+} from './resource/index.js';
+/**
+ * Resource API for context-dependent output types using phantom types.
+ *
+ * Enables procedures to return different field sets based on user role/auth state
+ * while maintaining precise compile-time types.
+ *
+ * @example
+ * ```typescript
+ * import { z } from 'zod';
+ * import { resourceSchema, resource, procedures, procedure } from '@veloxts/router';
+ *
+ * // Define schema with field visibility
+ * const UserSchema = resourceSchema()
+ *   .public('id', z.string())
+ *   .public('name', z.string())
+ *   .authenticated('email', z.string())
+ *   .admin('internalNotes', z.string().nullable())
+ *   .build();
+ *
+ * // Use in procedures
+ * export const userProcedures = procedures('users', {
+ *   getPublicProfile: procedure()
+ *     .input(z.object({ id: z.string() }))
+ *     .query(async ({ input, ctx }) => {
+ *       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+ *       return resource(user, UserSchema).forAnonymous();
+ *     }),
+ * });
+ * ```
+ */
+export {
+  getAccessibleLevels,
+  getVisibilityForTag,
+  isResourceSchema,
+  // Visibility
+  isVisibleAtLevel,
+  Resource,
+  ResourceCollection,
+  ResourceSchemaBuilder,
+  // Resource instances
+  resource,
+  resourceCollection,
+  // Schema builder
+  resourceSchema,
+} from './resource/index.js';

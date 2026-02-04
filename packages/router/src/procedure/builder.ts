@@ -12,6 +12,8 @@ import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core'
 
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
+import type { OutputForTag, ResourceSchema } from '../resource/index.js';
+import type { ContextTag, ExtractTag, TaggedContext } from '../resource/tags.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -79,6 +81,7 @@ export function procedure<TContext extends BaseContext = BaseContext>(): Procedu
   return createBuilder<unknown, unknown, TContext>({
     inputSchema: undefined,
     outputSchema: undefined,
+    resourceSchema: undefined,
     middlewares: [],
     guards: [],
     restOverride: undefined,
@@ -267,6 +270,39 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       handler: ProcedureHandler<TInput, TOutput, TContext>
     ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'> {
       return compileProcedure('mutation', handler, state);
+    },
+
+    /**
+     * Sets the output type based on a resource schema
+     *
+     * This method stores the resource schema for potential OpenAPI generation
+     * and narrows the output type based on the context's phantom tag.
+     */
+    resource<TSchema extends ResourceSchema>(
+      schema: TSchema
+    ): ProcedureBuilder<
+      TInput,
+      TContext extends TaggedContext<infer TTag>
+        ? TTag extends ContextTag
+          ? OutputForTag<TSchema, TTag>
+          : OutputForTag<TSchema, ExtractTag<TContext>>
+        : OutputForTag<TSchema, ExtractTag<TContext>>,
+      TContext
+    > {
+      // Store the resource schema for OpenAPI generation
+      // The actual output type is computed at the type level
+      return createBuilder<
+        TInput,
+        TContext extends TaggedContext<infer TTag>
+          ? TTag extends ContextTag
+            ? OutputForTag<TSchema, TTag>
+            : OutputForTag<TSchema, ExtractTag<TContext>>
+          : OutputForTag<TSchema, ExtractTag<TContext>>,
+        TContext
+      >({
+        ...state,
+        resourceSchema: schema,
+      });
     },
   };
 }
