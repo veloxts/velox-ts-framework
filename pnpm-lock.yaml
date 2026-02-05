@@ -375,8 +375,8 @@ importers:
         specifier: 8.19.0
         version: 8.19.0
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 25.1.0
@@ -424,8 +424,8 @@ importers:
         specifier: 6.9.1
         version: 6.9.1(@react-email/render@2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@biomejs/biome':
         specifier: 2.3.13
@@ -541,8 +541,8 @@ importers:
         specifier: 2.2.6
         version: 2.2.6
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@biomejs/biome':
         specifier: 2.3.13
@@ -714,8 +714,8 @@ importers:
         specifier: workspace:*
         version: link:../validation
       zod:
-        specifier: 3.25.0
-        version: 3.25.0
+        specifier: ^3.25.0
+        version: 3.25.76
     devDependencies:
       '@veloxts/cache':
         specifier: workspace:*
@@ -7990,9 +7990,6 @@ packages:
 
   zod@3.24.4:
     resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
-
-  zod@3.25.0:
-    resolution: {integrity: sha512-ficnZKUW0mlNivqeJkosTEkGbJ6NKCtSaOHGx5aXbtfeWMdRyzXLbAIn19my4C/KB7WPY/p9vlGPt+qpOp6c4Q==}
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
@@ -16332,8 +16329,6 @@ snapshots:
       zod: 3.25.76
 
   zod@3.24.4: {}
-
-  zod@3.25.0: {}
 
   zod@3.25.76: {}
 
