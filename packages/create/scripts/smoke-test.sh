@@ -874,6 +874,8 @@ pkg.dependencies['@veloxts/router'] = 'file:' + monorepo + '/packages/router';
 pkg.dependencies['@veloxts/validation'] = 'file:' + monorepo + '/packages/validation';
 pkg.dependencies['@veloxts/orm'] = 'file:' + monorepo + '/packages/orm';
 pkg.dependencies['@veloxts/web'] = 'file:' + monorepo + '/packages/web';
+pkg.devDependencies['@veloxts/cli'] = 'file:' + monorepo + '/packages/cli';
+pkg.devDependencies['@veloxts/mcp'] = 'file:' + monorepo + '/packages/mcp';
 
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 "
@@ -1802,6 +1804,8 @@ pkg.dependencies['@veloxts/validation'] = 'file:' + monorepo + '/packages/valida
 pkg.dependencies['@veloxts/orm'] = 'file:' + monorepo + '/packages/orm';
 pkg.dependencies['@veloxts/auth'] = 'file:' + monorepo + '/packages/auth';
 pkg.dependencies['@veloxts/web'] = 'file:' + monorepo + '/packages/web';
+pkg.devDependencies['@veloxts/cli'] = 'file:' + monorepo + '/packages/cli';
+pkg.devDependencies['@veloxts/mcp'] = 'file:' + monorepo + '/packages/mcp';
 
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 "
