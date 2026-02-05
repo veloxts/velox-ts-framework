@@ -289,11 +289,15 @@ export const CONDITIONALS = {
   AUTH_END: '/* @endif auth */',
   DEFAULT_START: '/* @if default */',
   DEFAULT_END: '/* @endif default */',
+  TRPC_START: '/* @if trpc */',
+  TRPC_END: '/* @endif trpc */',
   // JSX-style template conditionals (wrapped in braces)
   JSX_AUTH_START: '{/* @if auth */}',
   JSX_AUTH_END: '{/* @endif auth */}',
   JSX_DEFAULT_START: '{/* @if default */}',
   JSX_DEFAULT_END: '{/* @endif default */}',
+  JSX_TRPC_START: '{/* @if trpc */}',
+  JSX_TRPC_END: '{/* @endif trpc */}',
   // Database conditionals
   SQLITE_START: '/* @if sqlite */',
   SQLITE_END: '/* @endif sqlite */',
@@ -327,6 +331,18 @@ const JSX_AUTH_BLOCK_PATTERN = new RegExp(
 /** Pre-compiled regex for JSX default conditional blocks */
 const JSX_DEFAULT_BLOCK_PATTERN = new RegExp(
   `${escapeRegex(CONDITIONALS.JSX_DEFAULT_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.JSX_DEFAULT_END)}`,
+  'g'
+);
+
+/** Pre-compiled regex for trpc conditional blocks */
+const TRPC_BLOCK_PATTERN = new RegExp(
+  `${escapeRegex(CONDITIONALS.TRPC_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.TRPC_END)}`,
+  'g'
+);
+
+/** Pre-compiled regex for JSX trpc conditional blocks */
+const JSX_TRPC_BLOCK_PATTERN = new RegExp(
+  `${escapeRegex(CONDITIONALS.JSX_TRPC_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.JSX_TRPC_END)}`,
   'g'
 );
 
@@ -383,17 +399,31 @@ export function processConditionals(content: string, config: TemplateConfig): st
   }
 
   // Process default conditionals (both JS and JSX style)
-  // Note: 'trpc' and 'rsc' templates use default-style content (no auth)
-  if (template === 'spa' || template === 'trpc' || template === 'rsc') {
+  // Note: 'rsc' template uses default-style content (no auth)
+  // 'trpc' template has its own @if trpc blocks for tRPC-specific configuration
+  if (template === 'spa' || template === 'rsc') {
     // Keep default content but remove markers
     result = result.replaceAll(CONDITIONALS.DEFAULT_START, '');
     result = result.replaceAll(CONDITIONALS.DEFAULT_END, '');
     result = result.replaceAll(CONDITIONALS.JSX_DEFAULT_START, '');
     result = result.replaceAll(CONDITIONALS.JSX_DEFAULT_END, '');
   } else {
-    // Remove entire default blocks (for auth template)
+    // Remove entire default blocks (for auth and trpc templates)
     result = result.replace(DEFAULT_BLOCK_PATTERN, '');
     result = result.replace(JSX_DEFAULT_BLOCK_PATTERN, '');
+  }
+
+  // Process trpc conditionals (both JS and JSX style)
+  if (template === 'trpc') {
+    // Keep trpc content but remove markers
+    result = result.replaceAll(CONDITIONALS.TRPC_START, '');
+    result = result.replaceAll(CONDITIONALS.TRPC_END, '');
+    result = result.replaceAll(CONDITIONALS.JSX_TRPC_START, '');
+    result = result.replaceAll(CONDITIONALS.JSX_TRPC_END, '');
+  } else {
+    // Remove entire trpc blocks (for spa, auth, rsc templates)
+    result = result.replace(TRPC_BLOCK_PATTERN, '');
+    result = result.replace(JSX_TRPC_BLOCK_PATTERN, '');
   }
 
   // =========================================================================

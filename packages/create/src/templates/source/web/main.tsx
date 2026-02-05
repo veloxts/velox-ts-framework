@@ -72,6 +72,11 @@ createRoot(rootElement).render(
       <RouterProvider router={router} />
     </VeloxProvider>
     {/* @endif default */}
+    {/* @if trpc */}
+    <VeloxProvider<AppRouter> config={{ baseUrl: '/trpc' }}>
+      <RouterProvider router={router} />
+    </VeloxProvider>
+    {/* @endif trpc */}
     {/* @if auth */}
     <VeloxProvider<AppRouter>
       config={{
