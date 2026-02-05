@@ -509,6 +509,15 @@ async function executeProcedure(
     await state.config.onResponse(response);
   }
 
+  // Unwrap tRPC response format: { result: { data: ... } }
+  const mode = detectMode(state.config);
+  if (mode === 'trpc' && body && typeof body === 'object') {
+    const trpcResponse = body as { result?: { data?: unknown } };
+    if (trpcResponse.result?.data !== undefined) {
+      return trpcResponse.result.data;
+    }
+  }
+
   return body;
 }
 
