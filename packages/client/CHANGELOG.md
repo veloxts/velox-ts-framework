@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.6.94
+
+### Patch Changes
+
+- feat(client): add tRPC router type support for ClientFromRouter and VeloxHooks
+
 ## 0.6.93
 
 ### Patch Changes

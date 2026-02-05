@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.94
+
+### Patch Changes
+
+- feat(client): add tRPC router type support for ClientFromRouter and VeloxHooks
+- Updated dependencies
+  - @veloxts/cli@0.6.94
+  - @veloxts/router@0.6.94
+  - @veloxts/validation@0.6.94
+
 ## 0.6.93
 
 ### Patch Changes
