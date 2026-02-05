@@ -4,6 +4,24 @@ Type-safe frontend API client with zero code generation.
 
 ## Quick Start
 
+### tRPC Mode (Recommended for tRPC template)
+
+```typescript
+import { createClient } from '@veloxts/client';
+import type { AppRouter } from '../../api/src/router.js';
+
+// AppRouter is typeof router from rpc()
+const api = createClient<AppRouter>({
+  baseUrl: 'http://localhost:3030/trpc',
+  // mode: 'trpc' - auto-detected when baseUrl ends with /trpc
+});
+
+const health = await api.health.getHealth();
+const users = await api.users.listUsers();
+```
+
+### REST Mode (ProcedureCollection)
+
 ```typescript
 import { createClient } from '@veloxts/client';
 import type { userProcedures } from '../server/procedures';
@@ -41,6 +59,27 @@ try {
 ```
 
 ## React Query Integration
+
+### Recommended: createVeloxHooks (tRPC-style API)
+
+```typescript
+import { createVeloxHooks, VeloxProvider } from '@veloxts/client/react';
+import type { AppRouter } from '../../api/src/router.js';
+
+// Create typed hooks - works with both ProcedureCollection and tRPC router types
+export const api = createVeloxHooks<AppRouter>();
+
+// In component
+function UserList() {
+  const { data, isLoading } = api.users.listUsers.useQuery();
+  const { mutate } = api.users.createUser.useMutation();
+
+  // Suspense variant
+  const { data: users } = api.users.listUsers.useSuspenseQuery();
+}
+```
+
+### Basic: Manual React Query
 
 ```typescript
 import { useQuery, useMutation } from '@tanstack/react-query';

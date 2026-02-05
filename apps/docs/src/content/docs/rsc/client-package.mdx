@@ -19,20 +19,57 @@ pnpm add @veloxts/client @tanstack/react-query
 
 ## Setup
 
-<Tabs>
-  <TabItem label="Recommended (tRPC-style)">
-```tsx
-// lib/api.ts
-import { createVeloxHooks, VeloxProvider } from '@veloxts/client/react';
-import type { AppRouter } from '@/api';
+<Aside type="tip" title="AppRouter Type">
+`@veloxts/client` supports two type shapes:
+- **tRPC router**: `typeof router` from `rpc()` - used in tRPC template
+- **ProcedureCollection**: `{ users: typeof userProcedures }` - used in default/auth templates
 
-// Create typed hooks with tRPC-style API
+Both work with `createClient` and `createVeloxHooks`.
+</Aside>
+
+<Tabs>
+  <TabItem label="tRPC Template">
+```tsx
+// lib/api.ts - tRPC mode (baseUrl ends with /trpc)
+import { createVeloxHooks } from '@veloxts/client/react';
+import type { AppRouter } from '../../api/src/router.js';
+
+// AppRouter is typeof router from rpc()
 export const api = createVeloxHooks<AppRouter>();
 
 // app/providers.tsx
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { VeloxProvider } from '@veloxts/client/react';
-import type { AppRouter } from '@/api';
+import type { AppRouter } from '../../api/src/router.js';
+
+const queryClient = new QueryClient();
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <VeloxProvider<AppRouter> config={{ baseUrl: 'http://localhost:3030/trpc' }}>
+        {children}
+      </VeloxProvider>
+    </QueryClientProvider>
+  );
+}
+```
+  </TabItem>
+  <TabItem label="REST Template">
+```tsx
+// lib/api.ts - REST mode
+import { createVeloxHooks } from '@veloxts/client/react';
+import type { userProcedures } from '@/api/procedures/users';
+
+type AppRouter = {
+  users: typeof userProcedures;
+};
+
+export const api = createVeloxHooks<AppRouter>();
+
+// app/providers.tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { VeloxProvider } from '@veloxts/client/react';
 
 const queryClient = new QueryClient();
 
@@ -49,19 +86,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
   </TabItem>
   <TabItem label="Basic Client">
 ```typescript
-// lib/api.ts
+// lib/api.ts - Promise-based (no React Query)
 import { createClient } from '@veloxts/client';
-import type { userProcedures } from '@/api/procedures/users';
+import type { AppRouter } from '../../api/src/router.js';
 
-type AppProcedures = {
-  users: typeof userProcedures;
-};
-
-export const api = createClient<AppProcedures>({
-  baseUrl: '/api',
+// Works with both tRPC router and ProcedureCollection types
+export const api = createClient<AppRouter>({
+  baseUrl: 'http://localhost:3030/trpc',
 });
 
-// Direct usage (no React Query)
+// Direct usage
 const users = await api.users.listUsers();
 const user = await api.users.getUser({ id: '123' });
 ```

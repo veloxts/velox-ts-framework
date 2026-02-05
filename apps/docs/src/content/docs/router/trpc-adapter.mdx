@@ -109,7 +109,47 @@ await serve(app, collections, { rpc: false });
 ## Client Setup
 
 <Tabs>
-  <TabItem label="Basic Client">
+  <TabItem label="VeloxTS Client (Recommended)">
+```typescript
+// lib/api.ts
+import { createClient } from '@veloxts/client';
+import type { AppRouter } from '../../api/src/router.js';
+
+// Works with tRPC router types from rpc()
+export const api = createClient<AppRouter>({
+  baseUrl: 'http://localhost:3030/trpc',
+  // mode: 'trpc' - auto-detected when baseUrl ends with /trpc
+});
+
+// Fully typed!
+const users = await api.users.listUsers();
+const user = await api.users.getUser({ id: '123' });
+await api.users.createUser({ name: 'Alice', email: 'alice@example.com' });
+```
+  </TabItem>
+  <TabItem label="React Query Hooks">
+```typescript
+// lib/api.ts
+import { createVeloxHooks } from '@veloxts/client/react';
+import type { AppRouter } from '../../api/src/router.js';
+
+// Works with tRPC router types from rpc()
+export const api = createVeloxHooks<AppRouter>();
+
+// In component
+function UserList() {
+  const { data } = api.users.listUsers.useQuery();
+  return <ul>{data?.data.map(u => <li key={u.id}>{u.name}</li>)}</ul>;
+}
+
+function UserProfile({ userId }: { userId: string }) {
+  // Suspense variant
+  const { data: user } = api.users.getUser.useSuspenseQuery({ id: userId });
+  return <h1>{user.name}</h1>;
+}
+```
+  </TabItem>
+  <TabItem label="Raw tRPC Client">
 ```typescript
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../server/router';
@@ -126,20 +166,6 @@ export const trpc = createTRPCClient<AppRouter>({
 const users = await trpc.users.listUsers.query();
 const user = await trpc.users.getUser.query({ id: '123' });
 await trpc.users.createUser.mutate({ name: 'Alice', email: 'alice@example.com' });
-```
-  </TabItem>
-  <TabItem label="React Query">
-```typescript
-import { createTRPCReact } from '@trpc/react-query';
-import type { AppRouter } from '../server/router';
-
-export const trpc = createTRPCReact<AppRouter>();
-
-// In component
-function UserList() {
-  const { data: users } = trpc.users.listUsers.useQuery();
-  return <ul>{users?.map(u => <li key={u.id}>{u.name}</li>)}</ul>;
-}
 ```
   </TabItem>
 </Tabs>
