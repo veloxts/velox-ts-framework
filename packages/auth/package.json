@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/auth",
-  "version": "0.6.95",
+  "version": "0.6.96",
   "description": "Authentication and authorization system for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",

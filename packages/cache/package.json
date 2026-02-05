@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/cache",
-  "version": "0.6.95",
+  "version": "0.6.96",
   "description": "Multi-driver caching layer for VeloxTS framework",
   "type": "module",
   "main": "dist/index.js",

@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.96
+
+### Patch Changes
+
+- updates to trpc scaffold template
+- Updated dependencies
+  - @veloxts/cli@0.6.96
+  - @veloxts/router@0.6.96
+  - @veloxts/validation@0.6.96
+
 ## 0.6.95
 
 ### Patch Changes

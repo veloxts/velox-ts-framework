@@ -1,5 +1,13 @@
 # @veloxts/testing
 
+## 0.6.96
+
+### Patch Changes
+
+- updates to trpc scaffold template
+- Updated dependencies
+  - @veloxts/core@0.6.96
+
 ## 0.6.95
 
 ### Patch Changes

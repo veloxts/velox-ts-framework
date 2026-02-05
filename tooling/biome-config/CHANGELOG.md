@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.96
+
+### Patch Changes
+
+- updates to trpc scaffold template
+
 ## 0.6.95
 
 ### Patch Changes

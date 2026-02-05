@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.96
+
+### Patch Changes
+
+- updates to trpc scaffold template
+- Updated dependencies
+  - @veloxts/auth@0.6.96
+  - @veloxts/client@0.6.96
+  - @veloxts/core@0.6.96
+  - @veloxts/router@0.6.96
+
 ## 0.6.95
 
 ### Patch Changes
