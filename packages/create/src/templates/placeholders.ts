@@ -291,6 +291,8 @@ export const CONDITIONALS = {
   DEFAULT_END: '/* @endif default */',
   TRPC_START: '/* @if trpc */',
   TRPC_END: '/* @endif trpc */',
+  REST_START: '/* @if rest */',
+  REST_END: '/* @endif rest */',
   // JSX-style template conditionals (wrapped in braces)
   JSX_AUTH_START: '{/* @if auth */}',
   JSX_AUTH_END: '{/* @endif auth */}',
@@ -298,6 +300,8 @@ export const CONDITIONALS = {
   JSX_DEFAULT_END: '{/* @endif default */}',
   JSX_TRPC_START: '{/* @if trpc */}',
   JSX_TRPC_END: '{/* @endif trpc */}',
+  JSX_REST_START: '{/* @if rest */}',
+  JSX_REST_END: '{/* @endif rest */}',
   // Database conditionals
   SQLITE_START: '/* @if sqlite */',
   SQLITE_END: '/* @endif sqlite */',
@@ -343,6 +347,18 @@ const TRPC_BLOCK_PATTERN = new RegExp(
 /** Pre-compiled regex for JSX trpc conditional blocks */
 const JSX_TRPC_BLOCK_PATTERN = new RegExp(
   `${escapeRegex(CONDITIONALS.JSX_TRPC_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.JSX_TRPC_END)}`,
+  'g'
+);
+
+/** Pre-compiled regex for rest conditional blocks (all templates except trpc) */
+const REST_BLOCK_PATTERN = new RegExp(
+  `${escapeRegex(CONDITIONALS.REST_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.REST_END)}`,
+  'g'
+);
+
+/** Pre-compiled regex for JSX rest conditional blocks */
+const JSX_REST_BLOCK_PATTERN = new RegExp(
+  `${escapeRegex(CONDITIONALS.JSX_REST_START)}[\\s\\S]*?${escapeRegex(CONDITIONALS.JSX_REST_END)}`,
   'g'
 );
 
@@ -424,6 +440,20 @@ export function processConditionals(content: string, config: TemplateConfig): st
     // Remove entire trpc blocks (for spa, auth, rsc templates)
     result = result.replace(TRPC_BLOCK_PATTERN, '');
     result = result.replace(JSX_TRPC_BLOCK_PATTERN, '');
+  }
+
+  // Process rest conditionals (both JS and JSX style)
+  // REST mode applies to all templates except trpc (spa, auth, rsc)
+  if (template !== 'trpc') {
+    // Keep rest content but remove markers
+    result = result.replaceAll(CONDITIONALS.REST_START, '');
+    result = result.replaceAll(CONDITIONALS.REST_END, '');
+    result = result.replaceAll(CONDITIONALS.JSX_REST_START, '');
+    result = result.replaceAll(CONDITIONALS.JSX_REST_END, '');
+  } else {
+    // Remove entire rest blocks (for trpc template)
+    result = result.replace(REST_BLOCK_PATTERN, '');
+    result = result.replace(JSX_REST_BLOCK_PATTERN, '');
   }
 
   // =========================================================================

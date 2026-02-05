@@ -20,18 +20,12 @@ export default defineConfig({
         changeOrigin: true,
       },
       /* @endif trpc */
-      /* @if default */
+      /* @if rest */
       '/api': {
         target: 'http://localhost:__API_PORT__',
         changeOrigin: true,
       },
-      /* @endif default */
-      /* @if auth */
-      '/api': {
-        target: 'http://localhost:__API_PORT__',
-        changeOrigin: true,
-      },
-      /* @endif auth */
+      /* @endif rest */
     },
   },
 });
