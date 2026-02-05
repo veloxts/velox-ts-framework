@@ -37,8 +37,8 @@ function generateApiTsupConfig(): string {
 }
 
 function generateEnvExample(config: TemplateConfig): string {
-  // Reuse default env - same environment variables
-  return compileTemplate('api/env.default', config);
+  // Use tRPC-specific env (no API_PREFIX since tRPC uses /trpc)
+  return compileTemplate('api/env.trpc', config);
 }
 
 function generatePrismaSchema(config: TemplateConfig): string {
