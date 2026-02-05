@@ -82,27 +82,23 @@ describe('R2 Provider', () => {
     ).rejects.toThrow(ZodError);
   });
 
-  it(
-    'should accept valid eu jurisdiction',
-    async () => {
-      const { r2 } = await import('../providers/r2.js');
+  it('should accept valid eu jurisdiction', async () => {
+    const { r2 } = await import('../providers/r2.js');
 
-      // This will fail at runtime due to no S3 client, but config validation should pass
-      // We mock at the S3 level, not here
-      const store = await r2({
-        bucket: 'test-bucket',
-        accountId: 'test-account',
-        accessKeyId: 'test-key',
-        secretAccessKey: 'test-secret',
-        jurisdiction: 'eu',
-      });
+    // This will fail at runtime due to no S3 client, but config validation should pass
+    // We mock at the S3 level, not here
+    const store = await r2({
+      bucket: 'test-bucket',
+      accountId: 'test-account',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+      jurisdiction: 'eu',
+    });
 
-      expect(store).toBeDefined();
-      expect(typeof store.put).toBe('function');
-      expect(typeof store.get).toBe('function');
-    },
-    15000
-  );
+    expect(store).toBeDefined();
+    expect(typeof store.put).toBe('function');
+    expect(typeof store.get).toBe('function');
+  }, 15000);
 
   it('should export PROVIDER_NAME', async () => {
     const { PROVIDER_NAME } = await import('../providers/r2.js');
