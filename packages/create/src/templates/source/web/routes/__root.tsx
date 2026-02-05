@@ -42,6 +42,15 @@ function RootLayout() {
             Users
           </Link>
           {/* @endif default */}
+          {/* @if trpc */}
+          <Link
+            to="/users"
+            className={styles.navLink}
+            activeProps={{ className: styles.navLinkActive }}
+          >
+            Users
+          </Link>
+          {/* @endif trpc */}
           {/* @if auth */}
           {isAuthenticated && (
             <Link
