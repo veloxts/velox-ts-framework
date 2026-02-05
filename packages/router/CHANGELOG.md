@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.95
+
+### Patch Changes
+
+- fix(create): use /trpc baseUrl for tRPC template and unwrap tRPC response format
+- Updated dependencies
+  - @veloxts/core@0.6.95
+  - @veloxts/validation@0.6.95
+
 ## 0.6.94
 
 ### Patch Changes

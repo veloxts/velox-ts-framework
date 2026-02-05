@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.95
+
+### Patch Changes
+
+- fix(create): use /trpc baseUrl for tRPC template and unwrap tRPC response format
+
 ## 0.6.94
 
 ### Patch Changes
