@@ -114,16 +114,18 @@ export type InferProcedureType<T> =
  *
  * tRPC procedures have shape: { _def: { $types: { input: I, output: O } } }
  */
-export type InferTRPCProcedureInput<T> =
-  T extends { _def: { $types: { input: infer I } } } ? I : unknown;
+export type InferTRPCProcedureInput<T> = T extends { _def: { $types: { input: infer I } } }
+  ? I
+  : unknown;
 
 /**
  * Extracts the output type from a tRPC procedure
  *
  * tRPC procedures have shape: { _def: { $types: { input: I, output: O } } }
  */
-export type InferTRPCProcedureOutput<T> =
-  T extends { _def: { $types: { output: infer O } } } ? O : unknown;
+export type InferTRPCProcedureOutput<T> = T extends { _def: { $types: { output: infer O } } }
+  ? O
+  : unknown;
 
 /**
  * Helper type to determine if input is "empty" (void, undefined, never, or unknown)
@@ -131,6 +133,7 @@ export type InferTRPCProcedureOutput<T> =
  * tRPC uses `void` for procedures with no input, but the type can also appear as
  * `undefined` or `unknown` in some cases.
  */
+// biome-ignore lint/suspicious/noConfusingVoidType: tRPC uses void for no-input procedures, must check for it
 type IsEmptyInput<T> = [T] extends [void]
   ? true
   : [T] extends [undefined]
@@ -152,7 +155,9 @@ type IsEmptyInput<T> = [T] extends [void]
 export type ClientFromTRPCNamespace<TNamespace> = {
   [K in keyof TNamespace]: IsEmptyInput<InferTRPCProcedureInput<TNamespace[K]>> extends true
     ? () => Promise<InferTRPCProcedureOutput<TNamespace[K]>>
-    : (input: InferTRPCProcedureInput<TNamespace[K]>) => Promise<InferTRPCProcedureOutput<TNamespace[K]>>;
+    : (
+        input: InferTRPCProcedureInput<TNamespace[K]>
+      ) => Promise<InferTRPCProcedureOutput<TNamespace[K]>>;
 };
 
 /**
@@ -165,9 +170,8 @@ export type IsTRPCProcedure<T> = T extends { _def: { $types: { input: unknown; o
 /**
  * Checks if a type looks like a tRPC namespace (object containing tRPC procedures)
  */
-export type IsTRPCNamespace<T> = T extends Record<string, { _def: { $types: unknown } }>
-  ? true
-  : false;
+export type IsTRPCNamespace<T> =
+  T extends Record<string, { _def: { $types: unknown } }> ? true : false;
 
 // ============================================================================
 // Router Type Construction
