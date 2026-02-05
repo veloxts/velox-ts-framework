@@ -75,7 +75,7 @@ function generateHealthSchema(): string {
 }
 
 function generateApiTypesTs(): string {
-  return compileTemplate('api/types.ts', DEFAULT_CONFIG);
+  return compileTemplate('api/types.default.ts', DEFAULT_CONFIG);
 }
 
 function generateDockerCompose(config: TemplateConfig): string {

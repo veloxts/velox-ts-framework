@@ -23,8 +23,8 @@ import type { TemplateConfig, TemplateFile } from './types.js';
 // ============================================================================
 
 function generateApiPackageJson(config: TemplateConfig): string {
-  // Reuse default package.json - @veloxts/velox already includes tRPC utilities
-  const content = compileTemplate('api/package.default.json', config);
+  // Use tRPC package.json with @trpc/server for TypeScript type portability
+  const content = compileTemplate('api/package.trpc.json', config);
   return applyDatabaseDependencies(content, config);
 }
 
@@ -85,7 +85,7 @@ function generateHealthSchema(): string {
 }
 
 function generateApiTypesTs(): string {
-  return compileTemplate('api/types.ts', DEFAULT_CONFIG);
+  return compileTemplate('api/types.default.ts', DEFAULT_CONFIG);
 }
 
 function generateDockerCompose(config: TemplateConfig): string {

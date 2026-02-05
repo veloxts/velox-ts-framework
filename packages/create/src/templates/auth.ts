@@ -91,7 +91,7 @@ function generateHealthSchema(): string {
 }
 
 function generateApiTypesTs(): string {
-  return compileTemplate('api/types.ts', AUTH_CONFIG);
+  return compileTemplate('api/types.auth.ts', AUTH_CONFIG);
 }
 
 function generateAuthUtils(): string {
