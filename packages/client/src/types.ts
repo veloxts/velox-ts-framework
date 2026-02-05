@@ -106,6 +106,70 @@ export type InferProcedureType<T> =
   T extends ClientProcedure<unknown, unknown, infer TType> ? TType : never;
 
 // ============================================================================
+// tRPC Procedure Type Inference
+// ============================================================================
+
+/**
+ * Extracts the input type from a tRPC procedure
+ *
+ * tRPC procedures have shape: { _def: { $types: { input: I, output: O } } }
+ */
+export type InferTRPCProcedureInput<T> =
+  T extends { _def: { $types: { input: infer I } } } ? I : unknown;
+
+/**
+ * Extracts the output type from a tRPC procedure
+ *
+ * tRPC procedures have shape: { _def: { $types: { input: I, output: O } } }
+ */
+export type InferTRPCProcedureOutput<T> =
+  T extends { _def: { $types: { output: infer O } } } ? O : unknown;
+
+/**
+ * Helper type to determine if input is "empty" (void, undefined, never, or unknown)
+ *
+ * tRPC uses `void` for procedures with no input, but the type can also appear as
+ * `undefined` or `unknown` in some cases.
+ */
+type IsEmptyInput<T> = [T] extends [void]
+  ? true
+  : [T] extends [undefined]
+    ? true
+    : [T] extends [never]
+      ? true
+      : unknown extends T
+        ? true
+        : false;
+
+/**
+ * Builds a callable client interface from a tRPC namespace
+ *
+ * tRPC namespaces are objects where each key is a procedure with
+ * the shape: { _def: { $types: { input: I, output: O } } }
+ *
+ * Handles procedures with no input (void/undefined) by making the parameter optional.
+ */
+export type ClientFromTRPCNamespace<TNamespace> = {
+  [K in keyof TNamespace]: IsEmptyInput<InferTRPCProcedureInput<TNamespace[K]>> extends true
+    ? () => Promise<InferTRPCProcedureOutput<TNamespace[K]>>
+    : (input: InferTRPCProcedureInput<TNamespace[K]>) => Promise<InferTRPCProcedureOutput<TNamespace[K]>>;
+};
+
+/**
+ * Checks if a type looks like a tRPC procedure
+ */
+export type IsTRPCProcedure<T> = T extends { _def: { $types: { input: unknown; output: unknown } } }
+  ? true
+  : false;
+
+/**
+ * Checks if a type looks like a tRPC namespace (object containing tRPC procedures)
+ */
+export type IsTRPCNamespace<T> = T extends Record<string, { _def: { $types: unknown } }>
+  ? true
+  : false;
+
+// ============================================================================
 // Router Type Construction
 // ============================================================================
 
@@ -125,30 +189,33 @@ export type ClientFromCollection<TCollection extends ProcedureCollection> = {
 /**
  * Builds a complete client interface from a router (collection of collections)
  *
- * For each collection namespace, creates a property with all callable procedures.
+ * Supports two router shapes:
+ * 1. ProcedureCollection-based (REST mode): { namespace: ProcedureCollection }
+ * 2. tRPC router (tRPC mode): { namespace: { procedure: TRPCProcedure } }
  *
  * @example
  * ```typescript
- * // Backend defines:
+ * // REST mode (ProcedureCollection):
  * const userProcedures = defineProcedures('users', {
  *   getUser: procedure().input(...).output(...).query(...),
- *   createUser: procedure().input(...).output(...).mutation(...),
  * });
- *
- * // Frontend gets:
  * type Client = ClientFromRouter<{ users: typeof userProcedures }>;
- * // Client = {
- * //   users: {
- * //     getUser: (input: { id: string }) => Promise<User>;
- * //     createUser: (input: CreateUserInput) => Promise<User>;
- * //   }
- * // }
+ *
+ * // tRPC mode (AppRouter):
+ * const { router } = rpc([userProcedures] as const);
+ * export type AppRouter = typeof router;
+ * type Client = ClientFromRouter<AppRouter>;
+ *
+ * // Both result in:
+ * // Client = { users: { getUser: (input: { id: string }) => Promise<User> } }
  * ```
  */
 export type ClientFromRouter<TRouter> = {
   [K in keyof TRouter]: TRouter[K] extends ProcedureCollection
     ? ClientFromCollection<TRouter[K]>
-    : never;
+    : TRouter[K] extends Record<string, { _def: unknown }>
+      ? ClientFromTRPCNamespace<TRouter[K]>
+      : never;
 };
 
 // ============================================================================

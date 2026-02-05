@@ -417,29 +417,84 @@ export type VeloxNamespace<TProcedures extends ProcedureRecord> = {
   [K in keyof TProcedures]: VeloxProcedureHooks<TProcedures[K]>;
 };
 
+// ============================================================================
+// tRPC Router Support
+// ============================================================================
+
+/**
+ * Extract input type from a tRPC procedure
+ */
+type InferTRPCInput<T> = T extends { _def: { $types: { input: infer I } } } ? I : unknown;
+
+/**
+ * Extract output type from a tRPC procedure
+ */
+type InferTRPCOutput<T> = T extends { _def: { $types: { output: infer O } } } ? O : unknown;
+
+/**
+ * Determine if a tRPC procedure is a query or mutation
+ */
+type InferTRPCType<T> = T extends { _def: { type: infer TType } }
+  ? TType extends 'query'
+    ? 'query'
+    : TType extends 'mutation'
+      ? 'mutation'
+      : 'query'
+  : 'query';
+
+/**
+ * Resolve a tRPC procedure to its appropriate hook interface
+ */
+type VeloxTRPCProcedureHooks<TProcedure> = InferTRPCType<TProcedure> extends 'mutation'
+  ? VeloxMutationProcedure<InferTRPCInput<TProcedure>, InferTRPCOutput<TProcedure>>
+  : VeloxQueryProcedure<InferTRPCInput<TProcedure>, InferTRPCOutput<TProcedure>>;
+
+/**
+ * Maps a tRPC namespace to hook interfaces
+ */
+export type VeloxTRPCNamespace<TNamespace> = {
+  [K in keyof TNamespace]: TNamespace[K] extends { _def: unknown }
+    ? VeloxTRPCProcedureHooks<TNamespace[K]>
+    : never;
+};
+
+// ============================================================================
+// Main Hooks Type
+// ============================================================================
+
 /**
  * Maps router namespaces to their namespace hook interfaces
  *
  * This is the top-level type returned by `createVeloxHooks`.
  *
- * @template TRouter - The router type (collection of procedure collections)
+ * Supports two router shapes:
+ * 1. ProcedureCollection-based (REST mode): { namespace: ProcedureCollection }
+ * 2. tRPC router (tRPC mode): { namespace: { procedure: TRPCProcedure } }
+ *
+ * @template TRouter - The router type (collection of procedure collections or tRPC router)
  *
  * @example
  * ```typescript
- * type AppRouter = {
- *   users: typeof userProcedures;
- *   posts: typeof postProcedures;
- * };
+ * // REST mode (ProcedureCollection)
+ * type AppRouter = { users: typeof userProcedures };
+ * const api = createVeloxHooks<AppRouter>();
  *
- * const api: VeloxHooks<AppRouter> = createVeloxHooks<AppRouter>();
- * // api.users.getUser is VeloxQueryProcedure<{id: string}, User>
- * // api.users.createUser is VeloxMutationProcedure<CreateUserInput, User>
+ * // tRPC mode
+ * const { router } = rpc([userProcedures] as const);
+ * export type AppRouter = typeof router;
+ * const api = createVeloxHooks<AppRouter>();
+ *
+ * // Both support:
+ * // api.users.getUser.useQuery({ id })
+ * // api.users.createUser.useMutation()
  * ```
  */
 export type VeloxHooks<TRouter> = {
   [K in keyof TRouter]: TRouter[K] extends ProcedureCollection<infer _TNamespace, infer TProcedures>
     ? VeloxNamespace<TProcedures>
-    : never;
+    : TRouter[K] extends Record<string, { _def: unknown }>
+      ? VeloxTRPCNamespace<TRouter[K]>
+      : never;
 };
 
 // ============================================================================
