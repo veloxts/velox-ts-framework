@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.6.93
+
+### Patch Changes
+
+- feat(router): add Resource API with phantom types for context-dependent outputs
+- Updated dependencies
+  - @veloxts/auth@0.6.93
+  - @veloxts/cache@0.6.93
+  - @veloxts/core@0.6.93
+  - @veloxts/events@0.6.93
+  - @veloxts/mail@0.6.93
+  - @veloxts/orm@0.6.93
+  - @veloxts/queue@0.6.93
+  - @veloxts/router@0.6.93
+  - @veloxts/scheduler@0.6.93
+  - @veloxts/storage@0.6.93
+  - @veloxts/validation@0.6.93
+
 ## 0.6.92
 
 ### Patch Changes

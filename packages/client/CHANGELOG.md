@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.6.93
+
+### Patch Changes
+
+- feat(router): add Resource API with phantom types for context-dependent outputs
+
 ## 0.6.92
 
 ### Patch Changes
