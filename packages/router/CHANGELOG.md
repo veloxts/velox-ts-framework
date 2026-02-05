@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.97
+
+### Patch Changes
+
+- sync zod dependency version
+- Updated dependencies
+  - @veloxts/core@0.6.97
+  - @veloxts/validation@0.6.97
+
 ## 0.6.96
 
 ### Patch Changes
