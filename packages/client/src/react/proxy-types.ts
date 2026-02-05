@@ -445,9 +445,10 @@ type InferTRPCType<T> = T extends { _def: { type: infer TType } }
 /**
  * Resolve a tRPC procedure to its appropriate hook interface
  */
-type VeloxTRPCProcedureHooks<TProcedure> = InferTRPCType<TProcedure> extends 'mutation'
-  ? VeloxMutationProcedure<InferTRPCInput<TProcedure>, InferTRPCOutput<TProcedure>>
-  : VeloxQueryProcedure<InferTRPCInput<TProcedure>, InferTRPCOutput<TProcedure>>;
+type VeloxTRPCProcedureHooks<TProcedure> =
+  InferTRPCType<TProcedure> extends 'mutation'
+    ? VeloxMutationProcedure<InferTRPCInput<TProcedure>, InferTRPCOutput<TProcedure>>
+    : VeloxQueryProcedure<InferTRPCInput<TProcedure>, InferTRPCOutput<TProcedure>>;
 
 /**
  * Maps a tRPC namespace to hook interfaces
