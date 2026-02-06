@@ -3,43 +3,111 @@ title: Code Generators
 description: Generate boilerplate code with velox make.
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 The `velox make` command scaffolds common code patterns.
 
 ## Available Generators
 
 | Generator | Alias | Description |
 |-----------|-------|-------------|
+| `namespace` | `ns` | Schema + procedures from existing Prisma model |
+| `resource` | `r`, `res` | Full resource stack (Prisma model + schema + procedures + tests) |
 | `procedure` | `p`, `proc` | Procedure files |
 | `schema` | `s`, `zod` | Zod schemas |
 | `migration` | `mig` | Prisma migrations |
 | `model` | `m` | Full model setup |
 | `test` | `t`, `spec` | Test files |
-| `resource` | `r`, `res` | Full resource stack |
 
-## Examples
+## Namespace (Recommended Workflow)
 
-### Procedure
+The fastest way to scaffold a complete API endpoint is:
 
-```bash
-velox make procedure users
-velox make procedure posts --crud
+1. Define your Prisma model
+2. Run `velox make namespace`
+
+The generator reads your Prisma schema, detects relations, and scaffolds type-safe procedures with the correct `include` clauses automatically.
+
+### Step 1: Define the Prisma Model
+
+```prisma
+// prisma/schema.prisma
+model Order {
+  id        String   @id @default(uuid())
+  total     Float
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer  Customer @relation(fields: [customerId], references: [id])
+  customerId String
+  items     OrderItem[]
+
+  @@map("orders")
+}
 ```
 
-### Schema
+Push the schema to your database:
 
 ```bash
-velox make schema User
-velox make schema Post --crud
+pnpm db:push
 ```
 
-### Migration
+### Step 2: Generate the Namespace
 
 ```bash
-velox make migration create_users_table
-velox make migration add_email_to_users
+velox make namespace Order --example
 ```
 
-### Resource (Full Stack)
+This creates three files and auto-registers the procedures in your router:
+
+```
+Created:
+  src/schemas/order.ts           # Zod schemas (Create, Update, base)
+  src/procedures/orders.ts       # CRUD procedures with Prisma queries
+  src/procedures/__tests__/orders.test.ts
+
+Modified:
+  src/index.ts                   # Auto-registered orderProcedures
+```
+
+Because the generator detected the `customer` (belongsTo) and `items` (hasMany) relations in your Prisma schema, the generated queries include them automatically:
+
+```typescript
+// Generated procedures include detected relations
+getOrder: procedure()
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ input, ctx }) => {
+    return ctx.db.order.findUnique({
+      where: { id: input.id },
+      include: { customer: true, items: true },
+    });
+  }),
+```
+
+### Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--example` | `-e` | Include example CRUD procedures (recommended) |
+| `--with-tests` | `-t` | Generate test file (default: true) |
+| `--skip-registration` | `-S` | Skip auto-registering in router.ts |
+
+### Without `--example`
+
+Running without `--example` creates a minimal scaffold with commented-out procedure examples, ready for you to fill in:
+
+```bash
+velox make namespace Order
+```
+
+<Aside type="tip" title="namespace vs resource">
+Use **`namespace`** when you already have a Prisma model and need procedures for it. Use **`resource`** when starting from scratch — it creates the Prisma model, schema, procedures, and tests all at once.
+</Aside>
+
+## Resource (Full Stack)
+
+Creates everything from scratch: Prisma model, Zod schema, procedures, and tests.
 
 ```bash
 velox make resource Product
@@ -47,7 +115,28 @@ velox make resource Product
 
 Creates: model, schema, procedures, and tests.
 
-## Options
+## Procedure
+
+```bash
+velox make procedure users
+velox make procedure posts --crud
+```
+
+## Schema
+
+```bash
+velox make schema User
+velox make schema Post --crud
+```
+
+## Migration
+
+```bash
+velox make migration create_users_table
+velox make migration add_email_to_users
+```
+
+## Common Options
 
 | Option | Description |
 |--------|-------------|
@@ -74,3 +163,4 @@ Created: src/procedures/users.ts
 
 - [Database Commands](/docs/cli/database-commands/) - Migrations
 - [Procedures](/docs/endpoints/procedures/) - Procedure API
+- [Nested Relations](/docs/endpoints/nested-relations/) - Auto-detected relation projection
