@@ -14,11 +14,13 @@ import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
 import {
   type AccessLevel,
+  isTaggedResourceSchema,
   type OutputForTag,
   Resource,
   type ResourceSchema,
+  type TaggedResourceSchema,
 } from '../resource/index.js';
-import type { ContextTag, ExtractTag, TaggedContext } from '../resource/tags.js';
+import type { ContextTag, ExtractTag, LevelToTag, TaggedContext } from '../resource/tags.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -280,33 +282,45 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     /**
      * Sets the output type based on a resource schema
      *
-     * This method stores the resource schema for potential OpenAPI generation
-     * and narrows the output type based on the context's phantom tag.
+     * Accepts either a plain `ResourceSchema` or a tagged schema
+     * (e.g., `UserSchema.authenticated`) for declarative auto-projection.
+     *
+     * @example
+     * ```typescript
+     * // Tagged schema — auto-projects to authenticated fields
+     * procedure()
+     *   .guard(authenticated)
+     *   .resource(UserSchema.authenticated)
+     *   .query(handler);
+     *
+     * // Plain schema — defaults to public, or derives from guardNarrow
+     * procedure()
+     *   .resource(UserSchema)
+     *   .query(handler);
+     * ```
      */
-    resource<TSchema extends ResourceSchema>(
-      schema: TSchema
-    ): ProcedureBuilder<
-      TInput,
-      TContext extends TaggedContext<infer TTag>
-        ? TTag extends ContextTag
-          ? OutputForTag<TSchema, TTag>
-          : OutputForTag<TSchema, ExtractTag<TContext>>
-        : OutputForTag<TSchema, ExtractTag<TContext>>,
-      TContext
-    > {
-      // Store the resource schema for OpenAPI generation
-      // The actual output type is computed at the type level
+    /**
+     * Sets the output type based on a resource schema
+     *
+     * Accepts either a plain `ResourceSchema` or a tagged schema
+     * (e.g., `UserSchema.authenticated`) for declarative auto-projection.
+     */
+    resource<TSchema extends ResourceSchema>(schema: TSchema) {
+      const level = isTaggedResourceSchema(schema) ? schema._level : undefined;
       return createBuilder<
         TInput,
-        TContext extends TaggedContext<infer TTag>
-          ? TTag extends ContextTag
-            ? OutputForTag<TSchema, TTag>
-            : OutputForTag<TSchema, ExtractTag<TContext>>
-          : OutputForTag<TSchema, ExtractTag<TContext>>,
+        TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
+          ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
+          : TContext extends TaggedContext<infer TTag>
+            ? TTag extends ContextTag
+              ? OutputForTag<TSchema, TTag>
+              : OutputForTag<TSchema, ExtractTag<TContext>>
+            : OutputForTag<TSchema, ExtractTag<TContext>>,
         TContext
       >({
         ...state,
         resourceSchema: schema,
+        resourceLevel: level,
       });
     },
   };
@@ -359,6 +373,8 @@ function compileProcedure<
     _precompiledExecutor: precompiledExecutor,
     // Store resource schema for auto-projection
     _resourceSchema: state.resourceSchema,
+    // Store explicit resource level from tagged schema (e.g., UserSchema.authenticated)
+    _resourceLevel: state.resourceLevel,
   };
 }
 
@@ -652,10 +668,12 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   // Step 4: Auto-project if resource schema is set
   if (procedure._resourceSchema) {
     const schema = procedure._resourceSchema as ResourceSchema;
+    // Prefer explicit level from tagged schema over guard-derived level
+    const finalLevel = procedure._resourceLevel ?? accessLevel;
 
     const projectOne = (item: Record<string, unknown>): Record<string, unknown> => {
       const r = new Resource(item, schema);
-      switch (accessLevel) {
+      switch (finalLevel) {
         case 'admin':
           return r.forAdmin() as Record<string, unknown>;
         case 'authenticated':

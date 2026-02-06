@@ -70,13 +70,21 @@ export type {
   AdminOutput,
   AnonymousOutput,
   AuthenticatedOutput,
+  OutputForLevel,
   OutputForTag,
   ResourceField,
   ResourceSchema,
+  ResourceSchemaWithViews,
   RuntimeField,
+  TaggedResourceSchema,
 } from './schema.js';
 // Schema builder
-export { isResourceSchema, ResourceSchemaBuilder, resourceSchema } from './schema.js';
+export {
+  isResourceSchema,
+  isTaggedResourceSchema,
+  ResourceSchemaBuilder,
+  resourceSchema,
+} from './schema.js';
 // Phantom tags - exported as types since they're ambient declarations (declare const)
 // AccessLevel is a runtime type used for auto-projection
 export type {
@@ -87,6 +95,7 @@ export type {
   ContextTag,
   ExtractTag,
   HasTag,
+  LevelToTag,
   TaggedContext,
   WithTag,
 } from './tags.js';

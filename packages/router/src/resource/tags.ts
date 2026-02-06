@@ -22,6 +22,25 @@
  */
 export type AccessLevel = 'public' | 'authenticated' | 'admin';
 
+/**
+ * Maps an AccessLevel string to its corresponding phantom ContextTag
+ *
+ * Used to bridge the runtime level declarations (e.g., `UserSchema.authenticated`)
+ * to the compile-time phantom type system for output type computation.
+ *
+ * @example
+ * ```typescript
+ * type Tag = LevelToTag<'authenticated'>; // typeof AUTHENTICATED
+ * type Tag = LevelToTag<'admin'>;         // typeof ADMIN
+ * type Tag = LevelToTag<'public'>;        // typeof ANONYMOUS
+ * ```
+ */
+export type LevelToTag<TLevel extends AccessLevel> = TLevel extends 'admin'
+  ? typeof ADMIN
+  : TLevel extends 'authenticated'
+    ? typeof AUTHENTICATED
+    : typeof ANONYMOUS;
+
 // ============================================================================
 // Phantom Type Symbols
 // ============================================================================

@@ -1906,6 +1906,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     "src/api/procedures/health.ts"
     "src/api/procedures/users.ts"
     "src/api/procedures/auth.ts"
+    "src/api/procedures/profiles.ts"
     "src/api/schemas/user.ts"
     "src/api/schemas/auth.ts"
     "src/api/utils/auth.ts"
@@ -2121,6 +2122,92 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
     echo "  ✓ GET /api/auth/me without token (401 Unauthorized)"
   else
     echo "  ✗ GET /api/auth/me without token should return 401, got $HTTP_CODE"
+    kill_server
+    exit 1
+  fi
+
+  echo ""
+  echo "--- Testing Resource API (field visibility) ---"
+
+  # Create a user to test profiles against
+  echo "Testing POST /api/users (create profile test user)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:$test_port/api/users" \
+    -H "Content-Type: application/json" \
+    -d '{"name":"Profile Test","email":"profile@smoke.com"}')
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+    PROFILE_USER_ID=$(json_field "$BODY" "id")
+    if [ -n "$PROFILE_USER_ID" ]; then
+      echo "  ✓ Created test user for profiles (id=$PROFILE_USER_ID)"
+    else
+      echo "  ✗ Failed to extract user id"
+      kill_server
+      exit 1
+    fi
+  else
+    echo "  ✗ POST /api/users returned $HTTP_CODE"
+    echo "  Response: $BODY"
+    kill_server
+    exit 1
+  fi
+
+  # Test 1: Public profile (no auth) -> id + name, NO email
+  echo "Testing GET /api/profiles/:id (public)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/api/profiles/$PROFILE_USER_ID")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    PROF_NAME=$(json_field "$BODY" "name")
+    PROF_EMAIL=$(json_field "$BODY" "email")
+    if [ -n "$PROF_NAME" ] && [ -z "$PROF_EMAIL" ]; then
+      echo "  ✓ GET /api/profiles/:id returns public fields only (no email)"
+    else
+      echo "  ✗ Public profile should have name but NOT email"
+      echo "  Response: $BODY"
+      kill_server
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /api/profiles/:id returned $HTTP_CODE"
+    kill_server
+    exit 1
+  fi
+
+  # Test 2: Authenticated profile -> id + name + email
+  echo "Testing GET /api/profiles/:id/full (authenticated)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/api/profiles/$PROFILE_USER_ID/full" \
+    -H "Authorization: Bearer $ACCESS_TOKEN")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | sed '$d')
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    FULL_EMAIL=$(json_field "$BODY" "email")
+    if [ -n "$FULL_EMAIL" ]; then
+      echo "  ✓ GET /api/profiles/:id/full returns email with auth"
+    else
+      echo "  ✗ Authenticated profile should include email"
+      echo "  Response: $BODY"
+      kill_server
+      exit 1
+    fi
+  else
+    echo "  ✗ GET /api/profiles/:id/full returned $HTTP_CODE"
+    kill_server
+    exit 1
+  fi
+
+  # Test 3: Authenticated profile without token -> 401
+  echo "Testing GET /api/profiles/:id/full (no token)..."
+  RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$test_port/api/profiles/$PROFILE_USER_ID/full")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+
+  if [ "$HTTP_CODE" = "401" ]; then
+    echo "  ✓ GET /api/profiles/:id/full requires auth (401)"
+  else
+    echo "  ✗ Should require auth, got $HTTP_CODE"
     kill_server
     exit 1
   fi

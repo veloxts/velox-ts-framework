@@ -418,6 +418,16 @@ export interface CompiledProcedure<
    */
   // biome-ignore lint/suspicious/noExplicitAny: ResourceSchema type would create circular dependency
   readonly _resourceSchema?: any;
+
+  /**
+   * Explicit resource projection level from tagged schema
+   *
+   * Set when using `.resource(UserSchema.authenticated)` etc.
+   * Takes precedence over guard-derived access level.
+   *
+   * @internal
+   */
+  readonly _resourceLevel?: 'public' | 'authenticated' | 'admin';
 }
 
 // ============================================================================
