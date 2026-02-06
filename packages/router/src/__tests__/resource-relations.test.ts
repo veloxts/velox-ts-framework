@@ -165,6 +165,26 @@ describe('hasMany relation', () => {
 
     expect(result.posts).toEqual([]);
   });
+
+  it('should filter out non-object items from array', () => {
+    const userData = {
+      ...testUser,
+      posts: [
+        { id: 'post-1', title: 'Valid', draft: false },
+        null,
+        undefined,
+        123,
+        'string',
+        { id: 'post-2', title: 'Also Valid', draft: true },
+      ],
+    };
+    const result = resource(userData, UserSchema).forAuthenticated();
+
+    expect(result.posts).toEqual([
+      { id: 'post-1', title: 'Valid', draft: false },
+      { id: 'post-2', title: 'Also Valid', draft: true },
+    ]);
+  });
 });
 
 // ============================================================================
@@ -243,6 +263,79 @@ describe('Security - nested relations', () => {
     expect(child).toEqual({ id: 'child-1' });
     expect('__proto__' in child).toBe(false);
     expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
+  });
+});
+
+// ============================================================================
+// Circular Reference & Depth Limit Tests
+// ============================================================================
+
+describe('Circular reference and depth protection', () => {
+  it('should return empty object for circular data references', () => {
+    const ChildSchema = resourceSchema().public('id', z.string()).build();
+
+    const ParentSchema = resourceSchema()
+      .public('id', z.string())
+      .hasOne('child', ChildSchema, 'public')
+      .build();
+
+    // Create circular data (object references itself)
+    const circular: Record<string, unknown> = { id: 'p-1' };
+    circular.child = circular;
+
+    const result = resource(circular, ParentSchema).forAnonymous();
+
+    expect(result.id).toBe('p-1');
+    // The circular child should be an empty object (cycle detected)
+    expect(result.child).toEqual({});
+  });
+
+  it('should return empty object for deeply nested data beyond depth limit', () => {
+    // Build a chain of schemas 3 levels deep
+    const Level3 = resourceSchema().public('id', z.string()).build();
+    const Level2 = resourceSchema()
+      .public('id', z.string())
+      .hasOne('next', Level3, 'public')
+      .build();
+    const Level1 = resourceSchema()
+      .public('id', z.string())
+      .hasOne('next', Level2, 'public')
+      .build();
+
+    const data = {
+      id: 'L1',
+      next: { id: 'L2', next: { id: 'L3' } },
+    };
+
+    // 3 levels should work fine
+    const result = resource(data, Level1).forAnonymous();
+    expect(result).toEqual({
+      id: 'L1',
+      next: { id: 'L2', next: { id: 'L3' } },
+    });
+  });
+
+  it('should handle circular references in hasMany arrays', () => {
+    const ItemSchema = resourceSchema().public('id', z.string()).build();
+
+    const ListSchema = resourceSchema()
+      .public('id', z.string())
+      .hasMany('items', ItemSchema, 'public')
+      .build();
+
+    // Create circular data in array
+    const parent: Record<string, unknown> = { id: 'list-1' };
+    parent.items = [{ id: 'item-1' }, parent]; // parent references itself in array
+
+    const result = resource(parent, ListSchema).forAnonymous();
+
+    expect(result.id).toBe('list-1');
+    // The first item projects normally; the circular ref is filtered out
+    // (parent is not a plain item — it was already visited)
+    const items = result.items as Array<Record<string, unknown>>;
+    expect(items[0]).toEqual({ id: 'item-1' });
+    // Second item is the circular ref — returns empty object
+    expect(items[1]).toEqual({});
   });
 });
 

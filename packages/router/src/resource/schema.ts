@@ -354,6 +354,11 @@ export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = rea
    * The relation's visibility controls WHETHER it appears in the output.
    * The parent's projection level controls WHAT fields of the nested schema are shown.
    *
+   * **Note:** The nested schema's generic field types are tracked at compile time
+   * for output type computation, but the runtime field stores an untyped
+   * `ResourceSchema` reference. Always pass the direct result of `.build()`
+   * to ensure the compile-time and runtime schemas stay in sync.
+   *
    * @param name - Relation field name
    * @param nestedSchema - The nested resource schema (result of `.build()`)
    * @param visibility - Visibility level for this relation
@@ -396,6 +401,11 @@ export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = rea
    *
    * The relation's visibility controls WHETHER it appears in the output.
    * The parent's projection level controls WHAT fields of the nested schema are shown.
+   *
+   * **Note:** The nested schema's generic field types are tracked at compile time
+   * for output type computation, but the runtime field stores an untyped
+   * `ResourceSchema` reference. Always pass the direct result of `.build()`
+   * to ensure the compile-time and runtime schemas stay in sync.
    *
    * @param name - Relation field name
    * @param nestedSchema - The nested resource schema (result of `.build()`)

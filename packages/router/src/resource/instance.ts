@@ -47,20 +47,40 @@ const DANGEROUS_PROPERTIES: ReadonlySet<string> = new Set([
 // Recursive Projection
 // ============================================================================
 
+/** Maximum allowed nesting depth for recursive relation projection */
+const MAX_PROJECTION_DEPTH = 10;
+
 /**
  * Recursively projects data through a resource schema, including nested relations
+ *
+ * Tracks recursion depth and visited objects to guard against circular
+ * references and excessively deep nesting.
  *
  * @internal
  * @param data - The raw data object
  * @param schema - The resource schema to project against
  * @param level - The visibility level to project for
+ * @param depth - Current recursion depth (defaults to 0)
+ * @param visited - Set of already-visited data objects for cycle detection
  * @returns Projected object with null prototype
  */
 function projectData(
   data: Record<string, unknown>,
   schema: ResourceSchema,
-  level: VisibilityLevel
+  level: VisibilityLevel,
+  depth: number = 0,
+  visited?: WeakSet<object>
 ): Record<string, unknown> {
+  if (depth >= MAX_PROJECTION_DEPTH) {
+    return Object.create(null);
+  }
+
+  const seen = visited ?? new WeakSet<object>();
+  if (seen.has(data)) {
+    return Object.create(null);
+  }
+  seen.add(data);
+
   const result: Record<string, unknown> = Object.create(null);
 
   for (const field of schema.fields as readonly RuntimeField[]) {
@@ -76,20 +96,23 @@ function projectData(
           result[field.name] = projectData(
             value as Record<string, unknown>,
             field.nestedSchema,
-            level
+            level,
+            depth + 1,
+            seen
           );
         } else {
           result[field.name] = null;
         }
       } else {
-        // 'many'
+        // 'many' — only project valid object items; skip primitives / nulls
         if (Array.isArray(value)) {
           const nested = field.nestedSchema;
-          result[field.name] = value.map((item) =>
-            item != null && typeof item === 'object'
-              ? projectData(item as Record<string, unknown>, nested, level)
-              : item
-          );
+          result[field.name] = value
+            .filter(
+              (item): item is Record<string, unknown> =>
+                item != null && typeof item === 'object' && !Array.isArray(item)
+            )
+            .map((item) => projectData(item, nested, level, depth + 1, seen));
         } else {
           result[field.name] = [];
         }
