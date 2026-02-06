@@ -537,14 +537,13 @@ const createLocalizedSchema = (locale: string) => z.object({
 ### Custom Status Codes
 
 ```typescript
-import { ValidationError, HttpError } from '@veloxts/core';
+import { ValidationError } from '@veloxts/core';
 
-// For duplicate resources, use 409 Conflict
+// For duplicate resources, throw a ValidationError
 if (await emailExists(input.email)) {
-  throw new HttpError(409, 'Email already registered', {
-    code: 'CONFLICT',
-    issues: [{ path: ['email'], message: 'This email is already in use' }],
-  });
+  throw new ValidationError('Email already registered', [
+    { path: ['email'], message: 'This email is already in use' },
+  ]);
 }
 ```
 

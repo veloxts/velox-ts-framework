@@ -44,7 +44,7 @@ export const productProcedures = procedures('products', {
   listProducts: procedure()
     .query(async ({ ctx }) => {
       const products = await ctx.db.product.findMany();
-      return resourceCollection(products, ProductSchema).forAnonymous();
+      return resourceCollection(products, ProductSchema.public);
     }),
 
   getProduct: procedure()
@@ -53,7 +53,7 @@ export const productProcedures = procedures('products', {
       const product = await ctx.db.product.findUniqueOrThrow({
         where: { id: input.id },
       });
-      return resource(product, ProductSchema).forAnonymous();
+      return resource(product, ProductSchema.public);
     }),
 });
 ```

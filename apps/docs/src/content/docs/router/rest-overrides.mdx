@@ -53,14 +53,14 @@ verifyEmail: procedure()
 // GET /api/verify/abc123
 ```
 
-### Disable REST
+### tRPC-Only Procedures
 
-Keep procedure tRPC-only:
+Procedures that don't match a naming convention prefix and have no `.rest()` override are automatically tRPC-only — no REST endpoint is generated:
 
 ```typescript
-internalMetrics: procedure()
-  .query(handler)
-  .rest(false),
+// No recognized prefix → tRPC-only, no REST route
+syncExternalData: procedure()
+  .query(handler),
 ```
 
 ## Common Patterns

@@ -140,7 +140,7 @@ createUser: procedure()
   .input(CreateUserSchema)
   .mutation(async ({ input, ctx }) => {
     const user = await ctx.db.user.create({ data: input });
-    return resource(user, UserSchema).forAuthenticated();
+    return resource(user, UserSchema.authenticated);
   }),
 ```
 
@@ -172,4 +172,4 @@ GET /api/docs/openapi.json
 ## Related Content
 
 - [REST Conventions](/docs/router/rest-conventions/) - Endpoint patterns
-- [Procedures](/docs/router/procedures/) - Define endpoints
+- [Procedures](/docs/endpoints/procedures/) - Define endpoints

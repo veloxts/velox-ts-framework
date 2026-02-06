@@ -162,7 +162,7 @@ procedures('users', {
   listUsers: procedure()
     .query(async ({ ctx }) => {
       const users = await ctx.db.user.findMany();
-      return resourceCollection(users, UserSchema).forAnonymous();
+      return resourceCollection(users, UserSchema.public);
     }),
   // → GET /api/users
 
@@ -170,7 +170,7 @@ procedures('users', {
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-      return resource(user, UserSchema).forAnonymous();
+      return resource(user, UserSchema.public);
     }),
   // → GET /api/users/:id
 
@@ -178,7 +178,7 @@ procedures('users', {
     .input(CreateUserSchema)
     .mutation(async ({ input, ctx }) => {
       const user = await ctx.db.user.create({ data: input });
-      return resource(user, UserSchema).forAuthenticated();
+      return resource(user, UserSchema.authenticated);
     }),
   // → POST /api/users (201)
 
@@ -186,7 +186,7 @@ procedures('users', {
     .input(z.object({ id: z.string(), data: UpdateUserSchema }))
     .mutation(async ({ input, ctx }) => {
       const user = await ctx.db.user.update({ where: { id: input.id }, data: input.data });
-      return resource(user, UserSchema).forAuthenticated();
+      return resource(user, UserSchema.authenticated);
     }),
   // → PUT /api/users/:id
 
@@ -216,7 +216,7 @@ procedures('products', {
   listProducts: procedure()
     .query(async ({ ctx }) => {
       const products = await ctx.db.product.findMany();
-      return resourceCollection(products, ProductSchema).forAnonymous();
+      return resourceCollection(products, ProductSchema.public);
     }),
   // → GET /api/products
 
@@ -237,7 +237,7 @@ procedures('products', {
           },
         },
       });
-      return resourceCollection(products, ProductSchema).forAnonymous();
+      return resourceCollection(products, ProductSchema.public);
     }),
   // → GET /api/products?category=electronics&minPrice=100
 });
@@ -262,13 +262,20 @@ procedures('auth', {
     .input(z.object({ token: z.string() }))
     .rest({ method: 'POST', path: '/auth/verify/:token' })
     .mutation(handler),
+});
+```
 
-  // Disable REST entirely (tRPC-only)
-  internalOnly: procedure()
-    .rest({ enabled: false })
+<Aside type="tip" title="tRPC-Only Procedures">
+Procedures that don't match a naming convention prefix and have no `.rest()` override are automatically tRPC-only — no REST endpoint is generated.
+
+```typescript
+procedures('users', {
+  // No recognized prefix, no .rest() → tRPC-only
+  syncExternalData: procedure()
     .query(handler),
 });
 ```
+</Aside>
 
 <Aside type="note" title="Path Prefix">
 The `.rest()` path is relative—the API prefix (default `/api`) is applied automatically. Don't include `/api` in your path.
@@ -407,10 +414,10 @@ getComment: procedure()
 **Request:** `GET /api/posts/post-1/comments/comment-5`
 **Handler receives:** `input = { postId: "post-1", commentId: "comment-5" }`
 
-## Query Parameter Coercion
+## Query Parameter Types
 
 <Aside type="tip" title="Query Params are Strings">
-Query parameters arrive as strings. Use `z.coerce` for automatic conversion:
+URL query parameters always arrive as strings. Use Zod's `z.coerce` helpers to convert them to the expected types:
 
 ```typescript
 findProducts: procedure()
