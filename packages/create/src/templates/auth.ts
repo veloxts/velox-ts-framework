@@ -74,6 +74,10 @@ function generateConfigDatabase(config: TemplateConfig): string {
   return compileTemplate('api/config/database.ts', config);
 }
 
+function generateProfileProcedures(): string {
+  return compileTemplate('api/procedures/profiles.auth.ts', AUTH_CONFIG);
+}
+
 function generateHealthProcedures(): string {
   return compileTemplate('api/procedures/health.ts', AUTH_CONFIG);
 }
@@ -129,6 +133,7 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
     { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'apps/api/src/procedures/auth.ts', content: generateAuthProcedures() },
     { path: 'apps/api/src/procedures/users.ts', content: generateUserProceduresWithAuth() },
+    { path: 'apps/api/src/procedures/profiles.ts', content: generateProfileProcedures() },
     { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
     { path: 'apps/api/src/schemas/auth.ts', content: generateAuthSchema() },
     { path: 'apps/api/src/schemas/health.ts', content: generateHealthSchema() },

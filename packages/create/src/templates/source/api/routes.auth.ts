@@ -34,4 +34,8 @@ export const routes: RouteMap = {
     patchUser: { method: 'PATCH', path: '/users/:id', kind: 'mutation' },
     deleteUser: { method: 'DELETE', path: '/users/:id', kind: 'mutation' },
   },
+  profiles: {
+    getProfile: { method: 'GET', path: '/profiles/:id', kind: 'query' },
+    getFullProfile: { method: 'GET', path: '/profiles/:id/full', kind: 'query' },
+  },
 };

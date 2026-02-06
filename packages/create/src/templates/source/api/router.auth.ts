@@ -18,13 +18,15 @@ import { createRouter, extractRoutes } from '@veloxts/velox';
 
 import { authProcedures } from './procedures/auth.js';
 import { healthProcedures } from './procedures/health.js';
+import { profileProcedures } from './procedures/profiles.js';
 import { userProcedures } from './procedures/users.js';
 
 // Create router and collections from procedure definitions
 export const { collections, router } = createRouter(
   healthProcedures,
   authProcedures,
-  userProcedures
+  userProcedures,
+  profileProcedures
 );
 
 export type AppRouter = typeof router;

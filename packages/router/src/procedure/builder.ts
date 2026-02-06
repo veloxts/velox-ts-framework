@@ -652,18 +652,23 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   // Step 4: Auto-project if resource schema is set
   if (procedure._resourceSchema) {
     const schema = procedure._resourceSchema as ResourceSchema;
-    const resourceInstance = new Resource(result as Record<string, unknown>, schema);
 
-    // Project based on access level
-    switch (accessLevel) {
-      case 'admin':
-        result = resourceInstance.forAdmin() as TOutput;
-        break;
-      case 'authenticated':
-        result = resourceInstance.forAuthenticated() as TOutput;
-        break;
-      default:
-        result = resourceInstance.forAnonymous() as TOutput;
+    const projectOne = (item: Record<string, unknown>): Record<string, unknown> => {
+      const r = new Resource(item, schema);
+      switch (accessLevel) {
+        case 'admin':
+          return r.forAdmin() as Record<string, unknown>;
+        case 'authenticated':
+          return r.forAuthenticated() as Record<string, unknown>;
+        default:
+          return r.forAnonymous() as Record<string, unknown>;
+      }
+    };
+
+    if (Array.isArray(result)) {
+      result = result.map((item) => projectOne(item as Record<string, unknown>)) as TOutput;
+    } else {
+      result = projectOne(result as Record<string, unknown>) as TOutput;
     }
   }
 
