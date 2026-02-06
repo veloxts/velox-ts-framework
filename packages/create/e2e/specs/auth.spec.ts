@@ -154,4 +154,61 @@ test.describe('Auth Template', () => {
     });
     expect(response.status).toBe(400);
   });
+
+  test.describe('Frontend', () => {
+    test('shows login form by default', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/welcome to veloxts/i).first()).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible();
+      await expect(page.locator('input[type="password"]').first()).toBeVisible();
+    });
+
+    test('can switch between login and register tabs', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+      // Click Register tab
+      await page.getByRole('button', { name: /register/i }).click();
+      // Name field should appear (register has Name, login doesn't)
+      await expect(
+        page.locator('input[placeholder="Name"], input[name="name"]').first()
+      ).toBeVisible({ timeout: 5000 });
+    });
+
+    test('full auth flow: register, see welcome, logout', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+
+      // Switch to register
+      await page.getByRole('button', { name: /register/i }).click();
+
+      // Fill registration form
+      await page.locator('input[placeholder="Name"], input[name="name"]').first().fill('E2E User');
+      await page
+        .locator('input[type="email"], input[name="email"]')
+        .first()
+        .fill(`e2e-frontend-${Date.now()}@test.com`);
+      await page.locator('input[type="password"]').first().fill('SecurePass123!');
+
+      // Submit
+      await page.getByRole('button', { name: /create account/i }).click();
+
+      // Should see welcome message with user name
+      await expect(page.getByText(/welcome.*e2e user/i).first()).toBeVisible({ timeout: 15000 });
+
+      // Logout
+      await page.getByRole('button', { name: /logout/i }).click();
+
+      // Should return to login form
+      await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible({
+        timeout: 15000,
+      });
+    });
+
+    test('about page renders', async ({ page, scaffold }) => {
+      await page.goto(`${scaffold.webURL}/about`);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/about veloxts/i).first()).toBeVisible({ timeout: 15000 });
+    });
+  });
 });

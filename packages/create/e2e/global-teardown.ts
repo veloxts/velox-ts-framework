@@ -13,7 +13,8 @@ export default async function globalTeardown(): Promise<void> {
   console.log('\n=== E2E Global Teardown ===\n');
 
   // Kill any servers that might still be running on common test ports
-  const testPorts = [3031, 3032, 3033, 3034, 3035];
+  // API ports: 3031-3035, Web (Vite) dev server ports: 3531-3533
+  const testPorts = [3031, 3032, 3033, 3034, 3035, 3531, 3532, 3533];
   for (const port of testPorts) {
     try {
       execSync(`lsof -ti :${port} | xargs kill -9 2>/dev/null || true`, {

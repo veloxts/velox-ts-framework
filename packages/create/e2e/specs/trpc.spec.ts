@@ -132,4 +132,31 @@ test.describe('tRPC Template', () => {
     const data = (await response.json()) as TRPCError;
     expect(data.error).toBeDefined();
   });
+
+  test.describe('Frontend', () => {
+    test('home page renders', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/welcome to veloxts/i).first()).toBeVisible({ timeout: 15000 });
+    });
+
+    test('users page renders via tRPC', async ({ page, scaffold }) => {
+      await page.goto(`${scaffold.webURL}/users`);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/users/i).first()).toBeVisible({ timeout: 15000 });
+    });
+
+    test('about page renders', async ({ page, scaffold }) => {
+      await page.goto(`${scaffold.webURL}/about`);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/about veloxts/i).first()).toBeVisible({ timeout: 15000 });
+    });
+
+    test('navigation links work', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+      await page.getByRole('link', { name: /users/i }).click();
+      await expect(page.getByText(/users/i).first()).toBeVisible({ timeout: 15000 });
+    });
+  });
 });

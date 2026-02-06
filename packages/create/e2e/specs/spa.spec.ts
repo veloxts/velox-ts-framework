@@ -78,4 +78,42 @@ test.describe('SPA Template (Default)', () => {
     );
     expect(response.status).toBe(404);
   });
+
+  test.describe('Frontend', () => {
+    test('home page renders with welcome heading', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/welcome to veloxts/i).first()).toBeVisible({ timeout: 15000 });
+    });
+
+    test('home page shows API status', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/connected/i).first()).toBeVisible({ timeout: 15000 });
+    });
+
+    test('users page renders', async ({ page, scaffold }) => {
+      await page.goto(`${scaffold.webURL}/users`);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/users/i).first()).toBeVisible({ timeout: 15000 });
+    });
+
+    test('about page renders with feature cards', async ({ page, scaffold }) => {
+      await page.goto(`${scaffold.webURL}/about`);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/about veloxts/i).first()).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/type safety/i).first()).toBeVisible();
+    });
+
+    test('navigation links work', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+      // Click Users nav link
+      await page.getByRole('link', { name: /users/i }).click();
+      await expect(page.getByText(/users/i).first()).toBeVisible({ timeout: 15000 });
+      // Click About nav link
+      await page.getByRole('link', { name: /about/i }).click();
+      await expect(page.getByText(/about veloxts/i).first()).toBeVisible({ timeout: 15000 });
+    });
+  });
 });
