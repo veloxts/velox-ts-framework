@@ -174,6 +174,10 @@ function generateAuthProcedures(): string {
   return compileTemplate('rsc-auth/src/api/procedures/auth.ts', RSC_CONFIG);
 }
 
+function generateProfileProcedures(): string {
+  return compileTemplate('rsc-auth/src/api/procedures/profiles.ts', RSC_CONFIG);
+}
+
 // Schemas
 function generateUserSchemas(): string {
   return compileTemplate('rsc-auth/src/api/schemas/user.ts', RSC_CONFIG);
@@ -249,6 +253,7 @@ export function generateRscAuthTemplate(config: TemplateConfig): TemplateFile[] 
     { path: 'src/api/procedures/health.ts', content: generateHealthProcedures() },
     { path: 'src/api/procedures/users.ts', content: generateUserProcedures() },
     { path: 'src/api/procedures/auth.ts', content: generateAuthProcedures() },
+    { path: 'src/api/procedures/profiles.ts', content: generateProfileProcedures() },
     { path: 'src/api/schemas/user.ts', content: generateUserSchemas() },
     { path: 'src/api/schemas/auth.ts', content: generateAuthSchemas() },
     { path: 'src/api/utils/auth.ts', content: generateAuthUtils() },

@@ -8,15 +8,11 @@
  *     Uses procedure-level auto-projection: .resource(Schema.authenticated)
  */
 
-import {
-  authenticatedNarrow,
-  NotFoundError,
-  procedure,
-  procedures,
-  resource,
-  resourceSchema,
-  z,
-} from '@veloxts/velox';
+import { authenticatedNarrow } from '@veloxts/auth';
+import { procedure, procedures, resource, resourceSchema } from '@veloxts/router';
+import { z } from 'zod';
+
+import { db } from '../database.js';
 
 // ============================================================================
 // Resource Schema (field-level visibility)
@@ -38,9 +34,11 @@ export const profileProcedures = procedures('profiles', {
   getProfile: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .resource(UserProfileSchema.public)
-    .query(async ({ input, ctx }) => {
-      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      if (!user) throw new NotFoundError(`User '${input.id}' not found`);
+    .query(async ({ input }) => {
+      const user = await db.user.findUnique({ where: { id: input.id } });
+      if (!user) {
+        throw Object.assign(new Error('User not found'), { statusCode: 404 });
+      }
       return resource(user, UserProfileSchema.public);
     }),
 
@@ -51,9 +49,11 @@ export const profileProcedures = procedures('profiles', {
     .guardNarrow(authenticatedNarrow)
     .input(z.object({ id: z.string().uuid() }))
     .resource(UserProfileSchema.authenticated)
-    .query(async ({ input, ctx }) => {
-      const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      if (!user) throw new NotFoundError(`User '${input.id}' not found`);
+    .query(async ({ input }) => {
+      const user = await db.user.findUnique({ where: { id: input.id } });
+      if (!user) {
+        throw Object.assign(new Error('User not found'), { statusCode: 404 });
+      }
       return user;
     }),
 });

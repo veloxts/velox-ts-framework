@@ -164,7 +164,7 @@ export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(GetUserInput)
     .guards(authenticated, hasOrganization)
-    .resource(UserSchema)
+    .output(UserSchema)
     .query(({ input, ctx }) => ctx.db.user.findUniqueOrThrow({
       where: { id: input.id }
     })),
