@@ -105,20 +105,20 @@ export const loggedProcedure = procedure().use(loggingMiddleware);
 
 // Base with auth
 export const authedProcedure = procedure()
-  .use(loggingMiddleware)
-  .guard(authenticated);
+  .guard(authenticated)
+  .use(loggingMiddleware);
 
 // Use in procedures
 export const userProcedures = procedures('users', {
   listUsers: loggedProcedure
     .query(async ({ ctx }) => {
       const users = await ctx.db.user.findMany();
-      return resourceCollection(users, UserSchema).forAuthenticated();
+      return resourceCollection(users, UserSchema.authenticated);
     }),
 
   getProfile: authedProcedure
     .query(({ ctx }) => {
-      return resource(ctx.user, UserSchema).forAuthenticated();
+      return resource(ctx.user, UserSchema.authenticated);
     }),
 });
 ```
@@ -138,4 +138,4 @@ Use **guards** for authorization (authenticated, hasRole).
 ## Related Content
 
 - [Guards](/docs/authentication/guards/) - Authorization
-- [Procedures](/docs/router/procedures/) - Procedure API
+- [Procedures](/docs/endpoints/procedures/) - Procedure API

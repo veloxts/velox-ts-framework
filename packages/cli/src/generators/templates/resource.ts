@@ -170,6 +170,25 @@ export function generatePrismaEnums(fields: FieldDefinition[]): string {
 }
 
 // ============================================================================
+// Relation Helpers
+// ============================================================================
+
+/**
+ * Build an `include: { ... }` clause string for Prisma queries
+ *
+ * Returns empty string if no relations, or a formatted include block
+ */
+function buildIncludeClause(relations?: RelationInfo): string {
+  if (!relations) return '';
+
+  const allRelations = [...relations.hasOne, ...relations.hasMany];
+  if (allRelations.length === 0) return '';
+
+  const entries = allRelations.map((name) => `${name}: true`).join(', ');
+  return `\n        include: { ${entries} },`;
+}
+
+// ============================================================================
 // Prisma Model Template
 // ============================================================================
 
@@ -439,12 +458,26 @@ ${crudSchemas}
 // Procedure Template
 // ============================================================================
 
+/**
+ * Relation info for code generation
+ */
+export interface RelationInfo {
+  /** Single-object relation field names */
+  hasOne: string[];
+  /** Array relation field names */
+  hasMany: string[];
+}
+
 function generateProcedure(
   entity: { pascal: string; camel: string; kebab: string },
-  options: ResourceOptions
+  options: ResourceOptions,
+  relations?: RelationInfo
 ): string {
   const { pascal, camel, kebab } = entity;
   const { crud, paginated, softDelete } = options;
+
+  // Build include clause if relations exist
+  const includeClause = buildIncludeClause(relations);
 
   if (!crud) {
     // Simple procedure without CRUD
@@ -467,7 +500,7 @@ export const ${camel}Procedures = procedures('${kebab}s', {
     .output(${camel}Schema.nullable())
     .query(async ({ input, ctx }) => {
       return ctx.db.${camel}.findUnique({
-        where: { id: input.id },
+        where: { id: input.id },${includeClause}
       });
     }),
 });
@@ -531,7 +564,7 @@ export const ${camel}Procedures = procedures('${kebab}s', {
     .output(${camel}Schema.nullable())
     .query(async ({ input, ctx }) => {
       return ctx.db.${camel}.findUnique({
-        where: { id: input.id${softDeleteWhere} },
+        where: { id: input.id${softDeleteWhere} },${includeClause}
       });
     }),
 
@@ -549,7 +582,7 @@ export const ${camel}Procedures = procedures('${kebab}s', {
         take: input.limit,
         orderBy: input.sortBy
           ? { [input.sortBy]: input.sortOrder }
-          : { createdAt: 'desc' },
+          : { createdAt: 'desc' },${includeClause}
       });
 ${paginationCode}
     }),
@@ -745,7 +778,10 @@ describe('${pascal} Procedures', () => {
 /**
  * Generate all files for a resource
  */
-export function generateResourceFiles(ctx: TemplateContext<ResourceOptions>): GeneratedFile[] {
+export function generateResourceFiles(
+  ctx: TemplateContext<ResourceOptions>,
+  relations?: RelationInfo
+): GeneratedFile[] {
   const files: GeneratedFile[] = [];
   const { entity, options, project } = ctx;
 
@@ -769,7 +805,7 @@ export function generateResourceFiles(ctx: TemplateContext<ResourceOptions>): Ge
   if (!options.skipProcedure) {
     files.push({
       path: `src/procedures/${entity.kebab}.ts`,
-      content: generateProcedure(entity, options),
+      content: generateProcedure(entity, options, relations),
     });
   }
 

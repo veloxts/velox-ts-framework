@@ -38,7 +38,7 @@ This guide walks you through creating a simple user API with VeloxTS.
      listUsers: procedure()
        .query(async ({ ctx }) => {
          const users = await ctx.db.user.findMany();
-         return users.map(user => resource(user, UserSchema).forAnonymous());
+         return users.map(user => resource(user, UserSchema.public));
        }),
 
      // GET /api/users/:id - public endpoint, manual projection
@@ -48,10 +48,10 @@ This guide walks you through creating a simple user API with VeloxTS.
          const user = await ctx.db.user.findUniqueOrThrow({
            where: { id: input.id }
          });
-         return resource(user, UserSchema).forAnonymous();
+         return resource(user, UserSchema.public);
        }),
 
-     // POST /api/users - public endpoint, manual projection
+     // POST /api/users - public endpoint
      createUser: procedure()
        .input(z.object({
          name: z.string().min(1),
@@ -59,7 +59,7 @@ This guide walks you through creating a simple user API with VeloxTS.
        }))
        .mutation(async ({ input, ctx }) => {
          const user = await ctx.db.user.create({ data: input });
-         return resource(user, UserSchema).forAnonymous();
+         return resource(user, UserSchema.public);
        }),
    });
    ```
@@ -129,6 +129,6 @@ Every procedure handler receives a `ctx` object containing:
 
 ## Related Content
 
-- [Procedures](/docs/router/procedures/) - Deep dive into the procedure API
+- [Procedures](/docs/endpoints/procedures/) - Deep dive into the procedure API
 - [Authentication](/docs/authentication/overview/) - Add login/logout
 - [REST Conventions](/docs/router/rest-conventions/) - All naming patterns

@@ -42,32 +42,32 @@ const PostSchema = resourceSchema()
   .build();
 
 export const postProcedures = procedures('posts', {
-  // GET /api/posts
+  // GET /api/posts — public fields only
   listPosts: procedure()
     .query(async ({ ctx }) => {
       const posts = await ctx.db.post.findMany();
-      return resourceCollection(posts, PostSchema).forAnonymous();
+      return resourceCollection(posts, PostSchema.public);
     }),
 
-  // GET /api/posts/:id
+  // GET /api/posts/:id — public fields only
   getPost: procedure()
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {
       const post = await ctx.db.post.findUniqueOrThrow({
         where: { id: input.id }
       });
-      return resource(post, PostSchema).forAnonymous();
+      return resource(post, PostSchema.public);
     }),
 
-  // POST /api/posts
+  // POST /api/posts — returns authenticated-level fields
   createPost: procedure()
     .input(CreatePostSchema)
     .mutation(async ({ input, ctx }) => {
       const post = await ctx.db.post.create({ data: input });
-      return resource(post, PostSchema).forAuthenticated();
+      return resource(post, PostSchema.authenticated);
     }),
 
-  // PUT /api/posts/:id
+  // PUT /api/posts/:id — returns authenticated-level fields
   updatePost: procedure()
     .input(z.object({ id: z.string(), data: UpdatePostSchema }))
     .mutation(async ({ input, ctx }) => {
@@ -75,7 +75,7 @@ export const postProcedures = procedures('posts', {
         where: { id: input.id },
         data: input.data,
       });
-      return resource(post, PostSchema).forAuthenticated();
+      return resource(post, PostSchema.authenticated);
     }),
 
   // DELETE /api/posts/:id

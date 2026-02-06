@@ -67,7 +67,7 @@ const createUser = procedure()
   .input(CreateUserSchema)
   .mutation(async ({ input, ctx }) => {
     const user = await ctx.db.user.create({ data: input });
-    return resource(user, UserSchema).forAuthenticated();
+    return resource(user, UserSchema.authenticated);
   });
 
 // Action gets same types
@@ -75,7 +75,7 @@ export const createUser = validated(CreateUserSchema, async (input) => {
   // input is typed: CreateUserInput
   const { db } = await import('@/api/database');
   const user = await db.user.create({ data: input });
-  return resource(user, UserSchema).forAuthenticated();
+  return resource(user, UserSchema.authenticated);
   // return is typed based on projection
 });
 ```
@@ -83,4 +83,4 @@ export const createUser = validated(CreateUserSchema, async (input) => {
 ## Related Content
 
 - [Server Actions](/docs/rsc/server-actions/) - Action patterns
-- [Procedures](/docs/router/procedures/) - Backend procedures
+- [Procedures](/docs/endpoints/procedures/) - Backend procedures

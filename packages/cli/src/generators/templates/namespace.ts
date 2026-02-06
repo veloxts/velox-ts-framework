@@ -12,6 +12,16 @@ import type { TemplateContext, TemplateFunction } from '../types.js';
 // Template Options
 // ============================================================================
 
+/**
+ * Relation info for code generation (shared with resource template)
+ */
+export interface RelationInfo {
+  /** Single-object relation field names */
+  hasOne: string[];
+  /** Array relation field names */
+  hasMany: string[];
+}
+
 export interface NamespaceOptions {
   /** Skip auto-registering in router.ts */
   skipRegistration: boolean;
@@ -19,6 +29,25 @@ export interface NamespaceOptions {
   withExample: boolean;
   /** Generate test file */
   withTests: boolean;
+  /** Detected relations from Prisma schema */
+  relations?: RelationInfo;
+}
+
+// ============================================================================
+// Relation Helpers
+// ============================================================================
+
+/**
+ * Build an `include: { ... }` clause string for Prisma queries
+ */
+function buildIncludeClause(relations?: RelationInfo): string {
+  if (!relations) return '';
+
+  const allRelations = [...relations.hasOne, ...relations.hasMany];
+  if (allRelations.length === 0) return '';
+
+  const entries = allRelations.map((name) => `${name}: true`).join(', ');
+  return `\n        include: { ${entries} },`;
 }
 
 // ============================================================================
@@ -84,7 +113,8 @@ export const ${entity.camel}Procedures = procedures('${entity.plural}', {
  * Generate namespace with example procedure
  */
 function generateWithExample(ctx: TemplateContext<NamespaceOptions>): string {
-  const { entity } = ctx;
+  const { entity, options } = ctx;
+  const includeClause = buildIncludeClause(options.relations);
 
   return `/**
  * ${entity.pascal} Procedures
@@ -113,7 +143,7 @@ export const ${entity.camel}Procedures = procedures('${entity.plural}', {
     .output(${entity.pascal}Schema.nullable())
     .query(async ({ input, ctx }) => {
       return ctx.db.${entity.camel}.findUnique({
-        where: { id: input.id },
+        where: { id: input.id },${includeClause}
       });
     }),
 
@@ -124,7 +154,7 @@ export const ${entity.camel}Procedures = procedures('${entity.plural}', {
   list${entity.pascalPlural}: procedure()
     .output(z.array(${entity.pascal}Schema))
     .query(async ({ ctx }) => {
-      return ctx.db.${entity.camel}.findMany();
+      return ctx.db.${entity.camel}.findMany(${includeClause ? `{${includeClause}\n      }` : ''});
     }),
 
   /**

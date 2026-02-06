@@ -1,0 +1,129 @@
+---
+title: Nested Relations
+description: Project nested Prisma relations with field-level visibility using .hasOne() and .hasMany().
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+When using Prisma's `include` to fetch related data, the Resource API can recursively project nested objects and arrays. Use `.hasOne()` for single-object relations and `.hasMany()` for array relations.
+
+## Defining Nested Schemas
+
+Define leaf schemas first, then compose parent schemas:
+
+```typescript
+import { resourceSchema, resource } from '@veloxts/router';
+import { z } from '@veloxts/velox';
+
+// Leaf schemas (define first)
+const OrgSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .admin('taxId', z.string())
+  .build();
+
+const PostSchema = resourceSchema()
+  .public('id', z.string())
+  .public('title', z.string())
+  .authenticated('draft', z.boolean())
+  .build();
+
+// Parent schema with relations
+const UserSchema = resourceSchema()
+  .public('id', z.string())
+  .public('name', z.string())
+  .authenticated('email', z.string())
+  .hasOne('organization', OrgSchema, 'public')      // Always included if visible
+  .hasMany('posts', PostSchema, 'authenticated')     // Only for logged-in users
+  .admin('internalNotes', z.string())
+  .build();
+```
+
+**Method signatures:**
+
+- `.hasOne(name, nestedSchema, visibility)` — Defines a single-object relation (nullable). Returns `null` when the related data is missing.
+- `.hasMany(name, nestedSchema, visibility)` — Defines an array relation. Returns `[]` when no related data exists.
+
+The `visibility` parameter controls **whether** the relation is included in the output. The parent's projection level controls **what fields** of the nested schema are shown.
+
+## Projection Behavior
+
+| Access Level | Output |
+|---|---|
+| Anonymous | `{ id, name, organization: { id, name } }` |
+| Authenticated | `{ id, name, email, organization: { id, name }, posts: [{ id, title, draft }] }` |
+| Admin | All fields, including `internalNotes`, `organization.taxId` |
+
+The `posts` relation has `'authenticated'` visibility, so it's excluded at the anonymous level. The `organization` relation has `'public'` visibility, so it's always included — but its `taxId` field (admin-only) is only visible at the admin level.
+
+## Integration with Prisma `include`
+
+Use Prisma's `include` to fetch related data, then let the Resource API project it:
+
+```typescript
+export const userProcedures = procedures('users', {
+  getProfile: procedure()
+    .guardNarrow(authenticatedNarrow)
+    .resource(UserSchema)
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      return ctx.db.user.findUniqueOrThrow({
+        where: { id: input.id },
+        include: { organization: true, posts: true },
+      });
+      // Auto-projected to authenticated level
+    }),
+});
+```
+
+For manual projection:
+
+```typescript
+const user = await ctx.db.user.findUnique({
+  where: { id },
+  include: { organization: true, posts: true },
+});
+return resource(user, UserSchema).forAuthenticated();
+```
+
+## Tagged Schema Views with Relations
+
+Tagged schema views (`.anonymous`, `.authenticated`, `.admin`) work with nested relations:
+
+```typescript
+return resource(user, UserSchema.authenticated);
+// Equivalent to resource(user, UserSchema).forAuthenticated()
+```
+
+## Null and Empty Handling
+
+- **`hasOne`** — Returns `null` when the related object is missing from the data
+- **`hasMany`** — Returns `[]` (empty array) when no related items exist
+
+```typescript
+const userWithoutOrg = { id: '1', name: 'Jane', email: 'jane@example.com' };
+const result = resource(userWithoutOrg, UserSchema).forAuthenticated();
+// result.organization → null
+// result.posts → []
+```
+
+## CLI Code Generation
+
+When you run `velox make resource` or `velox make namespace` for a model that has Prisma relations, the CLI automatically detects them and generates `include:` clauses in the Prisma queries:
+
+```typescript
+// Generated automatically when Post has relations to User and Comment
+return ctx.db.post.findUnique({
+  where: { id: input.id },
+  include: { author: true, comments: true },
+});
+```
+
+The CLI parses your `schema.prisma` to detect:
+- **hasOne relations** — field type matches another model name (e.g., `author User`)
+- **hasMany relations** — array field type (e.g., `comments Comment[]`)
+- **Back-references** are skipped — fields with `@relation(fields: [...])` are the inverse side and excluded from `include`
+
+<Aside type="tip" title="Best Practice">
+Define leaf schemas first, then compose parent schemas. This ensures each schema is self-contained and reusable across different parent contexts.
+</Aside>

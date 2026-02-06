@@ -241,7 +241,7 @@ export const userProcedures = procedures('users', {
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-      return resource(user, UserSchema).forAuthenticated();
+      return resource(user, UserSchema.authenticated);
     }),
 });
 
@@ -258,5 +258,5 @@ await api.users.getUser({ id: 123 }); // Error: Expected string
 ## Related Content
 
 - [tRPC Bridge](/docs/rsc/trpc-bridge/) - Server-side procedure calls
-- [Procedures](/docs/router/procedures/) - Define backend endpoints
+- [Procedures](/docs/endpoints/procedures/) - Define backend endpoints
 - [Validation](/docs/validation/schemas/) - Input/output schemas

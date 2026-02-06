@@ -45,12 +45,41 @@ export interface ResourceField<
 }
 
 /**
+ * A relation field that references a nested resource schema
+ *
+ * @template TName - The field name as a literal type
+ * @template TNestedFields - The nested schema's field definitions
+ * @template TLevel - The visibility level controlling WHETHER the relation is included
+ * @template TCardinality - 'one' for nullable object, 'many' for array
+ */
+export interface RelationField<
+  TName extends string = string,
+  TNestedFields extends readonly BuilderField[] = readonly BuilderField[],
+  TLevel extends VisibilityLevel = VisibilityLevel,
+  TCardinality extends 'one' | 'many' = 'one' | 'many',
+> {
+  readonly name: TName;
+  readonly nestedSchema: ResourceSchema<TNestedFields>;
+  readonly visibility: TLevel;
+  readonly cardinality: TCardinality;
+  /** Brand discriminator — distinguishes from ResourceField */
+  readonly _relation: true;
+}
+
+/**
+ * Union of scalar and relation fields in a resource schema
+ */
+export type BuilderField = ResourceField | RelationField;
+
+/**
  * Runtime representation of a field (without generics for storage)
  */
 export interface RuntimeField {
   readonly name: string;
-  readonly schema: ZodType;
+  readonly schema?: ZodType;
   readonly visibility: VisibilityLevel;
+  readonly nestedSchema?: ResourceSchema;
+  readonly cardinality?: 'one' | 'many';
 }
 
 // ============================================================================
@@ -65,9 +94,7 @@ export interface RuntimeField {
  *
  * @template TFields - Tuple of ResourceField types
  */
-export interface ResourceSchema<
-  TFields extends readonly ResourceField[] = readonly ResourceField[],
-> {
+export interface ResourceSchema<TFields extends readonly BuilderField[] = readonly BuilderField[]> {
   /** Runtime field definitions */
   readonly fields: readonly RuntimeField[];
   /** Phantom type for field type information */
@@ -102,7 +129,7 @@ export interface ResourceSchema<
  * ```
  */
 export interface TaggedResourceSchema<
-  TFields extends readonly ResourceField[] = readonly ResourceField[],
+  TFields extends readonly BuilderField[] = readonly BuilderField[],
   TLevel extends AccessLevel = AccessLevel,
 > extends ResourceSchema<TFields> {
   readonly _level: TLevel;
@@ -118,7 +145,7 @@ export interface TaggedResourceSchema<
  * @template TFields - The field definitions
  */
 export interface ResourceSchemaWithViews<
-  TFields extends readonly ResourceField[] = readonly ResourceField[],
+  TFields extends readonly BuilderField[] = readonly BuilderField[],
 > extends ResourceSchema<TFields> {
   readonly public: TaggedResourceSchema<TFields, 'public'>;
   readonly authenticated: TaggedResourceSchema<TFields, 'authenticated'>;
@@ -166,18 +193,27 @@ type InferZodOutput<T> = T extends ZodType<infer O, ZodTypeDef, unknown> ? O : n
  * Filters fields by visibility and extracts their types
  *
  * This type iterates over the fields tuple and includes only those
- * that are visible to the given context tag.
+ * that are visible to the given context tag. RelationField entries
+ * are recursively projected using the same tag.
  */
 type FilterFieldsByTag<
-  TFields extends readonly ResourceField[],
+  TFields extends readonly BuilderField[],
   TTag extends ContextTag,
 > = TFields extends readonly [infer First, ...infer Rest]
-  ? First extends ResourceField<infer Name, infer Schema, infer Level>
-    ? Rest extends readonly ResourceField[]
+  ? Rest extends readonly BuilderField[]
+    ? First extends RelationField<infer Name, infer NestedFields, infer Level, infer Card>
       ? IsVisibleToTag<Level, TTag> extends true
-        ? { [K in Name]: InferZodOutput<Schema> } & FilterFieldsByTag<Rest, TTag>
+        ? {
+            [K in Name]: Card extends 'one'
+              ? Simplify<FilterFieldsByTag<NestedFields, TTag>> | null
+              : Array<Simplify<FilterFieldsByTag<NestedFields, TTag>>>;
+          } & FilterFieldsByTag<Rest, TTag>
         : FilterFieldsByTag<Rest, TTag>
-      : unknown
+      : First extends ResourceField<infer Name, infer Schema, infer Level>
+        ? IsVisibleToTag<Level, TTag> extends true
+          ? { [K in Name]: InferZodOutput<Schema> } & FilterFieldsByTag<Rest, TTag>
+          : FilterFieldsByTag<Rest, TTag>
+        : FilterFieldsByTag<Rest, TTag>
     : unknown
   : unknown;
 
@@ -245,7 +281,7 @@ export type AdminOutput<TSchema extends ResourceSchema> = OutputForTag<TSchema, 
  *   .build();
  * ```
  */
-export class ResourceSchemaBuilder<TFields extends readonly ResourceField[] = readonly []> {
+export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = readonly []> {
   private readonly _fields: RuntimeField[];
 
   private constructor(fields: RuntimeField[] = []) {
@@ -310,6 +346,102 @@ export class ResourceSchemaBuilder<TFields extends readonly ResourceField[] = re
       ...this._fields,
       { name, schema, visibility: 'admin' },
     ]) as ResourceSchemaBuilder<readonly [...TFields, ResourceField<TName, TSchema, 'admin'>]>;
+  }
+
+  /**
+   * Adds a has-one relation (nullable nested object)
+   *
+   * The relation's visibility controls WHETHER it appears in the output.
+   * The parent's projection level controls WHAT fields of the nested schema are shown.
+   *
+   * **Note:** The nested schema's generic field types are tracked at compile time
+   * for output type computation, but the runtime field stores an untyped
+   * `ResourceSchema` reference. Always pass the direct result of `.build()`
+   * to ensure the compile-time and runtime schemas stay in sync.
+   *
+   * @param name - Relation field name
+   * @param nestedSchema - The nested resource schema (result of `.build()`)
+   * @param visibility - Visibility level for this relation
+   * @returns New builder with the relation added
+   *
+   * @example
+   * ```typescript
+   * const UserSchema = resourceSchema()
+   *   .public('id', z.string())
+   *   .hasOne('organization', OrgSchema, 'public')
+   *   .build();
+   * ```
+   */
+  hasOne<
+    TName extends string,
+    TNestedFields extends readonly BuilderField[],
+    TLevel extends VisibilityLevel,
+  >(
+    name: TName,
+    nestedSchema: ResourceSchema<TNestedFields>,
+    visibility: TLevel
+  ): ResourceSchemaBuilder<
+    readonly [...TFields, RelationField<TName, TNestedFields, TLevel, 'one'>]
+  > {
+    return new ResourceSchemaBuilder([
+      ...this._fields,
+      {
+        name,
+        visibility,
+        nestedSchema: nestedSchema as ResourceSchema,
+        cardinality: 'one' as const,
+      },
+    ]) as ResourceSchemaBuilder<
+      readonly [...TFields, RelationField<TName, TNestedFields, TLevel, 'one'>]
+    >;
+  }
+
+  /**
+   * Adds a has-many relation (array of nested objects)
+   *
+   * The relation's visibility controls WHETHER it appears in the output.
+   * The parent's projection level controls WHAT fields of the nested schema are shown.
+   *
+   * **Note:** The nested schema's generic field types are tracked at compile time
+   * for output type computation, but the runtime field stores an untyped
+   * `ResourceSchema` reference. Always pass the direct result of `.build()`
+   * to ensure the compile-time and runtime schemas stay in sync.
+   *
+   * @param name - Relation field name
+   * @param nestedSchema - The nested resource schema (result of `.build()`)
+   * @param visibility - Visibility level for this relation
+   * @returns New builder with the relation added
+   *
+   * @example
+   * ```typescript
+   * const UserSchema = resourceSchema()
+   *   .public('id', z.string())
+   *   .hasMany('posts', PostSchema, 'authenticated')
+   *   .build();
+   * ```
+   */
+  hasMany<
+    TName extends string,
+    TNestedFields extends readonly BuilderField[],
+    TLevel extends VisibilityLevel,
+  >(
+    name: TName,
+    nestedSchema: ResourceSchema<TNestedFields>,
+    visibility: TLevel
+  ): ResourceSchemaBuilder<
+    readonly [...TFields, RelationField<TName, TNestedFields, TLevel, 'many'>]
+  > {
+    return new ResourceSchemaBuilder([
+      ...this._fields,
+      {
+        name,
+        visibility,
+        nestedSchema: nestedSchema as ResourceSchema,
+        cardinality: 'many' as const,
+      },
+    ]) as ResourceSchemaBuilder<
+      readonly [...TFields, RelationField<TName, TNestedFields, TLevel, 'many'>]
+    >;
   }
 
   /**

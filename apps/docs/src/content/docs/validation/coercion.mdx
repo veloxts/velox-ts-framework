@@ -7,7 +7,7 @@ import { Aside } from '@astrojs/starlight/components';
 
 Query parameters and form data arrive as strings. Zod's coercion utilities handle automatic type conversion.
 
-## The Problem
+## Why Coercion?
 
 HTTP query parameters are always strings:
 
@@ -18,9 +18,9 @@ GET /api/products?page=2&active=true&minPrice=100
 Without coercion:
 ```typescript
 input: z.object({
-  page: z.number(),      // Fails! "2" is a string
-  active: z.boolean(),   // Fails! "true" is a string
-  minPrice: z.number(),  // Fails! "100" is a string
+  page: z.number(),      // 💢 Fails! "2" is a string
+  active: z.boolean(),   // 💢 Fails! "true" is a string
+  minPrice: z.number(),  // 💢 Fails! "100" is a string
 })
 ```
 
@@ -30,9 +30,9 @@ Use `z.coerce` for automatic conversion:
 
 ```typescript
 input: z.object({
-  page: z.coerce.number(),      // "2" → 2
-  active: z.coerce.boolean(),   // "true" → true
-  minPrice: z.coerce.number(),  // "100" → 100
+  page: z.coerce.number(),      // ✅ "2" → 2
+  active: z.coerce.boolean(),   // ✅ "true" → true
+  minPrice: z.coerce.number(),  // ✅ "100" → 100
 })
 ```
 

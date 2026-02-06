@@ -45,7 +45,7 @@ listUsers: procedure()
     ]);
 
     return {
-      data: resourceCollection(items, UserSchema).forAnonymous(),
+      data: resourceCollection(items, UserSchema.public),
       meta: {
         page,
         limit,

@@ -1,0 +1,351 @@
+---
+title: Resource API
+description: Context-dependent output projection with field-level visibility.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Why Resource API?
+
+A `User` record typically contains fields like `id`, `name`, `email`, and `internalNotes` — but not every API consumer should see every field. Anonymous visitors need a public profile; authenticated users expect to see their email; admins need access to internal metadata.
+
+Without a structured approach, you end up writing manual field-picking logic for every endpoint:
+
+```typescript
+// Without Resource API — verbose, error-prone, no type safety
+getPublicProfile: procedure()
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    return { id: user.id, name: user.name }; // easy to forget a field or leak one
+  }),
+
+getAuthProfile: procedure()
+  .guard(authenticated)
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    return { id: user.id, name: user.name, email: user.email }; // duplicated logic
+  }),
+```
+
+This pattern doesn't scale. Add a new public field and you have to update every endpoint. Accidentally include `internalNotes` in a public handler and you have a data leak.
+
+The Resource API solves this by letting you **define field visibility once** and **project automatically** based on access level.
+
+## Defining a Resource Schema
+
+A resource schema groups fields into three visibility levels:
+
+- **`public`** — safe for anyone, including unauthenticated users and cached CDN responses
+- **`authenticated`** — contains PII or user-specific data that requires a valid session
+- **`admin`** — internal fields (notes, IP addresses, timestamps) that only operators need
+
+```typescript
+import { resourceSchema } from '@veloxts/router';
+import { z } from '@veloxts/velox';
+
+const UserSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .public('avatarUrl', z.string().url().nullable())
+  .authenticated('email', z.string().email())
+  .authenticated('createdAt', z.date())
+  .admin('internalNotes', z.string().nullable())
+  .admin('lastLoginIp', z.string().nullable())
+  .build();
+```
+
+Calling `.build()` returns a schema object with **tagged view properties**: `UserSchema.public`, `UserSchema.authenticated`, and `UserSchema.admin`. Each view is a pre-configured projection that includes only the fields at that level and below.
+
+For schemas with related data (e.g., Prisma relations), see [Nested Relations](/docs/endpoints/nested-relations/) for `.hasOne()` and `.hasMany()`.
+
+## Projection Methods
+
+VeloxTS provides four ways to project data from a resource schema. Choose the one that fits your use case.
+
+### Tagged Schema Views (Recommended)
+
+Pass a tagged view directly to `resource()` for one-liner projection. This is the recommended approach because it's explicit, type-safe at the call site, and requires no intermediate object.
+
+```typescript
+import { resource, resourceCollection } from '@veloxts/router';
+
+// Single resource
+getPublicProfile: procedure()
+  .input(z.object({ id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    return resource(user, UserSchema.public);
+    // Returns: { id, name, avatarUrl }
+  }),
+
+// Authenticated endpoint
+getProfile: procedure()
+  .input(z.object({ id: z.string() }))
+  .guard(authenticated)
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    return resource(user, UserSchema.authenticated);
+    // Returns: { id, name, avatarUrl, email, createdAt }
+  }),
+
+// Admin endpoint
+getFullProfile: procedure()
+  .input(z.object({ id: z.string() }))
+  .guard(hasRole('admin'))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+    return resource(user, UserSchema.admin);
+    // Returns: all fields including internalNotes, lastLoginIp
+  }),
+```
+
+The return type is automatically narrowed — TypeScript knows exactly which fields are included at each level.
+
+### Automatic Projection with Guards
+
+When a guard already determines the access level, repeating it in `resource()` is redundant. Chain `.guardNarrow()` with `.resource()` on the procedure builder and the executor projects fields automatically:
+
+```typescript
+import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
+
+// Authenticated — auto-projects { id, name, avatarUrl, email, createdAt }
+getProfile: procedure()
+  .input(z.object({ id: z.string().uuid() }))
+  .guardNarrow(authenticatedNarrow)
+  .resource(UserSchema)
+  .query(async ({ input, ctx }) => {
+    // Just return the full data — projection is automatic
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+  }),
+
+// Admin — auto-projects all fields
+getFullProfile: procedure()
+  .input(z.object({ id: z.string().uuid() }))
+  .guardNarrow(adminNarrow)
+  .resource(UserSchema)
+  .query(async ({ input, ctx }) => {
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+  }),
+```
+
+**How it works:** The `guardNarrow()` method accepts guards that carry an `accessLevel` property. After the guard passes, the procedure executor reads the level and projects the handler's return value through the resource schema. No manual `.forX()` calls needed.
+
+<Aside type="tip" title="guardNarrow vs guard">
+Use `.guardNarrow()` instead of `.guard()` to get **TypeScript type narrowing**. After `guardNarrow(authenticatedNarrow)`, TypeScript knows `ctx.user` is non-null — no more `ctx.user?.email` checks.
+
+Both methods work for runtime auto-projection, but only `.guardNarrow()` improves your types.
+</Aside>
+
+### Auto-Detection from Context
+
+When you don't know the access level at coding time (e.g., a shared utility handler), use `.for(ctx)` to read the level from the request context at runtime:
+
+```typescript
+import { resource } from '@veloxts/router';
+
+// Public endpoint — auto-detects anonymous
+getPublicProfile: procedure()
+  .input(z.object({ id: z.string() }))
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    return resource(user, UserSchema).for(ctx);
+    // Returns anonymous view
+  }),
+
+// Authenticated endpoint — auto-detects authenticated
+getProfile: procedure()
+  .input(z.object({ id: z.string() }))
+  .guardNarrow(authenticatedNarrow)
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    return resource(user, UserSchema).for(ctx);
+    // Returns authenticated view
+  }),
+```
+
+### Manual Projection
+
+For runtime branching that guards can't express — like showing more fields when a user views their own profile — use the `.forX()` methods on a Resource instance:
+
+```typescript
+import { resource } from '@veloxts/router';
+
+getOwnProfile: procedure()
+  .input(z.object({ id: z.string() }))
+  .guard(authenticated)
+  .query(async ({ input, ctx }) => {
+    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
+    // Show more fields if viewing own profile
+    if (user.id === ctx.user?.id) {
+      return resource(user, UserSchema).forAuthenticated();
+    }
+    return resource(user, UserSchema).forAnonymous();
+  }),
+```
+
+**When to use manual projection:**
+- Public endpoints with no guard
+- Conditional logic (e.g., ownership checks)
+- Mixed access levels in one handler
+- Non-guard-based access decisions
+
+## Resource Collections
+
+Project arrays of resources using `resourceCollection()`. The same tagged view pattern applies:
+
+```typescript
+import { resourceCollection } from '@veloxts/router';
+
+// Public list — returns Array<{ id, name, avatarUrl }>
+listUsers: procedure()
+  .query(async ({ ctx }) => {
+    const users = await ctx.db.user.findMany({ take: 10 });
+    return resourceCollection(users, UserSchema.public);
+  }),
+
+// Authenticated list — returns Array<{ id, name, avatarUrl, email, createdAt }>
+listFullUsers: procedure()
+  .guard(authenticated)
+  .query(async ({ ctx }) => {
+    const users = await ctx.db.user.findMany({ take: 10 });
+    return resourceCollection(users, UserSchema.authenticated);
+  }),
+```
+
+## Type Inference
+
+The Resource API provides full compile-time type safety. The frontend client receives correctly narrowed types without code generation:
+
+```typescript
+import type { AnonymousOutput, AuthenticatedOutput, AdminOutput } from '@veloxts/router';
+
+// Extract output types for each access level
+type PublicUser = AnonymousOutput<typeof UserSchema>;
+// { id: string; name: string; avatarUrl: string | null }
+
+type AuthUser = AuthenticatedOutput<typeof UserSchema>;
+// { id: string; name: string; avatarUrl: string | null; email: string; createdAt: Date }
+
+type AdminUser = AdminOutput<typeof UserSchema>;
+// All fields including internalNotes, lastLoginIp
+
+// Frontend client gets correct types automatically
+const { data } = api.users.getPublicProfile.useQuery({ id });
+// data is typed as PublicUser
+```
+
+## Complete CRUD Example
+
+A realistic example combining input schemas, resource schemas, and procedures:
+
+```typescript
+import { procedures, procedure, resourceSchema, resource, resourceCollection } from '@veloxts/router';
+import { z } from '@veloxts/velox';
+
+// Input schemas
+const CreateProductInput = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000),
+  price: z.number().positive(),
+  categoryId: z.string().uuid(),
+  tags: z.array(z.string()).max(10).default([]),
+});
+
+const UpdateProductInput = CreateProductInput.partial().extend({
+  id: z.string().uuid(),
+});
+
+// Resource schema — field visibility
+const ProductSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .public('price', z.number())
+  .authenticated('description', z.string())
+  .authenticated('categoryId', z.string().uuid())
+  .authenticated('tags', z.array(z.string()))
+  .admin('createdAt', z.date())
+  .admin('updatedAt', z.date())
+  .build();
+
+export const productProcedures = procedures('products', {
+  getProduct: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const product = await ctx.db.product.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(product, ProductSchema.public);
+    }),
+
+  listProducts: procedure()
+    .input(z.object({
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(20),
+    }))
+    .query(async ({ input, ctx }) => {
+      const [items, total] = await Promise.all([
+        ctx.db.product.findMany({
+          skip: (input.page - 1) * input.limit,
+          take: input.limit,
+        }),
+        ctx.db.product.count(),
+      ]);
+
+      return {
+        data: resourceCollection(items, ProductSchema.public),
+        pagination: {
+          page: input.page,
+          limit: input.limit,
+          total,
+          totalPages: Math.ceil(total / input.limit),
+        },
+      };
+    }),
+
+  createProduct: procedure()
+    .input(CreateProductInput)
+    .mutation(async ({ input, ctx }) => {
+      const product = await ctx.db.product.create({ data: input });
+      return resource(product, ProductSchema.authenticated);
+    }),
+
+  updateProduct: procedure()
+    .input(UpdateProductInput)
+    .mutation(async ({ input, ctx }) => {
+      const { id, ...data } = input;
+      const product = await ctx.db.product.update({ where: { id }, data });
+      return resource(product, ProductSchema.authenticated);
+    }),
+});
+```
+
+## Best Practices
+
+1. **Define once, project everywhere** — Create resource schemas in a shared location and reuse them across endpoints. One source of truth for field visibility.
+
+2. **Fetch all fields from DB, let Resource API filter** — Don't use Prisma's `select` to pre-filter fields. Fetch the full object and let the projection handle visibility. This decouples data access from presentation.
+
+   ```typescript
+   // Good — fetch full object, let Resource API filter
+   const user = await ctx.db.user.findUnique({ where: { id } });
+   return resource(user, UserSchema.public);
+
+   // Bad — manual field selection loses flexibility
+   const user = await ctx.db.user.findUnique({
+     where: { id },
+     select: { id: true, name: true }, // can't easily switch to authenticated view
+   });
+   ```
+
+3. **Use guards for automatic projection** — When access level maps directly to a guard, use `.guardNarrow()` + `.resource()` to eliminate manual projection calls entirely.
+
+4. **Mark sensitive fields as admin only** — Defense in depth. Even if a guard fails, admin-only fields won't appear in lower-level projections.
+
+<Aside type="tip">
+Resource API filters fields at runtime without performance overhead. The projection is done in-memory after database fetch, ensuring clean separation of data access and presentation.
+</Aside>
+
+## Related Content
+
+- [Procedures](/docs/endpoints/procedures/) — builder methods (`.resource()`, `.guardNarrow()`)
+- [Nested Relations](/docs/endpoints/nested-relations/) — `.hasOne()` and `.hasMany()` for related data
+- [Schemas](/docs/validation/schemas/) — Zod validation patterns
+- [Guards](/docs/authentication/guards/) — authorization and access levels

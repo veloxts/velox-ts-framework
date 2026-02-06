@@ -318,7 +318,7 @@ export const postProcedures = procedures('posts', {
   listPosts: procedure()
     .query(async ({ ctx }) => {
       const posts = await ctx.db.post.findMany();
-      return resourceCollection(posts, PostSchema).forAnonymous();
+      return resourceCollection(posts, PostSchema.public);
     }),
 
   getPost: procedure()
@@ -327,7 +327,7 @@ export const postProcedures = procedures('posts', {
       const post = await ctx.db.post.findUniqueOrThrow({
         where: { id: input.id },
       });
-      return resource(post, PostSchema).forAnonymous();
+      return resource(post, PostSchema.public);
     }),
 });
 
@@ -342,7 +342,7 @@ export const commentProcedures = procedures('comments', {
         where: { postId: input.postId },
         orderBy: { createdAt: 'desc' },
       });
-      return resourceCollection(comments, CommentSchema).forAnonymous();
+      return resourceCollection(comments, CommentSchema.public);
     }),
 
   // GET /posts/:postId/comments/:id
@@ -353,7 +353,7 @@ export const commentProcedures = procedures('comments', {
       const comment = await ctx.db.comment.findUniqueOrThrow({
         where: { id: input.id, postId: input.postId },
       });
-      return resource(comment, CommentSchema).forAnonymous();
+      return resource(comment, CommentSchema.public);
     }),
 
   // POST /posts/:postId/comments
@@ -372,7 +372,7 @@ export const commentProcedures = procedures('comments', {
           postId: input.postId,
         },
       });
-      return resource(comment, CommentSchema).forAuthenticated();
+      return resource(comment, CommentSchema.authenticated);
     }),
 
   // DELETE /posts/:postId/comments/:id

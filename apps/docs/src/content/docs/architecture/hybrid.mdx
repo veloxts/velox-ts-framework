@@ -33,7 +33,7 @@ export const orderProcedures = procedures('orders', {
   listOrders: procedure()
     .query(async ({ ctx }) => {
       const orders = await ctx.db.order.findMany();
-      return resourceCollection(orders, OrderSchema).forAuthenticated();
+      return resourceCollection(orders, OrderSchema.authenticated);
     }),
 });
 ```
@@ -65,21 +65,23 @@ curl https://api.example.com/api/orders \
 
 ## Selective Exposure
 
-You can expose different procedures to different transports:
+Procedures with recognized naming convention prefixes (e.g., `get*`, `list*`, `create*`) generate both tRPC and REST endpoints. Procedures without a recognized prefix are tRPC-only:
 
 ```typescript
-// Internal only - tRPC
-export const internalProcedures = procedures('internal', {
-  getMetrics: procedure()
-    .query(...)
-    .rest(false), // Disable REST
+// tRPC + REST (naming convention matches)
+export const publicProcedures = procedures('status', {
+  getStatus: procedure()
+    .query(...),
+  // → tRPC: trpc.status.getStatus
+  // → REST:  GET /api/status/:id
 });
 
-// Public only - REST
-export const publicProcedures = procedures('public', {
-  getStatus: procedure()
-    .query(...)
-    // REST enabled by default
+// tRPC-only (no naming convention match)
+export const internalProcedures = procedures('internal', {
+  syncMetrics: procedure()
+    .query(...),
+  // → tRPC: trpc.internal.syncMetrics
+  // → No REST endpoint generated
 });
 ```
 
