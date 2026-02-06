@@ -7,7 +7,14 @@
  * @module resource/instance
  */
 
-import type { OutputForTag, ResourceSchema, RuntimeField } from './schema.js';
+import type {
+  OutputForLevel,
+  OutputForTag,
+  ResourceSchema,
+  RuntimeField,
+  TaggedResourceSchema,
+} from './schema.js';
+import { isTaggedResourceSchema } from './schema.js';
 import type {
   ADMIN,
   ANONYMOUS,
@@ -279,55 +286,102 @@ export class ResourceCollection<TSchema extends ResourceSchema> {
 // ============================================================================
 
 /**
- * Creates a Resource instance for a single data object
+ * Creates a projected view or Resource instance for a single data object
+ *
+ * When called with a tagged schema (e.g., `UserSchema.authenticated`),
+ * returns the projected data directly. When called with an untagged schema,
+ * returns a Resource instance with `.forAnonymous()`, `.forAuthenticated()`,
+ * `.forAdmin()` methods.
  *
  * @param data - The raw data object
- * @param schema - The resource schema defining field visibility
- * @returns Resource instance with projection methods
+ * @param schema - Resource schema (tagged for direct projection, untagged for Resource instance)
+ * @returns Projected data or Resource instance
  *
  * @example
  * ```typescript
  * const user = await db.user.findUnique({ where: { id } });
- * if (!user) throw new NotFoundError();
  *
- * // In a public endpoint
- * return resource(user, UserSchema).forAnonymous();
+ * // Tagged schema → returns projected data directly
+ * return resource(user, UserSchema.authenticated);
+ * // → { id, name, email }
  *
- * // In an authenticated endpoint
+ * // Untagged schema → returns Resource with projection methods
  * return resource(user, UserSchema).forAuthenticated();
- *
- * // In an admin endpoint
- * return resource(user, UserSchema).forAdmin();
+ * // → { id, name, email }
  * ```
  */
+export function resource<TSchema extends TaggedResourceSchema>(
+  data: Record<string, unknown>,
+  schema: TSchema
+): OutputForLevel<TSchema>;
 export function resource<TSchema extends ResourceSchema>(
   data: Record<string, unknown>,
   schema: TSchema
-): Resource<TSchema> {
+): Resource<TSchema>;
+export function resource(
+  data: Record<string, unknown>,
+  schema: ResourceSchema | TaggedResourceSchema
+): unknown {
+  if (isTaggedResourceSchema(schema)) {
+    const r = new Resource(data, schema);
+    switch (schema._level) {
+      case 'admin':
+        return r.forAdmin();
+      case 'authenticated':
+        return r.forAuthenticated();
+      default:
+        return r.forAnonymous();
+    }
+  }
   return new Resource(data, schema);
 }
 
 /**
- * Creates a ResourceCollection for an array of data objects
+ * Creates a projected array or ResourceCollection for an array of data objects
+ *
+ * When called with a tagged schema (e.g., `UserSchema.authenticated`),
+ * returns the projected array directly. When called with an untagged schema,
+ * returns a ResourceCollection with projection methods.
  *
  * @param items - Array of raw data objects
- * @param schema - The resource schema defining field visibility
- * @returns ResourceCollection instance with batch projection methods
+ * @param schema - Resource schema (tagged for direct projection, untagged for collection)
+ * @returns Projected array or ResourceCollection instance
  *
  * @example
  * ```typescript
  * const users = await db.user.findMany({ take: 10 });
  *
- * // In a public endpoint
- * return resourceCollection(users, UserSchema).forAnonymous();
+ * // Tagged schema → returns projected array directly
+ * return resourceCollection(users, UserSchema.authenticated);
  *
- * // In an authenticated endpoint
+ * // Untagged schema → returns ResourceCollection with methods
  * return resourceCollection(users, UserSchema).forAuthenticated();
  * ```
  */
+export function resourceCollection<TSchema extends TaggedResourceSchema>(
+  items: Array<Record<string, unknown>>,
+  schema: TSchema
+): Array<OutputForLevel<TSchema>>;
 export function resourceCollection<TSchema extends ResourceSchema>(
   items: Array<Record<string, unknown>>,
   schema: TSchema
-): ResourceCollection<TSchema> {
+): ResourceCollection<TSchema>;
+export function resourceCollection(
+  items: Array<Record<string, unknown>>,
+  schema: ResourceSchema | TaggedResourceSchema
+): unknown {
+  if (isTaggedResourceSchema(schema)) {
+    return items.map((item) => {
+      const r = new Resource(item, schema);
+      switch (schema._level) {
+        case 'admin':
+          return r.forAdmin();
+        case 'authenticated':
+          return r.forAuthenticated();
+        default:
+          return r.forAnonymous();
+      }
+    });
+  }
   return new ResourceCollection(items, schema);
 }

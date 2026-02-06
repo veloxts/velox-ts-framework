@@ -10,7 +10,14 @@
 
 import type { ZodType, ZodTypeDef } from 'zod';
 
-import type { ADMIN, ANONYMOUS, AUTHENTICATED, ContextTag } from './tags.js';
+import type {
+  AccessLevel,
+  ADMIN,
+  ANONYMOUS,
+  AUTHENTICATED,
+  ContextTag,
+  LevelToTag,
+} from './tags.js';
 import type { IsVisibleToTag, VisibilityLevel } from './visibility.js';
 
 // ============================================================================
@@ -65,6 +72,85 @@ export interface ResourceSchema<
   readonly fields: readonly RuntimeField[];
   /** Phantom type for field type information */
   readonly __fields?: TFields;
+}
+
+// ============================================================================
+// Tagged Resource Schema
+// ============================================================================
+
+/**
+ * A resource schema tagged with an explicit access level
+ *
+ * Created by accessing `.public`, `.authenticated`, or `.admin` on a built schema.
+ * Used in both procedure definitions (auto-projection) and handler-level
+ * projection via `resource(data, Schema.authenticated)`.
+ *
+ * @template TFields - The field definitions from the base schema
+ * @template TLevel - The access level for projection
+ *
+ * @example
+ * ```typescript
+ * const UserSchema = resourceSchema()
+ *   .public('id', z.string())
+ *   .authenticated('email', z.string())
+ *   .build();
+ *
+ * // Tagged views
+ * UserSchema.public        // TaggedResourceSchema<..., 'public'>
+ * UserSchema.authenticated  // TaggedResourceSchema<..., 'authenticated'>
+ * UserSchema.admin          // TaggedResourceSchema<..., 'admin'>
+ * ```
+ */
+export interface TaggedResourceSchema<
+  TFields extends readonly ResourceField[] = readonly ResourceField[],
+  TLevel extends AccessLevel = AccessLevel,
+> extends ResourceSchema<TFields> {
+  readonly _level: TLevel;
+}
+
+/**
+ * A completed resource schema with pre-built tagged views
+ *
+ * Returned by `resourceSchema().build()`. Extends `ResourceSchema` (backward
+ * compatible) and adds `.public`, `.authenticated`, `.admin` properties
+ * for declarative projection.
+ *
+ * @template TFields - The field definitions
+ */
+export interface ResourceSchemaWithViews<
+  TFields extends readonly ResourceField[] = readonly ResourceField[],
+> extends ResourceSchema<TFields> {
+  readonly public: TaggedResourceSchema<TFields, 'public'>;
+  readonly authenticated: TaggedResourceSchema<TFields, 'authenticated'>;
+  readonly admin: TaggedResourceSchema<TFields, 'admin'>;
+}
+
+/**
+ * Computes the output type for a tagged resource schema
+ *
+ * Maps the access level to the corresponding phantom tag and
+ * computes the projected output type.
+ *
+ * @template TSchema - A tagged resource schema
+ */
+export type OutputForLevel<TSchema extends TaggedResourceSchema> =
+  TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
+    ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
+    : never;
+
+/**
+ * Type guard to check if a schema is a TaggedResourceSchema (has _level)
+ */
+export function isTaggedResourceSchema(value: unknown): value is TaggedResourceSchema {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    Array.isArray(obj.fields) &&
+    typeof obj._level === 'string' &&
+    (obj._level === 'public' || obj._level === 'authenticated' || obj._level === 'admin')
+  );
 }
 
 // ============================================================================
@@ -246,14 +332,44 @@ export class ResourceSchemaBuilder<TFields extends readonly ResourceField[] = re
   }
 
   /**
-   * Builds the final resource schema
+   * Builds the final resource schema with tagged views
    *
-   * @returns Completed resource schema with full type information
+   * Returns a schema with `.public`, `.authenticated`, and `.admin`
+   * properties for declarative projection in procedures.
+   *
+   * @returns Completed resource schema with tagged views
+   *
+   * @example
+   * ```typescript
+   * const UserSchema = resourceSchema()
+   *   .public('id', z.string())
+   *   .authenticated('email', z.string())
+   *   .build();
+   *
+   * // Use tagged views in procedures
+   * procedure().resource(UserSchema.authenticated).query(handler);
+   *
+   * // Or in handlers
+   * resource(data, UserSchema.authenticated);
+   * ```
    */
-  build(): ResourceSchema<TFields> {
-    return {
-      fields: [...this._fields],
-    } as ResourceSchema<TFields>;
+  build(): ResourceSchemaWithViews<TFields> {
+    const fields = [...this._fields];
+    const base = { fields } as ResourceSchema<TFields>;
+    return Object.assign(base, {
+      public: Object.assign({ fields }, { _level: 'public' as const }) as TaggedResourceSchema<
+        TFields,
+        'public'
+      >,
+      authenticated: Object.assign(
+        { fields },
+        { _level: 'authenticated' as const }
+      ) as TaggedResourceSchema<TFields, 'authenticated'>,
+      admin: Object.assign({ fields }, { _level: 'admin' as const }) as TaggedResourceSchema<
+        TFields,
+        'admin'
+      >,
+    }) as ResourceSchemaWithViews<TFields>;
   }
 }
 
