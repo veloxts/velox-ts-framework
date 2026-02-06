@@ -1,5 +1,11 @@
 # @veloxts/core
 
+## 0.6.98
+
+### Patch Changes
+
+- feat(router): nested resource schema relations with .hasOne() / .hasMany()
+
 ## 0.6.97
 
 ### Patch Changes

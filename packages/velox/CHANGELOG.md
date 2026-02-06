@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.6.98
+
+### Patch Changes
+
+- feat(router): nested resource schema relations with .hasOne() / .hasMany()
+- Updated dependencies
+  - @veloxts/auth@0.6.98
+  - @veloxts/cache@0.6.98
+  - @veloxts/core@0.6.98
+  - @veloxts/events@0.6.98
+  - @veloxts/mail@0.6.98
+  - @veloxts/orm@0.6.98
+  - @veloxts/queue@0.6.98
+  - @veloxts/router@0.6.98
+  - @veloxts/scheduler@0.6.98
+  - @veloxts/storage@0.6.98
+  - @veloxts/validation@0.6.98
+
 ## 0.6.97
 
 ### Patch Changes
