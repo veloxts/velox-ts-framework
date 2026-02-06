@@ -33,7 +33,7 @@ import { isVisibleAtLevel, type VisibilityLevel } from './visibility.js';
  * Property names that could be exploited for prototype pollution attacks.
  * These are skipped during field projection to prevent security vulnerabilities.
  */
-const DANGEROUS_PROPERTIES = new Set([
+const DANGEROUS_PROPERTIES: ReadonlySet<string> = new Set([
   '__proto__',
   'constructor',
   'prototype',
@@ -42,6 +42,66 @@ const DANGEROUS_PROPERTIES = new Set([
   '__lookupGetter__',
   '__lookupSetter__',
 ]);
+
+// ============================================================================
+// Recursive Projection
+// ============================================================================
+
+/**
+ * Recursively projects data through a resource schema, including nested relations
+ *
+ * @internal
+ * @param data - The raw data object
+ * @param schema - The resource schema to project against
+ * @param level - The visibility level to project for
+ * @returns Projected object with null prototype
+ */
+function projectData(
+  data: Record<string, unknown>,
+  schema: ResourceSchema,
+  level: VisibilityLevel
+): Record<string, unknown> {
+  const result: Record<string, unknown> = Object.create(null);
+
+  for (const field of schema.fields as readonly RuntimeField[]) {
+    if (!isVisibleAtLevel(field.visibility, level)) continue;
+    if (DANGEROUS_PROPERTIES.has(field.name)) continue;
+
+    const value = data[field.name];
+
+    if (field.nestedSchema && field.cardinality) {
+      // Relation field — recursive projection
+      if (field.cardinality === 'one') {
+        if (value != null && typeof value === 'object' && !Array.isArray(value)) {
+          result[field.name] = projectData(
+            value as Record<string, unknown>,
+            field.nestedSchema,
+            level
+          );
+        } else {
+          result[field.name] = null;
+        }
+      } else {
+        // 'many'
+        if (Array.isArray(value)) {
+          const nested = field.nestedSchema;
+          result[field.name] = value.map((item) =>
+            item != null && typeof item === 'object'
+              ? projectData(item as Record<string, unknown>, nested, level)
+              : item
+          );
+        } else {
+          result[field.name] = [];
+        }
+      }
+    } else if (value !== undefined) {
+      // Scalar field — existing behavior
+      result[field.name] = value;
+    }
+  }
+
+  return result;
+}
 
 // ============================================================================
 // Resource Instance
@@ -134,32 +194,14 @@ export class Resource<TSchema extends ResourceSchema> {
   /**
    * Projects data for an explicit visibility level
    *
-   * This is a runtime method that filters fields based on the given level.
-   * Uses Object.create(null) and filters dangerous property names to prevent
-   * prototype pollution attacks.
+   * Delegates to the standalone `projectData()` function which supports
+   * recursive projection of nested relations.
    *
    * @param level - The visibility level to project for
-   * @returns Object with only the visible fields
+   * @returns Object with only the visible fields (null prototype)
    */
   private _project(level: VisibilityLevel): Record<string, unknown> {
-    // Use null prototype to prevent prototype pollution
-    const result: Record<string, unknown> = Object.create(null);
-
-    for (const field of this._schema.fields as readonly RuntimeField[]) {
-      if (isVisibleAtLevel(field.visibility, level)) {
-        // Skip dangerous prototype properties to prevent pollution attacks
-        if (DANGEROUS_PROPERTIES.has(field.name)) {
-          continue;
-        }
-
-        const value = this._data[field.name];
-        if (value !== undefined) {
-          result[field.name] = value;
-        }
-      }
-    }
-
-    return result;
+    return projectData(this._data, this._schema, level);
   }
 
   /**

@@ -358,6 +358,8 @@ export type {
   AUTHENTICATED,
   AuthenticatedOutput,
   AuthenticatedTaggedContext,
+  // Relation field types
+  BuilderField,
   // Tag types
   ContextTag,
   ExtractTag,
@@ -369,6 +371,7 @@ export type {
   InferResourceOutput,
   IsVisibleToTag,
   OutputForTag,
+  RelationField,
   ResourceField,
   // Schema types
   ResourceSchema,
