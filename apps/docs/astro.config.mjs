@@ -53,9 +53,16 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Router & Procedures',
+          label: 'Type-safe Endpoints',
           items: [
-            { slug: 'router/procedures' },
+            { slug: 'endpoints/procedures' },
+            { slug: 'endpoints/resource-api' },
+            { slug: 'endpoints/nested-relations' },
+          ],
+        },
+        {
+          label: 'Router',
+          items: [
             { slug: 'router/rest-conventions' },
             { slug: 'router/rest-overrides' },
             { slug: 'router/nested-routes' },

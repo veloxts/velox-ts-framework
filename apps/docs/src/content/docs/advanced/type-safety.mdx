@@ -68,9 +68,9 @@ const UserSchema = resourceSchema()
 export const userProcedures = procedures('users', {
   // Automatic projection (simple cases) - guard determines output type
   getUser: procedure()
+    .input(z.object({ id: z.string().uuid() }))
     .guardNarrow(authenticatedNarrow)
     .resource(UserSchema)
-    .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       // input is typed: { id: string }
       // Just return data - projection is automatic based on guard
@@ -79,9 +79,9 @@ export const userProcedures = procedures('users', {
     }),
 
   createUser: procedure()
+    .input(CreateUserSchema)
     .guardNarrow(authenticatedNarrow)
     .resource(UserSchema)
-    .input(CreateUserSchema)
     .mutation(async ({ input, ctx }) => {
       // input is typed: { name: string; email: string; role: 'user' | 'admin' }
       return ctx.db.user.create({ data: input });
@@ -308,7 +308,7 @@ getUser: procedure()
     }
 
     // Resource API provides type-safe projection
-    return resource(user, UserSchema).forAuthenticated();
+    return resource(user, UserSchema.authenticated);
   }),
 ```
 
@@ -483,19 +483,19 @@ const UserSchema = resourceSchema()
 // Wrong - data missing required field 'name'
 .query(async ({ ctx }) => {
   const user = await ctx.db.user.findUnique({ select: { id: true } });
-  return resource(user, UserSchema).forAnonymous(); // Runtime error - name is undefined
+  return resource(user, UserSchema.public); // Runtime error - name is undefined
 })
 
 // Correct - fetch all required fields
 .query(async ({ ctx }) => {
   const user = await ctx.db.user.findUnique({ where: { id } });
-  return resource(user, UserSchema).forAnonymous(); // Works - all fields present
+  return resource(user, UserSchema.public); // Works - all fields present
 })
 ```
 
 ## Related Content
 
-- [Procedures](/docs/router/procedures/) - Define type-safe endpoints
+- [Procedures](/docs/endpoints/procedures/) - Define type-safe endpoints
 - [Validation](/docs/validation/schemas/) - Schema patterns
 - [Guards](/docs/authentication/guards/) - Type-narrowing guards
 - [tRPC Adapter](/docs/router/trpc-adapter/) - Router configuration

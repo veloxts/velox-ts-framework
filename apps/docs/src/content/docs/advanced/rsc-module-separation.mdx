@@ -7,10 +7,10 @@ import { Aside } from '@astrojs/starlight/components';
 
 When using RSC, maintain strict module boundaries to prevent Node.js code from leaking into client bundles.
 
-## The Problem
+## Why Module Boundaries Matter
 
 ```typescript
-// BAD: Static import pulls database into client bundle
+// 💢 BAD: Static import pulls database into client bundle
 import { db } from '@/api/database';
 
 export async function createUser(input) {
