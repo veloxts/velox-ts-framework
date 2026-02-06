@@ -21,6 +21,7 @@ import { collectFields, type FieldDefinition } from '../fields/index.js';
 import {
   generateInjectablePrismaContent,
   generateResourceFiles,
+  type RelationInfo,
   type ResourceOptions,
 } from '../templates/resource.js';
 import type {
@@ -36,6 +37,7 @@ import { promptAndRunMigration } from '../utils/prisma-migration.js';
 import {
   analyzePrismaSchema,
   findPrismaSchema,
+  getModelRelations,
   hasModel,
   injectIntoSchema,
   type PrismaEnumDefinition,
@@ -340,6 +342,26 @@ export class ResourceGenerator extends BaseGenerator<ResourceCliOptions> {
       }
     }
 
+    // Detect relations from existing Prisma schema (if model exists)
+    let relations: RelationInfo | undefined;
+    const schemaPath = findPrismaSchema(config.cwd);
+    if (schemaPath) {
+      try {
+        const schemaAnalysis = analyzePrismaSchema(schemaPath);
+        if (hasModel(schemaAnalysis, ctx.entity.pascal)) {
+          const modelRelations = getModelRelations(schemaAnalysis, ctx.entity.pascal);
+          if (modelRelations.hasOne.length > 0 || modelRelations.hasMany.length > 0) {
+            relations = {
+              hasOne: [...modelRelations.hasOne],
+              hasMany: [...modelRelations.hasMany],
+            };
+          }
+        }
+      } catch {
+        // Schema parsing failed — proceed without relations
+      }
+    }
+
     // Show spinner during actual file generation
     // Only show if we're in interactive mode (we collected fields or user opted to skip)
     const showSpinner = interactive && !skipFields && !config.dryRun;
@@ -350,14 +372,14 @@ export class ResourceGenerator extends BaseGenerator<ResourceCliOptions> {
       s.start('Scaffolding resource...');
 
       try {
-        generatedFiles = generateResourceFiles(ctx);
+        generatedFiles = generateResourceFiles(ctx, relations);
         s.stop(`Scaffolded ${generatedFiles.length} file(s)`);
       } catch (err) {
         s.stop('Scaffolding failed');
         throw err;
       }
     } else {
-      generatedFiles = generateResourceFiles(ctx);
+      generatedFiles = generateResourceFiles(ctx, relations);
     }
 
     // Auto-registration (skip in dry-run mode)

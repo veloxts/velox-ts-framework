@@ -30,6 +30,13 @@ import type {
   GeneratorOption,
   GeneratorOutput,
 } from '../types.js';
+import { deriveEntityNames } from '../utils/naming.js';
+import {
+  analyzePrismaSchema,
+  findPrismaSchema,
+  getModelRelations,
+  hasModel,
+} from '../utils/prisma-schema.js';
 import {
   detectRouterPattern,
   isProcedureRegistered,
@@ -122,9 +129,31 @@ Examples:
    * Generate namespace files
    */
   async generate(config: GeneratorConfig<NamespaceOptions>): Promise<GeneratorOutput> {
-    const context = this.createContext(config);
+    // Detect relations from existing Prisma model before creating context
+    const enrichedOptions = { ...config.options };
+    const schemaPath = findPrismaSchema(config.cwd);
+    if (schemaPath) {
+      try {
+        const entity = deriveEntityNames(config.entityName);
+        const schemaAnalysis = analyzePrismaSchema(schemaPath);
+        if (hasModel(schemaAnalysis, entity.pascal)) {
+          const modelRelations = getModelRelations(schemaAnalysis, entity.pascal);
+          if (modelRelations.hasOne.length > 0 || modelRelations.hasMany.length > 0) {
+            enrichedOptions.relations = {
+              hasOne: [...modelRelations.hasOne],
+              hasMany: [...modelRelations.hasMany],
+            };
+          }
+        }
+      } catch {
+        // Schema parsing failed — proceed without relations
+      }
+    }
+
+    const enrichedConfig = { ...config, options: enrichedOptions };
+    const context = this.createContext(enrichedConfig);
     const { entity } = context;
-    const { options } = config;
+    const { options } = enrichedConfig;
 
     // Collect files to generate
     const files: GeneratedFile[] = [];

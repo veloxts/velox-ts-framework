@@ -14,6 +14,44 @@ import { GeneratorError, GeneratorErrorCode } from '../types.js';
 // ============================================================================
 
 /**
+ * Parsed information about a single field in a Prisma model
+ */
+export interface PrismaFieldInfo {
+  /** Field name (e.g., 'author', 'posts') */
+  readonly name: string;
+  /** Base type without modifiers (e.g., 'User', 'Post') */
+  readonly type: string;
+  /** Whether this field is a relation to another model */
+  readonly isRelation: boolean;
+  /** Whether this is an array relation (e.g., Post[]) */
+  readonly isArray: boolean;
+  /** The related model name, if this is a relation field */
+  readonly relatedModel: string | undefined;
+}
+
+/**
+ * Detailed information about a Prisma model including its fields
+ */
+export interface PrismaModelInfo {
+  /** Model name (PascalCase) */
+  readonly name: string;
+  /** All parsed fields */
+  readonly fields: readonly PrismaFieldInfo[];
+  /** Only the relation fields (convenience accessor) */
+  readonly relationFields: readonly PrismaFieldInfo[];
+}
+
+/**
+ * Relation info categorized for code generation
+ */
+export interface ModelRelations {
+  /** Single-object relations (e.g., author User) */
+  readonly hasOne: readonly string[];
+  /** Array relations (e.g., posts Post[]) */
+  readonly hasMany: readonly string[];
+}
+
+/**
  * Represents a parsed Prisma schema
  */
 export interface PrismaSchemaAnalysis {
@@ -31,6 +69,8 @@ export interface PrismaSchemaAnalysis {
   readonly lastEnumEnd: number;
   /** Position where models start (after datasource/generator blocks) */
   readonly modelSectionStart: number;
+  /** Detailed model info with field-level data */
+  readonly modelDetails: Map<string, PrismaModelInfo>;
 }
 
 /**
@@ -147,6 +187,9 @@ export function analyzePrismaSchema(filePath: string): PrismaSchemaAnalysis {
     modelSectionStart = findEndOfConfigBlocks(content);
   }
 
+  // Parse field-level details for each model
+  const modelDetails = parseModelDetails(content, models);
+
   return {
     content,
     filePath,
@@ -155,6 +198,7 @@ export function analyzePrismaSchema(filePath: string): PrismaSchemaAnalysis {
     lastModelEnd,
     lastEnumEnd,
     modelSectionStart,
+    modelDetails,
   };
 }
 
@@ -203,6 +247,123 @@ function findEndOfConfigBlocks(content: string): number {
   }
 
   return lastEnd;
+}
+
+// ============================================================================
+// Field-Level Parsing
+// ============================================================================
+
+/**
+ * Parse detailed field information for all models in the schema
+ */
+function parseModelDetails(content: string, modelNames: Set<string>): Map<string, PrismaModelInfo> {
+  const details = new Map<string, PrismaModelInfo>();
+  const modelRegex = /^model\s+(\w+)\s*\{/gm;
+
+  for (const match of content.matchAll(modelRegex)) {
+    const modelName = match[1];
+    const blockStart = content.indexOf('{', match.index ?? 0);
+    const blockEnd = findBlockEnd(content, match.index ?? 0);
+    const body = content.slice(blockStart + 1, blockEnd - 1);
+
+    const fields = parseModelFields(body, modelNames);
+    details.set(modelName, {
+      name: modelName,
+      fields,
+      relationFields: fields.filter((f) => f.isRelation),
+    });
+  }
+
+  return details;
+}
+
+/**
+ * Parse individual fields from a model body string
+ *
+ * Detects relation fields by checking if the field type matches a known model name.
+ * Skips back-reference fields (those with @relation(...) that are the inverse side).
+ */
+function parseModelFields(body: string, modelNames: Set<string>): PrismaFieldInfo[] {
+  const fields: PrismaFieldInfo[] = [];
+  const lines = body.split('\n');
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Skip empty lines, comments, and directives (@@map, @@unique, etc.)
+    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('@@')) {
+      continue;
+    }
+
+    // Parse field: name Type[?][] [@annotations...]
+    // Match: fieldName  TypeName  optional modifiers
+    const fieldMatch = trimmed.match(/^(\w+)\s+(\w+)(\[\])?\??/);
+    if (!fieldMatch) continue;
+
+    const name = fieldMatch[1];
+    const baseType = fieldMatch[2];
+    const isArray = fieldMatch[3] === '[]';
+
+    // Check if this is a relation field (type matches a known model)
+    const isRelation = modelNames.has(baseType);
+
+    if (!isRelation) {
+      fields.push({
+        name,
+        type: baseType,
+        isRelation: false,
+        isArray: false,
+        relatedModel: undefined,
+      });
+      continue;
+    }
+
+    // For relation fields, skip back-references (inverse side with @relation)
+    // Back-references typically have @relation and reference back to the parent
+    // We detect them by the presence of `fields:` and `references:` in @relation
+    const hasRelationWithForeignKey = /@relation\([^)]*fields:\s*\[/.test(trimmed);
+    if (hasRelationWithForeignKey) {
+      continue;
+    }
+
+    fields.push({
+      name,
+      type: baseType,
+      isRelation: true,
+      isArray,
+      relatedModel: baseType,
+    });
+  }
+
+  return fields;
+}
+
+/**
+ * Get categorized relations for a model
+ *
+ * Returns hasOne (single-object) and hasMany (array) relation field names
+ */
+export function getModelRelations(
+  analysis: PrismaSchemaAnalysis,
+  modelName: string
+): ModelRelations {
+  const modelInfo = analysis.modelDetails.get(modelName);
+  if (!modelInfo) {
+    return { hasOne: [], hasMany: [] };
+  }
+
+  const hasOne: string[] = [];
+  const hasMany: string[] = [];
+
+  for (const field of modelInfo.relationFields) {
+    if (field.isArray) {
+      hasMany.push(field.name);
+    } else {
+      hasOne.push(field.name);
+    }
+  }
+
+  return { hasOne, hasMany };
 }
 
 // ============================================================================
