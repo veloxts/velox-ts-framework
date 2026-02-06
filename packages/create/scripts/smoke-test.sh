@@ -584,6 +584,53 @@ fs.writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2));
     fi
 
     echo ""
+    echo "--- Testing Resource API (field visibility) ---"
+
+    # Create a user to test profiles against (using existing ACCESS_TOKEN)
+    http_request POST "http://localhost:$test_port/api/users" \
+      '{"name": "Profile Test", "email": "profile@smoke.com"}' \
+      "$ACCESS_TOKEN"
+    PROFILE_USER_ID=$(json_field "$HTTP_BODY" "id")
+    if [ -z "$PROFILE_USER_ID" ]; then
+      fail_test "Failed to create user for profile tests"
+    fi
+
+    # Test 1: Public profile (no auth) -> id + name, NO email
+    http_request GET "http://localhost:$test_port/api/profiles/$PROFILE_USER_ID"
+    if [ "$HTTP_CODE" = "200" ]; then
+      PROF_NAME=$(json_field "$HTTP_BODY" "name")
+      PROF_EMAIL=$(json_field "$HTTP_BODY" "email")
+      if [ -n "$PROF_NAME" ] && [ -z "$PROF_EMAIL" ]; then
+        log_success "GET /api/profiles/:id returns public fields only (no email)"
+      else
+        fail_test "Public profile should have name but NOT email" "$HTTP_BODY"
+      fi
+    else
+      fail_test "GET /api/profiles/:id failed" "status=$HTTP_CODE"
+    fi
+
+    # Test 2: Authenticated profile -> id + name + email
+    http_request GET "http://localhost:$test_port/api/profiles/$PROFILE_USER_ID/full" "" "$ACCESS_TOKEN"
+    if [ "$HTTP_CODE" = "200" ]; then
+      FULL_EMAIL=$(json_field "$HTTP_BODY" "email")
+      if [ -n "$FULL_EMAIL" ]; then
+        log_success "GET /api/profiles/:id/full returns email with auth"
+      else
+        fail_test "Authenticated profile should include email" "$HTTP_BODY"
+      fi
+    else
+      fail_test "GET /api/profiles/:id/full failed" "status=$HTTP_CODE"
+    fi
+
+    # Test 3: Authenticated profile without token -> 401
+    http_request GET "http://localhost:$test_port/api/profiles/$PROFILE_USER_ID/full"
+    if [ "$HTTP_CODE" = "401" ]; then
+      log_success "GET /api/profiles/:id/full requires auth (401)"
+    else
+      fail_test "Should require auth" "got $HTTP_CODE"
+    fi
+
+    echo ""
     echo "--- Testing @veloxts/client integration ---"
     # This test validates that the client can resolve routes correctly
     # It would catch issues like the path.matchAll error
