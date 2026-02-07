@@ -175,26 +175,24 @@ test.describe('Auth Template', () => {
       ).toBeVisible({ timeout: 5000 });
     });
 
-    test('full auth flow: register, see welcome, logout', async ({ page, scaffold }) => {
+    test('full auth flow: login, see welcome, logout', async ({ page, scaffold }) => {
+      // Uses 'e2eauth@test.com' registered by the API test above.
+      // We log in instead of registering to avoid the registration rate limit
+      // (maxAttempts: 3/hour, already consumed by API tests).
       await page.goto(scaffold.webURL);
       await page.waitForLoadState('networkidle');
 
-      // Switch to register
-      await page.getByRole('button', { name: /register/i }).click();
-
-      // Fill registration form
-      await page.locator('input[placeholder="Name"], input[name="name"]').first().fill('E2E User');
-      await page
-        .locator('input[type="email"], input[name="email"]')
-        .first()
-        .fill(`e2e-frontend-${Date.now()}@test.com`);
+      // Login tab is shown by default — fill credentials
+      await page.locator('input[type="email"], input[name="email"]').first().fill('e2eauth@test.com');
       await page.locator('input[type="password"]').first().fill('SecurePass123!');
 
-      // Submit
-      await page.getByRole('button', { name: /create account/i }).click();
+      // Submit login
+      await page.getByRole('button', { name: /sign in/i }).click();
 
       // Should see welcome message with user name
-      await expect(page.getByText(/welcome.*e2e user/i).first()).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/welcome.*e2e auth user/i).first()).toBeVisible({
+        timeout: 15000,
+      });
 
       // Logout
       await page.getByRole('button', { name: /logout/i }).click();
