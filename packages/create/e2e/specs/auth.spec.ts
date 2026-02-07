@@ -115,6 +115,7 @@ test.describe('Auth Template', () => {
 
     const userData = (await meRes.json()) as User;
     expect(userData.email).toBe('protected@test.com');
+    expect(userData.name).toBe('Protected Test');
   });
 
   test('protected endpoint rejects invalid token', async ({ scaffold }) => {
