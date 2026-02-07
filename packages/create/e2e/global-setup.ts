@@ -13,8 +13,16 @@ const TEST_BASE_DIR = '/tmp/velox-e2e-tests';
  */
 function killLingeringProcesses(): void {
   try {
-    // Kill any node processes running on test ports (3031-3040)
+    // Kill any node processes running on test ports
+    // API ports: 3031-3040, Web (Vite) dev server ports: 3531-3540
     for (let port = 3031; port <= 3040; port++) {
+      try {
+        execSync(`lsof -ti:${port} | xargs kill -9 2>/dev/null || true`, { stdio: 'ignore' });
+      } catch {
+        // Ignore errors - process may not exist
+      }
+    }
+    for (let port = 3531; port <= 3540; port++) {
       try {
         execSync(`lsof -ti:${port} | xargs kill -9 2>/dev/null || true`, { stdio: 'ignore' });
       } catch {

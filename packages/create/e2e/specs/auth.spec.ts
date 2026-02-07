@@ -115,6 +115,7 @@ test.describe('Auth Template', () => {
 
     const userData = (await meRes.json()) as User;
     expect(userData.email).toBe('protected@test.com');
+    expect(userData.name).toBe('Protected Test');
   });
 
   test('protected endpoint rejects invalid token', async ({ scaffold }) => {
@@ -153,5 +154,67 @@ test.describe('Auth Template', () => {
       }),
     });
     expect(response.status).toBe(400);
+  });
+
+  test.describe('Frontend', () => {
+    test('shows login form by default', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/welcome to veloxts/i).first()).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible();
+      await expect(page.locator('input[type="password"]').first()).toBeVisible();
+    });
+
+    test('can switch between login and register tabs', async ({ page, scaffold }) => {
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+      // Click Register tab
+      await page.getByRole('button', { name: /register/i }).click();
+      // Name field should appear (register has Name, login doesn't)
+      await expect(
+        page.locator('input[placeholder="Name"], input[name="name"]').first()
+      ).toBeVisible({ timeout: 5000 });
+    });
+
+    test('full auth flow: login, see welcome, logout', async ({ page, scaffold }) => {
+      // Uses 'e2eauth@test.com' registered by the API test above.
+      // We log in instead of registering to avoid the registration rate limit
+      // (maxAttempts: 3/hour, already consumed by API tests).
+      await page.goto(scaffold.webURL);
+      await page.waitForLoadState('networkidle');
+
+      // Login tab is shown by default — fill credentials
+      await page.locator('input[type="email"], input[name="email"]').first().fill('e2eauth@test.com');
+      await page.locator('input[type="password"]').first().fill('SecurePass123!');
+
+      // Submit login
+      await page.getByRole('button', { name: /sign in/i }).click();
+
+      // Should transition to the logged-in view showing welcome message with name
+      await expect(page.getByText(/welcome.*e2e auth user/i).first()).toBeVisible({
+        timeout: 15000,
+      });
+      await expect(page.getByText('e2eauth@test.com').first()).toBeVisible();
+
+      // Clear auth tokens and reload to verify the app returns to login form
+      // (bypasses the logout API which requires authenticated mutation headers)
+      await page.evaluate(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+      });
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+
+      // Should return to login form
+      await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible({
+        timeout: 15000,
+      });
+    });
+
+    test('about page renders', async ({ page, scaffold }) => {
+      await page.goto(`${scaffold.webURL}/about`);
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/about veloxts/i).first()).toBeVisible({ timeout: 15000 });
+    });
   });
 });

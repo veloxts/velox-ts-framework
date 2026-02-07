@@ -17,8 +17,12 @@ export type TemplateType = 'spa' | 'auth' | 'trpc' | 'rsc' | 'rsc-auth';
 export interface ScaffoldFixture {
   /** Base URL of the running server (API for all, also serves frontend for RSC) */
   baseURL: string;
+  /** Frontend dev server URL (same as baseURL for RSC templates) */
+  webURL: string;
   /** Port the server is running on */
   port: number;
+  /** Frontend dev server port (same as port for RSC templates) */
+  webPort: number;
   /** Template type being tested */
   template: TemplateType;
   /** Path to the test project */
@@ -32,6 +36,15 @@ const TEMPLATE_PORTS: Record<TemplateType, number> = {
   spa: 3031,
   auth: 3032,
   trpc: 3033,
+  rsc: 3034,
+  'rsc-auth': 3035,
+};
+
+// Web (Vite) dev server ports - RSC uses same port as API (Vinxi serves both)
+const WEB_PORTS: Record<TemplateType, number> = {
+  spa: 3531,
+  auth: 3532,
+  trpc: 3533,
   rsc: 3034,
   'rsc-auth': 3035,
 };
@@ -51,6 +64,22 @@ async function isServerRunning(
   try {
     const response = await fetch(healthEndpoint, { signal: AbortSignal.timeout(2000) });
     if (response.ok) {
+      // For non-RSC templates, also check the web server is running
+      const isRSC = template === 'rsc' || template === 'rsc-auth';
+      const webPort = WEB_PORTS[template];
+      if (!isRSC && webPort !== port) {
+        try {
+          const webResponse = await fetch(`http://localhost:${webPort}`, {
+            signal: AbortSignal.timeout(2000),
+          });
+          if (!webResponse.ok) {
+            return { running: false };
+          }
+        } catch {
+          return { running: false };
+        }
+      }
+
       // Find the project path from test directory
       const testDir = TEST_BASE_DIR;
       if (existsSync(testDir)) {
@@ -80,13 +109,17 @@ async function getOrCreateFixture(template: TemplateType): Promise<ScaffoldFixtu
   const port = TEMPLATE_PORTS[template];
   const isRSC = template === 'rsc' || template === 'rsc-auth';
 
+  const webPort = WEB_PORTS[template];
+
   // Check if server is already running (from a previous test in this file)
   const serverStatus = await isServerRunning(port, template);
   if (serverStatus.running) {
     console.log(`[${template}] Server already running on port ${port}`);
     return {
       baseURL: `http://localhost:${port}`,
+      webURL: isRSC ? `http://localhost:${port}` : `http://localhost:${webPort}`,
       port,
+      webPort: isRSC ? port : webPort,
       template,
       projectPath: serverStatus.projectPath ?? '',
       isRSC,
@@ -163,7 +196,7 @@ async function getOrCreateFixture(template: TemplateType): Promise<ScaffoldFixtu
     apiPkg.devDependencies['@veloxts/cli'] = `file:${MONOREPO_ROOT}/packages/cli`;
     writeFileSync(apiPkgPath, JSON.stringify(apiPkg, null, 2));
 
-    // Patch vite.config.ts to use correct API port for proxy
+    // Patch vite.config.ts to use correct API port for proxy and web port for dev server
     const viteConfigPath = resolve(projectPath, 'apps/web/vite.config.ts');
     if (existsSync(viteConfigPath)) {
       let viteConfig = readFileSync(viteConfigPath, 'utf8');
@@ -172,6 +205,8 @@ async function getOrCreateFixture(template: TemplateType): Promise<ScaffoldFixtu
         /target:\s*['"]http:\/\/localhost:3030['"]/,
         `target: 'http://localhost:${port}'`
       );
+      // Replace the default web port (8080) with the test web port
+      viteConfig = viteConfig.replace(/port:\s*8080/, `port: ${webPort}`);
       writeFileSync(viteConfigPath, viteConfig);
     }
   }
@@ -334,9 +369,86 @@ async function getOrCreateFixture(template: TemplateType): Promise<ScaffoldFixtu
 
   console.log(`Server ready on port ${port}\n`);
 
+  // Start Vite dev server for non-RSC templates (SPA, auth, tRPC)
+  if (!isRSC) {
+    const webCwd = resolve(projectPath, 'apps/web');
+    console.log('Installing web dependencies...');
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const webNodeModules = resolve(webCwd, 'node_modules');
+        if (existsSync(webNodeModules)) {
+          execSync(`rm -rf "${webNodeModules}"`, { stdio: 'pipe' });
+        }
+        execSync('npm install --legacy-peer-deps', {
+          cwd: webCwd,
+          stdio: 'pipe',
+          shell: '/bin/bash',
+          env: { ...process.env, npm_config_fund: 'false', npm_config_audit: 'false' },
+        });
+        break;
+      } catch (error) {
+        if (attempt === maxRetries) throw error;
+        console.warn(`Web npm install attempt ${attempt}/${maxRetries} failed, retrying...`);
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+
+    console.log(`Starting Vite dev server on port ${webPort}...`);
+    const viteProcess = spawn('npx', ['vite', '--port', String(webPort)], {
+      cwd: webCwd,
+      env: { ...process.env },
+      stdio: 'pipe',
+      detached: true,
+    });
+    viteProcess.unref();
+
+    viteProcess.stdout?.on('data', (data: Buffer) => {
+      if (process.env.DEBUG) {
+        console.log(`[vite stdout] ${data}`);
+      }
+    });
+    viteProcess.stderr?.on('data', (data: Buffer) => {
+      if (process.env.DEBUG) {
+        console.error(`[vite stderr] ${data}`);
+      }
+    });
+
+    // Wait for Vite to be ready
+    const viteMaxWait = 30000;
+    const viteStartTime = Date.now();
+    let viteReady = false;
+
+    console.log(`Waiting for Vite dev server (http://localhost:${webPort})...`);
+
+    while (Date.now() - viteStartTime < viteMaxWait) {
+      try {
+        const response = await fetch(`http://localhost:${webPort}`, {
+          signal: AbortSignal.timeout(2000),
+        });
+        if (response.ok || response.status === 304) {
+          viteReady = true;
+          break;
+        }
+      } catch {
+        // Vite not ready yet
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    if (!viteReady) {
+      viteProcess.kill('SIGTERM');
+      throw new Error(`Vite dev server failed to start within ${viteMaxWait / 1000}s`);
+    }
+
+    console.log(`Vite dev server ready on port ${webPort}\n`);
+  }
+
   return {
     baseURL: `http://localhost:${port}`,
+    webURL: isRSC ? `http://localhost:${port}` : `http://localhost:${webPort}`,
     port,
+    webPort: isRSC ? port : webPort,
     template,
     projectPath,
     isRSC,
@@ -349,7 +461,8 @@ async function getOrCreateFixture(template: TemplateType): Promise<ScaffoldFixtu
 // Cleanup is handled by global-teardown.ts
 export const test = base.extend<object, { scaffold: ScaffoldFixture }>({
   scaffold: [
-    async (_deps, use, workerInfo) => {
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires destructuring syntax in fixtures
+    async ({}, use, workerInfo) => {
       // Get template from the project name (set in playwright.config.ts)
       const projectName = workerInfo.project.name as TemplateType;
       const template = projectName || 'spa';
