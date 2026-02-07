@@ -232,17 +232,24 @@ export const authProcedures = procedures('auth', {
     .guard(authenticated)
     .output(UserResponse)
     .query(async ({ ctx }) => {
-      const user = ctx.user;
+      if (!ctx.user) {
+        throw new AuthError('Not authenticated', 401, 'NOT_AUTHENTICATED');
+      }
+
+      // ctx.user only has id/email from the JWT payload — query the DB for the full profile
+      const user = await ctx.db.user.findUnique({
+        where: { id: ctx.user.id },
+      });
 
       if (!user) {
-        throw new AuthError('Not authenticated', 401, 'NOT_AUTHENTICATED');
+        throw new AuthError('User not found', 404, 'USER_NOT_FOUND');
       }
 
       return {
         id: user.id,
         name: user.name ?? '',
         email: user.email,
-        roles: Array.isArray(user.roles) ? user.roles : ['user'],
+        roles: parseUserRoles(user.roles),
       };
     }),
 });
