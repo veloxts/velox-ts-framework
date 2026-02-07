@@ -184,7 +184,10 @@ test.describe('Auth Template', () => {
       await page.waitForLoadState('networkidle');
 
       // Login tab is shown by default — fill credentials
-      await page.locator('input[type="email"], input[name="email"]').first().fill('e2eauth@test.com');
+      await page
+        .locator('input[type="email"], input[name="email"]')
+        .first()
+        .fill('e2eauth@test.com');
       await page.locator('input[type="password"]').first().fill('SecurePass123!');
 
       // Submit login
