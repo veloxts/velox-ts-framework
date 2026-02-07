@@ -189,10 +189,9 @@ test.describe('Auth Template', () => {
       // Submit login
       await page.getByRole('button', { name: /sign in/i }).click();
 
-      // Should see welcome message with user name
-      await expect(page.getByText(/welcome.*e2e auth user/i).first()).toBeVisible({
-        timeout: 15000,
-      });
+      // Should transition to the logged-in view showing the user's email and profile
+      await expect(page.getByText('e2eauth@test.com').first()).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/your profile/i).first()).toBeVisible();
 
       // Logout
       await page.getByRole('button', { name: /logout/i }).click();
