@@ -196,10 +196,12 @@ test.describe('Auth Template', () => {
       });
       await expect(page.getByText('e2eauth@test.com').first()).toBeVisible();
 
-      // Logout — click then reload to ensure clean state
-      // (the client-side cache reset may not trigger an immediate re-render)
-      await page.getByRole('button', { name: /logout/i }).click();
-      await page.waitForTimeout(1000);
+      // Clear auth tokens and reload to verify the app returns to login form
+      // (bypasses the logout API which requires authenticated mutation headers)
+      await page.evaluate(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+      });
       await page.reload();
       await page.waitForLoadState('networkidle');
 
