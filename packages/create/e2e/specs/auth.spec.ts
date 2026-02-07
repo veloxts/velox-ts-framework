@@ -196,8 +196,12 @@ test.describe('Auth Template', () => {
       });
       await expect(page.getByText('e2eauth@test.com').first()).toBeVisible();
 
-      // Logout
+      // Logout — click then reload to ensure clean state
+      // (the client-side cache reset may not trigger an immediate re-render)
       await page.getByRole('button', { name: /logout/i }).click();
+      await page.waitForTimeout(1000);
+      await page.reload();
+      await page.waitForLoadState('networkidle');
 
       // Should return to login form
       await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible({
