@@ -143,6 +143,39 @@ test.describe('Auth Template', () => {
     expect(response.status).toBe(200);
   });
 
+  test('logout revokes token', async ({ scaffold }) => {
+    // Register and get token
+    const registerRes = await fetchWithRetry(`${scaffold.baseURL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Logout Test',
+        email: 'logouttest@test.com',
+        password: 'SecurePass123!',
+      }),
+    });
+    const authData = (await registerRes.json()) as AuthResponse;
+
+    // Logout
+    const logoutRes = await fetch(`${scaffold.baseURL}/api/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authData.accessToken}`,
+      },
+    });
+    expect(logoutRes.status).toBe(200);
+
+    const logoutData = (await logoutRes.json()) as { success: boolean; message: string };
+    expect(logoutData.success).toBe(true);
+
+    // Token should now be revoked — /auth/me should reject it
+    const meRes = await fetch(`${scaffold.baseURL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${authData.accessToken}` },
+    });
+    expect(meRes.status).toBe(401);
+  });
+
   test('validation error returns 400 with error details', async ({ scaffold }) => {
     const response = await fetchWithRetry(`${scaffold.baseURL}/api/auth/register`, {
       method: 'POST',
@@ -199,19 +232,17 @@ test.describe('Auth Template', () => {
       });
       await expect(page.getByText('e2eauth@test.com').first()).toBeVisible();
 
-      // Clear auth tokens and reload to verify the app returns to login form
-      // (bypasses the logout API which requires authenticated mutation headers)
-      await page.evaluate(() => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-      });
-      await page.reload();
-      await page.waitForLoadState('networkidle');
+      // Click the Logout button
+      await page.getByRole('button', { name: /logout/i }).click();
 
       // Should return to login form
       await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible({
         timeout: 15000,
       });
+
+      // Verify tokens were cleared from localStorage
+      const token = await page.evaluate(() => localStorage.getItem('token'));
+      expect(token).toBeNull();
     });
 
     test('about page renders', async ({ page, scaffold }) => {
