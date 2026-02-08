@@ -422,7 +422,7 @@ packages/
 ├── web/            # @veloxts/web - RSC + Vinxi integration
 ├── mcp/            # @veloxts/mcp - Model Context Protocol server
 │
-│ # Ecosystem Packages (Early Preview)
+│ # Ecosystem Packages
 ├── cache/          # @veloxts/cache - Multi-driver caching (memory, Redis)
 ├── queue/          # @veloxts/queue - Background jobs (sync, BullMQ)
 ├── mail/           # @veloxts/mail - Email sending (SMTP, Resend, React Email)
@@ -494,19 +494,19 @@ Manual overrides available via `.rest()` method.
 
 #### Resource API (Context-Dependent Outputs)
 
-The Resource API provides phantom type-based output typing for returning different fields based on access level:
+The Resource API returns different fields based on access level. Define field visibility once with `resourceSchema()`, then project via **tagged schema views**:
 
 ```typescript
 import { resourceSchema, resource, procedure, procedures } from '@veloxts/router';
 import { authenticated, hasRole } from '@veloxts/auth';
 import { z } from 'zod';
 
-// Define field visibility
+// Define field visibility — .build() returns tagged views
 const UserSchema = resourceSchema()
-  .public('id', z.string().uuid())           // Visible to everyone
-  .public('name', z.string())                // Visible to everyone
-  .authenticated('email', z.string().email()) // Logged-in users only
-  .admin('internalNotes', z.string().nullable()) // Admins only
+  .public('id', z.string().uuid())
+  .public('name', z.string())
+  .authenticated('email', z.string().email())
+  .admin('internalNotes', z.string().nullable())
   .build();
 
 export const userProcedures = procedures('users', {
@@ -514,7 +514,7 @@ export const userProcedures = procedures('users', {
   getPublicProfile: procedure()
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      return resource(user, UserSchema).forAnonymous();
+      return resource(user, UserSchema.public);
     }),
 
   // Authenticated: returns { id, name, email }
@@ -522,7 +522,7 @@ export const userProcedures = procedures('users', {
     .guard(authenticated)
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      return resource(user, UserSchema).forAuthenticated();
+      return resource(user, UserSchema.authenticated);
     }),
 
   // Admin: returns all fields
@@ -530,18 +530,19 @@ export const userProcedures = procedures('users', {
     .guard(hasRole('admin'))
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      return resource(user, UserSchema).forAdmin();
+      return resource(user, UserSchema.admin);
     }),
 });
 ```
 
-**Key methods:**
-- `.forAnonymous()` - Returns only `public` fields
-- `.forAuthenticated()` - Returns `public` + `authenticated` fields
-- `.forAdmin()` - Returns all fields
-- `.for(ctx)` - Auto-detects level from context
+**Projection approaches (choose one per endpoint):**
+- `resource(data, UserSchema.public)` — Tagged view (recommended): explicit, type-safe, one-liner
+- `resource(data, UserSchema).forAnonymous()` / `.forAuthenticated()` / `.forAdmin()` — Manual projection for runtime branching (e.g., ownership checks)
+- `resource(data, UserSchema).for(ctx)` — Auto-detects level from request context
+- `.guardNarrow(authenticatedNarrow)` + `.resource(UserSchema)` — Automatic projection from guard's `accessLevel`
+- `resourceCollection(items, UserSchema.public)` — Tagged view for arrays
 
-**When to use `.output()` vs `.resource()`:**
+**When to use `.output()` vs resource schema:**
 - `.output(zodSchema)` - Same fields for all users
 - `resourceSchema()` + `resource()` - Different fields per role
 
@@ -650,7 +651,7 @@ const message = ctx.session.getFlash('success');  // Returns once, then removed
 - In-memory store (development) or Redis (production)
 - Cookie security: httpOnly, secure, sameSite
 
-### Ecosystem Packages (Early Preview)
+### Ecosystem Packages
 
 These packages provide Laravel-style infrastructure patterns. **APIs may change before v1.0.**
 
@@ -779,7 +780,7 @@ Currently building toward MVP with these constraints:
 - `@veloxts/mcp` - Model Context Protocol server
 - `create-velox-app` - Project scaffolding with 5 templates: default, auth, trpc, rsc, and rsc-auth
 
-### Ecosystem Packages (Early Preview)
+### Ecosystem Packages
 - `@veloxts/cache` - Multi-driver caching (memory, Redis)
 - `@veloxts/queue` - Background job processing (sync, BullMQ)
 - `@veloxts/mail` - Email sending (SMTP, Resend, React Email)

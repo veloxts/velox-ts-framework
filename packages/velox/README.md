@@ -1,6 +1,6 @@
 # Velox TS Framework
 
-> **Early Preview (v0.6.x)** - APIs are stabilizing but may still change. Do not use in production yet.
+> **Beta (v0.6.x)**
 
 ## Type-safe full-stack without the build step
 
