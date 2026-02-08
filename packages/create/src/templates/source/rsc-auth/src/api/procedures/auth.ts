@@ -213,7 +213,14 @@ export const authProcedures = procedures('auth', {
     .guard(authenticated)
     .output(LogoutResponse)
     .mutation(async ({ ctx }) => {
-      const tokenId = ctx.auth?.token?.jti;
+      // Extract JTI from whichever auth mode is active
+      let tokenId: string | undefined;
+      if (ctx.auth?.authMode === 'native') {
+        tokenId = ctx.auth.payload?.jti;
+      } else if (ctx.auth?.authMode === 'adapter') {
+        const session = ctx.auth.session as { payload?: { jti?: string } } | undefined;
+        tokenId = session?.payload?.jti;
+      }
 
       if (tokenId) {
         tokenStore.revoke(tokenId, 15 * 60 * 1000);

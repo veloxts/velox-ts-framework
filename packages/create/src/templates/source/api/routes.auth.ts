@@ -23,7 +23,7 @@ export const routes: RouteMap = {
     createAccount: { method: 'POST', path: '/auth/register', kind: 'mutation' },
     createSession: { method: 'POST', path: '/auth/login', kind: 'mutation' },
     createRefresh: { method: 'POST', path: '/auth/refresh', kind: 'mutation' },
-    deleteSession: { method: 'DELETE', path: '/auth/session', kind: 'mutation' },
+    deleteSession: { method: 'POST', path: '/auth/logout', kind: 'mutation' },
     getMe: { method: 'GET', path: '/auth/me', kind: 'query' },
   },
   users: {
