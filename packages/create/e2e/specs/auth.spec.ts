@@ -156,11 +156,10 @@ test.describe('Auth Template', () => {
     });
     const authData = (await registerRes.json()) as AuthResponse;
 
-    // Logout
+    // Logout (no body needed — procedure has no .input())
     const logoutRes = await fetch(`${scaffold.baseURL}/api/auth/logout`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         Authorization: `Bearer ${authData.accessToken}`,
       },
     });
