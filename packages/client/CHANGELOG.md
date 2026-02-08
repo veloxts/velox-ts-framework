@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.6.99
+
+### Patch Changes
+
+- Updates to documentation and mark as beta 0.6.x
+
 ## 0.6.98
 
 ### Patch Changes

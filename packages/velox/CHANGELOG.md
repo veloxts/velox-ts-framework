@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.6.99
+
+### Patch Changes
+
+- Updates to documentation and mark as beta 0.6.x
+- Updated dependencies
+  - @veloxts/auth@0.6.99
+  - @veloxts/cache@0.6.99
+  - @veloxts/core@0.6.99
+  - @veloxts/events@0.6.99
+  - @veloxts/mail@0.6.99
+  - @veloxts/orm@0.6.99
+  - @veloxts/queue@0.6.99
+  - @veloxts/router@0.6.99
+  - @veloxts/scheduler@0.6.99
+  - @veloxts/storage@0.6.99
+  - @veloxts/validation@0.6.99
+
 ## 0.6.98
 
 ### Patch Changes
