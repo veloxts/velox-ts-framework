@@ -266,13 +266,9 @@ app.register(
   { prefix: '/api/admin' }
 );
 
-// Internal API - tRPC-only (no REST routes)
-app.register(
-  rest([internalProcedures], {
-    // Empty - generates no REST routes if all procedures use .rest(false)
-  }),
-  { prefix: '/api/internal' }
-);
+// Internal API - tRPC-only (no REST routes needed)
+// Procedures without recognized naming prefixes (get*, list*, create*, etc.)
+// simply won't generate REST endpoints.
 ```
 
 Each adapter instance is independent and can have its own configuration.

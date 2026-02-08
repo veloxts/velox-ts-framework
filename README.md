@@ -1,6 +1,6 @@
 # Velox TS Framework
 
-> **Early Preview (v0.6.x)** – APIs are stabilizing but may still change. Do not use in production yet.
+> **Beta (v0.6.x)**
 
 Velox TS (pronounced **Velox TypeScript**) is a full-stack TypeScript framework with end-to-end type safety—no code generation required. Convention-driven APIs that generate both tRPC and REST from a single source.
 
