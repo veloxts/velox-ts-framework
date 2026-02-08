@@ -5,14 +5,14 @@ description: Combine REST and tRPC for different client needs.
 
 Use this architecture when you have both TypeScript and non-TypeScript clients.
 
-## When to Choose Hybrid
+## Different Teams, Different Transports
 
 - Mobile apps (REST) + web dashboard (tRPC)
 - Public API (REST) + internal tools (tRPC)
-- Gradual migration from REST to tRPC
+- Gradual migration from tRPC to REST
 - Different teams with different needs
 
-## How It Works
+## Hybrid for the backend
 
 VeloxTS generates both REST and tRPC endpoints from the same procedures:
 
@@ -38,7 +38,7 @@ export const orderProcedures = procedures('orders', {
 });
 ```
 
-## Client Examples
+## Hybrid for the frontend
 
 ### Mobile App (REST)
 

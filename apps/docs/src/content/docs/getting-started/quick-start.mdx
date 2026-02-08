@@ -11,8 +11,10 @@ This guide walks you through creating a simple user API with VeloxTS.
 
 1. **Create a new project**
 
+   Using the `--auth` template here:
+
    ```bash
-   npx create-velox-app my-api
+   npx create-velox-app my-api --auth
    cd my-api
    pnpm approve-builds  # Allow native module compilation (pnpm only)
    pnpm db:push
@@ -64,27 +66,30 @@ This guide walks you through creating a simple user API with VeloxTS.
    });
    ```
 
-   For authenticated endpoints, use automatic projection with `.guardNarrow().resource()`:
+   For authenticated endpoints, add a guard and use a tagged schema view to return the appropriate fields:
 
    ```typescript
-   import { authenticatedNarrow } from '@veloxts/auth';
+   import { authenticated } from '@veloxts/auth';
 
-   // Authenticated endpoint - auto-projects based on guard
+   // Authenticated endpoint
    getProfile: procedure()
-     .guardNarrow(authenticatedNarrow)
-     .resource(UserSchema)
      .input(z.object({ id: z.string() }))
+     .guard(authenticated)
      .query(async ({ input, ctx }) => {
-       // Just return data - projection is automatic!
-       return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+       const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+       return resource(user, UserSchema.authenticated); // { id, name, email }
      }),
    ```
 
-3. **Start the dev server**
+3. **Start the dev servers**
+
+   This starts both the API backend and the frontend dev server:
 
    ```bash
    pnpm dev
    ```
+
+   Your frontend is now running at `http://localhost:8080`.
 
 4. **Test your API**
 
