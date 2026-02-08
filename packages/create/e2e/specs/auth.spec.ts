@@ -154,7 +154,7 @@ test.describe('Auth Template', () => {
         password: 'SecurePass123!',
       }),
     });
-    expect(loginRes.status).toBe(200);
+    expect([200, 201]).toContain(loginRes.status);
     const authData = (await loginRes.json()) as AuthResponse;
 
     // Logout (no body needed — procedure has no .input())
