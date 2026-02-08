@@ -144,17 +144,18 @@ test.describe('Auth Template', () => {
   });
 
   test('logout revokes token', async ({ scaffold }) => {
-    // Register and get token
-    const registerRes = await fetchWithRetry(`${scaffold.baseURL}/api/auth/register`, {
+    // Login with user registered by the first test to avoid the
+    // registration rate limiter (maxAttempts: 3/hour already consumed).
+    const loginRes = await fetch(`${scaffold.baseURL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: 'Logout Test',
-        email: 'logouttest@test.com',
+        email: 'e2eauth@test.com',
         password: 'SecurePass123!',
       }),
     });
-    const authData = (await registerRes.json()) as AuthResponse;
+    expect(loginRes.status).toBe(200);
+    const authData = (await loginRes.json()) as AuthResponse;
 
     // Logout (no body needed — procedure has no .input())
     const logoutRes = await fetch(`${scaffold.baseURL}/api/auth/logout`, {
