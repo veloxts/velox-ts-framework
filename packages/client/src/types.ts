@@ -50,7 +50,7 @@ export interface ClientProcedure<
   /** REST route override (not used by client, but part of CompiledProcedure) */
   readonly restOverride?: { method?: string; path?: string };
   /** Parent resource configuration for nested routes */
-  readonly parentResource?: { namespace: string; paramName: string };
+  readonly parentResource?: { resource: string; param: string };
 }
 
 /**
