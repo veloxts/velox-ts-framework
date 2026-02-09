@@ -1,5 +1,25 @@
 # @veloxts/mcp
 
+## 0.6.101
+
+### Patch Changes
+
+- fix(client): align parentResource type with router's ParentResourceConfig
+- Updated dependencies
+  - @veloxts/validation@0.6.101
+  - @veloxts/router@0.6.101
+  - @veloxts/cli@0.6.101
+
+## 0.6.100
+
+### Patch Changes
+
+- fixed the auth templates on logout action
+- Updated dependencies
+  - @veloxts/cli@0.6.100
+  - @veloxts/router@0.6.100
+  - @veloxts/validation@0.6.100
+
 ## 0.6.99
 
 ### Patch Changes

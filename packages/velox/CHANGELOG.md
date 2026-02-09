@@ -1,5 +1,41 @@
 # @veloxts/velox
 
+## 0.6.101
+
+### Patch Changes
+
+- fix(client): align parentResource type with router's ParentResourceConfig
+- Updated dependencies
+  - @veloxts/validation@0.6.101
+  - @veloxts/scheduler@0.6.101
+  - @veloxts/storage@0.6.101
+  - @veloxts/events@0.6.101
+  - @veloxts/router@0.6.101
+  - @veloxts/cache@0.6.101
+  - @veloxts/queue@0.6.101
+  - @veloxts/auth@0.6.101
+  - @veloxts/core@0.6.101
+  - @veloxts/mail@0.6.101
+  - @veloxts/orm@0.6.101
+
+## 0.6.100
+
+### Patch Changes
+
+- fixed the auth templates on logout action
+- Updated dependencies
+  - @veloxts/auth@0.6.100
+  - @veloxts/cache@0.6.100
+  - @veloxts/core@0.6.100
+  - @veloxts/events@0.6.100
+  - @veloxts/mail@0.6.100
+  - @veloxts/orm@0.6.100
+  - @veloxts/queue@0.6.100
+  - @veloxts/router@0.6.100
+  - @veloxts/scheduler@0.6.100
+  - @veloxts/storage@0.6.100
+  - @veloxts/validation@0.6.100
+
 ## 0.6.99
 
 ### Patch Changes

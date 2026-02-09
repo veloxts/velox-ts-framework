@@ -1,5 +1,21 @@
 # @veloxts/queue
 
+## 0.6.101
+
+### Patch Changes
+
+- fix(client): align parentResource type with router's ParentResourceConfig
+- Updated dependencies
+  - @veloxts/core@0.6.101
+
+## 0.6.100
+
+### Patch Changes
+
+- fixed the auth templates on logout action
+- Updated dependencies
+  - @veloxts/core@0.6.100
+
 ## 0.6.99
 
 ### Patch Changes
