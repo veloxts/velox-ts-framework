@@ -46,7 +46,7 @@
     "@types/react": "19.2.10",
     "@veloxts/testing": "workspace:*",
     "@vitest/coverage-v8": "4.0.18",
-    "fastify": "5.7.2",
+    "fastify": "5.7.4",
     "react": "19.2.4",
     "typescript": "5.9.3",
     "vitest": "4.0.18"

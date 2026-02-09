@@ -50,7 +50,7 @@
     "@trpc/server": "11.9.0",
     "@veloxts/core": "workspace:*",
     "@veloxts/validation": "workspace:*",
-    "fastify": "5.7.2",
+    "fastify": "5.7.4",
     "zod-to-json-schema": "3.25.1"
   },
   "devDependencies": {
@@ -62,7 +62,7 @@
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "fastify": "^5.0.0",
+    "fastify": "^5.7.4",
     "zod": "^3.25.0"
   },
   "files": [

@@ -40,7 +40,7 @@
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "fastify": "^5.0.0",
+    "fastify": "^5.7.4",
     "ioredis": ">=5.0.0"
   },
   "peerDependenciesMeta": {
@@ -53,7 +53,7 @@
     "@types/ws": "8.18.1",
     "@veloxts/testing": "workspace:*",
     "@vitest/coverage-v8": "4.0.18",
-    "fastify": "5.7.2",
+    "fastify": "5.7.4",
     "ioredis": "5.9.2",
     "typescript": "5.9.3",
     "vitest": "4.0.18"

@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@veloxts/core": "workspace:*",
-    "fastify": "5.7.2",
+    "fastify": "5.7.4",
     "fastify-plugin": "5.1.0",
     "lru-cache": "11.2.5",
     "superjson": "2.2.6"
