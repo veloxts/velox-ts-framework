@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.6.104
+
+### Patch Changes
+
+- feat(client): smart convention-based route inference, eliminate routes.ts
+
 ## 0.6.103
 
 ### Patch Changes

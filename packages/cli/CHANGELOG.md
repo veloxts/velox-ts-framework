@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.104
+
+### Patch Changes
+
+- feat(client): smart convention-based route inference, eliminate routes.ts
+- Updated dependencies
+  - @veloxts/auth@0.6.104
+  - @veloxts/core@0.6.104
+  - @veloxts/orm@0.6.104
+  - @veloxts/router@0.6.104
+  - @veloxts/validation@0.6.104
+
 ## 0.6.103
 
 ### Patch Changes

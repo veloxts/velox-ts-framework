@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.6.104
+
+### Patch Changes
+
+- feat(client): smart convention-based route inference, eliminate routes.ts
+- Updated dependencies
+  - @veloxts/cli@0.6.104
+  - @veloxts/router@0.6.104
+  - @veloxts/validation@0.6.104
+
 ## 0.6.103
 
 ### Patch Changes
