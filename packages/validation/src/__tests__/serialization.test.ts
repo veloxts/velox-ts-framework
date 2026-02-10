@@ -523,11 +523,11 @@ describe('Serialization Edge Cases', () => {
   });
 
   describe('schema merge with timestamps', () => {
-    it('should work with z.merge for combining schemas', () => {
+    it('should work with z.extend for combining schemas', () => {
       const BaseSchema = z.object({ id: z.string() });
       const ExtendedFields = z.object({ email: z.string().email() });
 
-      const MergedSchema = withTimestamps(BaseSchema.merge(ExtendedFields));
+      const MergedSchema = withTimestamps(BaseSchema.extend(ExtendedFields.shape));
 
       const now = new Date();
       const result = MergedSchema.parse({

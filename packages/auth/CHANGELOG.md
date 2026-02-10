@@ -1,5 +1,14 @@
 # @veloxts/auth
 
+## 0.6.102
+
+### Patch Changes
+
+- chore: upgrade fastify to 5.7.4 across all packages
+- Updated dependencies
+  - @veloxts/core@0.6.102
+  - @veloxts/router@0.6.102
+
 ## 0.6.101
 
 ### Patch Changes

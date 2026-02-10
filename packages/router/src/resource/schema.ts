@@ -8,7 +8,7 @@
  * @module resource/schema
  */
 
-import type { ZodType, ZodTypeDef } from 'zod';
+import type { ZodType } from 'zod';
 
 import type {
   AccessLevel,
@@ -187,7 +187,7 @@ export function isTaggedResourceSchema(value: unknown): value is TaggedResourceS
 /**
  * Helper to infer the output type of a Zod schema
  */
-type InferZodOutput<T> = T extends ZodType<infer O, ZodTypeDef, unknown> ? O : never;
+type InferZodOutput<T> = T extends { parse: (data: unknown) => infer O } ? O : never;
 
 /**
  * Filters fields by visibility and extracts their types

@@ -27,7 +27,7 @@ import { createRequire } from 'node:module';
 
 // Re-export Zod for convenience
 // Users can import { z } from '@veloxts/validation' instead of installing zod separately
-export { ZodError, type ZodType, type ZodTypeDef, z } from 'zod';
+export { ZodError, type ZodType, z } from 'zod';
 
 // Read version from package.json dynamically
 const require = createRequire(import.meta.url);

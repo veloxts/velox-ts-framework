@@ -243,7 +243,7 @@ describe('validated()', () => {
     });
 
     it('should prevent prototype pollution', async () => {
-      const schema = z.record(z.unknown());
+      const schema = z.record(z.string(), z.unknown());
       const action = validated(schema, async (input) => ({ keys: Object.keys(input) }));
 
       const result = await action({
@@ -741,7 +741,7 @@ describe('rate limiter cleanup utilities', () => {
 
 describe('input size validation with circular references', () => {
   it('should handle circular references gracefully', async () => {
-    const schema = z.record(z.unknown());
+    const schema = z.record(z.string(), z.unknown());
     const action = validated(
       schema,
       async (input) => ({ received: true, keys: Object.keys(input) }),
@@ -763,7 +763,7 @@ describe('input size validation with circular references', () => {
   });
 
   it('should reject large circular structures', async () => {
-    const schema = z.record(z.unknown());
+    const schema = z.record(z.string(), z.unknown());
     const action = validated(schema, async () => ({ received: true }), {
       maxInputSize: 10, // Very small - should reject
     });
@@ -783,7 +783,7 @@ describe('input size validation with circular references', () => {
   });
 
   it('should handle deeply nested objects', async () => {
-    const schema = z.record(z.unknown());
+    const schema = z.record(z.string(), z.unknown());
     const action = validated(
       schema,
       async (input) => ({ depth: 'deep', keys: Object.keys(input) }),

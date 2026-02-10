@@ -9,7 +9,7 @@
  * @module @veloxts/web/actions/validated
  */
 
-import { ZodError, type ZodType, type ZodTypeDef } from 'zod';
+import { ZodError, type ZodType } from 'zod';
 
 import { createH3Context, type H3ActionContext } from '../adapters/h3-adapter.js';
 import type {
@@ -26,14 +26,17 @@ import type {
 
 /**
  * Constraint for valid Zod schemas
+ * Uses structural typing to work with both Zod 3 and Zod 4.
  */
-export type ValidZodSchema<T = unknown> = ZodType<T, ZodTypeDef, unknown>;
+export type ValidZodSchema<T = unknown> = ZodType & { parse: (data: unknown) => T };
 
 /**
  * Infers the output type from a Zod schema
+ * Uses structural matching on parse() return type for cross-version compatibility.
  */
-export type InferSchemaType<TSchema> =
-  TSchema extends ZodType<infer O, ZodTypeDef, unknown> ? O : never;
+export type InferSchemaType<TSchema> = TSchema extends { parse: (data: unknown) => infer O }
+  ? O
+  : never;
 
 /**
  * Handler function signature for validated actions

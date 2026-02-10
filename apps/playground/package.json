@@ -30,7 +30,7 @@
     "@veloxts/router": "workspace:*",
     "@veloxts/validation": "workspace:*",
     "dotenv": "17.2.3",
-    "zod": "3.25.76"
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "fastify": "5.7.4",

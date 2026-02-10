@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/mail",
-  "version": "0.6.101",
+  "version": "0.6.102",
   "description": "Email templating and sending for VeloxTS framework",
   "type": "module",
   "main": "./dist/index.js",
@@ -37,7 +37,7 @@
     "fastify-plugin": "5.1.0",
     "nodemailer": "7.0.13",
     "resend": "6.9.1",
-    "zod": "3.25.76"
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.13",

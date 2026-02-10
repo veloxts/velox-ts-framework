@@ -113,7 +113,7 @@ export type CursorPaginationInput = z.infer<typeof cursorPaginationSchema>;
  * // { data: User[]; meta: { page, limit, total, totalPages, hasMore } }
  * ```
  */
-export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(itemSchema: T) {
+export function createPaginatedResponseSchema<T extends z.ZodType>(itemSchema: T) {
   return z.object({
     /** Array of items for the current page */
     data: z.array(itemSchema),
@@ -158,7 +158,7 @@ export interface PaginationMeta {
  * @param itemSchema - Zod schema for individual items
  * @returns Zod schema for cursor-paginated response
  */
-export function createCursorPaginatedResponseSchema<T extends z.ZodTypeAny>(itemSchema: T) {
+export function createCursorPaginatedResponseSchema<T extends z.ZodType>(itemSchema: T) {
   return z.object({
     /** Array of items */
     data: z.array(itemSchema),

@@ -235,7 +235,7 @@ describe('fieldToZod', () => {
 
     it('converts json field', () => {
       const result = fieldToZod(jsonField);
-      expect(result).toBe('  metadata: z.record(z.unknown()),');
+      expect(result).toBe('  metadata: z.record(z.string(), z.unknown()),');
     });
 
     it('converts enum field', () => {

@@ -6,8 +6,7 @@
  * @module @veloxts/router/openapi/schema-converter
  */
 
-import type { ZodType } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
+import { type ZodType, z } from 'zod';
 
 import type { JSONSchema } from './types.js';
 
@@ -20,30 +19,10 @@ import type { JSONSchema } from './types.js';
  */
 export interface SchemaConversionOptions {
   /**
-   * Schema name for $ref generation
-   */
-  name?: string;
-
-  /**
    * Target specification format
    * @default 'openApi3'
    */
   target?: 'jsonSchema7' | 'jsonSchema2019-09' | 'openApi3';
-
-  /**
-   * How to handle $ref references
-   * - 'none': Inline all definitions (default)
-   * - 'root': Use $ref at root level
-   * - 'seen': Use $ref for seen schemas
-   * @default 'none'
-   */
-  refStrategy?: 'none' | 'root' | 'seen';
-
-  /**
-   * Base path for $ref URIs
-   * @default '#/components/schemas'
-   */
-  basePath?: string[];
 
   /**
    * Remove default values from schema
@@ -51,6 +30,22 @@ export interface SchemaConversionOptions {
    */
   removeDefaults?: boolean;
 }
+
+/**
+ * Maps our target names to Zod 4's native `z.toJSONSchema()` target names.
+ *
+ * | Our name             | Zod 4 target     | Notes                                         |
+ * |----------------------|------------------|-----------------------------------------------|
+ * | `openApi3`           | `openapi-3.0`    | Default for OpenAPI spec generation           |
+ * | `jsonSchema7`        | `draft-07`       | JSON Schema Draft 07                          |
+ * | `jsonSchema2019-09`  | `draft-2020-12`  | Zod 4 has no 2019-09 target; 2020-12 is the  |
+ * |                      |                  | closest superset and is forwards-compatible   |
+ */
+const TARGET_MAP: Record<string, string> = {
+  openApi3: 'openapi-3.0',
+  jsonSchema7: 'draft-07',
+  'jsonSchema2019-09': 'draft-2020-12',
+};
 
 /**
  * Converts a Zod schema to JSON Schema format for OpenAPI
@@ -87,24 +82,14 @@ export function zodSchemaToJsonSchema(
     return undefined;
   }
 
-  const {
-    name,
-    target = 'openApi3',
-    refStrategy = 'none',
-    basePath = ['components', 'schemas'],
-    removeDefaults = false,
-  } = options;
+  const { target = 'openApi3', removeDefaults = false } = options;
 
   try {
-    // Cast needed because zod-to-json-schema types don't include all options we use
-    const result = zodToJsonSchema(schema, {
-      name,
-      target,
-      $refStrategy: refStrategy,
-      basePath,
-      // OpenAPI 3.0 doesn't support $schema
-      removeAdditionalStrategy: 'passthrough',
-    } as unknown as Record<string, unknown>);
+    const result = z.toJSONSchema(schema, {
+      target: TARGET_MAP[target] ?? 'openapi-3.0',
+      unrepresentable: 'any',
+      reused: 'inline',
+    });
 
     // Clean up the schema for OpenAPI compatibility
     const cleaned = cleanJsonSchema(result as JSONSchema, { removeDefaults });

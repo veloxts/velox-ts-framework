@@ -6,7 +6,7 @@
  * @module @veloxts/web/actions/types
  */
 
-import type { ZodSchema, ZodType } from 'zod';
+import type { ZodType } from 'zod';
 
 // Import browser-safe types for local use
 import type {
@@ -87,12 +87,12 @@ export interface CreateActionOptions<TInput, TOutput> {
   /**
    * Zod schema for input validation
    */
-  input?: ZodSchema<TInput>;
+  input?: ZodType<TInput>;
 
   /**
    * Zod schema for output validation
    */
-  output?: ZodSchema<TOutput>;
+  output?: ZodType<TOutput>;
 
   /**
    * Whether authentication is required
@@ -285,12 +285,12 @@ export interface ActionBuilder<TInput, TOutput, TContext extends ActionContext> 
   /**
    * Set input validation schema
    */
-  input<TNewInput>(schema: ZodSchema<TNewInput>): ActionBuilder<TNewInput, TOutput, TContext>;
+  input<TNewInput>(schema: ZodType<TNewInput>): ActionBuilder<TNewInput, TOutput, TContext>;
 
   /**
    * Set output validation schema
    */
-  output<TNewOutput>(schema: ZodSchema<TNewOutput>): ActionBuilder<TInput, TNewOutput, TContext>;
+  output<TNewOutput>(schema: ZodType<TNewOutput>): ActionBuilder<TInput, TNewOutput, TContext>;
 
   /**
    * Require authentication

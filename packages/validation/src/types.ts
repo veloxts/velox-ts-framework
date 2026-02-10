@@ -7,7 +7,7 @@
  * @module types
  */
 
-import type { ZodType, ZodTypeDef } from 'zod';
+import type { ZodType } from 'zod';
 
 // ============================================================================
 // Schema Types
@@ -97,7 +97,7 @@ export interface ValidationIssue {
 export type InferOutput<T> =
   T extends Schema<infer O, infer _I>
     ? O
-    : T extends ZodType<infer O, ZodTypeDef, infer _I>
+    : T extends { parse: (data: unknown) => infer O }
       ? O
       : never;
 
@@ -118,9 +118,11 @@ export type InferOutput<T> =
 export type InferInput<T> =
   T extends Schema<infer _O, infer I>
     ? I
-    : T extends ZodType<infer _O, ZodTypeDef, infer I>
+    : T extends { _input: infer I }
       ? I
-      : never;
+      : T extends { '~input': infer I }
+        ? I
+        : never;
 
 // ============================================================================
 // Schema Type Guards
@@ -131,7 +133,7 @@ export type InferInput<T> =
  *
  * Used in generic constraints to accept any valid Zod schema.
  */
-export type AnyZodSchema = ZodType<unknown, ZodTypeDef, unknown>;
+export type AnyZodSchema = ZodType;
 
 /**
  * Type constraint for any Schema wrapper
@@ -164,7 +166,7 @@ export function isZodSchema(value: unknown): value is AnyZodSchema {
     value !== null &&
     'parse' in value &&
     'safeParse' in value &&
-    '_def' in value
+    ('_zod' in value || '_def' in value)
   );
 }
 
@@ -195,13 +197,13 @@ export function isZodSchema(value: unknown): value is AnyZodSchema {
  * ```
  */
 export function wrapSchema<TOutput, TInput = TOutput>(
-  zodSchema: ZodType<TOutput, ZodTypeDef, TInput>
+  zodSchema: ZodType & { parse: (input: unknown) => TOutput }
 ): Schema<TOutput, TInput> {
   return {
     _schema: true as const,
 
     parse(input: unknown): TOutput {
-      return zodSchema.parse(input);
+      return zodSchema.parse(input) as TOutput;
     },
 
     safeParse(input: unknown): SafeParseResult<TOutput> {
@@ -210,14 +212,14 @@ export function wrapSchema<TOutput, TInput = TOutput>(
       if (result.success) {
         return {
           success: true,
-          data: result.data,
+          data: result.data as TOutput,
         };
       }
 
       return {
         success: false,
         error: result.error.issues.map((issue) => ({
-          path: issue.path,
+          path: issue.path as readonly (string | number)[],
           message: issue.message,
           code: issue.code,
         })),

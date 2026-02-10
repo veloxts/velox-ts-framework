@@ -67,7 +67,7 @@ const ComplexSchema = z.object({
     }),
   }),
   tags: z.array(z.string()),
-  metadata: z.record(z.unknown()),
+  metadata: z.record(z.string(), z.unknown()),
 });
 
 type Complex = InferOutput<typeof ComplexSchema>;

@@ -17,7 +17,7 @@ import type { PresenceMember } from './types.js';
  */
 export const PresenceMemberSchema = z.object({
   id: z.string().min(1, 'Member ID is required'),
-  info: z.record(z.unknown()).optional(),
+  info: z.record(z.string(), z.unknown()).optional(),
 }) satisfies z.ZodType<PresenceMember>;
 
 // =============================================================================
@@ -112,7 +112,7 @@ export type ValidationResult<T> =
  *
  * @template TSchema - The Zod schema type
  */
-export function validateBody<TSchema extends z.ZodTypeAny>(
+export function validateBody<TSchema extends z.ZodType>(
   body: unknown,
   schema: TSchema
 ): ValidationResult<z.infer<TSchema>> {

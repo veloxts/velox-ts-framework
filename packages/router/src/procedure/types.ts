@@ -11,7 +11,7 @@
  */
 
 import type { BaseContext } from '@veloxts/core';
-import type { ZodType, ZodTypeDef } from 'zod';
+import type { ZodType } from 'zod';
 
 import type { OutputForTag, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
 import type { ContextTag, ExtractTag, LevelToTag, TaggedContext } from '../resource/tags.js';
@@ -58,17 +58,20 @@ export interface ProcedureBuilderState<
 /**
  * Constraint for valid input/output schemas
  *
- * Accepts any Zod schema type. The generic parameters allow us to
- * extract the inferred type for state accumulation.
+ * Uses ZodType without version-specific generics for compatibility with
+ * both Zod 3 (ZodType<Output, Def, Input>) and Zod 4 (ZodType<Output, Input, Internals>).
+ * The actual output type is extracted structurally via InferSchemaOutput.
  */
-export type ValidSchema<T = unknown> = ZodType<T, ZodTypeDef, unknown>;
+export type ValidSchema = ZodType;
 
 /**
  * Extracts the output type from a Zod schema
  *
- * This is used internally to update builder state when .input() or .output() is called.
+ * Uses structural matching on the parse method return type instead of
+ * ZodType generic parameters. This works across Zod versions since
+ * all Zod schemas have a parse() method that returns the output type.
  */
-export type InferSchemaOutput<T> = T extends ZodType<infer O, ZodTypeDef, unknown> ? O : never;
+export type InferSchemaOutput<T> = T extends { parse: (data: unknown) => infer O } ? O : never;
 
 // ============================================================================
 // Procedure Builder Interface

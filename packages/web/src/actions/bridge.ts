@@ -7,7 +7,7 @@
  * @module @veloxts/web/actions/bridge
  */
 
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 
 import { createAction, error, success } from './handler.js';
 import type {
@@ -326,12 +326,12 @@ export interface TrpcActionOptions<TInput, TOutput> {
   /**
    * Zod schema for input validation (before sending to tRPC)
    */
-  input?: ZodSchema<TInput>;
+  input?: ZodType<TInput>;
 
   /**
    * Zod schema for output validation (after receiving from tRPC)
    */
-  output?: ZodSchema<TOutput>;
+  output?: ZodType<TOutput>;
 
   /**
    * Whether authentication is required

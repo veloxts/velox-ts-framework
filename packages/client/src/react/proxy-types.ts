@@ -17,13 +17,7 @@ import type {
   UseSuspenseQueryResult,
 } from '@tanstack/react-query';
 
-import type {
-  ClientFromRouter,
-  ClientProcedure,
-  ProcedureCollection,
-  ProcedureRecord,
-  RouteMap,
-} from '../types.js';
+import type { ClientFromRouter, ProcedureCollection, ProcedureRecord, RouteMap } from '../types.js';
 import type { VeloxQueryKey } from './types.js';
 
 // ============================================================================
@@ -382,24 +376,41 @@ export interface VeloxMutationOptions<TOutput, TInput, TContext = unknown>
 // ============================================================================
 
 /**
+ * Extracts the input type from a procedure's inputSchema.parse return type
+ * Falls back to `void` when no input schema is defined (allows omitting the argument).
+ * @internal
+ */
+type ExtractInput<T> = T extends { readonly inputSchema: { parse: (x: unknown) => infer I } }
+  ? I
+  : undefined;
+
+/**
+ * Extracts the output type from a procedure's outputSchema.parse return type
+ * Falls back to the handler's return type when no output schema is defined.
+ * @internal
+ */
+type ExtractOutput<T> = T extends { readonly outputSchema: { parse: (x: unknown) => infer O } }
+  ? O
+  : T extends { readonly handler: (...args: never[]) => infer R }
+    ? Awaited<R>
+    : unknown;
+
+/**
  * Resolves a procedure to its appropriate hook interface
  * based on whether it's a query or mutation
  *
- * With the TType generic parameter preserved through the procedure builder chain,
- * we can now properly discriminate between query and mutation types.
- * The ClientProcedure<TInput, TOutput, TType> captures the literal 'query' or 'mutation'
- * type, enabling accurate type resolution.
+ * Uses direct property access to extract types from the procedure,
+ * which is more reliable than structural inference via
+ * `extends ClientProcedure<infer I, infer O, infer T>` when working
+ * with complex types like CompiledProcedure that have many fields.
  *
  * @internal
  */
-type VeloxProcedureHooks<TProcedure> =
-  TProcedure extends ClientProcedure<infer TInput, infer TOutput, infer TType>
-    ? TType extends 'mutation'
-      ? VeloxMutationProcedure<TInput, TOutput>
-      : TType extends 'query'
-        ? VeloxQueryProcedure<TInput, TOutput>
-        : VeloxQueryProcedure<TInput, TOutput> // Fallback for union type (shouldn't happen with proper typing)
-    : never;
+type VeloxProcedureHooks<TProcedure> = TProcedure extends { readonly type: infer TType }
+  ? TType extends 'mutation'
+    ? VeloxMutationProcedure<ExtractInput<TProcedure>, ExtractOutput<TProcedure>>
+    : VeloxQueryProcedure<ExtractInput<TProcedure>, ExtractOutput<TProcedure>>
+  : never;
 
 // ============================================================================
 // Namespace and Router Types

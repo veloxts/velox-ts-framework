@@ -166,7 +166,9 @@ export const submit${entity.pascal}Form = createFormAction(async (formData, ctx)
   if (!result.success) {
     return {
       success: false,
-      errors: result.error.flatten().fieldErrors,
+      errors: Object.fromEntries(
+        result.error.issues.map(i => [i.path.join('.') || '_root', i.message])
+      ),
     };
   }
 

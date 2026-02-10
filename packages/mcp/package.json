@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/mcp",
-  "version": "0.6.101",
+  "version": "0.6.102",
   "description": "Model Context Protocol server for VeloxTS - expose project context to AI tools",
   "type": "module",
   "main": "dist/index.js",
@@ -38,7 +38,7 @@
     "typescript": "5.9.3"
   },
   "peerDependencies": {
-    "zod": ">=3.25.0"
+    "zod": "^4.3.0"
   },
   "devDependencies": {
     "@types/node": "25.1.0",

@@ -84,18 +84,26 @@ export interface ProcedureCollection<
 /**
  * Extracts the input type from a procedure
  *
- * Works with both ClientProcedure and @veloxts/router's CompiledProcedure
+ * Uses direct property access on inputSchema for reliable inference
+ * with both ClientProcedure and @veloxts/router's CompiledProcedure.
  */
-export type InferProcedureInput<T> =
-  T extends ClientProcedure<infer I, unknown, ProcedureType> ? I : never;
+export type InferProcedureInput<T> = T extends {
+  readonly inputSchema: { parse: (x: unknown) => infer I };
+}
+  ? I
+  : undefined;
 
 /**
  * Extracts the output type from a procedure
  *
- * Works with both ClientProcedure and @veloxts/router's CompiledProcedure
+ * Uses direct property access on outputSchema for reliable inference
+ * with both ClientProcedure and @veloxts/router's CompiledProcedure.
  */
-export type InferProcedureOutput<T> =
-  T extends ClientProcedure<unknown, infer O, ProcedureType> ? O : never;
+export type InferProcedureOutput<T> = T extends {
+  readonly outputSchema: { parse: (x: unknown) => infer O };
+}
+  ? O
+  : unknown;
 
 /**
  * Extracts the type (query/mutation) from a procedure

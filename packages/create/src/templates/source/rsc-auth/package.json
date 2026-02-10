@@ -33,7 +33,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "vinxi": "0.5.11",
-    "zod": "3.25.76"
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@types/bcrypt": "6.0.0",

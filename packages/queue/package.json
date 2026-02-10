@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/queue",
-  "version": "0.6.101",
+  "version": "0.6.102",
   "description": "Background job processing for VeloxTS framework",
   "type": "module",
   "main": "./dist/index.js",
@@ -36,7 +36,7 @@
     "fastify-plugin": "5.1.0",
     "ioredis": "5.9.2",
     "superjson": "2.2.6",
-    "zod": "3.25.76"
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.13",

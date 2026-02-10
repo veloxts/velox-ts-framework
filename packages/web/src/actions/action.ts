@@ -36,13 +36,7 @@
 
 import type { BaseContext } from '@veloxts/core';
 import type { CompiledProcedure } from '@veloxts/router';
-import {
-  ZodError,
-  type infer as ZodInfer,
-  type ZodSchema,
-  type ZodType,
-  type ZodTypeDef,
-} from 'zod';
+import { ZodError, type infer as ZodInfer, type ZodIssue, type ZodType } from 'zod';
 
 import { createH3Context, type H3ActionContext, isH3Context } from '../adapters/h3-adapter.js';
 import { toActionError } from './error-classifier.js';
@@ -87,8 +81,8 @@ type ValidatedAction<TInput, TOutput> = (input: TInput) => Promise<ActionResult<
  * @public
  */
 interface ActionConfig<TInput, TOutput, TContext extends ActionContext> {
-  inputSchema?: ZodSchema<TInput>;
-  outputSchema?: ZodSchema<TOutput>;
+  inputSchema?: ZodType<TInput>;
+  outputSchema?: ZodType<TOutput>;
   requireAuth: boolean;
   onError?: ErrorHandler<TContext>;
 }
@@ -185,7 +179,7 @@ interface ActionBuilder<
    *   .run(async ({ id }) => { ... });
    * ```
    */
-  input<TSchema extends ZodType<unknown, ZodTypeDef, unknown>>(
+  input<TSchema extends ZodType>(
     schema: TSchema
   ): ActionBuilder<ZodInfer<TSchema>, TOutput, TContext>;
 
@@ -201,7 +195,7 @@ interface ActionBuilder<
    *   .run(async (input) => { ... });
    * ```
    */
-  output<TSchema extends ZodType<unknown, ZodTypeDef, unknown>>(
+  output<TSchema extends ZodType>(
     schema: TSchema
   ): ActionBuilder<TInput, ZodInfer<TSchema>, TContext>;
 
@@ -293,8 +287,8 @@ function fail(
 function formatZodError(err: unknown): ActionError {
   if (err instanceof ZodError) {
     return fail('VALIDATION_ERROR', 'Validation failed', {
-      errors: err.errors.map((e) => ({
-        path: e.path.join('.'),
+      errors: err.issues.map((e: ZodIssue) => ({
+        path: e.path.filter((p): p is string | number => typeof p !== 'symbol').join('.'),
         message: e.message,
       })),
     });
@@ -313,10 +307,7 @@ function formatZodError(err: unknown): ActionError {
  * @see https://zod.dev/?id=parseasync - Zod async parsing docs
  * @internal
  */
-async function validateWithSchema<T>(
-  schema: ZodSchema<T>,
-  data: unknown
-): Promise<ActionResult<T>> {
+async function validateWithSchema<T>(schema: ZodType<T>, data: unknown): Promise<ActionResult<T>> {
   try {
     // Try synchronous parse first (faster for most schemas)
     const result = schema.parse(data);
@@ -402,17 +393,17 @@ function createBuilder<
   TContext extends ActionContext = ActionContext,
 >(config: ActionConfig<TInput, TOutput, TContext>): ActionBuilder<TInput, TOutput, TContext> {
   return {
-    input<TSchema extends ZodType<unknown, ZodTypeDef, unknown>>(schema: TSchema) {
+    input<TSchema extends ZodType>(schema: TSchema) {
       return createBuilder<ZodInfer<TSchema>, TOutput, TContext>({
         ...config,
-        inputSchema: schema as ZodSchema<ZodInfer<TSchema>>,
+        inputSchema: schema as ZodType<ZodInfer<TSchema>>,
       } as ActionConfig<ZodInfer<TSchema>, TOutput, TContext>);
     },
 
-    output<TSchema extends ZodType<unknown, ZodTypeDef, unknown>>(schema: TSchema) {
+    output<TSchema extends ZodType>(schema: TSchema) {
       return createBuilder<TInput, ZodInfer<TSchema>, TContext>({
         ...config,
-        outputSchema: schema as ZodSchema<ZodInfer<TSchema>>,
+        outputSchema: schema as ZodType<ZodInfer<TSchema>>,
       } as ActionConfig<TInput, ZodInfer<TSchema>, TContext>);
     },
 
@@ -522,7 +513,7 @@ interface Action {
    * });
    * ```
    */
-  <TSchema extends ZodType<unknown, ZodTypeDef, unknown>, TOutput>(
+  <TSchema extends ZodType, TOutput>(
     schema: TSchema,
     handler: ActionHandlerFn<ZodInfer<TSchema>, TOutput, ActionContext>
   ): ValidatedAction<ZodInfer<TSchema>, TOutput>;
@@ -541,7 +532,7 @@ interface Action {
    *   });
    * ```
    */
-  input<TSchema extends ZodType<unknown, ZodTypeDef, unknown>>(
+  input<TSchema extends ZodType>(
     schema: TSchema
   ): ActionBuilder<ZodInfer<TSchema>, unknown, ActionContext>;
 
@@ -549,7 +540,7 @@ interface Action {
    * Creates a builder starting with output schema.
    * Useful when input is not needed (e.g., queries).
    */
-  output<TSchema extends ZodType<unknown, ZodTypeDef, unknown>>(
+  output<TSchema extends ZodType>(
     schema: TSchema
   ): ActionBuilder<unknown, ZodInfer<TSchema>, ActionContext>;
 
@@ -729,32 +720,32 @@ interface Action {
  */
 const action: Action = Object.assign(
   // Primary function signature: action(schema, handler)
-  function actionFn<TSchema extends ZodType<unknown, ZodTypeDef, unknown>, TOutput>(
+  function actionFn<TSchema extends ZodType, TOutput>(
     schema: TSchema,
     handler: ActionHandlerFn<ZodInfer<TSchema>, TOutput, ActionContext>
   ): ValidatedAction<ZodInfer<TSchema>, TOutput> {
     const config: ActionConfig<ZodInfer<TSchema>, TOutput, ActionContext> = {
-      inputSchema: schema as ZodSchema<ZodInfer<TSchema>>,
+      inputSchema: schema as ZodType<ZodInfer<TSchema>>,
       requireAuth: false,
     };
     return createValidatedAction(config, handler);
   },
   // Fluent builder methods
   {
-    input<TSchema extends ZodType<unknown, ZodTypeDef, unknown>>(
+    input<TSchema extends ZodType>(
       schema: TSchema
     ): ActionBuilder<ZodInfer<TSchema>, unknown, ActionContext> {
       return createBuilder<ZodInfer<TSchema>, unknown, ActionContext>({
-        inputSchema: schema as ZodSchema<ZodInfer<TSchema>>,
+        inputSchema: schema as ZodType<ZodInfer<TSchema>>,
         requireAuth: false,
       });
     },
 
-    output<TSchema extends ZodType<unknown, ZodTypeDef, unknown>>(
+    output<TSchema extends ZodType>(
       schema: TSchema
     ): ActionBuilder<unknown, ZodInfer<TSchema>, ActionContext> {
       return createBuilder<unknown, ZodInfer<TSchema>, ActionContext>({
-        outputSchema: schema as ZodSchema<ZodInfer<TSchema>>,
+        outputSchema: schema as ZodType<ZodInfer<TSchema>>,
         requireAuth: false,
       });
     },
