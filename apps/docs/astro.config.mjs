@@ -172,6 +172,26 @@ export default defineConfig({
           ],
         },
       ],
+      head: [
+        {
+          tag: 'script',
+          attrs: {
+            src: `https://www.googletagmanager.com/gtag/js?id=G-2D5REZXNSM`,
+            async: true,
+          },
+        },
+        {
+          tag: 'script',
+          attrs: {},
+          content: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+          
+            gtag('config', 'G-2D5REZXNSM');
+          `,
+        },
+      ],
     }),
   ],
 });
