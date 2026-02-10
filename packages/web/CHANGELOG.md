@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.103
+
+### Patch Changes
+
+- chore(deps): upgrade Zod from v3 to v4
+- Updated dependencies
+  - @veloxts/auth@0.6.103
+  - @veloxts/client@0.6.103
+  - @veloxts/core@0.6.103
+  - @veloxts/router@0.6.103
+
 ## 0.6.102
 
 ### Patch Changes

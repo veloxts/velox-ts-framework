@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.6.103
+
+### Patch Changes
+
+- chore(deps): upgrade Zod from v3 to v4
+
 ## 0.6.102
 
 ### Patch Changes

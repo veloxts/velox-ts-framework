@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.6.103
+
+### Patch Changes
+
+- chore(deps): upgrade Zod from v3 to v4
+- Updated dependencies
+  - @veloxts/auth@0.6.103
+  - @veloxts/cache@0.6.103
+  - @veloxts/core@0.6.103
+  - @veloxts/events@0.6.103
+  - @veloxts/mail@0.6.103
+  - @veloxts/orm@0.6.103
+  - @veloxts/queue@0.6.103
+  - @veloxts/router@0.6.103
+  - @veloxts/scheduler@0.6.103
+  - @veloxts/storage@0.6.103
+  - @veloxts/validation@0.6.103
+
 ## 0.6.102
 
 ### Patch Changes
