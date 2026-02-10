@@ -105,6 +105,10 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Frontend Client',
+          items: [{ slug: 'client/overview' }],
+        },
+        {
           label: 'React Server Components',
           items: [
             { slug: 'rsc/overview' },
@@ -112,7 +116,6 @@ export default defineConfig({
             { slug: 'rsc/file-routing' },
             { slug: 'rsc/layouts' },
             { slug: 'rsc/trpc-bridge' },
-            { slug: 'rsc/client-package' },
           ],
         },
         {
