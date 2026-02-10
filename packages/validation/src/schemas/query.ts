@@ -35,9 +35,9 @@ import { z } from 'zod';
  * }))
  * ```
  */
-export function queryNumber(): z.ZodNumber;
-export function queryNumber(defaultValue: number): z.ZodDefault<z.ZodNumber>;
-export function queryNumber(defaultValue?: number): z.ZodNumber | z.ZodDefault<z.ZodNumber> {
+export function queryNumber(): z.ZodType<number>;
+export function queryNumber(defaultValue: number): z.ZodType<number>;
+export function queryNumber(defaultValue?: number): z.ZodType<number> {
   const base = z.coerce.number();
   return defaultValue !== undefined ? base.default(defaultValue) : base;
 }
@@ -56,9 +56,9 @@ export function queryNumber(defaultValue?: number): z.ZodNumber | z.ZodDefault<z
  * }))
  * ```
  */
-export function queryInt(): z.ZodNumber;
-export function queryInt(defaultValue: number): z.ZodDefault<z.ZodNumber>;
-export function queryInt(defaultValue?: number): z.ZodNumber | z.ZodDefault<z.ZodNumber> {
+export function queryInt(): z.ZodType<number>;
+export function queryInt(defaultValue: number): z.ZodType<number>;
+export function queryInt(defaultValue?: number): z.ZodType<number> {
   const base = z.coerce.number().int();
   return defaultValue !== undefined ? base.default(defaultValue) : base;
 }
@@ -166,7 +166,7 @@ export function queryArray(
     /** Separator character (default: ',') */
     separator?: string;
   } = {}
-): z.ZodType<string[], z.ZodTypeDef, string> {
+): z.ZodType {
   const { min, max, separator = ',' } = options;
 
   // Split by separator, trim whitespace, and filter out empty strings.
@@ -222,21 +222,21 @@ export function queryArray(
  * // Result: { sort: 'desc', status: 'active' }
  * ```
  */
-export function queryEnum<T extends readonly [string, ...string[]]>(
+export function queryEnum<const T extends readonly [string, ...string[]]>(
   values: T
-): z.ZodEnum<[T[number], ...T[number][]]>;
-export function queryEnum<T extends readonly [string, ...string[]]>(
+): z.ZodEnum<{ [K in T[number]]: K }>;
+export function queryEnum<const T extends readonly [string, ...string[]]>(
   values: T,
   defaultValue: T[number]
-): z.ZodDefault<z.ZodEnum<[T[number], ...T[number][]]>>;
-export function queryEnum<T extends readonly [string, ...string[]]>(
+): z.ZodDefault<z.ZodEnum<{ [K in T[number]]: K }>>;
+export function queryEnum<const T extends readonly [string, ...string[]]>(
   values: T,
   defaultValue?: T[number]
-): z.ZodEnum<[T[number], ...T[number][]]> | z.ZodDefault<z.ZodEnum<[T[number], ...T[number][]]>> {
-  // Cast to mutable tuple type that Zod expects
-  const mutableValues = [...values] as [T[number], ...T[number][]];
-  const base = z.enum(mutableValues);
-  return defaultValue !== undefined ? base.default(defaultValue) : base;
+): z.ZodEnum<{ [K in T[number]]: K }> | z.ZodDefault<z.ZodEnum<{ [K in T[number]]: K }>> {
+  const base = z.enum(values as unknown as string[]);
+  return (defaultValue !== undefined ? base.default(defaultValue) : base) as
+    | z.ZodEnum<{ [K in T[number]]: K }>
+    | z.ZodDefault<z.ZodEnum<{ [K in T[number]]: K }>>;
 }
 
 // ============================================================================

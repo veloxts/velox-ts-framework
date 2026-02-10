@@ -8,7 +8,7 @@
  */
 
 import { ValidationError } from '@veloxts/core';
-import { ZodError, type ZodType, type ZodTypeDef } from 'zod';
+import { ZodError, type ZodType } from 'zod';
 
 import type { AnySchema, AnyZodSchema, SafeParseResult } from './types.js';
 import { isSchema, isZodSchema } from './types.js';
@@ -50,7 +50,12 @@ export function zodErrorToValidationError(
   error: ZodError,
   customMessage?: string
 ): ValidationError {
-  const fields = formatZodErrors(error.issues);
+  const fields = formatZodErrors(
+    error.issues.map((i) => ({
+      path: i.path.filter((p): p is string | number => typeof p !== 'symbol'),
+      message: i.message,
+    }))
+  );
   const message = customMessage ?? 'Validation failed';
   return new ValidationError(message, fields);
 }
@@ -80,7 +85,7 @@ export function zodErrorToValidationError(
  * ```
  */
 export function parse<T>(
-  schema: ZodType<T, ZodTypeDef, unknown> | AnySchema,
+  schema: (ZodType & { parse: (data: unknown) => T }) | AnySchema,
   data: unknown,
   errorMessage?: string
 ): T {
@@ -94,7 +99,7 @@ export function parse<T>(
     }
 
     if (isZodSchema(schema)) {
-      return (schema as ZodType<T, ZodTypeDef, unknown>).parse(data);
+      return (schema as { parse: (data: unknown) => T }).parse(data);
     }
 
     throw new Error('Invalid schema provided to parse()');
@@ -130,7 +135,7 @@ export function parse<T>(
  * ```
  */
 export function safeParse<T>(
-  schema: ZodType<T, ZodTypeDef, unknown> | AnySchema,
+  schema: (ZodType & { parse: (data: unknown) => T }) | AnySchema,
   data: unknown
 ): SafeParseResult<T> {
   if (isSchema(schema)) {
@@ -138,17 +143,17 @@ export function safeParse<T>(
   }
 
   if (isZodSchema(schema)) {
-    const zodSchema = schema as ZodType<T, ZodTypeDef, unknown>;
+    const zodSchema = schema as ZodType & { parse: (data: unknown) => T };
     const result = zodSchema.safeParse(data);
 
     if (result.success) {
-      return { success: true, data: result.data };
+      return { success: true, data: result.data as T };
     }
 
     return {
       success: false,
       error: result.error.issues.map((issue) => ({
-        path: issue.path,
+        path: issue.path.filter((p): p is string | number => typeof p !== 'symbol'),
         message: issue.message,
         code: issue.code,
       })),
@@ -181,8 +186,8 @@ export function safeParse<T>(
  * const user = userValidator.parse(request.body);
  * ```
  */
-export function createValidator<TOutput, TInput = unknown>(
-  schema: ZodType<TOutput, ZodTypeDef, TInput>
+export function createValidator<TOutput>(
+  schema: ZodType & { parse: (data: unknown) => TOutput }
 ): Validator<TOutput> {
   return {
     parse(data: unknown): TOutput {
@@ -233,7 +238,7 @@ export interface Validator<T> {
  */
 export function parseAll<T extends Record<string, [AnyZodSchema, unknown]>>(
   validations: T
-): { [K in keyof T]: T[K][0] extends ZodType<infer O, ZodTypeDef, unknown> ? O : never } {
+): { [K in keyof T]: T[K][0] extends { parse: (data: unknown) => infer O } ? O : never } {
   const results: Record<string, unknown> = {};
   const allErrors: Record<string, string> = {};
 
@@ -257,7 +262,7 @@ export function parseAll<T extends Record<string, [AnyZodSchema, unknown]>>(
   }
 
   return results as {
-    [K in keyof T]: T[K][0] extends ZodType<infer O, ZodTypeDef, unknown> ? O : never;
+    [K in keyof T]: T[K][0] extends { parse: (data: unknown) => infer O } ? O : never;
   };
 }
 
@@ -283,7 +288,7 @@ export function parseAll<T extends Record<string, [AnyZodSchema, unknown]>>(
  * ```
  */
 export function createTypeGuard<T>(
-  schema: ZodType<T, ZodTypeDef, unknown>
+  schema: ZodType & { parse: (data: unknown) => T }
 ): (value: unknown) => value is T {
   return (value: unknown): value is T => {
     const result = schema.safeParse(value);
@@ -310,7 +315,7 @@ export function createTypeGuard<T>(
  * ```
  */
 export function assertSchema<T>(
-  schema: ZodType<T, ZodTypeDef, unknown>,
+  schema: ZodType & { parse: (data: unknown) => T },
   value: unknown,
   errorMessage?: string
 ): asserts value is T {

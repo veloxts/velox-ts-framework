@@ -72,7 +72,7 @@ describe('schema-converter', () => {
     it('handles nullable types', () => {
       const schema = z.string().nullable();
       const result = zodSchemaToJsonSchema(schema);
-      // zod-to-json-schema represents nullable as anyOf
+      // Zod 4 represents nullable as anyOf or nullable
       expect(result?.anyOf ?? result?.nullable).toBeDefined();
     });
 

@@ -173,7 +173,7 @@ z.array(z.string())
 ### Enum Validation
 \`\`\`typescript
 z.enum(['active', 'inactive', 'pending'])
-z.nativeEnum(StatusEnum)
+z.enum(StatusEnum)
 \`\`\`
 
 ### Union & Intersection

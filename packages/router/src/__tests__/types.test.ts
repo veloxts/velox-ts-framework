@@ -845,7 +845,7 @@ describe('Type Inference - Edge Cases', () => {
       }>();
     });
 
-    it('should handle z.nativeEnum', () => {
+    it('should handle z.enum with native enum', () => {
       enum Status {
         Pending = 'pending',
         Active = 'active',
@@ -853,7 +853,7 @@ describe('Type Inference - Edge Cases', () => {
       }
 
       const schema = z.object({
-        status: z.nativeEnum(Status),
+        status: z.enum(Status),
       });
 
       const proc = procedure()

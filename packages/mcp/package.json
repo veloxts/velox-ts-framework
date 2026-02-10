@@ -38,7 +38,7 @@
     "typescript": "5.9.3"
   },
   "peerDependencies": {
-    "zod": ">=3.25.0"
+    "zod": "^4.3.0"
   },
   "devDependencies": {
     "@types/node": "25.1.0",

@@ -76,7 +76,7 @@
     "radix3": "1.1.2",
     "vinxi": "0.5.11",
     "vite-tsconfig-paths": "6.0.5",
-    "zod": "3.25.76"
+    "zod": "4.3.6"
   },
   "peerDependencies": {
     "@veloxts/auth": "workspace:*",

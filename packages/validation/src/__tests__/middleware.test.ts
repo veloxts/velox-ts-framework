@@ -190,7 +190,7 @@ describe('Validation Functions', () => {
     it('should throw error for invalid schema', () => {
       const invalidSchema = { not: 'a schema' };
 
-      expect(() => parse(invalidSchema as z.ZodTypeAny, {})).toThrow(
+      expect(() => parse(invalidSchema as z.ZodType, {})).toThrow(
         'Invalid schema provided to parse()'
       );
     });
@@ -236,7 +236,7 @@ describe('Validation Functions', () => {
     it('should return error for invalid schema', () => {
       const invalidSchema = { not: 'a schema' };
 
-      const result = safeParse(invalidSchema as z.ZodTypeAny, {});
+      const result = safeParse(invalidSchema as z.ZodType, {});
 
       expect(result.success).toBe(false);
       if (!result.success) {

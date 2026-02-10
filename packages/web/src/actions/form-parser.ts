@@ -8,7 +8,7 @@
  * @module @veloxts/web/actions/form-parser
  */
 
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 
 import type { ActionResult } from './types.js';
 
@@ -223,7 +223,7 @@ export function formDataToObject(
  */
 export function parseFormDataToSchema<T>(
   formData: FormData,
-  schema: ZodSchema<T>,
+  schema: ZodType<T>,
   options: FormParseOptions = {}
 ): ActionResult<T> {
   try {
@@ -270,7 +270,7 @@ export function parseFormDataToSchema<T>(
  */
 export async function parseFormDataToSchemaAsync<T>(
   formData: FormData,
-  schema: ZodSchema<T>,
+  schema: ZodType<T>,
   options: FormParseOptions = {}
 ): Promise<ActionResult<T>> {
   try {

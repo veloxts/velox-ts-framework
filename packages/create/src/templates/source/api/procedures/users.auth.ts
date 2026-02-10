@@ -71,7 +71,7 @@ export const userProcedures = procedures('users', {
 
   updateUser: procedure()
     .guard(authenticated)
-    .input(z.object({ id: z.string().uuid() }).merge(UpdateUserInput))
+    .input(z.object({ id: z.string().uuid() }).extend(UpdateUserInput.shape))
     .output(UserSchema)
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;
@@ -92,7 +92,7 @@ export const userProcedures = procedures('users', {
 
   patchUser: procedure()
     .guard(authenticated)
-    .input(z.object({ id: z.string().uuid() }).merge(UpdateUserInput))
+    .input(z.object({ id: z.string().uuid() }).extend(UpdateUserInput.shape))
     .output(UserSchema)
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;

@@ -68,7 +68,7 @@ export type OmitTimestamps<T> = Omit<T, 'createdAt' | 'updatedAt' | 'deletedAt'>
  * ```
  */
 export function prismaDecimal() {
-  return z.any().transform((val): number => {
+  return z.unknown().transform((val): number => {
     if (val === null || val === undefined) {
       throw new Error('Expected Decimal, got null/undefined');
     }
@@ -98,7 +98,7 @@ export function prismaDecimal() {
  * Returns null for null/undefined inputs, otherwise converts to number.
  */
 export function prismaDecimalNullable() {
-  return z.any().transform((val): number | null => {
+  return z.unknown().transform((val): number | null => {
     if (val === null || val === undefined) {
       return null;
     }
@@ -125,7 +125,7 @@ export function prismaDecimalNullable() {
  * Returns undefined for null/undefined inputs, otherwise converts to number.
  */
 export function prismaDecimalOptional() {
-  return z.any().transform((val): number | undefined => {
+  return z.unknown().transform((val): number | undefined => {
     if (val === null || val === undefined) {
       return undefined;
     }
@@ -219,7 +219,7 @@ export const dateToIsoOptional = dateToISOStringOptional;
  * const UserSchema = z.object({
  *   id: z.string().uuid(),
  *   name: z.string(),
- * }).merge(timestamps);
+ * }).extend(timestamps.shape);
  * ```
  */
 export const timestamps = z.object({
@@ -283,7 +283,7 @@ export function withTimestamps<T extends ZodRawShape>(
 ): ZodObject<T & typeof timestampShape> {
   const { createdAt = true, updatedAt = true, deletedAt = false } = config;
 
-  const extensions: ZodRawShape = {};
+  const extensions: Record<string, z.ZodType> = {};
 
   if (createdAt) {
     extensions.createdAt = dateToISOString();
@@ -295,7 +295,7 @@ export function withTimestamps<T extends ZodRawShape>(
     extensions.deletedAt = dateToISOStringNullable();
   }
 
-  return schema.extend(extensions) as ZodObject<T & typeof timestampShape>;
+  return schema.extend(extensions) as unknown as ZodObject<T & typeof timestampShape>;
 }
 
 // Type helper for withTimestamps return type inference

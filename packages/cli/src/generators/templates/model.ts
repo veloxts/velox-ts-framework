@@ -475,7 +475,7 @@ export const ${entity.camel}Procedures = procedures('${entity.plural}', {
    * PUT /${entity.plural}/:id
    */
   update${entity.pascal}: procedure()
-    .input(z.object({ id: z.string().uuid() }).merge(Update${entity.pascal}Input))
+    .input(z.object({ id: z.string().uuid() }).extend(Update${entity.pascal}Input.shape))
     .output(${entity.pascal}Schema)
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;
@@ -491,7 +491,7 @@ export const ${entity.camel}Procedures = procedures('${entity.plural}', {
    * PATCH /${entity.plural}/:id
    */
   patch${entity.pascal}: procedure()
-    .input(z.object({ id: z.string().uuid() }).merge(Update${entity.pascal}Input))
+    .input(z.object({ id: z.string().uuid() }).extend(Update${entity.pascal}Input.shape))
     .output(${entity.pascal}Schema)
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;

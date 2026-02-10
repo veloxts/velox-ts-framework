@@ -96,8 +96,8 @@ importers:
         specifier: 17.2.3
         version: 17.2.3
       zod:
-        specifier: 3.25.76
-        version: 3.25.76
+        specifier: 4.3.6
+        version: 4.3.6
     devDependencies:
       fastify:
         specifier: 5.7.4
@@ -375,8 +375,8 @@ importers:
         specifier: 8.19.0
         version: 8.19.0
       zod:
-        specifier: 3.25.76
-        version: 3.25.76
+        specifier: 4.3.6
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: 25.1.0
@@ -424,8 +424,8 @@ importers:
         specifier: 6.9.1
         version: 6.9.1(@react-email/render@2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
       zod:
-        specifier: 3.25.76
-        version: 3.25.76
+        specifier: 4.3.6
+        version: 4.3.6
     devDependencies:
       '@biomejs/biome':
         specifier: 2.3.13
@@ -462,7 +462,7 @@ importers:
     dependencies:
       '@modelcontextprotocol/sdk':
         specifier: 1.25.3
-        version: 1.25.3(hono@4.11.7)(zod@4.1.13)
+        version: 1.25.3(hono@4.11.7)(zod@4.3.6)
       '@veloxts/cli':
         specifier: workspace:*
         version: link:../cli
@@ -476,8 +476,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       zod:
-        specifier: '>=3.25.0'
-        version: 4.1.13
+        specifier: ^4.3.0
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: 25.1.0
@@ -541,8 +541,8 @@ importers:
         specifier: 2.2.6
         version: 2.2.6
       zod:
-        specifier: 3.25.76
-        version: 3.25.76
+        specifier: 4.3.6
+        version: 4.3.6
     devDependencies:
       '@biomejs/biome':
         specifier: 2.3.13
@@ -580,9 +580,6 @@ importers:
       fastify:
         specifier: 5.7.4
         version: 5.7.4
-      zod-to-json-schema:
-        specifier: 3.25.1
-        version: 3.25.1(zod@3.25.76)
     devDependencies:
       '@vitest/coverage-v8':
         specifier: 4.0.18
@@ -600,8 +597,8 @@ importers:
         specifier: 4.0.18
         version: 4.0.18(@types/node@25.1.0)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1))(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       zod:
-        specifier: 3.25.76
-        version: 3.25.76
+        specifier: 4.3.6
+        version: 4.3.6
 
   packages/scheduler:
     dependencies:
@@ -643,8 +640,8 @@ importers:
         specifier: 3.0.2
         version: 3.0.2
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 4.3.6
+        version: 4.3.6
     devDependencies:
       '@aws-sdk/client-s3':
         specifier: 3.980.0
@@ -683,8 +680,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       zod:
-        specifier: 3.25.76
-        version: 3.25.76
+        specifier: 4.3.6
+        version: 4.3.6
     devDependencies:
       '@vitest/coverage-v8':
         specifier: 4.0.18
@@ -714,8 +711,8 @@ importers:
         specifier: workspace:*
         version: link:../validation
       zod:
-        specifier: ^3.25.0
-        version: 3.25.76
+        specifier: ^4.3.0
+        version: 4.3.6
     devDependencies:
       '@veloxts/cache':
         specifier: workspace:*
@@ -757,8 +754,8 @@ importers:
         specifier: 6.0.5
         version: 6.0.5(typescript@5.9.3)(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
       zod:
-        specifier: 3.25.76
-        version: 3.25.76
+        specifier: 4.3.6
+        version: 4.3.6
     devDependencies:
       '@types/jsdom':
         specifier: 27.0.0
@@ -7988,14 +7985,14 @@ packages:
       typescript: ^4.9.4 || ^5.0.2
       zod: ^3
 
-  zod@3.24.4:
-    resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
-
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zod@4.1.13:
     resolution: {integrity: sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig==}
+
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -8772,7 +8769,7 @@ snapshots:
       jose: 6.1.3
       kysely: 0.28.8
       nanostores: 1.1.0
-      zod: 4.1.13
+      zod: 4.3.6
 
   '@better-auth/telemetry@1.4.5(@better-auth/core@1.4.5(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.18)(better-call@1.1.4(zod@4.1.13))(jose@6.1.3)(kysely@0.28.8)(nanostores@1.1.0))':
     dependencies:
@@ -9600,7 +9597,7 @@ snapshots:
     dependencies:
       minimist: 1.2.8
 
-  '@modelcontextprotocol/sdk@1.25.3(hono@4.11.7)(zod@4.1.13)':
+  '@modelcontextprotocol/sdk@1.25.3(hono@4.11.7)(zod@4.3.6)':
     dependencies:
       '@hono/node-server': 1.19.9(hono@4.11.7)
       ajv: 8.17.1
@@ -9616,8 +9613,8 @@ snapshots:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 4.1.13
-      zod-to-json-schema: 3.25.1(zod@4.1.13)
+      zod: 4.3.6
+      zod-to-json-schema: 3.25.1(zod@4.3.6)
     transitivePeerDependencies:
       - hono
       - supports-color
@@ -16013,7 +16010,7 @@ snapshots:
       unenv: 1.10.0
       unstorage: 1.17.3(db0@0.3.4(@electric-sql/pglite@0.3.15)(better-sqlite3@12.6.2)(mysql2@3.15.3))(ioredis@5.9.2)
       vite: 6.4.1(@types/node@25.1.0)(jiti@2.6.1)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
-      zod: 4.1.13
+      zod: 4.3.6
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -16319,19 +16316,19 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  zod-to-json-schema@3.25.1(zod@4.1.13):
+  zod-to-json-schema@3.25.1(zod@4.3.6):
     dependencies:
-      zod: 4.1.13
+      zod: 4.3.6
 
   zod-to-ts@1.2.0(typescript@5.9.3)(zod@3.25.76):
     dependencies:
       typescript: 5.9.3
       zod: 3.25.76
 
-  zod@3.24.4: {}
-
   zod@3.25.76: {}
 
   zod@4.1.13: {}
+
+  zod@4.3.6: {}
 
   zwitch@2.0.4: {}

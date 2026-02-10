@@ -605,7 +605,7 @@ ${paginationCode}
    * PUT /api/${kebab}s/:id
    */
   update${pascal}: procedure
-    .input(${camel}IdParamSchema.merge(update${pascal}InputSchema))
+    .input(${camel}IdParamSchema.extend(update${pascal}InputSchema.shape))
     .output(${camel}Schema)
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;
@@ -620,7 +620,7 @@ ${paginationCode}
    * PATCH /api/${kebab}s/:id
    */
   patch${pascal}: procedure
-    .input(${camel}IdParamSchema.merge(patch${pascal}InputSchema))
+    .input(${camel}IdParamSchema.extend(patch${pascal}InputSchema.shape))
     .output(${camel}Schema)
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;

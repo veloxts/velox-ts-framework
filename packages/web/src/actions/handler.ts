@@ -7,7 +7,7 @@
  * @module @veloxts/web/actions/handler
  */
 
-import { ZodError, type ZodSchema } from 'zod';
+import { ZodError, type ZodIssue, type ZodType } from 'zod';
 
 import { toActionError } from './error-classifier.js';
 import type {
@@ -119,15 +119,15 @@ export function createActionContext(request: Request): ActionContext {
 /**
  * Validates input against a Zod schema
  */
-async function validateInput<T>(schema: ZodSchema<T>, input: unknown): Promise<ActionResult<T>> {
+async function validateInput<T>(schema: ZodType<T>, input: unknown): Promise<ActionResult<T>> {
   try {
     const result = await schema.parseAsync(input);
     return success(result);
   } catch (err) {
     if (err instanceof ZodError) {
       return error('VALIDATION_ERROR', 'Input validation failed', {
-        errors: err.errors.map((e) => ({
-          path: e.path.join('.'),
+        errors: err.issues.map((e: ZodIssue) => ({
+          path: e.path.filter((p): p is string | number => typeof p !== 'symbol').join('.'),
           message: e.message,
         })),
       });
@@ -139,7 +139,7 @@ async function validateInput<T>(schema: ZodSchema<T>, input: unknown): Promise<A
 /**
  * Validates output against a Zod schema
  */
-async function validateOutput<T>(schema: ZodSchema<T>, output: unknown): Promise<ActionResult<T>> {
+async function validateOutput<T>(schema: ZodType<T>, output: unknown): Promise<ActionResult<T>> {
   try {
     const result = await schema.parseAsync(output);
     return success(result);

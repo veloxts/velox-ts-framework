@@ -34,7 +34,7 @@ const complexInput = procedure().input(
     name: z.string(),
     age: z.number().optional(),
     tags: z.array(z.string()),
-    metadata: z.record(z.unknown()),
+    metadata: z.record(z.string(), z.unknown()),
   })
 );
 expectType<

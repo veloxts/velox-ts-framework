@@ -71,7 +71,7 @@ export function createIdSchema<T extends 'uuid' | 'integer' | 'string'>(
 ): T extends 'uuid'
   ? typeof uuidSchema
   : T extends 'integer'
-    ? z.ZodPipeline<z.ZodEffects<z.ZodString, number, string>, z.ZodNumber>
+    ? z.ZodType<number, unknown>
     : z.ZodString {
   switch (type) {
     case 'uuid':
@@ -80,7 +80,7 @@ export function createIdSchema<T extends 'uuid' | 'integer' | 'string'>(
       return z
         .string()
         .transform((val) => parseInt(val, 10))
-        .pipe(z.number().int().positive()) as ReturnType<typeof createIdSchema<T>>;
+        .pipe(z.number().int().positive()) as unknown as ReturnType<typeof createIdSchema<T>>;
     default:
       return z.string().min(1) as ReturnType<typeof createIdSchema<T>>;
   }
@@ -120,6 +120,20 @@ export type BaseEntity = z.infer<typeof baseEntitySchema>;
 // ============================================================================
 // Schema Composition Utilities
 // ============================================================================
+
+/**
+ * Builds a `{ key: true }` mask from an array of string keys.
+ *
+ * Zod 4's `.partial()`, `.omit()`, and `.pick()` accept a mask object whose
+ * exact type is derived from the schema's shape. We build a plain
+ * `Record<string, true>` at runtime and cast it to the schema-specific mask
+ * type at each call-site via `Parameters<typeof schema.method>[0]`.
+ */
+function buildMask(keys: readonly string[]): Record<string, true> {
+  const mask: Record<string, true> = {};
+  for (const key of keys) mask[key] = true;
+  return mask;
+}
 
 /**
  * Makes all fields in a schema optional
@@ -162,20 +176,10 @@ export function partialExcept<T extends z.ZodRawShape, K extends keyof T & strin
     [P in Exclude<keyof T, K>]: z.ZodOptional<T[P]>;
   }
 > {
-  const shape = schema.shape;
-  const requiredKeys = new Set<string>(keys);
+  type PartialMask = Parameters<typeof schema.partial>[0];
+  const keysToOptional = Object.keys(schema.shape).filter((k) => !keys.includes(k as K));
 
-  const newShape: z.ZodRawShape = {};
-
-  for (const key in shape) {
-    if (requiredKeys.has(key)) {
-      newShape[key] = shape[key];
-    } else {
-      newShape[key] = shape[key].optional();
-    }
-  }
-
-  return z.object(newShape) as z.ZodObject<
+  return schema.partial(buildMask(keysToOptional) as PartialMask) as z.ZodObject<
     {
       [P in K]: T[P];
     } & {
@@ -200,18 +204,8 @@ export function omitFields<T extends z.ZodRawShape, K extends keyof T & string>(
   schema: z.ZodObject<T>,
   keys: readonly K[]
 ): z.ZodObject<Omit<T, K>> {
-  // Build the omit mask manually to avoid Zod's strict typing
-  const shape = schema.shape;
-  const keysToOmit = new Set<string>(keys);
-  const newShape: z.ZodRawShape = {};
-
-  for (const key in shape) {
-    if (!keysToOmit.has(key)) {
-      newShape[key] = shape[key];
-    }
-  }
-
-  return z.object(newShape) as z.ZodObject<Omit<T, K>>;
+  type OmitMask = Parameters<typeof schema.omit>[0];
+  return schema.omit(buildMask(keys) as OmitMask) as z.ZodObject<Omit<T, K>>;
 }
 
 /**
@@ -230,17 +224,8 @@ export function pickFields<T extends z.ZodRawShape, K extends keyof T & string>(
   schema: z.ZodObject<T>,
   keys: readonly K[]
 ): z.ZodObject<Pick<T, K>> {
-  // Build the pick mask manually to avoid Zod's strict typing
-  const shape = schema.shape;
-  const newShape: z.ZodRawShape = {};
-
-  for (const key of keys) {
-    if (key in shape) {
-      newShape[key] = shape[key];
-    }
-  }
-
-  return z.object(newShape) as z.ZodObject<Pick<T, K>>;
+  type PickMask = Parameters<typeof schema.pick>[0];
+  return schema.pick(buildMask(keys) as PickMask) as z.ZodObject<Pick<T, K>>;
 }
 
 // ============================================================================

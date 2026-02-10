@@ -134,7 +134,7 @@ export const FIELD_TYPES: readonly FieldTypeInfo[] = [
     label: 'JSON',
     description: 'JSON data',
     prismaType: 'Json',
-    zodSchema: 'z.record(z.unknown())',
+    zodSchema: 'z.record(z.string(), z.unknown())',
   },
   {
     type: 'enum',
