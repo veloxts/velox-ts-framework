@@ -106,9 +106,7 @@ export default defineConfig({
         },
         {
           label: 'Frontend Client',
-          items: [
-            { slug: 'client/overview' },
-          ],
+          items: [{ slug: 'client/overview' }],
         },
         {
           label: 'React Server Components',
