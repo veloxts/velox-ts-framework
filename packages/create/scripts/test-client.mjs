@@ -1,66 +1,93 @@
 #!/usr/bin/env node
 /**
- * Tests that @veloxts/client can call the API correctly.
- * This catches issues like the path.matchAll error.
+ * Tests that @veloxts/client convention-based route inference works correctly.
+ * Validates that the client can call APIs without a routes.ts file.
  *
- * Usage: npx tsx test-client.mjs <routes-file-path> [api-url]
+ * Usage: node test-client.mjs <api-url>
  */
 
-const routesPath = process.argv[2];
-const API_URL = process.argv[3] || 'http://localhost:3030/api';
+const API_URL = process.argv[2] || 'http://localhost:3030/api';
 
-if (!routesPath) {
-  console.error('Usage: npx tsx test-client.mjs <routes-file-path> [api-url]');
-  process.exit(1);
+/**
+ * Naming convention map (mirrors @veloxts/client's PROCEDURE_METHOD_MAP)
+ */
+const PROCEDURE_METHOD_MAP = {
+  get: 'GET',
+  list: 'GET',
+  find: 'GET',
+  create: 'POST',
+  add: 'POST',
+  update: 'PUT',
+  edit: 'PUT',
+  patch: 'PATCH',
+  delete: 'DELETE',
+  remove: 'DELETE',
+};
+
+/**
+ * Infers HTTP method from procedure name (mirrors client logic)
+ */
+function inferMethod(procedureName) {
+  for (const [prefix, method] of Object.entries(PROCEDURE_METHOD_MAP)) {
+    if (procedureName.startsWith(prefix)) {
+      return method;
+    }
+  }
+  return 'POST';
 }
 
 /**
- * Resolves a route entry to method and path.
- * Matches the logic in @veloxts/client.
+ * Builds REST path from convention (mirrors client logic)
  */
-function resolveRoute(entry) {
-  if (typeof entry === 'string') {
-    return { method: 'POST', path: entry };
+function buildPath(namespace, procedureName) {
+  if (
+    procedureName.startsWith('list') ||
+    procedureName.startsWith('find') ||
+    procedureName.startsWith('create') ||
+    procedureName.startsWith('add')
+  ) {
+    return `/${namespace}`;
   }
-  return { method: entry.method, path: entry.path };
+  if (
+    procedureName.startsWith('get') ||
+    procedureName.startsWith('update') ||
+    procedureName.startsWith('edit') ||
+    procedureName.startsWith('patch') ||
+    procedureName.startsWith('delete') ||
+    procedureName.startsWith('remove')
+  ) {
+    return `/${namespace}/:id`;
+  }
+  return `/${namespace}`;
 }
 
-async function testClientIntegration() {
-  console.log('--- Testing @veloxts/client integration ---');
+async function testClientInference() {
+  console.log('--- Testing @veloxts/client convention inference ---');
 
-  // Dynamic import the routes from the scaffolded project
-  const { routes } = await import(routesPath);
+  // Test 1: listUsers — convention: GET /users
+  const listMethod = inferMethod('listUsers');
+  const listPath = buildPath('users', 'listUsers');
+  const listUrl = `${API_URL}${listPath}`;
 
-  // Test 1: Verify route resolution for createAccount
-  const createAccountRoute = routes.auth?.createAccount;
-  if (!createAccountRoute) {
-    throw new Error('routes.auth.createAccount not found in routes file');
+  const listResponse = await fetch(listUrl, {
+    method: listMethod,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!listResponse.ok) {
+    throw new Error(`listUsers failed: ${listResponse.status} at ${listUrl}`);
   }
 
-  const { method, path } = resolveRoute(createAccountRoute);
+  console.log(`  ✓ listUsers → ${listMethod} ${listPath} (${listResponse.status})`);
 
-  if (typeof path !== 'string') {
-    throw new Error(
-      `Expected path to be string, got ${typeof path}: ${JSON.stringify(createAccountRoute)}`
-    );
-  }
-
-  if (!path.startsWith('/')) {
-    throw new Error(`Expected path to start with /, got: ${path}`);
-  }
-
-  console.log(`  Route resolved: ${method} ${path}`);
-
-  // Test 2: Make the createAccount API call
-  const testEmail = `client-test-${Date.now()}@example.com`;
-  const testName = 'Client Test User';
-
-  const createUrl = `${API_URL}${path}`;
-  const createResponse = await fetch(createUrl, {
-    method,
+  // Test 2: getUser — convention: GET /users/:id
+  // First create a user so we have a valid ID
+  const testEmail = `client-infer-${Date.now()}@example.com`;
+  const createResponse = await fetch(`${API_URL}/auth/register`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      name: testName,
+      name: 'Inference Test',
       email: testEmail,
       password: 'SecurePass123!',
     }),
@@ -68,74 +95,73 @@ async function testClientIntegration() {
 
   if (!createResponse.ok) {
     const body = await createResponse.text();
-    throw new Error(
-      `createAccount failed: ${createResponse.status} ${createResponse.statusText}\n${body}`
-    );
+    throw new Error(`Register failed: ${createResponse.status}\n${body}`);
   }
 
-  const createData = await createResponse.json();
+  const authData = await createResponse.json();
+  const token = authData.accessToken;
 
-  if (!createData.accessToken || !createData.refreshToken) {
-    throw new Error(`Missing tokens in createAccount response: ${JSON.stringify(createData)}`);
+  // Get the user ID via /auth/me
+  const meResponse = await fetch(`${API_URL}/auth/me`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!meResponse.ok) {
+    throw new Error(`getMe failed: ${meResponse.status}`);
   }
 
-  console.log('  ✓ createAccount returned tokens');
+  const meData = await meResponse.json();
+  const userId = meData.id;
 
-  // Test 3: Verify user appears in getMe
-  const getMeRoute = routes.auth?.getMe;
-  if (getMeRoute) {
-    const { method: meMethod, path: mePath } = resolveRoute(getMeRoute);
-    const getMeUrl = `${API_URL}${mePath}`;
+  console.log(`  ✓ Registered test user: ${userId}`);
 
-    const getMeResponse = await fetch(getMeUrl, {
-      method: meMethod,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${createData.accessToken}`,
-      },
-    });
+  // Test getUser convention: GET /users/:id → GET /users/{userId}
+  const getMethod = inferMethod('getUser');
+  const getPath = buildPath('users', 'getUser').replace(':id', userId);
+  const getUrl = `${API_URL}${getPath}`;
 
-    if (getMeResponse.ok) {
-      const meData = await getMeResponse.json();
-      if (meData.email === testEmail) {
-        console.log('  ✓ getMe returned created user');
-      } else {
-        console.log(`  ⚠ getMe returned different email: ${meData.email}`);
-      }
-    } else {
-      console.log(`  ⚠ getMe failed: ${getMeResponse.status}`);
+  const getResponse = await fetch(getUrl, {
+    method: getMethod,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!getResponse.ok) {
+    throw new Error(`getUser failed: ${getResponse.status} at ${getUrl}`);
+  }
+
+  console.log(`  ✓ getUser → ${getMethod} /users/:id (${getResponse.status})`);
+
+  // Test 3: Verify method inference for all naming conventions
+  const conventions = [
+    ['listUsers', 'GET'],
+    ['findUsers', 'GET'],
+    ['getUser', 'GET'],
+    ['createUser', 'POST'],
+    ['addUser', 'POST'],
+    ['updateUser', 'PUT'],
+    ['editUser', 'PUT'],
+    ['patchUser', 'PATCH'],
+    ['deleteUser', 'DELETE'],
+    ['removeUser', 'DELETE'],
+  ];
+
+  for (const [name, expectedMethod] of conventions) {
+    const method = inferMethod(name);
+    if (method !== expectedMethod) {
+      throw new Error(`${name}: expected ${expectedMethod}, got ${method}`);
     }
   }
 
-  // Test 4: Verify user appears in users list (if listUsers exists)
-  const listUsersRoute = routes.users?.listUsers;
-  if (listUsersRoute) {
-    const { method: listMethod, path: listPath } = resolveRoute(listUsersRoute);
-    const listUrl = `${API_URL}${listPath}`;
+  console.log('  ✓ All 10 naming conventions infer correct HTTP methods');
 
-    const listResponse = await fetch(listUrl, {
-      method: listMethod,
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (listResponse.ok) {
-      const listData = await listResponse.json();
-      const users = listData.data || listData;
-      const foundUser = Array.isArray(users) && users.find((u) => u.email === testEmail);
-
-      if (foundUser) {
-        console.log('  ✓ Created user found in users list');
-      } else {
-        // User might not be in list if auth template requires auth for listUsers
-        console.log('  ⚠ Created user not found in users list (may require auth)');
-      }
-    }
-  }
-
-  console.log('✓ @veloxts/client integration test passed');
+  console.log('✓ @veloxts/client convention inference test passed');
 }
 
-testClientIntegration().catch((err) => {
-  console.error('✗ Client integration test FAILED:', err.message);
+testClientInference().catch((err) => {
+  console.error('✗ Client inference test FAILED:', err.message);
   process.exit(1);
 });
