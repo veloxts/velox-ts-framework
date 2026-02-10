@@ -5,10 +5,10 @@ description: Type-safe API client for frontend applications.
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-`@veloxts/client` provides a type-safe client for calling VeloxTS APIs from React applications.
+`@veloxts/client` provides a type-safe client for calling VeloxTS APIs from React applications. It works with SPA templates (`--default`, `--auth`, `--trpc`).
 
 <Aside type="note">
-This page covers API consumption from **SPA templates** (`--default`, `--auth`). For RSC templates, data fetching happens in Server Components—see [Server Actions](/docs/rsc/server-actions/) and [tRPC Bridge](/docs/rsc/trpc-bridge/).
+For RSC templates, data fetching happens in Server Components — see [Server Actions](/docs/rsc/server-actions/) and [tRPC Bridge](/docs/rsc/trpc-bridge/).
 </Aside>
 
 ## Installation
@@ -101,6 +101,104 @@ const user = await api.users.getUser({ id: '123' });
 ```
   </TabItem>
 </Tabs>
+
+## Route Resolution
+
+In REST mode, the client automatically infers HTTP methods and paths from procedure names using the same [naming conventions](/docs/router/rest-conventions/) as the server. No route configuration file is needed for standard CRUD procedures.
+
+### How Convention Inference Works
+
+| Procedure Name | HTTP Method | Path |
+|---------------|-------------|------|
+| `listUsers` | GET | `/users` |
+| `findUsers` | GET | `/users` |
+| `getUser` | GET | `/users/:id` |
+| `createUser` | POST | `/users` |
+| `addUser` | POST | `/users` |
+| `updateUser` | PUT | `/users/:id` |
+| `editUser` | PUT | `/users/:id` |
+| `patchUser` | PATCH | `/users/:id` |
+| `deleteUser` | DELETE | `/users/:id` |
+| `removeUser` | DELETE | `/users/:id` |
+
+```typescript
+// These calls resolve automatically — no route config needed
+await api.users.listUsers();           // GET /api/users
+await api.users.getUser({ id: '1' }); // GET /api/users/1
+await api.users.createUser({ name: 'Alice' }); // POST /api/users
+```
+
+### Custom Routes for `.rest()` Overrides
+
+When backend procedures use `.rest()` to define non-conventional paths, the client can't infer the correct URL from the name alone. Pass a `routes` map to tell the client where these endpoints live.
+
+<Aside type="tip" title="When Do You Need This?">
+Only for procedures with `.rest()` overrides on the server. Standard CRUD procedures (like `listUsers`, `getUser`, `createUser`) work automatically.
+</Aside>
+
+```typescript
+// Server defines custom paths with .rest()
+const authProcedures = procedures('auth', {
+  createSession: procedure()
+    .input(LoginSchema)
+    .rest({ method: 'POST', path: '/auth/login' })
+    .mutation(handler),
+
+  createAccount: procedure()
+    .input(RegisterSchema)
+    .rest({ method: 'POST', path: '/auth/register' })
+    .mutation(handler),
+
+  getMe: procedure()
+    .guard(authenticated)
+    .rest({ method: 'GET', path: '/auth/me' })
+    .query(handler),
+});
+```
+
+```tsx
+// Client needs explicit routes for these non-conventional paths
+<VeloxProvider<AppRouter>
+  config={{
+    baseUrl: '/api',
+    routes: {
+      auth: {
+        createSession: { method: 'POST', path: '/auth/login', kind: 'mutation' },
+        createAccount: { method: 'POST', path: '/auth/register', kind: 'mutation' },
+        getMe: { method: 'GET', path: '/auth/me', kind: 'query' },
+      },
+    },
+  }}
+>
+```
+
+### Route Entry Format
+
+Each route entry accepts an object with `method`, `path`, and optional `kind`:
+
+```typescript
+{
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  path: '/auth/login',       // Path relative to baseUrl
+  kind?: 'query' | 'mutation' // Overrides naming convention detection
+}
+```
+
+The `kind` field is useful when procedure names don't follow standard prefixes. It controls whether the hooks expose `useQuery` or `useMutation`:
+
+```typescript
+routes: {
+  payments: {
+    // Name starts with "process" — no convention match
+    // Without kind, hooks won't know if it's a query or mutation
+    processPayment: { method: 'POST', path: '/payments/process', kind: 'mutation' },
+  },
+}
+```
+
+<Aside type="note" title="tRPC Mode">
+Route configuration only applies to REST mode. In tRPC mode (`baseUrl` ending with `/trpc`), the client uses tRPC's own URL format and ignores the `routes` config.
+</Aside>
 
 ## React Hooks (Recommended)
 
@@ -257,6 +355,8 @@ await api.users.getUser({ id: 123 }); // Error: Expected string
 
 ## Related Content
 
+- [REST Conventions](/docs/router/rest-conventions/) - Server-side naming patterns (mirrored by client)
+- [REST Overrides](/docs/router/rest-overrides/) - Custom `.rest()` paths on the server
 - [tRPC Bridge](/docs/rsc/trpc-bridge/) - Server-side procedure calls
 - [Procedures](/docs/endpoints/procedures/) - Define backend endpoints
 - [Validation](/docs/validation/schemas/) - Input/output schemas
