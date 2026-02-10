@@ -642,6 +642,14 @@ describe('procedure().parents()', () => {
 });
 
 describe('generateRestRoutes with multi-level parents', () => {
+  // Suppress nesting depth warnings — these tests intentionally use 3+ levels
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('should generate multi-level nested routes', () => {
     const collection = defineProcedures('tasks', {
       getTask: procedure()
@@ -697,6 +705,14 @@ describe('generateRestRoutes with multi-level parents', () => {
 });
 
 describe('shortcuts option', () => {
+  // Suppress nesting depth warnings — some tests intentionally use 3+ levels
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('should generate shortcut routes alongside nested routes when enabled', () => {
     const collection = defineProcedures('comments', {
       getComment: procedure()
@@ -857,6 +873,8 @@ describe('Multi-level nested routes - Integration', () => {
   let app: Awaited<ReturnType<typeof veloxApp>>;
 
   beforeEach(async () => {
+    // Suppress nesting depth warnings — these tests intentionally use 3+ levels
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     app = await veloxApp({ port: 0, logger: false });
   });
 
@@ -864,6 +882,7 @@ describe('Multi-level nested routes - Integration', () => {
     if (app.isRunning) {
       await app.stop();
     }
+    vi.restoreAllMocks();
   });
 
   it('should register and handle multi-level GET with ID', async () => {

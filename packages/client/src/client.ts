@@ -121,36 +121,36 @@ function resolveRouteOverride(
  * @internal
  */
 function buildRestPath(namespace: string, procedureName: string, routes?: RouteMap): string {
-  // Check for explicit route mapping first
+  // 1. Check for explicit route override first
   const override = routes?.[namespace]?.[procedureName];
   if (override) {
     const resolved = resolveRouteOverride(override, procedureName);
     return resolved.path;
   }
 
-  // Fall back to naming convention
-  const method = inferMethodFromName(procedureName);
-
-  // List operations: /namespace
-  if (procedureName.startsWith('list')) {
+  // 2. Convention inference — collection endpoints (no :id)
+  if (
+    procedureName.startsWith('list') ||
+    procedureName.startsWith('find') ||
+    procedureName.startsWith('create') ||
+    procedureName.startsWith('add')
+  ) {
     return `/${namespace}`;
   }
 
-  // Single resource operations (get, update, delete): /namespace/:id
+  // 3. Convention inference — single-resource endpoints (with :id)
   if (
     procedureName.startsWith('get') ||
     procedureName.startsWith('update') ||
-    procedureName.startsWith('delete')
+    procedureName.startsWith('edit') ||
+    procedureName.startsWith('patch') ||
+    procedureName.startsWith('delete') ||
+    procedureName.startsWith('remove')
   ) {
     return `/${namespace}/:id`;
   }
 
-  // Create operations: /namespace
-  if (method === 'POST') {
-    return `/${namespace}`;
-  }
-
-  // Default: /namespace
+  // 4. Fallback: /{namespace}
   return `/${namespace}`;
 }
 

@@ -290,6 +290,101 @@ describe('createClient', () => {
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('tags=b'), expect.any(Object));
     });
 
+    it('should build correct URL for find operations (no :id)', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: [] }]);
+
+      const client = createClient<{
+        users: {
+          procedures: {
+            findUsers: { inputSchema: { parse: (i: unknown) => { query?: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.users.findUsers({ query: 'test' });
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/users?query=test', expect.any(Object));
+    });
+
+    it('should build correct URL for add operations (no :id)', async () => {
+      const mockFetch = createMockFetch([{ status: 201, body: { id: '123' } }]);
+
+      const client = createClient<{
+        items: {
+          procedures: {
+            addItem: { inputSchema: { parse: (i: unknown) => { name: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.items.addItem({ name: 'New Item' });
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/items', expect.any(Object));
+    });
+
+    it('should include :id for edit operations', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { id: '123' } }]);
+
+      const client = createClient<{
+        items: {
+          procedures: {
+            editItem: { inputSchema: { parse: (i: unknown) => { id: string; name: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.items.editItem({ id: '123', name: 'Edited' });
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/items/123', expect.any(Object));
+    });
+
+    it('should include :id for patch operations', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { id: '123' } }]);
+
+      const client = createClient<{
+        users: {
+          procedures: {
+            patchUser: { inputSchema: { parse: (i: unknown) => { id: string; email?: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.users.patchUser({ id: '123', email: 'new@example.com' });
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/users/123', expect.any(Object));
+    });
+
+    it('should include :id for remove operations', async () => {
+      const mockFetch = createMockFetch([{ status: 200, body: { success: true } }]);
+
+      const client = createClient<{
+        items: {
+          procedures: {
+            removeItem: { inputSchema: { parse: (i: unknown) => { id: string } } };
+          };
+        };
+      }>({
+        baseUrl: '/api',
+        fetch: mockFetch,
+      });
+
+      await client.items.removeItem({ id: '123' });
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/items/123', expect.any(Object));
+    });
+
     it('should skip undefined values in query params', async () => {
       const mockFetch = createMockFetch([{ status: 200, body: [] }]);
 
@@ -1085,13 +1180,15 @@ describe('createClient', () => {
       expect(body).toEqual({ reason: 'spam' });
     });
 
-    it('should handle PATCH request without path params', async () => {
+    it('should handle PATCH request with path params', async () => {
       const mockFetch = createMockFetch([{ status: 200, body: { updated: true } }]);
 
       const client = createClient<{
         settings: {
           procedures: {
-            patchSettings: { inputSchema: { parse: (i: unknown) => { theme: string } } };
+            patchSetting: {
+              inputSchema: { parse: (i: unknown) => { id: string; theme: string } };
+            };
           };
         };
       }>({
@@ -1099,10 +1196,10 @@ describe('createClient', () => {
         fetch: mockFetch,
       });
 
-      await client.settings.patchSettings({ theme: 'dark' });
+      await client.settings.patchSetting({ id: '123', theme: 'dark' });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/settings',
+        '/api/settings/123',
         expect.objectContaining({
           method: 'PATCH',
           body: JSON.stringify({ theme: 'dark' }),

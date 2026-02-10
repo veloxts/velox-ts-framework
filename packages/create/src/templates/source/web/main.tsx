@@ -8,10 +8,8 @@ import './styles/global.css';
 
 // Import router type (type-only import is erased at compile time)
 import type { AppRouter } from '../../api/src/router.js';
-/* @if auth */
-// Import routes from browser-safe routes file (no server-side code)
-import { routes } from '../../api/src/routes.js';
 
+/* @if auth */
 /* @endif auth */
 
 // Create router with route tree
@@ -82,7 +80,13 @@ createRoot(rootElement).render(
       config={{
         baseUrl: '/api',
         headers: getAuthHeaders,
-        routes,
+        // Routes are inferred from procedure naming conventions.
+        // Only add routes for procedures with .rest() overrides:
+        // routes: {
+        //   auth: {
+        //     createSession: { method: 'POST', path: '/auth/login', kind: 'mutation' },
+        //   },
+        // },
         onUnauthorized: handleUnauthorized,
       }}
     >
