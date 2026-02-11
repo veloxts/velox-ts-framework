@@ -490,6 +490,8 @@ export type InferProcedureType<T> =
 
 /**
  * Extracts procedure types from a collection
+ *
+ * @deprecated
  */
 export type InferProcedureTypes<T extends ProcedureCollection> = {
   [K in keyof T['procedures']]: {
