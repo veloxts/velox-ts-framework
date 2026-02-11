@@ -170,6 +170,8 @@ export type ClientFromTRPCNamespace<TNamespace> = {
 
 /**
  * Checks if a type looks like a tRPC procedure
+ *
+ * @undocumented
  */
 export type IsTRPCProcedure<T> = T extends { _def: { $types: { input: unknown; output: unknown } } }
   ? true
@@ -177,6 +179,8 @@ export type IsTRPCProcedure<T> = T extends { _def: { $types: { input: unknown; o
 
 /**
  * Checks if a type looks like a tRPC namespace (object containing tRPC procedures)
+ *
+ * @undocumented
  */
 export type IsTRPCNamespace<T> =
   T extends Record<string, { _def: { $types: unknown } }> ? true : false;

@@ -26,7 +26,6 @@
   },
   "dependencies": {
     "@veloxts/core": "workspace:*",
-    "fastify": "5.7.4",
     "pg": "8.18.0",
     "pg-format": "1.0.4"
   },
