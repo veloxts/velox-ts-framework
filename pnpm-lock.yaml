@@ -494,6 +494,9 @@ importers:
       '@veloxts/core':
         specifier: workspace:*
         version: link:../core
+      fastify:
+        specifier: 5.7.4
+        version: 5.7.4
       pg:
         specifier: 8.18.0
         version: 8.18.0
