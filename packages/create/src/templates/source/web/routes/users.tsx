@@ -5,7 +5,7 @@
  * Data is guaranteed to be available when the component renders.
  */
 
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, notFound } from '@tanstack/react-router';
 import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -14,6 +14,13 @@ import { api } from '@/api';
 
 export const Route = createFileRoute('/users')({
   component: UsersPage,
+  /* @if auth */
+  beforeLoad: () => {
+    if (!localStorage.getItem('token')) {
+      throw notFound();
+    }
+  },
+  /* @endif auth */
 });
 
 function UsersPage() {
