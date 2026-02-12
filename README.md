@@ -1,6 +1,6 @@
 # Velox TS Framework
 
-> **Beta (v0.6.x)**
+> **Early Access (v0.6.x)**
 
 Velox TS (pronounced **Velox TypeScript**) is a full-stack TypeScript framework with end-to-end type safety—no code generation required. Convention-driven APIs that generate both tRPC and REST from a single source.
 
@@ -20,7 +20,7 @@ Velox TS (pronounced **Velox TypeScript**) is a full-stack TypeScript framewor
 
 - **Built-in Authentication** - JWT and session-based auth with guards, rate limiting, CSRF protection, and token rotation.
 
-- **Complete Ecosystem** - Production-ready packages for caching, queues, email, storage, scheduling, and real-time events—all with full DI support.
+- **Complete Ecosystem** - Production-ready packages for caching, queues, email, storage, scheduling, and real-time events.
 
 - **Modern Stack** - Built on proven technologies: Fastify, tRPC, Prisma, and Zod.
 
@@ -124,8 +124,6 @@ schedule('cleanup-sessions').call(cleanupExpiredSessions).daily().at('03:00');
 broadcast('orders', { event: 'order.created', data: { orderId: '123' } });
 ```
 
-All ecosystem packages support **Dependency Injection** with symbol-based tokens, bulk provider registration, and service mocking for testing.
-
 ## Packages
 
 ### Core Packages
@@ -144,8 +142,6 @@ All ecosystem packages support **Dependency Injection** with symbol-based tokens
 | [`create-velox-app`](./packages/create) | Interactive project scaffolder |
 
 ### Ecosystem Packages
-
-All ecosystem packages support Dependency Injection with symbol-based tokens, bulk registration via `registerXxxProviders()`, and service mocking for testing.
 
 | Package | Description |
 |---------|-------------|
@@ -211,7 +207,6 @@ The framework provides a solid foundation for building type-safe APIs:
 | File storage | ✅ Available (local, S3/R2) |
 | Cron task scheduling | ✅ Available |
 | Real-time broadcasting | ✅ Available (WebSocket, SSE) |
-| Dependency Injection | ✅ Full DI support across all ecosystem packages |
 
 ### What Works Well
 
@@ -226,7 +221,6 @@ The framework provides a solid foundation for building type-safe APIs:
 - AI-native development with MCP server integration
 - React Server Components with Vinxi and file-based routing
 - Complete ecosystem packages (cache, queue, mail, storage, scheduler, events)
-- Symbol-based Dependency Injection with service mocking for testing
 
 ### Current Limitations
 
