@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.6.105
+
+### Patch Changes
+
+- fix(create): resolve JSX conditional marker artifacts and add auth route guard & some socumentation updates
+- Updated dependencies
+  - @veloxts/auth@0.6.105
+  - @veloxts/client@0.6.105
+  - @veloxts/core@0.6.105
+  - @veloxts/router@0.6.105
+
 ## 0.6.104
 
 ### Patch Changes
