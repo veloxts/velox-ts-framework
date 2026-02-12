@@ -399,61 +399,66 @@ export function processConditionals(content: string, config: TemplateConfig): st
 
   // =========================================================================
   // Template conditionals
+  //
+  // IMPORTANT: JSX patterns must be processed BEFORE non-JSX patterns.
+  // Non-JSX markers (/* @if auth */) are substrings of JSX markers
+  // ({/* @if auth */}). Processing non-JSX first would partially strip
+  // JSX markers, leaving orphaned {} in the output.
   // =========================================================================
 
-  // Process auth conditionals (both JS and JSX style)
+  // Process auth conditionals
   if (template === 'auth') {
-    // Keep auth content but remove markers
-    result = result.replaceAll(CONDITIONALS.AUTH_START, '');
-    result = result.replaceAll(CONDITIONALS.AUTH_END, '');
+    // Keep auth content but remove markers (JSX first, then non-JSX)
     result = result.replaceAll(CONDITIONALS.JSX_AUTH_START, '');
     result = result.replaceAll(CONDITIONALS.JSX_AUTH_END, '');
+    result = result.replaceAll(CONDITIONALS.AUTH_START, '');
+    result = result.replaceAll(CONDITIONALS.AUTH_END, '');
   } else {
-    // Remove entire auth blocks (for default and trpc templates)
-    result = result.replace(AUTH_BLOCK_PATTERN, '');
+    // Remove entire auth blocks (JSX first, then non-JSX)
     result = result.replace(JSX_AUTH_BLOCK_PATTERN, '');
+    result = result.replace(AUTH_BLOCK_PATTERN, '');
   }
 
-  // Process default conditionals (both JS and JSX style)
+  // Process default conditionals
   // Note: 'rsc' template uses default-style content (no auth)
   // 'trpc' template has its own @if trpc blocks for tRPC-specific configuration
   if (template === 'spa' || template === 'rsc') {
-    // Keep default content but remove markers
-    result = result.replaceAll(CONDITIONALS.DEFAULT_START, '');
-    result = result.replaceAll(CONDITIONALS.DEFAULT_END, '');
+    // Keep default content but remove markers (JSX first, then non-JSX)
     result = result.replaceAll(CONDITIONALS.JSX_DEFAULT_START, '');
     result = result.replaceAll(CONDITIONALS.JSX_DEFAULT_END, '');
+    result = result.replaceAll(CONDITIONALS.DEFAULT_START, '');
+    result = result.replaceAll(CONDITIONALS.DEFAULT_END, '');
   } else {
-    // Remove entire default blocks (for auth and trpc templates)
-    result = result.replace(DEFAULT_BLOCK_PATTERN, '');
+    // Remove entire default blocks (JSX first, then non-JSX)
     result = result.replace(JSX_DEFAULT_BLOCK_PATTERN, '');
+    result = result.replace(DEFAULT_BLOCK_PATTERN, '');
   }
 
-  // Process trpc conditionals (both JS and JSX style)
+  // Process trpc conditionals
   if (template === 'trpc') {
-    // Keep trpc content but remove markers
-    result = result.replaceAll(CONDITIONALS.TRPC_START, '');
-    result = result.replaceAll(CONDITIONALS.TRPC_END, '');
+    // Keep trpc content but remove markers (JSX first, then non-JSX)
     result = result.replaceAll(CONDITIONALS.JSX_TRPC_START, '');
     result = result.replaceAll(CONDITIONALS.JSX_TRPC_END, '');
+    result = result.replaceAll(CONDITIONALS.TRPC_START, '');
+    result = result.replaceAll(CONDITIONALS.TRPC_END, '');
   } else {
-    // Remove entire trpc blocks (for spa, auth, rsc templates)
-    result = result.replace(TRPC_BLOCK_PATTERN, '');
+    // Remove entire trpc blocks (JSX first, then non-JSX)
     result = result.replace(JSX_TRPC_BLOCK_PATTERN, '');
+    result = result.replace(TRPC_BLOCK_PATTERN, '');
   }
 
-  // Process rest conditionals (both JS and JSX style)
+  // Process rest conditionals
   // REST mode applies to all templates except trpc (spa, auth, rsc)
   if (template !== 'trpc') {
-    // Keep rest content but remove markers
-    result = result.replaceAll(CONDITIONALS.REST_START, '');
-    result = result.replaceAll(CONDITIONALS.REST_END, '');
+    // Keep rest content but remove markers (JSX first, then non-JSX)
     result = result.replaceAll(CONDITIONALS.JSX_REST_START, '');
     result = result.replaceAll(CONDITIONALS.JSX_REST_END, '');
+    result = result.replaceAll(CONDITIONALS.REST_START, '');
+    result = result.replaceAll(CONDITIONALS.REST_END, '');
   } else {
-    // Remove entire rest blocks (for trpc template)
-    result = result.replace(REST_BLOCK_PATTERN, '');
+    // Remove entire rest blocks (JSX first, then non-JSX)
     result = result.replace(JSX_REST_BLOCK_PATTERN, '');
+    result = result.replace(REST_BLOCK_PATTERN, '');
   }
 
   // =========================================================================
@@ -462,29 +467,31 @@ export function processConditionals(content: string, config: TemplateConfig): st
 
   // Process sqlite conditionals
   if (database === 'sqlite') {
-    // Keep sqlite content but remove markers
-    result = result.replaceAll(CONDITIONALS.SQLITE_START, '');
-    result = result.replaceAll(CONDITIONALS.SQLITE_END, '');
     result = result.replaceAll(CONDITIONALS.JSX_SQLITE_START, '');
     result = result.replaceAll(CONDITIONALS.JSX_SQLITE_END, '');
+    result = result.replaceAll(CONDITIONALS.SQLITE_START, '');
+    result = result.replaceAll(CONDITIONALS.SQLITE_END, '');
   } else {
-    // Remove entire sqlite blocks
-    result = result.replace(SQLITE_BLOCK_PATTERN, '');
     result = result.replace(JSX_SQLITE_BLOCK_PATTERN, '');
+    result = result.replace(SQLITE_BLOCK_PATTERN, '');
   }
 
   // Process postgresql conditionals
   if (database === 'postgresql') {
-    // Keep postgresql content but remove markers
-    result = result.replaceAll(CONDITIONALS.POSTGRESQL_START, '');
-    result = result.replaceAll(CONDITIONALS.POSTGRESQL_END, '');
     result = result.replaceAll(CONDITIONALS.JSX_POSTGRESQL_START, '');
     result = result.replaceAll(CONDITIONALS.JSX_POSTGRESQL_END, '');
+    result = result.replaceAll(CONDITIONALS.POSTGRESQL_START, '');
+    result = result.replaceAll(CONDITIONALS.POSTGRESQL_END, '');
   } else {
-    // Remove entire postgresql blocks
-    result = result.replace(POSTGRESQL_BLOCK_PATTERN, '');
     result = result.replace(JSX_POSTGRESQL_BLOCK_PATTERN, '');
+    result = result.replace(POSTGRESQL_BLOCK_PATTERN, '');
   }
+
+  // =========================================================================
+  // Cleanup: remove trailing whitespace and collapse consecutive blank lines
+  // =========================================================================
+  result = result.replace(/[ \t]+$/gm, '');
+  result = result.replace(/\n{3,}/g, '\n\n');
 
   return result;
 }

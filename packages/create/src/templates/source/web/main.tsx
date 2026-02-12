@@ -81,12 +81,16 @@ createRoot(rootElement).render(
         baseUrl: '/api',
         headers: getAuthHeaders,
         // Routes are inferred from procedure naming conventions.
-        // Only add routes for procedures with .rest() overrides:
-        // routes: {
-        //   auth: {
-        //     createSession: { method: 'POST', path: '/auth/login', kind: 'mutation' },
-        //   },
-        // },
+        // Manually add routes for procedures with .rest() overrides:
+        routes: {
+          auth: {
+            createAccount: { method: 'POST', path: '/auth/register', kind: 'mutation' },
+            createSession: { method: 'POST', path: '/auth/login', kind: 'mutation' },
+            createRefresh: { method: 'POST', path: '/auth/refresh', kind: 'mutation' },
+            deleteSession: { method: 'POST', path: '/auth/logout', kind: 'mutation' },
+            getMe: { method: 'GET', path: '/auth/me', kind: 'query' },
+          },
+        },
         onUnauthorized: handleUnauthorized,
       }}
     >

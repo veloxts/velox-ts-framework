@@ -8,6 +8,7 @@ import styles from '@/App.module.css';
 
 export const Route = createRootRoute({
   component: RootLayout,
+  notFoundComponent: () => <div>Not Found</div>,
 });
 
 function RootLayout() {
