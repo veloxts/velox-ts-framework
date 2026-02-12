@@ -16,6 +16,11 @@ export default defineConfig({
       favicon: '/favicon.svg',
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/veloxts/velox-ts-framework' },
+        {
+          icon: 'close',
+          label: 'Home',
+          href: 'https://veloxts.dev', // Add your external link here
+        },
       ],
       customCss: ['./src/styles/custom.css'],
       sidebar: [
