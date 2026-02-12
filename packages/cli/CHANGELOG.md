@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.6.106
+
+### Patch Changes
+
+- chores
+- Updated dependencies
+  - @veloxts/auth@0.6.106
+  - @veloxts/core@0.6.106
+  - @veloxts/orm@0.6.106
+  - @veloxts/router@0.6.106
+  - @veloxts/validation@0.6.106
+
 ## 0.6.105
 
 ### Patch Changes

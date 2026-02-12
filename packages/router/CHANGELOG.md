@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.106
+
+### Patch Changes
+
+- chores
+- Updated dependencies
+  - @veloxts/core@0.6.106
+  - @veloxts/validation@0.6.106
+
 ## 0.6.105
 
 ### Patch Changes

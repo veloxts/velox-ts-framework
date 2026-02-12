@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.6.106
+
+### Patch Changes
+
+- chores
+
 ## 0.6.105
 
 ### Patch Changes
