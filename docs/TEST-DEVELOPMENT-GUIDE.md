@@ -967,8 +967,7 @@ pnpm test:watch
 1. Start with Priority 1 (GuardError tests) - Quick win, high impact
 2. Move to Priority 2 (Rate Limiting) - Security-critical
 3. Add Auth Plugin tests - Core functionality
-4. Continue with DI Container edge cases
-5. Monitor coverage after each addition
+4. Monitor coverage after each addition
 
 ## Success Metrics
 

@@ -1,6 +1,6 @@
 # Velox TS Framework
 
-> **Beta (v0.6.x)**
+> **Early Access (v0.6.x)**
 
 ## Type-safe full-stack without the build step
 
@@ -37,7 +37,7 @@ Note: Manual setup requires Prisma 7 configuration with driver adapters. See [@v
 
 This umbrella package re-exports:
 
-- `@veloxts/core` - App bootstrap, plugins, DI container
+- `@veloxts/core` - App bootstrap, plugins, error handling
 - `@veloxts/router` - Procedures, REST adapter, tRPC integration
 - `@veloxts/orm` - Prisma database plugin with driver adapters
 - `@veloxts/auth` - JWT/session authentication, guards, rate limiting
