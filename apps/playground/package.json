@@ -21,8 +21,8 @@
   },
   "dependencies": {
     "@fastify/static": "9.0.0",
-    "@prisma/adapter-better-sqlite3": "7.3.0",
-    "@prisma/client": "7.3.0",
+    "@prisma/adapter-better-sqlite3": "7.4.0",
+    "@prisma/client": "7.4.0",
     "@veloxts/auth": "workspace:*",
     "@veloxts/client": "workspace:*",
     "@veloxts/core": "workspace:*",
@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "fastify": "5.7.4",
-    "prisma": "7.3.0",
+    "prisma": "7.4.0",
     "tsup": "8.5.1",
     "tsx": "4.21.0",
     "typescript": "5.9.3"

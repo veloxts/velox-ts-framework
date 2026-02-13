@@ -62,7 +62,7 @@
     "@prisma/client": ">=7.0.0"
   },
   "devDependencies": {
-    "@prisma/client": "7.3.0",
+    "@prisma/client": "7.4.0",
     "@types/node": "25.1.0",
     "@types/pg": "8.16.0",
     "@types/pluralize": "0.0.33",

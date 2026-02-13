@@ -17,7 +17,7 @@
     "db:studio": "__WS_API__ db:studio"
   },
   "dependencies": {
-    "@prisma/client-runtime-utils": "7.3.0",
+    "@prisma/client-runtime-utils": "7.4.0",
     "@veloxts/velox": "__VELOXTS_VERSION__"
   },
   "devDependencies": {
