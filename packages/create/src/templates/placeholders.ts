@@ -216,7 +216,7 @@ export function applyPlaceholdersToJson(
 }
 
 // Database adapter versions
-const PRISMA_VERSION = '7.2.0';
+const PRISMA_VERSION = '7.4.0';
 const PG_VERSION = '8.16.0';
 
 /**

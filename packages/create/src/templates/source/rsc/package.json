@@ -17,9 +17,9 @@
     "lint:client": "./scripts/check-client-imports.sh"
   },
   "dependencies": {
-    "@prisma/adapter-better-sqlite3": "7.3.0",
-    "@prisma/client": "7.3.0",
-    "@prisma/client-runtime-utils": "7.3.0",
+    "@prisma/adapter-better-sqlite3": "7.4.0",
+    "@prisma/client": "7.4.0",
+    "@prisma/client-runtime-utils": "7.4.0",
     "better-sqlite3": "12.6.2",
     "@veloxts/core": "__VELOXTS_VERSION__",
     "@veloxts/orm": "__VELOXTS_VERSION__",
@@ -39,7 +39,7 @@
     "@types/react-dom": "19.2.3",
     "@veloxts/cli": "__VELOXTS_VERSION__",
     "@veloxts/mcp": "__VELOXTS_VERSION__",
-    "prisma": "7.3.0",
+    "prisma": "7.4.0",
     "typescript": "5.9.3"
   }
 }
