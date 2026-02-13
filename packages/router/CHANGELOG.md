@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.6.107
+
+### Patch Changes
+
+- feat(cli): add workspace monorepo support for `velox dev`
+- Updated dependencies
+  - @veloxts/core@0.6.107
+  - @veloxts/validation@0.6.107
+
 ## 0.6.106
 
 ### Patch Changes

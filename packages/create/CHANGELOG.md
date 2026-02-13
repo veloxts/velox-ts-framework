@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.6.107
+
+### Patch Changes
+
+- feat(cli): add workspace monorepo support for `velox dev`
+
 ## 0.6.106
 
 ### Patch Changes

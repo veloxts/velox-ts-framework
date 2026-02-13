@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.6.107
+
+### Patch Changes
+
+- feat(cli): add workspace monorepo support for `velox dev`
+- Updated dependencies
+  - @veloxts/auth@0.6.107
+  - @veloxts/cache@0.6.107
+  - @veloxts/core@0.6.107
+  - @veloxts/events@0.6.107
+  - @veloxts/mail@0.6.107
+  - @veloxts/orm@0.6.107
+  - @veloxts/queue@0.6.107
+  - @veloxts/router@0.6.107
+  - @veloxts/scheduler@0.6.107
+  - @veloxts/storage@0.6.107
+  - @veloxts/validation@0.6.107
+
 ## 0.6.106
 
 ### Patch Changes
