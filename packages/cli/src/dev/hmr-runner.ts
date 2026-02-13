@@ -9,6 +9,7 @@
 
 import { type ChildProcess, spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { basename } from 'node:path';
 
 import pc from 'picocolors';
 
@@ -72,6 +73,8 @@ export interface HMRRunnerOptions {
   readonly debug?: boolean;
   /** Clear console on full restart */
   readonly clearOnRestart?: boolean;
+  /** Working directory for the child process (defaults to process.cwd()) */
+  readonly cwd?: string;
 }
 
 /**
@@ -254,7 +257,7 @@ export class HMRRunner {
       {
         stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
         env,
-        cwd: process.cwd(),
+        cwd: this.options.cwd ?? process.cwd(),
       }
     );
 
@@ -478,8 +481,8 @@ export class HMRRunner {
       process.exit(0);
     };
 
-    process.on('SIGINT', () => shutdown('SIGINT'));
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.once('SIGINT', () => shutdown('SIGINT'));
+    process.once('SIGTERM', () => shutdown('SIGTERM'));
   }
 
   // --------------------------------------------------------------------------
@@ -487,11 +490,10 @@ export class HMRRunner {
   // --------------------------------------------------------------------------
 
   /**
-   * Get basename from file path
+   * Get basename from file path (cross-platform)
    */
   private getBasename(filePath: string): string {
-    const parts = filePath.split('/');
-    return parts[parts.length - 1] || filePath;
+    return basename(filePath);
   }
 }
 
