@@ -8,6 +8,7 @@
  */
 
 import { spawn } from 'node:child_process';
+import path from 'node:path';
 
 import * as p from '@clack/prompts';
 import { Command } from 'commander';
@@ -25,8 +26,12 @@ import {
 } from '../utils/output.js';
 import {
   detectProjectType,
+  discoverEntryPoints,
+  findApiPackageRoot,
   findEntryPoint,
+  findWebPackageRoot,
   isVeloxProject,
+  isWorkspaceRoot,
   validateEntryPath,
 } from '../utils/paths.js';
 
@@ -38,6 +43,7 @@ interface DevOptions {
   hmr?: boolean;
   verbose?: boolean;
   debug?: boolean;
+  all?: boolean;
 }
 
 /**
@@ -55,6 +61,7 @@ export function createDevCommand(version: string): Command {
     .option('--no-hmr', 'Disable HMR and use legacy tsx watch mode')
     .option('-v, --verbose', 'Show detailed timing and reload information', false)
     .option('-d, --debug', 'Enable debug logging and request tracing', false)
+    .option('--all', 'Start both API and Web dev servers (workspace monorepos)', false)
     .action(async (options: DevOptions) => {
       await runDevServer(options, version);
     });
@@ -131,15 +138,41 @@ async function runVinxiServer(options: DevOptions, version: string): Promise<voi
 }
 
 /**
+ * Spawn the web dev server in a workspace monorepo.
+ * Runs `pnpm dev` inside apps/web/ with inherited stdio.
+ * Returns the child process for lifecycle management.
+ */
+function spawnWebDevServer(webRoot: string): ReturnType<typeof spawn> {
+  info(`Starting web dev server in ${formatPath(webRoot)}`);
+  console.log(`  ${pc.dim('Running pnpm dev in apps/web/')}`);
+  console.log('');
+
+  return spawn('pnpm', ['dev'], {
+    stdio: 'inherit',
+    cwd: webRoot,
+    env: { ...process.env, NODE_ENV: 'development' },
+  });
+}
+
+/**
  * Run the development server
  */
 async function runDevServer(options: DevOptions, version: string): Promise<void> {
+  const cwd = process.cwd();
   const s = p.spinner();
 
   try {
-    // Check if we're in a VeloxTS project
+    // Check if we're in a VeloxTS project (also check workspace subpackages)
     s.start('Checking project...');
-    const isVelox = await isVeloxProject();
+    let isVelox = await isVeloxProject(cwd);
+
+    // In a workspace root, @veloxts deps live in subpackages, not root
+    if (!isVelox && isWorkspaceRoot(cwd)) {
+      const apiRoot = findApiPackageRoot(cwd);
+      if (apiRoot) {
+        isVelox = await isVeloxProject(apiRoot);
+      }
+    }
 
     if (!isVelox) {
       s.stop('Project check failed');
@@ -149,7 +182,7 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
     }
 
     // Detect project type (API-only vs Vinxi/RSC)
-    const projectType = await detectProjectType();
+    const projectType = await detectProjectType(cwd);
 
     if (projectType.isVinxi) {
       s.stop('Vinxi project detected');
@@ -167,7 +200,7 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
       // User specified an entry point - validate it
       s.start('Validating entry point...');
       try {
-        entryPoint = validateEntryPath(options.entry);
+        entryPoint = validateEntryPath(options.entry, cwd);
         s.stop(`Entry point: ${formatPath(entryPoint)}`);
       } catch (err) {
         s.stop('Invalid entry point');
@@ -175,20 +208,58 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
         process.exit(1);
       }
     } else {
-      // Auto-detect entry point
+      // Auto-detect entry point (workspace-aware via findEntryPoint)
       s.start('Detecting entry point...');
-      const detected = findEntryPoint();
+      const detected = findEntryPoint(cwd);
 
-      if (!detected) {
-        s.stop('Entry point not found');
-        error('Could not find application entry point.');
-        instruction('Try specifying the entry point with --entry flag:');
-        console.log(`  ${formatCommand('velox dev --entry src/index.ts')}`);
-        process.exit(1);
+      if (detected) {
+        entryPoint = detected;
+        s.stop(`Entry point: ${formatPath(entryPoint)}`);
+      } else {
+        // Auto-detection failed — discover possible entry points and let user pick
+        const candidates = discoverEntryPoints(cwd);
+
+        if (candidates.length > 0) {
+          s.stop('Multiple possible entry points found');
+          const selected = await p.select({
+            message: 'Select the entry point for your application',
+            options: candidates.map((c) => ({
+              value: c.absolute,
+              label: c.relative,
+            })),
+          });
+
+          if (p.isCancel(selected)) {
+            p.cancel('Operation cancelled.');
+            process.exit(0);
+          }
+
+          try {
+            entryPoint = validateEntryPath(String(selected), cwd);
+          } catch (err) {
+            error(err instanceof Error ? err.message : 'Invalid entry point');
+            process.exit(1);
+          }
+
+          success(`Using ${formatPath(entryPoint)}`);
+        } else {
+          s.stop('Entry point not found');
+          error('Could not find any application entry point.');
+          instruction('Create src/index.ts or specify one with --entry:');
+          console.log(`  ${formatCommand('velox dev --entry src/index.ts')}`);
+          process.exit(1);
+        }
       }
+    }
 
-      entryPoint = detected;
-      s.stop(`Entry point: ${formatPath(entryPoint)}`);
+    // Determine the working directory for the child process.
+    // In a workspace monorepo, the API server needs to run from apps/api/
+    // so that dotenv/config loads apps/api/.env and Prisma finds its config.
+    const apiRoot = findApiPackageRoot(cwd);
+    const apiProcessCwd = apiRoot ?? cwd;
+
+    if (apiRoot) {
+      info(`Workspace detected — API root: ${formatPath(apiRoot)}`);
     }
 
     // Validate port and host
@@ -230,6 +301,54 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
     const clearScreen = options.clear !== false;
     const verbose = options.verbose ?? false;
 
+    // --all: also start the web dev server in parallel
+    let webProcess: ReturnType<typeof spawn> | null = null;
+    let isShuttingDown = false;
+
+    if (options.all) {
+      // If we're in a subpackage (e.g., apps/api/), search from the parent workspace root
+      let webSearchRoot = cwd;
+      if (!isWorkspaceRoot(cwd)) {
+        const parentDir = path.dirname(cwd);
+        if (isWorkspaceRoot(parentDir)) {
+          webSearchRoot = parentDir;
+        }
+        const grandparentDir = path.dirname(parentDir);
+        if (!isWorkspaceRoot(parentDir) && isWorkspaceRoot(grandparentDir)) {
+          webSearchRoot = grandparentDir;
+        }
+      }
+
+      const webRoot = findWebPackageRoot(webSearchRoot);
+      if (webRoot) {
+        webProcess = spawnWebDevServer(webRoot);
+
+        webProcess.on('error', (err) => {
+          error(`Web dev server failed: ${err.message}`);
+        });
+
+        webProcess.on('exit', (code) => {
+          if (!isShuttingDown && code !== 0) {
+            console.log(pc.yellow(`  Web dev server exited with code ${code}`));
+            console.log(pc.dim('  API server continues running.'));
+          }
+        });
+      } else {
+        info('No web package found — starting API only.');
+      }
+    }
+
+    // Ensure the web process is cleaned up on exit (covers both HMR and legacy paths).
+    // The 'exit' handler runs synchronously when process.exit() is called,
+    // so SIGTERM is the best we can do (no async waiting).
+    if (webProcess) {
+      process.on('exit', () => {
+        if (webProcess && !webProcess.killed) {
+          webProcess.kill('SIGTERM');
+        }
+      });
+    }
+
     // HMR is the default mode
     // Use --no-hmr for legacy tsx watch mode
     if (options.hmr !== false) {
@@ -242,6 +361,7 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
         verbose,
         debug,
         clearOnRestart: clearScreen,
+        cwd: apiProcessCwd,
       });
       return; // HMR runner handles its own lifecycle
     }
@@ -262,11 +382,10 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
     const devProcess = spawn('npx', watchArgs, {
       stdio: 'inherit',
       env,
+      cwd: apiProcessCwd,
     });
 
     // Handle process termination
-    let isShuttingDown = false;
-
     const shutdown = (signal: string) => {
       if (isShuttingDown) return;
       isShuttingDown = true;
@@ -276,11 +395,13 @@ async function runDevServer(options: DevOptions, version: string): Promise<void>
       );
 
       devProcess.kill('SIGTERM');
+      webProcess?.kill('SIGTERM');
 
       // Force kill after 5 seconds if process doesn't exit
       const forceKillTimeout = setTimeout(() => {
         console.log(pc.red('✗ Force killing process...'));
         devProcess.kill('SIGKILL');
+        webProcess?.kill('SIGKILL');
         process.exit(1);
       }, 5000);
 
