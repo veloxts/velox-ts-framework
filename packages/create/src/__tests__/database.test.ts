@@ -109,14 +109,14 @@ describe('Database Dependencies', () => {
     {
       name: 'test-api',
       dependencies: {
-        '@prisma/adapter-better-sqlite3': '7.2.0',
-        '@prisma/client': '7.2.0',
+        '@prisma/adapter-better-sqlite3': '7.4.0',
+        '@prisma/client': '7.4.0',
         'better-sqlite3': '12.5.0',
         zod: '3.25.76',
       },
       devDependencies: {
         '@types/node': '25.0.0',
-        prisma: '7.2.0',
+        prisma: '7.4.0',
       },
     },
     null,
@@ -127,7 +127,7 @@ describe('Database Dependencies', () => {
     const result = applyDatabaseDependencies(basePackageJson, sqliteConfig);
     const pkg = JSON.parse(result);
 
-    expect(pkg.dependencies['@prisma/adapter-better-sqlite3']).toBe('7.2.0');
+    expect(pkg.dependencies['@prisma/adapter-better-sqlite3']).toBe('7.4.0');
     expect(pkg.dependencies['better-sqlite3']).toBe('12.5.0');
     expect(pkg.dependencies['@prisma/adapter-pg']).toBeUndefined();
     expect(pkg.dependencies.pg).toBeUndefined();
@@ -139,7 +139,7 @@ describe('Database Dependencies', () => {
 
     expect(pkg.dependencies['@prisma/adapter-better-sqlite3']).toBeUndefined();
     expect(pkg.dependencies['better-sqlite3']).toBeUndefined();
-    expect(pkg.dependencies['@prisma/adapter-pg']).toBe('7.2.0');
+    expect(pkg.dependencies['@prisma/adapter-pg']).toBe('7.4.0');
     expect(pkg.dependencies.pg).toBe('8.16.0');
   });
 
@@ -154,9 +154,9 @@ describe('Database Dependencies', () => {
     const result = applyDatabaseDependencies(basePackageJson, postgresConfig);
     const pkg = JSON.parse(result);
 
-    expect(pkg.dependencies['@prisma/client']).toBe('7.2.0');
+    expect(pkg.dependencies['@prisma/client']).toBe('7.4.0');
     expect(pkg.dependencies.zod).toBe('3.25.76');
-    expect(pkg.devDependencies.prisma).toBe('7.2.0');
+    expect(pkg.devDependencies.prisma).toBe('7.4.0');
   });
 
   it('should sort dependencies alphabetically', () => {
