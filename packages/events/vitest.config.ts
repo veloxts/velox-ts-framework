@@ -19,10 +19,10 @@ export default defineConfig({
         '**/__tests__/**',
       ],
       thresholds: {
-        lines: 75,
-        functions: 75,
-        branches: 55, // Lower threshold due to driver complexity with Redis pub/sub
-        statements: 75,
+        lines: 80,
+        functions: 80,
+        branches: 63,
+        statements: 80,
       },
     },
   },
