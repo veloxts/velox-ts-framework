@@ -198,26 +198,18 @@ export function validateSecurityOrThrow(requirements?: SecurityRequirements): vo
   const result = validateSecurity(requirements);
 
   if (!result.valid) {
-    const errorLines = result.errors.map((e) => {
-      let line = `  [${e.category}] ${e.key}: ${e.message}`;
-      if (e.suggestion) {
-        line += `\n    Suggestion: ${e.suggestion}`;
+    const formatIssue = (issue: SecurityValidationIssue): string => {
+      let line = `  [${issue.category}] ${issue.key}: ${issue.message}`;
+      if (issue.suggestion) {
+        line += `\n    Suggestion: ${issue.suggestion}`;
       }
       return line;
-    });
+    };
 
-    const warningLines = result.warnings.map((w) => {
-      let line = `  [${w.category}] ${w.key}: ${w.message}`;
-      if (w.suggestion) {
-        line += `\n    Suggestion: ${w.suggestion}`;
-      }
-      return line;
-    });
+    let message = `Production security validation failed:\n\n${result.errors.map(formatIssue).join('\n\n')}`;
 
-    let message = `Production security validation failed:\n\n${errorLines.join('\n\n')}`;
-
-    if (warningLines.length > 0) {
-      message += `\n\nWarnings:\n${warningLines.join('\n\n')}`;
+    if (result.warnings.length > 0) {
+      message += `\n\nWarnings:\n${result.warnings.map(formatIssue).join('\n\n')}`;
     }
 
     throw new Error(message);

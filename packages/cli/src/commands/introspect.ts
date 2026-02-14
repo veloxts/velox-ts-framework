@@ -11,7 +11,7 @@
 
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 
 import {
   type CompiledProcedure,
@@ -22,10 +22,10 @@ import {
   type ProcedureCollection,
 } from '@veloxts/router';
 import { Command } from 'commander';
-import { config as loadEnv } from 'dotenv';
 import pc from 'picocolors';
 
 import { getErrorsByCategory } from '../errors/index.js';
+import { loadEnvironment } from '../utils/paths.js';
 import { extractSchemaNames, extractSchemaTypes } from '../utils/schema-patterns.js';
 
 // ============================================================================
@@ -96,17 +96,21 @@ interface IntrospectResult {
   };
 }
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
 /**
- * Load environment variables from .env file if present
+ * Get picocolors color function for an HTTP method
  */
-function loadEnvironment(): void {
-  const envPath = resolve(process.cwd(), '.env');
-  if (existsSync(envPath)) {
-    loadEnv({ path: envPath });
+function getMethodColor(method: string): (text: string) => string {
+  switch (method) {
+    case 'GET':
+      return pc.green;
+    case 'POST':
+      return pc.yellow;
+    case 'PUT':
+      return pc.blue;
+    case 'PATCH':
+      return pc.cyan;
+    default:
+      return pc.red;
   }
 }
 
@@ -239,9 +243,9 @@ function getErrorIntrospection(): ErrorIntrospection[] {
     const categoryErrors = getErrorsByCategory(prefix);
     const categoryName = categoryNames[prefix] ?? 'Unknown';
 
-    for (const [code, def] of Object.entries(categoryErrors)) {
+    for (const def of categoryErrors) {
       errors.push({
-        code,
+        code: def.code,
         name: def.name,
         message: def.message,
         fix: def.fix,
@@ -278,16 +282,7 @@ function printProcedures(procedures: ProcedureIntrospection[]): void {
     }
 
     const method = proc.route?.method ?? (proc.type === 'query' ? 'GET' : 'POST');
-    const methodColor =
-      method === 'GET'
-        ? pc.green
-        : method === 'POST'
-          ? pc.yellow
-          : method === 'PUT'
-            ? pc.blue
-            : method === 'PATCH'
-              ? pc.cyan
-              : pc.red;
+    const methodColor = getMethodColor(method);
 
     const schemas = [];
     if (proc.hasInput) schemas.push('in');
@@ -341,16 +336,7 @@ function printRoutes(routes: RouteIntrospection[]): void {
   console.log(pc.dim('─'.repeat(60)));
 
   for (const route of routes) {
-    const methodColor =
-      route.method === 'GET'
-        ? pc.green
-        : route.method === 'POST'
-          ? pc.yellow
-          : route.method === 'PUT'
-            ? pc.blue
-            : route.method === 'PATCH'
-              ? pc.cyan
-              : pc.red;
+    const methodColor = getMethodColor(route.method);
 
     console.log(`  ${methodColor(route.method.padEnd(7))} ${route.path}`);
     console.log(pc.dim(`          → ${route.namespace}.${route.procedure}`));

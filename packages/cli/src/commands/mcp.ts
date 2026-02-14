@@ -151,8 +151,7 @@ async function readClaudeConfig(configPath: string): Promise<ClaudeDesktopConfig
   }
 
   try {
-    const config = await readJsonFile<ClaudeDesktopConfig>(configPath);
-    return config;
+    return await readJsonFile<ClaudeDesktopConfig>(configPath);
   } catch (err) {
     throw new Error(
       `Failed to parse Claude Desktop configuration: ${err instanceof Error ? err.message : String(err)}`
@@ -390,7 +389,7 @@ async function runMcpInit(options: McpInitOptions): Promise<void> {
     }
 
     // Success!
-    const action = isAlreadyConfigured ? 'updated' : configExists ? 'updated' : 'created';
+    const action = configExists ? 'updated' : 'created';
     const result: McpInitResult = {
       success: true,
       action,

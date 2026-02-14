@@ -355,8 +355,6 @@ function generateSuggestion(type: DevErrorType, errorText: string): string {
       const moduleName = moduleMatch[1];
       if (moduleName.startsWith('.') || moduleName.startsWith('/')) {
         suggestion = `Check that the file '${moduleName}' exists and the path is correct relative to the importing file.`;
-      } else if (moduleName.startsWith('@')) {
-        suggestion = `Install the package: pnpm add ${moduleName}`;
       } else {
         suggestion = `Install the package: pnpm add ${moduleName}`;
       }
