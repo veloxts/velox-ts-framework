@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.7.1
+
+### Patch Changes
+
+- security audit, bumps dependency packages
+
 ## 0.7.0
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # @veloxts/testing
 
+## 0.7.1
+
+### Patch Changes
+
+- security audit, bumps dependency packages
+- Updated dependencies
+  - @veloxts/core@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes

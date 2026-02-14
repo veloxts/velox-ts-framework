@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.7.1
+
+### Patch Changes
+
+- security audit, bumps dependency packages
+- Updated dependencies
+  - @veloxts/auth@0.7.1
+  - @veloxts/core@0.7.1
+  - @veloxts/orm@0.7.1
+  - @veloxts/router@0.7.1
+  - @veloxts/validation@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes

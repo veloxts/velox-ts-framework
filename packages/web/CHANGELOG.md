@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.7.1
+
+### Patch Changes
+
+- security audit, bumps dependency packages
+- Updated dependencies
+  - @veloxts/auth@0.7.1
+  - @veloxts/client@0.7.1
+  - @veloxts/core@0.7.1
+  - @veloxts/router@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/framework",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "A full-stack TypeScript framework with type-safe APIs, hybrid tRPC/REST architecture, with great DX",
   "main": "dist/index.js",
   "packageManager": "pnpm@10.29.3",
@@ -65,7 +65,7 @@
       "prismjs": ">=1.30.0",
       "lodash": ">=4.17.23",
       "fast-xml-parser": ">=5.3.4",
-      "nodemailer": ">=7.0.13"
+      "nodemailer": ">=8.0.1"
     }
   }
 }

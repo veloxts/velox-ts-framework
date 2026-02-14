@@ -13,7 +13,7 @@ overrides:
   prismjs: '>=1.30.0'
   lodash: '>=4.17.23'
   fast-xml-parser: '>=5.3.4'
-  nodemailer: '>=7.0.13'
+  nodemailer: '>=8.0.1'
 
 importers:
 
@@ -415,8 +415,8 @@ importers:
         specifier: 5.1.0
         version: 5.1.0
       nodemailer:
-        specifier: '>=7.0.13'
-        version: 7.0.13
+        specifier: '>=8.0.1'
+        version: 8.0.1
       resend:
         specifier: 6.9.2
         version: 6.9.2(@react-email/render@2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
@@ -842,8 +842,8 @@ importers:
         specifier: 8.16.0
         version: 8.16.0
       nodemailer:
-        specifier: '>=7.0.13'
-        version: 7.0.13
+        specifier: '>=8.0.1'
+        version: 8.0.1
       pg:
         specifier: 8.18.0
         version: 8.18.0
@@ -5836,8 +5836,8 @@ packages:
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
 
-  nodemailer@7.0.13:
-    resolution: {integrity: sha512-PNDFSJdP+KFgdsG3ZzMXCgquO7I6McjY2vlqILjtJd0hy8wEvtugS9xKRF2NWlPNGxvLCXlTNIae4serI7dinw==}
+  nodemailer@8.0.1:
+    resolution: {integrity: sha512-5kcldIXmaEjZcHR6F28IKGSgpmZHaF1IXLWFTG+Xh3S+Cce4MiakLtWY+PlBU69fLbRa8HlaGIrC/QolUpHkhg==}
     engines: {node: '>=6.0.0'}
 
   nopt@8.1.0:
@@ -13792,7 +13792,7 @@ snapshots:
 
   node-releases@2.0.27: {}
 
-  nodemailer@7.0.13: {}
+  nodemailer@8.0.1: {}
 
   nopt@8.1.0:
     dependencies:
