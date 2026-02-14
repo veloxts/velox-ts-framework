@@ -222,7 +222,9 @@ describe('VeloxApp - Enhanced Features', () => {
       await app.stop();
 
       expect(executed).toEqual([1, 2, 3]);
+      // Logger prepends [@veloxts/core] as first arg
       expect(consoleSpy).toHaveBeenCalledWith(
+        '[@veloxts/core]',
         'Error during shutdown handler execution:',
         expect.any(Error)
       );
@@ -292,7 +294,9 @@ describe('VeloxApp - Enhanced Features', () => {
 
       // Should fall back to generic 500 error
       expect(response.statusCode).toBe(500);
+      // Logger prepends [@veloxts/core] as first arg
       expect(consoleSpy).toHaveBeenCalledWith(
+        '[@veloxts/core]',
         'Critical error in error handler:',
         expect.any(Error)
       );

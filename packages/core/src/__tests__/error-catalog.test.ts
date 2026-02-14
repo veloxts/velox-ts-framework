@@ -341,7 +341,8 @@ describe('logWarning', () => {
     logWarning('Test warning', 'Fix suggestion');
 
     expect(warnSpy).toHaveBeenCalled();
-    const output = warnSpy.mock.calls[0][0];
+    // Logger prepends [@veloxts/core] as first arg, actual message is second arg
+    const output = warnSpy.mock.calls[0].join(' ');
     expect(output).toContain('Warning:');
     expect(output).toContain('Test warning');
     expect(output).toContain('Fix suggestion');
@@ -359,7 +360,8 @@ describe('logDeprecation', () => {
     logDeprecation('oldApi', 'newApi', 'v2.0');
 
     expect(warnSpy).toHaveBeenCalled();
-    const output = warnSpy.mock.calls[0][0];
+    // Logger prepends [@veloxts/core] as first arg, actual message is second arg
+    const output = warnSpy.mock.calls[0].join(' ');
     expect(output).toContain('oldApi');
     expect(output).toContain('deprecated');
     expect(output).toContain('newApi');
