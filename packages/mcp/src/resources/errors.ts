@@ -65,17 +65,30 @@ function getErrorCategory(code: string): string {
 }
 
 /**
- * Get all errors from the catalog
+ * Convert a catalog error definition to an ErrorInfo
  */
-export function getErrors(): ErrorsResourceResponse {
-  const errors: ErrorInfo[] = Object.values(ERROR_CATALOG).map((def) => ({
+function toErrorInfo(def: {
+  code: string;
+  name: string;
+  message: string;
+  fix?: string;
+  docsUrl?: string;
+}): ErrorInfo {
+  return {
     code: def.code,
     name: def.name,
     message: def.message,
     fix: def.fix,
     docsUrl: def.docsUrl,
     category: getErrorCategory(def.code),
-  }));
+  };
+}
+
+/**
+ * Get all errors from the catalog
+ */
+export function getErrors(): ErrorsResourceResponse {
+  const errors = Object.values(ERROR_CATALOG).map(toErrorInfo);
 
   const categories = ERROR_CATEGORIES.map((cat) => ({
     prefix: cat.prefix,
@@ -94,15 +107,7 @@ export function getErrors(): ErrorsResourceResponse {
  * Get errors for a specific category
  */
 export function getErrorsByPrefix(prefix: string): ErrorInfo[] {
-  const defs = getErrorsByCategory(prefix);
-  return defs.map((def) => ({
-    code: def.code,
-    name: def.name,
-    message: def.message,
-    fix: def.fix,
-    docsUrl: def.docsUrl,
-    category: getErrorCategory(def.code),
-  }));
+  return getErrorsByCategory(prefix).map(toErrorInfo);
 }
 
 /**
@@ -119,14 +124,7 @@ export function searchErrors(query: string): ErrorInfo[] {
         def.message.toLowerCase().includes(lowerQuery) ||
         def.fix?.toLowerCase().includes(lowerQuery)
     )
-    .map((def) => ({
-      code: def.code,
-      name: def.name,
-      message: def.message,
-      fix: def.fix,
-      docsUrl: def.docsUrl,
-      category: getErrorCategory(def.code),
-    }));
+    .map(toErrorInfo);
 }
 
 /**

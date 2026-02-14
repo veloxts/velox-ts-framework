@@ -119,16 +119,6 @@ export interface TemplateConfig {
 }
 
 /**
- * Interface for template generators
- */
-export interface TemplateGenerator {
-  /**
-   * Generate all files for this template
-   */
-  generateFiles(config: TemplateConfig): TemplateFile[];
-}
-
-/**
  * A single template file to be written
  */
 export interface TemplateFile {

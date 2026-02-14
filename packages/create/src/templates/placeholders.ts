@@ -6,7 +6,7 @@
  */
 
 import { VELOXTS_VERSION } from './shared.js';
-import type { TemplateConfig } from './types.js';
+import type { TemplateConfig, TemplateType } from './types.js';
 
 // ============================================================================
 // Placeholder Definitions
@@ -44,49 +44,32 @@ export const PLACEHOLDERS = {
 } as const;
 
 /**
- * Default template configuration for templates that don't need real values.
- * Used when compiling templates that only need placeholder markers stripped,
- * not actual user-provided values (e.g., shared templates, route files).
+ * Create a minimal template configuration for a given template type.
+ *
+ * Used when compiling templates that only need conditional processing
+ * (e.g., keeping/removing @if auth blocks) and placeholder markers stripped,
+ * not actual user-provided values.
  */
-export const DEFAULT_CONFIG: TemplateConfig = {
-  projectName: '',
-  packageManager: 'pnpm',
-  template: 'spa',
-  database: 'sqlite',
-};
+function createTemplateConfig(template: TemplateType): TemplateConfig {
+  return {
+    projectName: '',
+    packageManager: 'pnpm',
+    template,
+    database: 'sqlite',
+  };
+}
 
-/**
- * Auth template configuration for auth-specific templates.
- * Same as DEFAULT_CONFIG but with template set to 'auth'.
- */
-export const AUTH_CONFIG: TemplateConfig = {
-  projectName: '',
-  packageManager: 'pnpm',
-  template: 'auth',
-  database: 'sqlite',
-};
+/** Default (SPA) template configuration for shared/generic templates */
+export const DEFAULT_CONFIG: TemplateConfig = createTemplateConfig('spa');
 
-/**
- * tRPC template configuration for tRPC-specific templates.
- * Same as DEFAULT_CONFIG but with template set to 'trpc'.
- */
-export const TRPC_CONFIG: TemplateConfig = {
-  projectName: '',
-  packageManager: 'pnpm',
-  template: 'trpc',
-  database: 'sqlite',
-};
+/** Auth template configuration for auth-specific conditional processing */
+export const AUTH_CONFIG: TemplateConfig = createTemplateConfig('auth');
 
-/**
- * RSC template configuration for RSC + Vinxi projects.
- * Uses React Server Components with file-based routing.
- */
-export const RSC_CONFIG: TemplateConfig = {
-  projectName: '',
-  packageManager: 'pnpm',
-  template: 'rsc',
-  database: 'sqlite',
-};
+/** tRPC template configuration for tRPC-specific conditional processing */
+export const TRPC_CONFIG: TemplateConfig = createTemplateConfig('trpc');
+
+/** RSC template configuration for RSC-specific conditional processing */
+export const RSC_CONFIG: TemplateConfig = createTemplateConfig('rsc');
 
 // ============================================================================
 // Placeholder Replacement

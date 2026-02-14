@@ -155,39 +155,32 @@ export async function getProjectInfo(projectRoot?: string): Promise<ProjectInfo 
 }
 
 /**
- * Get the procedures directory path for a project
+ * Resolve a source subdirectory, checking monorepo layout first, then single-package.
  */
-export function getProceduresPath(projectRoot: string): string | null {
-  // Check monorepo structure first
-  const monorepoProcedures = join(projectRoot, 'apps', 'api', 'src', 'procedures');
-  if (existsSync(monorepoProcedures)) {
-    return monorepoProcedures;
+function resolveSourcePath(projectRoot: string, subdir: string): string | null {
+  const monorepoPath = join(projectRoot, 'apps', 'api', 'src', subdir);
+  if (existsSync(monorepoPath)) {
+    return monorepoPath;
   }
 
-  // Check single package structure
-  const singleProcedures = join(projectRoot, 'src', 'procedures');
-  if (existsSync(singleProcedures)) {
-    return singleProcedures;
+  const singlePath = join(projectRoot, 'src', subdir);
+  if (existsSync(singlePath)) {
+    return singlePath;
   }
 
   return null;
 }
 
 /**
+ * Get the procedures directory path for a project
+ */
+export function getProceduresPath(projectRoot: string): string | null {
+  return resolveSourcePath(projectRoot, 'procedures');
+}
+
+/**
  * Get the schemas directory path for a project
  */
 export function getSchemasPath(projectRoot: string): string | null {
-  // Check monorepo structure first
-  const monorepoSchemas = join(projectRoot, 'apps', 'api', 'src', 'schemas');
-  if (existsSync(monorepoSchemas)) {
-    return monorepoSchemas;
-  }
-
-  // Check single package structure
-  const singleSchemas = join(projectRoot, 'src', 'schemas');
-  if (existsSync(singleSchemas)) {
-    return singleSchemas;
-  }
-
-  return null;
+  return resolveSourcePath(projectRoot, 'schemas');
 }

@@ -11,212 +11,23 @@
  * This is a single-package structure (not a monorepo workspace).
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-import { compileTemplate } from './compiler.js';
+import { compileTemplate, readSharedScript } from './compiler.js';
 import { applyDatabaseDependencies, RSC_CONFIG } from './placeholders.js';
 import type { TemplateConfig, TemplateFile } from './types.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/**
- * Read shared script from templates/source/shared/scripts/
- */
-function readSharedScript(scriptName: string): string {
-  // Try dist path first (production), then src path (development)
-  const distPath = path.join(
-    __dirname,
-    '..',
-    '..',
-    'src',
-    'templates',
-    'source',
-    'shared',
-    'scripts',
-    scriptName
-  );
-  const srcPath = path.join(__dirname, 'source', 'shared', 'scripts', scriptName);
-
-  for (const scriptPath of [distPath, srcPath]) {
-    if (fs.existsSync(scriptPath)) {
-      return fs.readFileSync(scriptPath, 'utf-8');
-    }
-  }
-
-  throw new Error(
-    `Shared script not found: ${scriptName}. Checked:\n  - ${distPath}\n  - ${srcPath}`
-  );
-}
-
 // ============================================================================
-// Template Compilation
+// Helpers (only for functions with non-trivial logic)
 // ============================================================================
 
+/** Compile package.json and swap database dependencies based on config */
 function generatePackageJson(config: TemplateConfig): string {
   const content = compileTemplate('rsc/package.json', config);
   return applyDatabaseDependencies(content, config);
 }
 
-function generateAppConfig(): string {
-  return compileTemplate('rsc/app.config.ts', RSC_CONFIG);
-}
-
-function generateTsConfig(): string {
-  return compileTemplate('rsc/tsconfig.json', RSC_CONFIG);
-}
-
-function generateEnvExample(config: TemplateConfig): string {
-  return compileTemplate('rsc/env.example', config);
-}
-
-function generateGitignore(): string {
-  return compileTemplate('rsc/gitignore', RSC_CONFIG);
-}
-
-function generateClaudeMd(config: TemplateConfig): string {
-  return compileTemplate('rsc/CLAUDE.md', config);
-}
-
-// Prisma
-function generatePrismaSchema(config: TemplateConfig): string {
-  return compileTemplate('rsc/prisma/schema.prisma', config);
-}
-
-function generatePrismaConfig(): string {
-  return compileTemplate('rsc/prisma.config.ts', RSC_CONFIG);
-}
-
-// App layer (RSC)
-function generateHomePage(): string {
-  return compileTemplate('rsc/app/pages/index.tsx', RSC_CONFIG);
-}
-
-function generateUsersPage(): string {
-  return compileTemplate('rsc/app/pages/users.tsx', RSC_CONFIG);
-}
-
-function generateUserDetailPage(): string {
-  return compileTemplate('rsc/app/pages/users/[id].tsx', RSC_CONFIG);
-}
-
-function generateRootLayout(): string {
-  return compileTemplate('rsc/app/layouts/root.tsx', RSC_CONFIG);
-}
-
-function generateMarketingLayout(): string {
-  return compileTemplate('rsc/app/layouts/marketing.tsx', RSC_CONFIG);
-}
-
-function generateMinimalLayout(): string {
-  return compileTemplate('rsc/app/layouts/minimal.tsx', RSC_CONFIG);
-}
-
-function generateMinimalContentLayout(): string {
-  return compileTemplate('rsc/app/layouts/minimal-content.tsx', RSC_CONFIG);
-}
-
-function generateAboutPage(): string {
-  return compileTemplate('rsc/app/pages/(marketing)/about.tsx', RSC_CONFIG);
-}
-
-function generatePrintPage(): string {
-  return compileTemplate('rsc/app/pages/print.tsx', RSC_CONFIG);
-}
-
-function generateNotFoundPage(): string {
-  return compileTemplate('rsc/app/pages/_not-found.tsx', RSC_CONFIG);
-}
-
-function generateUserActions(): string {
-  return compileTemplate('rsc/app/actions/users.ts', RSC_CONFIG);
-}
-
-function generatePostActions(): string {
-  return compileTemplate('rsc/app/actions/posts.ts', RSC_CONFIG);
-}
-
-// Route group pages
-function generateSettingsPage(): string {
-  return compileTemplate('rsc/app/pages/(dashboard)/settings.tsx', RSC_CONFIG);
-}
-
-function generateProfilePage(): string {
-  return compileTemplate('rsc/app/pages/(dashboard)/profile.tsx', RSC_CONFIG);
-}
-
-// Nested dynamic route pages
-function generateUserPostsPage(): string {
-  return compileTemplate('rsc/app/pages/users/[id]/posts/index.tsx', RSC_CONFIG);
-}
-
-function generatePostDetailPage(): string {
-  return compileTemplate('rsc/app/pages/users/[id]/posts/[postId].tsx', RSC_CONFIG);
-}
-
-function generateNewPostPage(): string {
-  return compileTemplate('rsc/app/pages/users/[id]/posts/new.tsx', RSC_CONFIG);
-}
-
-// Catch-all page
-function generateDocsPage(): string {
-  return compileTemplate('rsc/app/pages/docs/[...slug].tsx', RSC_CONFIG);
-}
-
-// Additional layouts
-function generateDashboardLayout(): string {
-  return compileTemplate('rsc/app/layouts/dashboard.tsx', RSC_CONFIG);
-}
-
-function generateUsersLayout(): string {
-  return compileTemplate('rsc/app/pages/users/_layout.tsx', RSC_CONFIG);
-}
-
-// Source layer
-function generateEntryClient(): string {
-  return compileTemplate('rsc/src/entry.client.tsx', RSC_CONFIG);
-}
-
-function generateEntryServer(): string {
-  return compileTemplate('rsc/src/entry.server.tsx', RSC_CONFIG);
-}
-
-function generateApiHandler(): string {
-  return compileTemplate('rsc/src/api/handler.ts', RSC_CONFIG);
-}
-
-function generateDatabase(config: TemplateConfig): string {
-  return compileTemplate('rsc/src/api/database.ts', config);
-}
-
-function generateHealthProcedures(): string {
-  return compileTemplate('rsc/src/api/procedures/health.ts', RSC_CONFIG);
-}
-
-function generateUserProcedures(): string {
-  return compileTemplate('rsc/src/api/procedures/users.ts', RSC_CONFIG);
-}
-
-function generatePostProcedures(): string {
-  return compileTemplate('rsc/src/api/procedures/posts.ts', RSC_CONFIG);
-}
-
-function generateUserSchemas(): string {
-  return compileTemplate('rsc/src/api/schemas/user.ts', RSC_CONFIG);
-}
-
-function generatePostSchemas(): string {
-  return compileTemplate('rsc/src/api/schemas/post.ts', RSC_CONFIG);
-}
-
-function generateFavicon(): string {
-  return compileTemplate('rsc/public/favicon.svg', RSC_CONFIG);
-}
-
-function generateDockerCompose(config: TemplateConfig): string {
-  return compileTemplate('rsc/docker-compose.yml', config);
+/** Shorthand: compile a static RSC template (no user-specific config needed) */
+function rsc(sourcePath: string): string {
+  return compileTemplate(sourcePath, RSC_CONFIG);
 }
 
 // ============================================================================
@@ -227,64 +38,85 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
   const files: TemplateFile[] = [
     // Root configuration files
     { path: 'package.json', content: generatePackageJson(config) },
-    { path: 'app.config.ts', content: generateAppConfig() },
-    { path: 'tsconfig.json', content: generateTsConfig() },
-    { path: '.env.example', content: generateEnvExample(config) },
-    { path: '.env', content: generateEnvExample(config) },
-    { path: '.gitignore', content: generateGitignore() },
-    { path: 'CLAUDE.md', content: generateClaudeMd(config) },
+    { path: 'app.config.ts', content: rsc('rsc/app.config.ts') },
+    { path: 'tsconfig.json', content: rsc('rsc/tsconfig.json') },
+    { path: '.env.example', content: compileTemplate('rsc/env.example', config) },
+    { path: '.env', content: compileTemplate('rsc/env.example', config) },
+    { path: '.gitignore', content: rsc('rsc/gitignore') },
+    { path: 'CLAUDE.md', content: compileTemplate('rsc/CLAUDE.md', config) },
 
     // Prisma
-    { path: 'prisma/schema.prisma', content: generatePrismaSchema(config) },
-    { path: 'prisma.config.ts', content: generatePrismaConfig() },
+    { path: 'prisma/schema.prisma', content: compileTemplate('rsc/prisma/schema.prisma', config) },
+    { path: 'prisma.config.ts', content: rsc('rsc/prisma.config.ts') },
 
     // App layer (RSC) - Basic pages
-    { path: 'app/pages/index.tsx', content: generateHomePage() },
-    { path: 'app/pages/users.tsx', content: generateUsersPage() },
-    { path: 'app/pages/print.tsx', content: generatePrintPage() },
-    { path: 'app/pages/_not-found.tsx', content: generateNotFoundPage() },
+    { path: 'app/pages/index.tsx', content: rsc('rsc/app/pages/index.tsx') },
+    { path: 'app/pages/users.tsx', content: rsc('rsc/app/pages/users.tsx') },
+    { path: 'app/pages/print.tsx', content: rsc('rsc/app/pages/print.tsx') },
+    { path: 'app/pages/_not-found.tsx', content: rsc('rsc/app/pages/_not-found.tsx') },
 
     // App layer (RSC) - Nested dynamic routes (users/[id]/*)
-    { path: 'app/pages/users/[id].tsx', content: generateUserDetailPage() },
-    { path: 'app/pages/users/[id]/posts/index.tsx', content: generateUserPostsPage() },
-    { path: 'app/pages/users/[id]/posts/[postId].tsx', content: generatePostDetailPage() },
-    { path: 'app/pages/users/[id]/posts/new.tsx', content: generateNewPostPage() },
+    { path: 'app/pages/users/[id].tsx', content: rsc('rsc/app/pages/users/[id].tsx') },
+    {
+      path: 'app/pages/users/[id]/posts/index.tsx',
+      content: rsc('rsc/app/pages/users/[id]/posts/index.tsx'),
+    },
+    {
+      path: 'app/pages/users/[id]/posts/[postId].tsx',
+      content: rsc('rsc/app/pages/users/[id]/posts/[postId].tsx'),
+    },
+    {
+      path: 'app/pages/users/[id]/posts/new.tsx',
+      content: rsc('rsc/app/pages/users/[id]/posts/new.tsx'),
+    },
 
     // App layer (RSC) - Route groups
-    { path: 'app/pages/(marketing)/about.tsx', content: generateAboutPage() },
-    { path: 'app/pages/(dashboard)/settings.tsx', content: generateSettingsPage() },
-    { path: 'app/pages/(dashboard)/profile.tsx', content: generateProfilePage() },
+    {
+      path: 'app/pages/(marketing)/about.tsx',
+      content: rsc('rsc/app/pages/(marketing)/about.tsx'),
+    },
+    {
+      path: 'app/pages/(dashboard)/settings.tsx',
+      content: rsc('rsc/app/pages/(dashboard)/settings.tsx'),
+    },
+    {
+      path: 'app/pages/(dashboard)/profile.tsx',
+      content: rsc('rsc/app/pages/(dashboard)/profile.tsx'),
+    },
 
     // App layer (RSC) - Catch-all routes
-    { path: 'app/pages/docs/[...slug].tsx', content: generateDocsPage() },
+    { path: 'app/pages/docs/[...slug].tsx', content: rsc('rsc/app/pages/docs/[...slug].tsx') },
 
     // App layer (RSC) - Layouts
-    { path: 'app/layouts/root.tsx', content: generateRootLayout() },
-    { path: 'app/layouts/marketing.tsx', content: generateMarketingLayout() },
-    { path: 'app/layouts/minimal.tsx', content: generateMinimalLayout() },
-    { path: 'app/layouts/minimal-content.tsx', content: generateMinimalContentLayout() },
-    { path: 'app/layouts/dashboard.tsx', content: generateDashboardLayout() },
-    { path: 'app/pages/users/_layout.tsx', content: generateUsersLayout() },
+    { path: 'app/layouts/root.tsx', content: rsc('rsc/app/layouts/root.tsx') },
+    { path: 'app/layouts/marketing.tsx', content: rsc('rsc/app/layouts/marketing.tsx') },
+    { path: 'app/layouts/minimal.tsx', content: rsc('rsc/app/layouts/minimal.tsx') },
+    {
+      path: 'app/layouts/minimal-content.tsx',
+      content: rsc('rsc/app/layouts/minimal-content.tsx'),
+    },
+    { path: 'app/layouts/dashboard.tsx', content: rsc('rsc/app/layouts/dashboard.tsx') },
+    { path: 'app/pages/users/_layout.tsx', content: rsc('rsc/app/pages/users/_layout.tsx') },
 
     // App layer (RSC) - Server actions
-    { path: 'app/actions/users.ts', content: generateUserActions() },
-    { path: 'app/actions/posts.ts', content: generatePostActions() },
+    { path: 'app/actions/users.ts', content: rsc('rsc/app/actions/users.ts') },
+    { path: 'app/actions/posts.ts', content: rsc('rsc/app/actions/posts.ts') },
 
     // Source layer - Entry points
-    { path: 'src/entry.client.tsx', content: generateEntryClient() },
-    { path: 'src/entry.server.tsx', content: generateEntryServer() },
+    { path: 'src/entry.client.tsx', content: rsc('rsc/src/entry.client.tsx') },
+    { path: 'src/entry.server.tsx', content: rsc('rsc/src/entry.server.tsx') },
 
     // Source layer - API
-    { path: 'src/api/handler.ts', content: generateApiHandler() },
-    { path: 'src/api/database.ts', content: generateDatabase(config) },
-    { path: 'src/api/procedures/health.ts', content: generateHealthProcedures() },
-    { path: 'src/api/procedures/users.ts', content: generateUserProcedures() },
-    { path: 'src/api/procedures/posts.ts', content: generatePostProcedures() },
-    { path: 'src/api/schemas/user.ts', content: generateUserSchemas() },
-    { path: 'src/api/schemas/post.ts', content: generatePostSchemas() },
+    { path: 'src/api/handler.ts', content: rsc('rsc/src/api/handler.ts') },
+    { path: 'src/api/database.ts', content: compileTemplate('rsc/src/api/database.ts', config) },
+    { path: 'src/api/procedures/health.ts', content: rsc('rsc/src/api/procedures/health.ts') },
+    { path: 'src/api/procedures/users.ts', content: rsc('rsc/src/api/procedures/users.ts') },
+    { path: 'src/api/procedures/posts.ts', content: rsc('rsc/src/api/procedures/posts.ts') },
+    { path: 'src/api/schemas/user.ts', content: rsc('rsc/src/api/schemas/user.ts') },
+    { path: 'src/api/schemas/post.ts', content: rsc('rsc/src/api/schemas/post.ts') },
 
     // Public assets
-    { path: 'public/favicon.svg', content: generateFavicon() },
+    { path: 'public/favicon.svg', content: rsc('rsc/public/favicon.svg') },
 
     // Scripts
     {
@@ -297,7 +129,7 @@ export function generateRscTemplate(config: TemplateConfig): TemplateFile[] {
   if (config.database === 'postgresql') {
     files.push({
       path: 'docker-compose.yml',
-      content: generateDockerCompose(config),
+      content: compileTemplate('rsc/docker-compose.yml', config),
     });
   }
 

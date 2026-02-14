@@ -156,6 +156,11 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
     };
   });
 
+  // Helper to wrap text content as an MCP resource response
+  function textResource(uri: string, text: string) {
+    return { contents: [{ uri, mimeType: 'text/plain', text }] };
+  }
+
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const uri = request.params.uri;
     log(`Reading resource: ${uri}`);
@@ -163,54 +168,21 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
     switch (uri) {
       case 'velox://procedures': {
         const data = await getProcedures(projectRoot);
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'text/plain',
-              text: formatProceduresAsText(data),
-            },
-          ],
-        };
+        return textResource(uri, formatProceduresAsText(data));
       }
 
       case 'velox://routes': {
         const data = await getRoutes(projectRoot);
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'text/plain',
-              text: formatRoutesAsText(data),
-            },
-          ],
-        };
+        return textResource(uri, formatRoutesAsText(data));
       }
 
       case 'velox://schemas': {
         const data = await getSchemas(projectRoot);
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'text/plain',
-              text: formatSchemasAsText(data),
-            },
-          ],
-        };
+        return textResource(uri, formatSchemasAsText(data));
       }
 
       case 'velox://errors': {
-        const data = getErrors();
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'text/plain',
-              text: formatErrorsAsText(data),
-            },
-          ],
-        };
+        return textResource(uri, formatErrorsAsText(getErrors()));
       }
 
       case 'velox://project': {
@@ -234,15 +206,7 @@ export function createVeloxMCPServer(options: VeloxMCPServerOptions = {}): Serve
               .join('\n')
           : 'No VeloxTS project detected in current directory.';
 
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'text/plain',
-              text,
-            },
-          ],
-        };
+        return textResource(uri, text);
       }
 
       case 'velox://auth-context': {
@@ -336,15 +300,7 @@ const orgId = fullUser.organizationId;
 \`\`\`
 `;
 
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'text/plain',
-              text,
-            },
-          ],
-        };
+        return textResource(uri, text);
       }
 
       default:
@@ -428,21 +384,25 @@ const orgId = fullUser.organizationId;
     const { name, arguments: args } = request.params;
     log(`Calling tool: ${name}`);
 
+    // Helper to build a tool response
+    function toolResult(text: string, isError = false) {
+      return { content: [{ type: 'text' as const, text }], isError };
+    }
+
+    // Helper to format Zod validation errors into a tool error response
+    function validationError(
+      toolName: string,
+      issues: { path: (string | number)[]; message: string }[]
+    ) {
+      const errors = issues.map((e) => `${e.path.join('.')}: ${e.message}`);
+      return toolResult(`Invalid arguments for ${toolName}:\n${errors.join('\n')}`, true);
+    }
+
     switch (name) {
       case 'velox_generate': {
-        // Validate arguments with Zod
         const parsed = GenerateArgsSchema.safeParse(args);
         if (!parsed.success) {
-          const errors = parsed.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Invalid arguments for velox_generate:\n${errors.join('\n')}`,
-              },
-            ],
-            isError: true,
-          };
+          return validationError('velox_generate', parsed.error.issues);
         }
 
         const result = await generate(
@@ -456,31 +416,13 @@ const orgId = fullUser.organizationId;
           projectRoot
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: formatGenerateResult(result),
-            },
-          ],
-          isError: !result.success,
-        };
+        return toolResult(formatGenerateResult(result), !result.success);
       }
 
       case 'velox_migrate': {
-        // Validate arguments with Zod
         const parsed = MigrateArgsSchema.safeParse(args);
         if (!parsed.success) {
-          const errors = parsed.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Invalid arguments for velox_migrate:\n${errors.join('\n')}`,
-              },
-            ],
-            isError: true,
-          };
+          return validationError('velox_migrate', parsed.error.issues);
         }
 
         const result = await migrate(
@@ -493,15 +435,7 @@ const orgId = fullUser.organizationId;
           projectRoot
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: formatMigrateResult(result),
-            },
-          ],
-          isError: !result.success,
-        };
+        return toolResult(formatMigrateResult(result), !result.success);
       }
 
       default:
@@ -516,14 +450,7 @@ const orgId = fullUser.organizationId;
   server.setRequestHandler(ListPromptsRequestSchema, async () => {
     log('Listing prompts');
 
-    const prompts = listPromptTemplates();
-
-    return {
-      prompts: prompts.map((p) => ({
-        name: p.name,
-        description: p.description,
-      })),
-    };
+    return { prompts: listPromptTemplates() };
   });
 
   server.setRequestHandler(GetPromptRequestSchema, async (request) => {

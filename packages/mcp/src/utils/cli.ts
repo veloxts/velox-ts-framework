@@ -4,6 +4,7 @@
  * Utilities for finding and executing the VeloxTS CLI binary.
  */
 
+import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -98,4 +99,55 @@ export function resolveVeloxCLI(projectRoot: string, args: string[]): ResolvedCL
     args: ['@veloxts/cli', ...args],
     isNpx: true,
   };
+}
+
+// ============================================================================
+// CLI Execution
+// ============================================================================
+
+/**
+ * Result from spawning a CLI command
+ */
+export interface SpawnCLIResult {
+  success: boolean;
+  stdout: string;
+  stderr: string;
+  code: number | null;
+}
+
+/**
+ * Spawn a VeloxTS CLI command and collect its output.
+ *
+ * Resolves the CLI binary, spawns the process, and returns stdout/stderr.
+ * Never rejects - errors are returned in the result.
+ */
+export function spawnCLI(projectRoot: string, args: string[]): Promise<SpawnCLIResult> {
+  const resolved = resolveVeloxCLI(projectRoot, args);
+
+  return new Promise((resolve) => {
+    const child = spawn(resolved.command, resolved.args, {
+      cwd: projectRoot,
+      shell: resolved.isNpx,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout?.on('data', (data: Buffer) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on('data', (data: Buffer) => {
+      stderr += data.toString();
+    });
+
+    child.on('close', (code) => {
+      resolve({ success: code === 0, stdout, stderr, code });
+    });
+
+    child.on('error', (err) => {
+      resolve({ success: false, stdout, stderr: err.message, code: null });
+    });
+  });
 }
