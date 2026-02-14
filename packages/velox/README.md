@@ -1,6 +1,6 @@
 # Velox TS Framework
 
-> **Early Access (v0.6.x)**
+> **Early Access (v0.7.x)**
 
 ## Type-safe full-stack without the build step
 

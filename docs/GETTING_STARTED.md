@@ -2,7 +2,7 @@
 
 > **Deprecated:** This document is no longer maintained. Please refer to the official documentation at [veloxts.dev/docs](https://www.veloxts.dev/docs/).
 
-> **Current Version:** v0.6.x - VeloxTS is in active development with a stable API. This guide reflects the current functionality.
+> **Current Version:** v0.7.x - VeloxTS is in active development with a stable API. This guide reflects the current functionality.
 
 Welcome to VeloxTS, a TypeScript full-stack web framework focused on developer experience and type safety. This guide walks you through creating your first VeloxTS application.
 

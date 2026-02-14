@@ -4,7 +4,7 @@ Thank you for your interest in VeloxTS!
 
 ## Current Status: Early Development
 
-VeloxTS is currently in **early preview (v0.6.x)** and under active development by a small core team. While the repository is public, **we are not yet accepting external contributions**.
+VeloxTS is currently in **early preview (v0.7.x)** and under active development by a small core team. While the repository is public, **we are not yet accepting external contributions**.
 
 ### What This Means
 

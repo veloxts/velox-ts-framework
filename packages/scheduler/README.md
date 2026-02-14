@@ -1,6 +1,6 @@
 # @veloxts/scheduler
 
-> **Early Access (v0.6.x)**
+> **Early Access (v0.7.x)**
 
 Cron-based task scheduling for VeloxTS Framework - provides a fluent API for defining recurring tasks with overlap prevention and timezone support. Learn more at [@veloxts/velox](https://www.npmjs.com/package/@veloxts/velox).
 
