@@ -1,5 +1,20 @@
 # @veloxts/cli
 
+## 0.7.0
+
+### Minor Changes
+
+- chore(deps): update Prisma from 7.3.0 to 7.4.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @veloxts/auth@0.7.0
+  - @veloxts/core@0.7.0
+  - @veloxts/orm@0.7.0
+  - @veloxts/router@0.7.0
+  - @veloxts/validation@0.7.0
+
 ## 0.6.107
 
 ### Patch Changes
