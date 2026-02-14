@@ -213,9 +213,9 @@ describe('Auto-Invalidation Integration', () => {
       // Check that queries are marked as stale
       const queries = queryClient.getQueryCache().findAll({ queryKey: ['users'] });
       expect(queries.length).toBe(3);
-      queries.forEach((query) => {
+      for (const query of queries) {
         expect(query.isStale()).toBe(true);
-      });
+      }
     });
 
     it('can invalidate specific query by full key', async () => {

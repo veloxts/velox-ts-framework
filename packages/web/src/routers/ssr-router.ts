@@ -187,9 +187,9 @@ async function sendResponse(res: H3Event['node']['res'], response: Response): Pr
   res.statusCode = response.status;
 
   // Set headers
-  response.headers.forEach((value, key) => {
+  for (const [key, value] of response.headers.entries()) {
     res.setHeader(key, value);
-  });
+  }
 
   // Handle the response body
   if (!response.body) {

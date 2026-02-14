@@ -146,17 +146,17 @@ export function formDataToObject(
   const { stripEmpty = false } = options;
   const result: Record<string, unknown> = {};
 
-  formData.forEach((value, key) => {
+  for (const [key, value] of formData.entries()) {
     const processedValue = processValue(value, options);
 
     // Skip undefined values (e.g., ignored files)
     if (processedValue === undefined) {
-      return;
+      continue;
     }
 
     // Skip empty strings if stripEmpty is true
     if (stripEmpty && processedValue === '') {
-      return;
+      continue;
     }
 
     // Handle nested keys (e.g., 'user.name' -> { user: { name: value } })
@@ -184,7 +184,7 @@ export function formDataToObject(
     } else {
       current[finalKey] = processedValue;
     }
-  });
+  }
 
   return result;
 }

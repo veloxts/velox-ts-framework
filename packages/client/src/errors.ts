@@ -379,11 +379,12 @@ function isErrorResponseLike(body: unknown): body is ErrorResponse {
     return false;
   }
 
-  const obj = body as Record<string, unknown>;
-
   return (
-    typeof obj.error === 'string' &&
-    typeof obj.message === 'string' &&
-    typeof obj.statusCode === 'number'
+    'error' in body &&
+    typeof body.error === 'string' &&
+    'message' in body &&
+    typeof body.message === 'string' &&
+    'statusCode' in body &&
+    typeof body.statusCode === 'number'
   );
 }

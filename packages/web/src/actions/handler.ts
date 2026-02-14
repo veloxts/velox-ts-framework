@@ -11,9 +11,6 @@ import { createLogger } from '@veloxts/core';
 import { ZodError, type ZodIssue, type ZodType } from 'zod';
 
 import { toActionError } from './error-classifier.js';
-
-const log = createLogger('web');
-
 import type {
   ActionContext,
   ActionError,
@@ -30,6 +27,8 @@ import type {
   FormActionHandler,
   RegisteredAction,
 } from './types.js';
+
+const log = createLogger('web');
 
 /**
  * Creates a successful action result
@@ -239,11 +238,7 @@ export function createAction<TInput, TOutput>(
 
       // Validate output if schema provided
       if (outputSchema) {
-        const outputResult = await validateOutput(outputSchema, result);
-        if (!isSuccess(outputResult)) {
-          return outputResult;
-        }
-        return outputResult;
+        return validateOutput(outputSchema, result);
       }
 
       return success(result);
@@ -300,11 +295,7 @@ export function createFormAction<TOutput>(
 
       // Validate output if schema provided
       if (outputSchema) {
-        const outputResult = await validateOutput(outputSchema, result);
-        if (!isSuccess(outputResult)) {
-          return outputResult;
-        }
-        return outputResult;
+        return validateOutput(outputSchema, result);
       }
 
       return success(result);

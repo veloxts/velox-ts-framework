@@ -180,9 +180,9 @@ function createRouteMatch(
   // Dynamic path params (e.g., [id]) are NOT extracted by this simplified function
   // Use FileRouter.match() for full dynamic route parameter extraction
   const params: Record<string, string> = {};
-  searchParams.forEach((value, key) => {
+  for (const [key, value] of searchParams.entries()) {
     params[key] = value;
-  });
+  }
 
   return {
     route: {

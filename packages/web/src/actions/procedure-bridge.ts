@@ -14,10 +14,9 @@ import { createLogger } from '@veloxts/core';
 import type { CompiledProcedure, InferProcedureInput, InferProcedureOutput } from '@veloxts/router';
 
 import { toActionError } from './error-classifier.js';
+import type { ActionContext, ActionResult, AuthenticatedActionContext } from './types.js';
 
 const log = createLogger('web');
-
-import type { ActionContext, ActionResult, AuthenticatedActionContext } from './types.js';
 
 // ============================================================================
 // Types
@@ -97,9 +96,9 @@ function createMockFastifyRequest(actionCtx: ActionContext): MockFastifyRequest 
   const headersRecord: Record<string, string | string[] | undefined> = {};
 
   // Convert Headers to Record
-  actionCtx.headers.forEach((value, key) => {
+  for (const [key, value] of actionCtx.headers.entries()) {
     headersRecord[key] = value;
-  });
+  }
 
   // Parse URL for query params
   let url = '/';
@@ -108,9 +107,9 @@ function createMockFastifyRequest(actionCtx: ActionContext): MockFastifyRequest 
   try {
     const parsedUrl = new URL(actionCtx.request.url);
     url = parsedUrl.pathname;
-    parsedUrl.searchParams.forEach((value, key) => {
+    for (const [key, value] of parsedUrl.searchParams.entries()) {
       queryParams[key] = value;
-    });
+    }
   } catch {
     // URL parsing failed, use defaults
   }
@@ -147,12 +146,6 @@ function createMockFastifyReply(): MockFastifyReply {
 }
 
 /**
- * Creates a BaseContext from ActionContext for procedure execution.
- *
- * Maps the Web API Request from actions to the Fastify-like context
- * that procedures expect. Includes user info if authenticated.
- */
-/**
  * Validates that required context properties are present.
  * Logs a warning in development if expected properties are missing.
  *
@@ -172,6 +165,12 @@ function validateContextExtensions(ctx: BaseContext, requiredKeys: readonly stri
   }
 }
 
+/**
+ * Creates a BaseContext from ActionContext for procedure execution.
+ *
+ * Maps the Web API Request from actions to the Fastify-like context
+ * that procedures expect. Includes user info if authenticated.
+ */
 export function createProcedureContext(
   actionCtx: ActionContext,
   extensions?: Record<string, unknown>
