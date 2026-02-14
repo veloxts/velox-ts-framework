@@ -9,9 +9,13 @@
  * @module @veloxts/web/actions/validated
  */
 
+import { createLogger } from '@veloxts/core';
 import { ZodError, type ZodType } from 'zod';
 
 import { createH3Context, type H3ActionContext } from '../adapters/h3-adapter.js';
+
+const log = createLogger('web');
+
 import type {
   ActionContext,
   ActionError,
@@ -603,10 +607,7 @@ function handleError(
   }
 
   // Log unknown errors server-side (structured for production)
-  console.error(
-    '[VeloxTS] Server action error:',
-    error instanceof Error ? error.message : 'Unknown error'
-  );
+  log.error('Server action error:', error instanceof Error ? error.message : 'Unknown error');
 
   // Return sanitized error to client
   return errorResult('INTERNAL_ERROR', 'An unexpected error occurred');
@@ -878,7 +879,7 @@ export function validated<
       if (options?.outputSchema) {
         const outputResult = options.outputSchema.safeParse(result);
         if (!outputResult.success) {
-          console.error('[VeloxTS] Output validation failed:', outputResult.error);
+          log.error('Output validation failed:', outputResult.error);
           return errorResult('INTERNAL_ERROR', 'Response validation failed');
         }
         return success(outputResult.data as TOutput);

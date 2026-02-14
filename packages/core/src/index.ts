@@ -115,3 +115,10 @@ export { registerStatic } from './plugins/static.js';
 // ============================================================================
 
 export { requestLogger } from './plugins/request-logger.js';
+
+// ============================================================================
+// Structured Logging
+// ============================================================================
+
+export type { Logger, LogLevel } from './utils/logger.js';
+export { createLogger } from './utils/logger.js';

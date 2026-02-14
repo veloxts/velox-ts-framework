@@ -2,12 +2,14 @@
  * Preset plugin for automatic ecosystem package registration.
  */
 
-import type { VeloxApp } from '@veloxts/core';
+import { createLogger, type VeloxApp } from '@veloxts/core';
 
 import { getPreset } from './defaults.js';
 import { detectEnvironment } from './env.js';
 import { type DeepPartial, mergeDeep } from './merge.js';
 import type { AuthPreset, EcosystemPreset, Environment, PresetOptions } from './types.js';
+
+const log = createLogger('velox');
 
 /**
  * Package registration metadata.
@@ -124,7 +126,7 @@ export async function registerEcosystemPlugins(
 
       if (!options?.silent) {
         const driver = info.getDriver(config);
-        console.log(`  ✓ ${info.name} [${driver}]`);
+        log.info(`  ✓ ${info.name} [${driver}]`);
       }
     } catch (error) {
       const err = error as Error & { code?: string };
@@ -198,13 +200,13 @@ export async function usePresets(app: VeloxApp, options: PresetOptions = {}): Pr
   };
 
   if (!options.silent) {
-    console.log(`\n📦 VeloxTS Ecosystem Presets [${env}]`);
+    log.info(`\nVeloxTS Ecosystem Presets [${env}]`);
   }
 
   await registerEcosystemPlugins(app, finalPreset, options);
 
   if (!options.silent) {
-    console.log('');
+    log.info('');
   }
 }
 

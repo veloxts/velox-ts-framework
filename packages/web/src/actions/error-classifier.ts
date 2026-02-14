@@ -7,7 +7,11 @@
  * @module @veloxts/web/actions/error-classifier
  */
 
+import { createLogger } from '@veloxts/core';
+
 import type { ActionError, ActionErrorCode } from './types.js';
+
+const log = createLogger('web');
 
 /**
  * Pattern configuration for error classification.
@@ -240,7 +244,7 @@ export function classifyError(
 
   // Log unexpected errors in development
   if (logInDevelopment && process.env.NODE_ENV !== 'production') {
-    console.error('[VeloxTS] Unclassified error:', error);
+    log.error('Unclassified error:', error);
   }
 
   return {

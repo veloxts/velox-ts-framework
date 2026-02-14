@@ -3,7 +3,11 @@
  * @module auth/policies
  */
 
+import { createLogger } from '@veloxts/core';
+
 import type { PolicyAction, PolicyDefinition, User } from './types.js';
+
+const log = createLogger('auth');
 
 // ============================================================================
 // Policy Registry
@@ -104,7 +108,7 @@ export async function can<TResource = unknown>(
   const policy = policyRegistry.get(resourceName);
   if (!policy) {
     // No policy registered = deny by default
-    console.warn(`No policy registered for resource: ${resourceName}`);
+    log.warn(`No policy registered for resource: ${resourceName}`);
     return false;
   }
 

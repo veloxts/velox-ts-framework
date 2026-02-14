@@ -35,6 +35,7 @@
  */
 
 import type { BaseContext } from '@veloxts/core';
+import { createLogger } from '@veloxts/core';
 import type { CompiledProcedure } from '@veloxts/router';
 import { ZodError, type infer as ZodInfer, type ZodIssue, type ZodType } from 'zod';
 
@@ -50,6 +51,8 @@ import type {
   ActionSuccess,
   AuthenticatedActionContext,
 } from './types.js';
+
+const log = createLogger('web');
 
 // ============================================================================
 // Core Types
@@ -464,7 +467,7 @@ function createValidatedAction<TInput, TOutput, TContext extends ActionContext>(
       if (outputSchema) {
         const outputValidation = await validateWithSchema(outputSchema, result);
         if (!outputValidation.success) {
-          console.error('[VeloxTS] Output validation failed:', outputValidation.error);
+          log.error('Output validation failed:', outputValidation.error);
           return fail('INTERNAL_ERROR', 'Output validation failed');
         }
         return outputValidation;

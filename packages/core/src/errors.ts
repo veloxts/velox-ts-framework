@@ -7,6 +7,9 @@
 // Import catalog for use in error classes
 import { ERROR_CATALOG } from './errors/catalog.js';
 import { formatError as _formatError } from './errors/formatter.js';
+import { createLogger } from './utils/logger.js';
+
+const log = createLogger('core');
 
 // Re-export the enhanced error catalog, formatter, and fail()
 export {
@@ -279,7 +282,7 @@ export class VeloxError<TCode extends string = string> extends Error {
    * Log this error with pretty formatting
    */
   log(): void {
-    console.error(this.format());
+    log.error(this.format());
   }
 }
 

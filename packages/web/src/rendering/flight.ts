@@ -9,6 +9,10 @@
 
 import { readFile } from 'node:fs/promises';
 
+import { createLogger } from '@veloxts/core';
+
+const log = createLogger('web');
+
 /**
  * Module map for React Flight protocol.
  * Maps module IDs to their client references.
@@ -124,7 +128,7 @@ export async function loadClientManifest(): Promise<FlightModuleMap> {
     const manifest = JSON.parse(manifestJson) as ClientManifest;
     return createModuleMap(manifest);
   } catch (error) {
-    console.warn('[Flight] Failed to load client manifest, using empty map:', error);
+    log.warn('Failed to load client manifest, using empty map:', error);
     return createEmptyModuleMap();
   }
 }

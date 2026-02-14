@@ -10,8 +10,12 @@
  * Returns an h3-compatible event handler for Vinxi integration.
  */
 
+import { createLogger } from '@veloxts/core';
+
 import type { RouteMatch } from '../types.js';
 import { escapeHtml } from '../utils/html.js';
+
+const log = createLogger('web');
 
 /**
  * h3 event type (minimal interface to avoid h3 dependency)
@@ -124,7 +128,7 @@ export function createSsrRouter(options: SsrRouterOptions): H3EventHandler {
 
       if (!match) {
         if (shouldLog) {
-          console.log(`[SSR] ${url.pathname} → 404 Not Found`);
+          log.debug(`${url.pathname} → 404 Not Found`);
         }
         const notFoundResponse = await notFound(request);
         await sendResponse(res, notFoundResponse);
@@ -136,7 +140,7 @@ export function createSsrRouter(options: SsrRouterOptions): H3EventHandler {
       const elapsed = performance.now() - startTime;
 
       if (shouldLog) {
-        console.log(`[SSR] ${url.pathname} → ${response.status} (${elapsed.toFixed(1)}ms)`);
+        log.debug(`${url.pathname} → ${response.status} (${elapsed.toFixed(1)}ms)`);
       }
 
       await sendResponse(res, response);
@@ -144,7 +148,7 @@ export function createSsrRouter(options: SsrRouterOptions): H3EventHandler {
       const elapsed = performance.now() - startTime;
 
       if (shouldLog) {
-        console.error(`[SSR] ${url.pathname} → ERROR (${elapsed.toFixed(1)}ms)`, error);
+        log.error(`${url.pathname} → ERROR (${elapsed.toFixed(1)}ms)`, error);
       }
 
       const errorResponse = await onError(

@@ -4,6 +4,7 @@
  * Core scheduler that manages and executes scheduled tasks.
  */
 
+import { createLogger } from '@veloxts/core';
 import { CronJob } from 'cron';
 
 import type {
@@ -65,7 +66,7 @@ export function createScheduler(
   tasks: ScheduledTask[],
   options: SchedulerOptions = {}
 ): SchedulerManager {
-  const { timezone: defaultTimezone = 'UTC', debug = false } = options;
+  const { timezone: defaultTimezone = 'UTC' } = options;
 
   // Job states
   const jobs = new Map<string, JobState>();
@@ -89,14 +90,7 @@ export function createScheduler(
   // Track running task promises for graceful shutdown
   const runningTasks = new Map<string, Promise<TaskExecution>>();
 
-  /**
-   * Log debug message.
-   */
-  function log(message: string): void {
-    if (debug) {
-      console.log(`[scheduler] ${message}`);
-    }
-  }
+  const log = createLogger('scheduler');
 
   /**
    * Add execution to history.
@@ -149,7 +143,7 @@ export function createScheduler(
 
       if (lockExpired) {
         // Lock expired - force release and allow new execution
-        log(
+        log.debug(
           `Lock expired for ${task.name} after ${task.maxLockMinutes ?? DEFAULT_MAX_LOCK_MINUTES} minutes, forcing new execution`
         );
         jobState.isRunning = false;
@@ -161,7 +155,7 @@ export function createScheduler(
         execution.completedAt = new Date();
         execution.duration = 0;
 
-        log(`Skipping ${task.name}: ${skipReason}`);
+        log.debug(`Skipping ${task.name}: ${skipReason}`);
 
         if (task.onSkip) {
           try {
@@ -194,7 +188,7 @@ export function createScheduler(
           execution.completedAt = new Date();
           execution.duration = 0;
 
-          log(`Skipping ${task.name}: ${skipReason}`);
+          log.debug(`Skipping ${task.name}: ${skipReason}`);
 
           if (task.onSkip) {
             try {
@@ -221,7 +215,7 @@ export function createScheduler(
         execution.completedAt = new Date();
         execution.duration = 0;
 
-        log(`Skipping ${task.name}: ${skipReason}`);
+        log.debug(`Skipping ${task.name}: ${skipReason}`);
 
         addToHistory(execution);
         return execution;
@@ -232,7 +226,7 @@ export function createScheduler(
     jobState.isRunning = true;
     jobState.runningStartedAt = new Date();
 
-    log(`Starting ${task.name}`);
+    log.debug(`Starting ${task.name}`);
 
     if (options.onTaskStart) {
       try {
@@ -275,7 +269,7 @@ export function createScheduler(
 
       jobState.lastRunAt = completedAt;
 
-      log(`Completed ${task.name} in ${duration}ms`);
+      log.debug(`Completed ${task.name} in ${duration}ms`);
 
       if (task.onSuccess) {
         try {
@@ -302,7 +296,7 @@ export function createScheduler(
       execution.duration = duration;
       execution.error = errorObj.message;
 
-      log(`Failed ${task.name}: ${errorObj.message}`);
+      log.debug(`Failed ${task.name}: ${errorObj.message}`);
 
       if (task.onFailure) {
         try {
@@ -334,7 +328,7 @@ export function createScheduler(
   function initializeJobs(): void {
     for (const task of tasks) {
       if (!task.enabled) {
-        log(`Skipping disabled task: ${task.name}`);
+        log.debug(`Skipping disabled task: ${task.name}`);
         continue;
       }
 
@@ -348,7 +342,7 @@ export function createScheduler(
             // Track the running promise for graceful shutdown
             const taskPromise = executeTask(jobState)
               .catch((err) => {
-                console.error(`[scheduler] Unhandled error in ${task.name}:`, err);
+                log.error(`Unhandled error in ${task.name}:`, err);
                 // Return a failed execution to satisfy the type
                 return {
                   taskName: task.name,
@@ -377,7 +371,7 @@ export function createScheduler(
       };
 
       jobs.set(task.name, jobState);
-      log(`Registered task: ${task.name} (${task.cronExpression})`);
+      log.debug(`Registered task: ${task.name} (${task.cronExpression})`);
     }
   }
 
@@ -387,12 +381,12 @@ export function createScheduler(
   const manager: SchedulerManager = {
     start(): void {
       if (running) {
-        log('Scheduler already running');
+        log.debug('Scheduler already running');
         return;
       }
 
       running = true;
-      log('Starting scheduler');
+      log.debug('Starting scheduler');
 
       for (const jobState of jobs.values()) {
         jobState.cronJob.start();
@@ -401,11 +395,11 @@ export function createScheduler(
 
     async stop(): Promise<void> {
       if (!running) {
-        log('Scheduler not running');
+        log.debug('Scheduler not running');
         return;
       }
 
-      log('Stopping scheduler');
+      log.debug('Stopping scheduler');
 
       // Stop all cron jobs (prevents new executions)
       for (const jobState of jobs.values()) {
@@ -418,11 +412,11 @@ export function createScheduler(
       const runningPromises = Array.from(runningTasks.values());
 
       if (runningPromises.length > 0) {
-        log(`Waiting for ${runningPromises.length} running task(s) to complete...`);
+        log.debug(`Waiting for ${runningPromises.length} running task(s) to complete...`);
 
         const timeoutPromise = new Promise<void>((resolve) => {
           setTimeout(() => {
-            log('Graceful shutdown timeout reached, forcing stop');
+            log.debug('Graceful shutdown timeout reached, forcing stop');
             resolve();
           }, maxWait);
         });
@@ -433,7 +427,7 @@ export function createScheduler(
 
       running = false;
       runningTasks.clear();
-      log('Scheduler stopped');
+      log.debug('Scheduler stopped');
     },
 
     isRunning(): boolean {
@@ -463,7 +457,7 @@ export function createScheduler(
         throw new Error(`Task not found: ${name}`);
       }
 
-      log(`Manually running task: ${name}`);
+      log.debug(`Manually running task: ${name}`);
       return executeTask(jobState);
     },
 

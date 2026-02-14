@@ -9,6 +9,10 @@
 
 import { createHash } from 'node:crypto';
 
+import { createLogger } from '@veloxts/core';
+
+const log = createLogger('auth');
+
 // ============================================================================
 // Configuration Types
 // ============================================================================
@@ -402,7 +406,7 @@ export class PasswordPolicy {
         }
       } catch (error) {
         // Breach check failed - log but don't fail validation
-        console.warn('Password breach check failed:', error);
+        log.warn('Password breach check failed:', error);
       }
     }
 

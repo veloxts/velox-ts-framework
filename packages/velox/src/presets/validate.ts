@@ -5,8 +5,12 @@
  * settings are properly configured before the application starts.
  */
 
+import { createLogger } from '@veloxts/core';
+
 import { detectEnvironment } from './env.js';
 import type { Environment } from './types.js';
+
+const log = createLogger('velox');
 
 /**
  * Validation result with errors and warnings.
@@ -221,14 +225,14 @@ export function validateSecurityOrThrow(requirements?: SecurityRequirements): vo
 
   // Log warnings even if validation passes
   if (result.warnings.length > 0) {
-    console.warn('\nSecurity warnings:');
+    log.warn('\nSecurity warnings:');
     for (const warning of result.warnings) {
-      console.warn(`  [${warning.category}] ${warning.key}: ${warning.message}`);
+      log.warn(`  [${warning.category}] ${warning.key}: ${warning.message}`);
       if (warning.suggestion) {
-        console.warn(`    Suggestion: ${warning.suggestion}`);
+        log.warn(`    Suggestion: ${warning.suggestion}`);
       }
     }
-    console.warn('');
+    log.warn('');
   }
 }
 
