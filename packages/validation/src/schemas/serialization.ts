@@ -53,6 +53,32 @@ export type OmitTimestamps<T> = Omit<T, 'createdAt' | 'updatedAt' | 'deletedAt'>
 // ============================================================================
 
 /**
+ * Converts a Prisma Decimal, number, or string to a number.
+ * Shared conversion logic for all prismaDecimal variants.
+ */
+function coerceToNumber(val: unknown): number {
+  if (
+    typeof val === 'object' &&
+    val !== null &&
+    'toNumber' in val &&
+    typeof val.toNumber === 'function'
+  ) {
+    return val.toNumber();
+  }
+  if (typeof val === 'number') {
+    return val;
+  }
+  if (typeof val === 'string') {
+    const num = Number.parseFloat(val);
+    if (Number.isNaN(num)) {
+      throw new Error(`Cannot convert "${val}" to number`);
+    }
+    return num;
+  }
+  throw new Error(`Cannot convert ${typeof val} to number`);
+}
+
+/**
  * Creates a field that accepts Prisma Decimal and transforms to number
  *
  * Use in OUTPUT schemas where Prisma returns Decimal objects.
@@ -72,23 +98,7 @@ export function prismaDecimal() {
     if (val === null || val === undefined) {
       throw new Error('Expected Decimal, got null/undefined');
     }
-    // Prisma Decimal has toNumber() method
-    if (typeof val === 'object' && 'toNumber' in val && typeof val.toNumber === 'function') {
-      return val.toNumber();
-    }
-    // Already a number
-    if (typeof val === 'number') {
-      return val;
-    }
-    // String (from JSON)
-    if (typeof val === 'string') {
-      const num = Number.parseFloat(val);
-      if (Number.isNaN(num)) {
-        throw new Error(`Cannot convert "${val}" to number`);
-      }
-      return num;
-    }
-    throw new Error(`Cannot convert ${typeof val} to number`);
+    return coerceToNumber(val);
   });
 }
 
@@ -102,20 +112,7 @@ export function prismaDecimalNullable() {
     if (val === null || val === undefined) {
       return null;
     }
-    if (typeof val === 'object' && 'toNumber' in val && typeof val.toNumber === 'function') {
-      return val.toNumber();
-    }
-    if (typeof val === 'number') {
-      return val;
-    }
-    if (typeof val === 'string') {
-      const num = Number.parseFloat(val);
-      if (Number.isNaN(num)) {
-        throw new Error(`Cannot convert "${val}" to number`);
-      }
-      return num;
-    }
-    throw new Error(`Cannot convert ${typeof val} to number`);
+    return coerceToNumber(val);
   });
 }
 
@@ -129,20 +126,7 @@ export function prismaDecimalOptional() {
     if (val === null || val === undefined) {
       return undefined;
     }
-    if (typeof val === 'object' && 'toNumber' in val && typeof val.toNumber === 'function') {
-      return val.toNumber();
-    }
-    if (typeof val === 'number') {
-      return val;
-    }
-    if (typeof val === 'string') {
-      const num = Number.parseFloat(val);
-      if (Number.isNaN(num)) {
-        throw new Error(`Cannot convert "${val}" to number`);
-      }
-      return num;
-    }
-    throw new Error(`Cannot convert ${typeof val} to number`);
+    return coerceToNumber(val);
   });
 }
 

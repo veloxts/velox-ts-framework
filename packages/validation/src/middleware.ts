@@ -8,14 +8,35 @@
  */
 
 import { ValidationError } from '@veloxts/core';
-import { ZodError, type ZodType } from 'zod';
+import type { ZodError, ZodType } from 'zod';
 
-import type { AnySchema, AnyZodSchema, SafeParseResult } from './types.js';
+import type { AnySchema, AnyZodSchema, SafeParseResult, ValidationIssue } from './types.js';
 import { isSchema, isZodSchema } from './types.js';
 
 // ============================================================================
 // Error Transformation
 // ============================================================================
+
+/**
+ * Filters symbol keys from a Zod issue path, keeping only string and number segments.
+ * Zod 4 issue paths use `PropertyKey[]` which may include symbols.
+ */
+function filterIssuePath(path: readonly PropertyKey[]): readonly (string | number)[] {
+  return path.filter((p): p is string | number => typeof p !== 'symbol');
+}
+
+/**
+ * Converts Zod issues into framework-friendly ValidationIssue objects
+ */
+function zodIssuesToValidationIssues(
+  issues: readonly { path: readonly PropertyKey[]; message: string; code: string }[]
+): ValidationIssue[] {
+  return issues.map((issue) => ({
+    path: filterIssuePath(issue.path),
+    message: issue.message,
+    code: issue.code,
+  }));
+}
 
 /**
  * Transforms Zod validation issues into a field-error map
@@ -30,7 +51,6 @@ export function formatZodErrors(
 
   for (const issue of issues) {
     const path = issue.path.join('.') || '_root';
-    // Only keep the first error for each field
     if (!(path in fields)) {
       fields[path] = issue.message;
     }
@@ -50,14 +70,8 @@ export function zodErrorToValidationError(
   error: ZodError,
   customMessage?: string
 ): ValidationError {
-  const fields = formatZodErrors(
-    error.issues.map((i) => ({
-      path: i.path.filter((p): p is string | number => typeof p !== 'symbol'),
-      message: i.message,
-    }))
-  );
-  const message = customMessage ?? 'Validation failed';
-  return new ValidationError(message, fields);
+  const fields = formatZodErrors(zodIssuesToValidationIssues(error.issues));
+  return new ValidationError(customMessage ?? 'Validation failed', fields);
 }
 
 // ============================================================================
@@ -89,29 +103,23 @@ export function parse<T>(
   data: unknown,
   errorMessage?: string
 ): T {
-  try {
-    if (isSchema(schema)) {
-      const result = schema.safeParse(data);
-      if (result.success) {
-        return result.data as T;
-      }
-      throw new ValidationError(errorMessage ?? 'Validation failed', formatZodErrors(result.error));
+  if (isSchema(schema)) {
+    const result = schema.safeParse(data);
+    if (result.success) {
+      return result.data as T;
     }
-
-    if (isZodSchema(schema)) {
-      return (schema as { parse: (data: unknown) => T }).parse(data);
-    }
-
-    throw new Error('Invalid schema provided to parse()');
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      throw error;
-    }
-    if (error instanceof ZodError) {
-      throw zodErrorToValidationError(error, errorMessage);
-    }
-    throw error;
+    throw new ValidationError(errorMessage ?? 'Validation failed', formatZodErrors(result.error));
   }
+
+  if (isZodSchema(schema)) {
+    const result = schema.safeParse(data);
+    if (result.success) {
+      return result.data as T;
+    }
+    throw zodErrorToValidationError(result.error, errorMessage);
+  }
+
+  throw new Error('Invalid schema provided to parse()');
 }
 
 /**
@@ -143,8 +151,7 @@ export function safeParse<T>(
   }
 
   if (isZodSchema(schema)) {
-    const zodSchema = schema as ZodType & { parse: (data: unknown) => T };
-    const result = zodSchema.safeParse(data);
+    const result = schema.safeParse(data);
 
     if (result.success) {
       return { success: true, data: result.data as T };
@@ -152,11 +159,7 @@ export function safeParse<T>(
 
     return {
       success: false,
-      error: result.error.issues.map((issue) => ({
-        path: issue.path.filter((p): p is string | number => typeof p !== 'symbol'),
-        message: issue.message,
-        code: issue.code,
-      })),
+      error: zodIssuesToValidationIssues(result.error.issues),
     };
   }
 

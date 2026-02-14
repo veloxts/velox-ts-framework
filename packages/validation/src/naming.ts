@@ -92,9 +92,5 @@ export function inferMethodFromName(procedureName: string): HttpMethod {
  * ```
  */
 export function isQueryProcedure(procedureName: string): boolean {
-  return (
-    procedureName.startsWith('get') ||
-    procedureName.startsWith('list') ||
-    procedureName.startsWith('find')
-  );
+  return inferMethodFromName(procedureName) === 'GET';
 }

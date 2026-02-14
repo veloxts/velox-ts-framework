@@ -103,6 +103,14 @@ describe('path-extractor', () => {
     it('returns false for paths without parameters', () => {
       expect(hasPathParameters('/users')).toBe(false);
     });
+
+    it('returns correct results across consecutive calls', () => {
+      expect(hasPathParameters('/users/:id')).toBe(true);
+      expect(hasPathParameters('/posts')).toBe(false);
+      expect(hasPathParameters('/posts/:postId/comments/:id')).toBe(true);
+      expect(hasPathParameters('/health')).toBe(false);
+      expect(hasPathParameters('/items/:itemId')).toBe(true);
+    });
   });
 
   describe('extractQueryParameters', () => {
