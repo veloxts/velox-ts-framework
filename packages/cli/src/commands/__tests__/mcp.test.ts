@@ -9,7 +9,7 @@
  * - JSON output mode
  */
 
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { join } from 'node:path';
 
@@ -21,13 +21,22 @@ import { createMcpCommand } from '../mcp.js';
 // Test Utilities
 // ============================================================================
 
+let tempCounter = 0;
+
 /**
  * Create a temporary directory for testing
  */
 function createTempDir(): string {
-  const tempDir = join(process.cwd(), 'test-tmp-mcp', `test-${Date.now()}`);
+  const tempDir = join(process.cwd(), 'test-tmp-mcp', `test-${Date.now()}-${tempCounter++}`);
   mkdirSync(tempDir, { recursive: true });
   return tempDir;
+}
+
+/**
+ * Read JSON file without Node module caching (unlike require())
+ */
+function readJson(filePath: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(filePath, 'utf-8'));
 }
 
 /**
@@ -141,7 +150,7 @@ describe('MCP Command', () => {
 
       writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-      const content = require(configPath);
+      const content = readJson(configPath);
       expect(content.mcpServers).toBeDefined();
       expect(content.mcpServers.veloxts).toBeDefined();
       expect(content.mcpServers.veloxts.command).toBe('npx');
@@ -177,7 +186,7 @@ describe('MCP Command', () => {
 
       writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
 
-      const content = require(configPath);
+      const content = readJson(configPath);
       expect(Object.keys(content.mcpServers)).toHaveLength(2);
       expect(content.mcpServers['other-server']).toBeDefined();
       expect(content.mcpServers.veloxts).toBeDefined();
@@ -206,7 +215,7 @@ describe('MCP Command', () => {
 
       writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
 
-      const content = require(configPath);
+      const content = readJson(configPath);
       expect(content.mcpServers).toBeDefined();
       expect(content.mcpServers.veloxts).toBeDefined();
       expect(content.someOtherKey).toBe('value');
@@ -243,7 +252,7 @@ describe('MCP Command', () => {
 
       writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
 
-      const content = require(configPath);
+      const content = readJson(configPath);
       expect(content.theme).toBe('dark');
       expect(content.language).toBe('en');
       expect(content.mcpServers.veloxts).toBeDefined();
@@ -269,7 +278,7 @@ describe('MCP Command', () => {
 
       // Directory doesn't exist initially
       expect(() => {
-        require(configPath);
+        readJson(configPath);
       }).toThrow();
 
       // Create directory
@@ -280,7 +289,7 @@ describe('MCP Command', () => {
       writeFileSync(configPath, JSON.stringify(config));
 
       expect(() => {
-        require(configPath);
+        readJson(configPath);
       }).not.toThrow();
     });
   });
@@ -385,7 +394,7 @@ describe('MCP Command', () => {
 
       writeFileSync(configPath, JSON.stringify(newConfig, null, 2));
 
-      const content = require(configPath);
+      const content = readJson(configPath);
       expect(content.mcpServers.veloxts.command).toBe('npx');
       expect(content.mcpServers.veloxts.args).toEqual(['@veloxts/mcp']);
     });
