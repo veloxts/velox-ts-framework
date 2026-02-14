@@ -34,7 +34,7 @@ import {
   useSuspenseQuery as useReactSuspenseQuery,
 } from '@tanstack/react-query';
 
-import type { RouteEntry, RouteMap } from '../types.js';
+import type { RouteMap } from '../types.js';
 import { useVeloxContext } from './provider.js';
 import type {
   AutoInvalidationConfig,
@@ -552,16 +552,11 @@ function createMutationProcedureProxy<TInput, TOutput>(
  * @returns true if the procedure is a query, false for mutation
  */
 function isProcedureQuery(namespace: string, procedureName: string, routes?: RouteMap): boolean {
-  // Check routes for explicit kind first
   const routeEntry = routes?.[namespace]?.[procedureName];
-  if (routeEntry) {
-    // RouteEntry can be object with kind, or legacy string (path only)
-    if (typeof routeEntry === 'object' && 'kind' in routeEntry) {
-      return (routeEntry as RouteEntry).kind === 'query';
-    }
+  if (typeof routeEntry === 'object' && 'kind' in routeEntry) {
+    return routeEntry.kind === 'query';
   }
 
-  // Fall back to naming convention
   return isQueryProcedure(procedureName);
 }
 

@@ -77,13 +77,11 @@ function inferMethodFromName(procedureName: string): HttpMethod {
  * @internal
  */
 function isRouteEntry(value: unknown): value is RouteEntry {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'method' in value &&
-    'path' in value &&
-    typeof (value as RouteEntry).path === 'string'
-  );
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return 'method' in obj && typeof obj.path === 'string';
 }
 
 /**
@@ -107,50 +105,43 @@ function resolveRouteOverride(
 }
 
 /**
- * Builds REST path from namespace and procedure name
+ * Prefixes that map to collection endpoints (no :id)
+ * @internal
+ */
+const COLLECTION_PREFIXES = ['list', 'find', 'create', 'add'] as const;
+
+/**
+ * Prefixes that map to single-resource endpoints (with :id)
+ * @internal
+ */
+const SINGLE_RESOURCE_PREFIXES = ['get', 'update', 'edit', 'patch', 'delete', 'remove'] as const;
+
+/**
+ * Infers REST path from namespace and procedure name using naming conventions
  *
- * First checks for explicit route mapping, then falls back to
- * naming convention inference.
+ * This function only handles convention-based inference. Route overrides
+ * are resolved by the caller (resolveMethodAndPath).
  *
  * @example
  * - namespace='users', name='getUser' -> '/users/:id'
  * - namespace='users', name='listUsers' -> '/users'
  * - namespace='posts', name='createPost' -> '/posts'
- * - namespace='auth', name='createAccount', routes={auth:{createAccount:{method:'POST',path:'/auth/register'}}} -> '/auth/register'
  *
  * @internal
  */
-function buildRestPath(namespace: string, procedureName: string, routes?: RouteMap): string {
-  // 1. Check for explicit route override first
-  const override = routes?.[namespace]?.[procedureName];
-  if (override) {
-    const resolved = resolveRouteOverride(override, procedureName);
-    return resolved.path;
+function inferRestPath(namespace: string, procedureName: string): string {
+  for (const prefix of COLLECTION_PREFIXES) {
+    if (procedureName.startsWith(prefix)) {
+      return `/${namespace}`;
+    }
   }
 
-  // 2. Convention inference — collection endpoints (no :id)
-  if (
-    procedureName.startsWith('list') ||
-    procedureName.startsWith('find') ||
-    procedureName.startsWith('create') ||
-    procedureName.startsWith('add')
-  ) {
-    return `/${namespace}`;
+  for (const prefix of SINGLE_RESOURCE_PREFIXES) {
+    if (procedureName.startsWith(prefix)) {
+      return `/${namespace}/:id`;
+    }
   }
 
-  // 3. Convention inference — single-resource endpoints (with :id)
-  if (
-    procedureName.startsWith('get') ||
-    procedureName.startsWith('update') ||
-    procedureName.startsWith('edit') ||
-    procedureName.startsWith('patch') ||
-    procedureName.startsWith('delete') ||
-    procedureName.startsWith('remove')
-  ) {
-    return `/${namespace}/:id`;
-  }
-
-  // 4. Fallback: /{namespace}
   return `/${namespace}`;
 }
 
@@ -330,7 +321,7 @@ function resolveMethodAndPath(
 
   // Fall back to naming convention inference
   const method = inferMethodFromName(procedureName);
-  const path = buildRestPath(namespace, procedureName, routes);
+  const path = inferRestPath(namespace, procedureName);
   return { method, path };
 }
 

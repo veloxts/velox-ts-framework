@@ -13,9 +13,6 @@ import { createLogger } from '@veloxts/core';
 import { ZodError, type ZodType } from 'zod';
 
 import { createH3Context, type H3ActionContext } from '../adapters/h3-adapter.js';
-
-const log = createLogger('web');
-
 import type {
   ActionContext,
   ActionError,
@@ -23,6 +20,8 @@ import type {
   ActionSuccess,
   AuthenticatedActionContext,
 } from './types.js';
+
+const log = createLogger('web');
 
 // ============================================================================
 // Type Definitions

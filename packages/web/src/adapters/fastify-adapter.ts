@@ -178,11 +178,11 @@ async function webRequestToInject(request: Request, basePath: string): Promise<I
     'upgrade',
   ]);
 
-  request.headers.forEach((value, key) => {
+  for (const [key, value] of request.headers.entries()) {
     if (!hopByHopHeaders.has(key.toLowerCase())) {
       headers[key] = value;
     }
-  });
+  }
 
   // Handle request body
   let payload: string | Buffer | undefined;
