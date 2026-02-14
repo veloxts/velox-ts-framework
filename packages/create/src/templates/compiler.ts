@@ -191,3 +191,28 @@ export function listSourceFiles(relativeDir: string): string[] {
   walkDir(dirPath, relativeDir);
   return files;
 }
+
+// ============================================================================
+// Shared Script Reading
+// ============================================================================
+
+/**
+ * Read a shared script from templates/source/shared/scripts/.
+ *
+ * Used by RSC templates to include utility scripts (e.g., check-client-imports.sh).
+ * Resolves paths for both production (dist/) and development (src/) layouts.
+ *
+ * @param scriptName - Script filename (e.g., 'check-client-imports.sh')
+ * @returns Script file content as string
+ * @throws Error if script not found in any expected location
+ */
+export function readSharedScript(scriptName: string): string {
+  const sourceDir = getSourceDir();
+  const scriptPath = path.join(sourceDir, 'shared', 'scripts', scriptName);
+
+  if (fs.existsSync(scriptPath)) {
+    return fs.readFileSync(scriptPath, 'utf-8');
+  }
+
+  throw new Error(`Shared script not found: ${scriptName}. Checked:\n  - ${scriptPath}`);
+}

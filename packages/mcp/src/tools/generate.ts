@@ -4,11 +4,9 @@
  * Wraps `velox make` commands for AI tool invocation.
  */
 
-import { spawn } from 'node:child_process';
-
 import { z } from 'zod';
 
-import { resolveVeloxCLI } from '../utils/cli.js';
+import { spawnCLI } from '../utils/cli.js';
 import { findProjectRoot } from '../utils/project.js';
 
 // ============================================================================
@@ -120,74 +118,42 @@ export async function generate(
   }
 
   const args = buildArgs(options);
-  const resolved = resolveVeloxCLI(projectRoot, args);
+  const result = await spawnCLI(projectRoot, args);
 
-  return new Promise((resolve) => {
-    const child = spawn(resolved.command, resolved.args, {
-      cwd: projectRoot,
-      shell: resolved.isNpx, // Only use shell for npx fallback
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+  if (!result.success) {
+    return {
+      success: false,
+      type: options.type,
+      name: options.name,
+      error: result.stderr || result.stdout || `Command failed with exit code ${result.code}`,
+    };
+  }
 
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout?.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-
-    child.stderr?.on('data', (data: Buffer) => {
-      stderr += data.toString();
-    });
-
-    child.on('close', (code) => {
-      if (code === 0) {
-        // Try to parse and validate JSON output if requested
-        if (options.json) {
-          try {
-            const jsonData = JSON.parse(stdout);
-            const parsed = GenerateOutputSchema.safeParse(jsonData);
-            if (parsed.success) {
-              resolve({
-                success: true,
-                type: options.type,
-                name: options.name,
-                files: parsed.data.files,
-                output: stdout,
-              });
-              return;
-            }
-            // Invalid JSON structure - fall through to plain output
-          } catch {
-            // JSON parse failed - fall through to plain output
-          }
-        }
-
-        resolve({
+  // Try to parse and validate JSON output if requested
+  if (options.json) {
+    try {
+      const jsonData = JSON.parse(result.stdout);
+      const parsed = GenerateOutputSchema.safeParse(jsonData);
+      if (parsed.success) {
+        return {
           success: true,
           type: options.type,
           name: options.name,
-          output: stdout,
-        });
-      } else {
-        resolve({
-          success: false,
-          type: options.type,
-          name: options.name,
-          error: stderr || stdout || `Command failed with exit code ${code}`,
-        });
+          files: parsed.data.files,
+          output: result.stdout,
+        };
       }
-    });
+    } catch {
+      // JSON parse failed - fall through to plain output
+    }
+  }
 
-    child.on('error', (err) => {
-      resolve({
-        success: false,
-        type: options.type,
-        name: options.name,
-        error: err.message,
-      });
-    });
-  });
+  return {
+    success: true,
+    type: options.type,
+    name: options.name,
+    output: result.stdout,
+  };
 }
 
 /**

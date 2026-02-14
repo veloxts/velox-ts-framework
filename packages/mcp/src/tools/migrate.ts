@@ -4,11 +4,9 @@
  * Wraps `velox migrate` commands for AI tool invocation.
  */
 
-import { spawn } from 'node:child_process';
-
 import { z } from 'zod';
 
-import { resolveVeloxCLI } from '../utils/cli.js';
+import { spawnCLI } from '../utils/cli.js';
 import { findProjectRoot } from '../utils/project.js';
 
 // ============================================================================
@@ -114,70 +112,39 @@ export async function migrate(
   }
 
   const args = buildArgs(options);
-  const resolved = resolveVeloxCLI(projectRoot, args);
+  const result = await spawnCLI(projectRoot, args);
 
-  return new Promise((resolve) => {
-    const child = spawn(resolved.command, resolved.args, {
-      cwd: projectRoot,
-      shell: resolved.isNpx, // Only use shell for npx fallback
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+  if (!result.success) {
+    return {
+      success: false,
+      action: options.action,
+      error: result.stderr || result.stdout || `Command failed with exit code ${result.code}`,
+    };
+  }
 
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout?.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-
-    child.stderr?.on('data', (data: Buffer) => {
-      stderr += data.toString();
-    });
-
-    child.on('close', (code) => {
-      if (code === 0) {
-        // Try to parse and validate JSON output if requested
-        if (options.json) {
-          try {
-            const jsonData = JSON.parse(stdout);
-            const parsed = MigrateOutputSchema.safeParse(jsonData);
-            if (parsed.success) {
-              resolve({
-                success: true,
-                action: options.action,
-                migrations: parsed.data.migrations,
-                output: stdout,
-              });
-              return;
-            }
-            // Invalid JSON structure - fall through to plain output
-          } catch {
-            // JSON parse failed - fall through to plain output
-          }
-        }
-
-        resolve({
+  // Try to parse and validate JSON output if requested
+  if (options.json) {
+    try {
+      const jsonData = JSON.parse(result.stdout);
+      const parsed = MigrateOutputSchema.safeParse(jsonData);
+      if (parsed.success) {
+        return {
           success: true,
           action: options.action,
-          output: stdout,
-        });
-      } else {
-        resolve({
-          success: false,
-          action: options.action,
-          error: stderr || stdout || `Command failed with exit code ${code}`,
-        });
+          migrations: parsed.data.migrations,
+          output: result.stdout,
+        };
       }
-    });
+    } catch {
+      // JSON parse failed - fall through to plain output
+    }
+  }
 
-    child.on('error', (err) => {
-      resolve({
-        success: false,
-        action: options.action,
-        error: err.message,
-      });
-    });
-  });
+  return {
+    success: true,
+    action: options.action,
+    output: result.stdout,
+  };
 }
 
 /**

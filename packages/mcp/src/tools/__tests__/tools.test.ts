@@ -37,16 +37,20 @@ vi.mock('../../utils/project.js', () => ({
   findProjectRoot: vi.fn(),
 }));
 
-// Mock CLI resolution to always use npx fallback for consistent test behavior
-vi.mock('../../utils/cli.js', () => ({
-  resolveVeloxCLI: vi.fn(
-    (_projectRoot: string, args: string[]): ResolvedCLI => ({
-      command: 'npx',
-      args: ['@veloxts/cli', ...args],
-      isNpx: true,
-    })
-  ),
-}));
+// Mock CLI utilities - spawnCLI uses the mocked spawn and resolveVeloxCLI internally
+vi.mock('../../utils/cli.js', async () => {
+  const actual = await vi.importActual<typeof import('../../utils/cli.js')>('../../utils/cli.js');
+  return {
+    ...actual,
+    resolveVeloxCLI: vi.fn(
+      (_projectRoot: string, args: string[]): ResolvedCLI => ({
+        command: 'npx',
+        args: ['@veloxts/cli', ...args],
+        isNpx: true,
+      })
+    ),
+  };
+});
 
 /**
  * Create a mock child process with EventEmitter

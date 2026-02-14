@@ -14,92 +14,18 @@ import { generateRootFiles, generateWebBaseFiles, generateWebStyleFiles } from '
 import type { TemplateConfig, TemplateFile } from './types.js';
 
 // ============================================================================
-// API Template Compilation
+// Helpers
 // ============================================================================
 
+/** Shorthand: compile a static auth API template (no user-specific config needed) */
+function auth(sourcePath: string): string {
+  return compileTemplate(sourcePath, AUTH_CONFIG);
+}
+
+/** Compile API package.json and swap database dependencies based on config */
 function generateApiPackageJson(config: TemplateConfig): string {
   const content = compileTemplate('api/package.auth.json', config);
   return applyDatabaseDependencies(content, config);
-}
-
-function generateApiTsConfig(): string {
-  return compileTemplate('api/tsconfig.json', AUTH_CONFIG);
-}
-
-function generateApiTsupConfig(): string {
-  return compileTemplate('api/tsup.config.ts', AUTH_CONFIG);
-}
-
-function generateEnvExample(config: TemplateConfig): string {
-  return compileTemplate('api/env.auth', config);
-}
-
-function generatePrismaSchema(config: TemplateConfig): string {
-  return compileTemplate('api/prisma/schema.auth.prisma', config);
-}
-
-function generatePrismaConfig(): string {
-  return compileTemplate('api/prisma.config.ts', AUTH_CONFIG);
-}
-
-function generateAuthConfig(): string {
-  return compileTemplate('api/config/auth.ts', AUTH_CONFIG);
-}
-
-function generateConfigApp(config: TemplateConfig): string {
-  return compileTemplate('api/config/app.ts', config);
-}
-
-function generateAuthProcedures(): string {
-  return compileTemplate('api/procedures/auth.ts', AUTH_CONFIG);
-}
-
-function generateUserProceduresWithAuth(): string {
-  return compileTemplate('api/procedures/users.auth.ts', AUTH_CONFIG);
-}
-
-function generateIndexTs(): string {
-  return compileTemplate('api/index.auth.ts', AUTH_CONFIG);
-}
-
-function generateRouterTs(): string {
-  return compileTemplate('api/router.auth.ts', AUTH_CONFIG);
-}
-
-function generateConfigDatabase(config: TemplateConfig): string {
-  return compileTemplate('api/config/database.ts', config);
-}
-
-function generateProfileProcedures(): string {
-  return compileTemplate('api/procedures/profiles.auth.ts', AUTH_CONFIG);
-}
-
-function generateHealthProcedures(): string {
-  return compileTemplate('api/procedures/health.ts', AUTH_CONFIG);
-}
-
-function generateUserSchema(): string {
-  return compileTemplate('api/schemas/user.ts', AUTH_CONFIG);
-}
-
-function generateAuthSchema(): string {
-  return compileTemplate('api/schemas/auth.ts', AUTH_CONFIG);
-}
-
-function generateHealthSchema(): string {
-  return compileTemplate('api/schemas/health.ts', AUTH_CONFIG);
-}
-
-function generateApiTypesTs(): string {
-  return compileTemplate('api/types.auth.ts', AUTH_CONFIG);
-}
-
-function generateAuthUtils(): string {
-  return compileTemplate('api/utils/auth.ts', AUTH_CONFIG);
-}
-
-function generateDockerCompose(config: TemplateConfig): string {
-  return compileTemplate('api/docker-compose.yml', config);
 }
 
 // ============================================================================
@@ -110,37 +36,46 @@ export function generateAuthTemplate(config: TemplateConfig): TemplateFile[] {
   const files: TemplateFile[] = [
     // API package files
     { path: 'apps/api/package.json', content: generateApiPackageJson(config) },
-    { path: 'apps/api/tsconfig.json', content: generateApiTsConfig() },
-    { path: 'apps/api/tsup.config.ts', content: generateApiTsupConfig() },
-    { path: 'apps/api/prisma.config.ts', content: generatePrismaConfig() },
-    { path: 'apps/api/.env.example', content: generateEnvExample(config) },
-    { path: 'apps/api/.env', content: generateEnvExample(config) },
+    { path: 'apps/api/tsconfig.json', content: auth('api/tsconfig.json') },
+    { path: 'apps/api/tsup.config.ts', content: auth('api/tsup.config.ts') },
+    { path: 'apps/api/prisma.config.ts', content: auth('api/prisma.config.ts') },
+    { path: 'apps/api/.env.example', content: compileTemplate('api/env.auth', config) },
+    { path: 'apps/api/.env', content: compileTemplate('api/env.auth', config) },
 
     // Prisma
-    { path: 'apps/api/prisma/schema.prisma', content: generatePrismaSchema(config) },
+    {
+      path: 'apps/api/prisma/schema.prisma',
+      content: compileTemplate('api/prisma/schema.auth.prisma', config),
+    },
 
     // API Source files
-    { path: 'apps/api/src/router.ts', content: generateRouterTs() },
-    { path: 'apps/api/src/index.ts', content: generateIndexTs() },
-    { path: 'apps/api/src/config/app.ts', content: generateConfigApp(config) },
-    { path: 'apps/api/src/config/auth.ts', content: generateAuthConfig() },
-    { path: 'apps/api/src/config/database.ts', content: generateConfigDatabase(config) },
-    { path: 'apps/api/src/procedures/health.ts', content: generateHealthProcedures() },
-    { path: 'apps/api/src/procedures/auth.ts', content: generateAuthProcedures() },
-    { path: 'apps/api/src/procedures/users.ts', content: generateUserProceduresWithAuth() },
-    { path: 'apps/api/src/procedures/profiles.ts', content: generateProfileProcedures() },
-    { path: 'apps/api/src/schemas/user.ts', content: generateUserSchema() },
-    { path: 'apps/api/src/schemas/auth.ts', content: generateAuthSchema() },
-    { path: 'apps/api/src/schemas/health.ts', content: generateHealthSchema() },
-    { path: 'apps/api/src/types.ts', content: generateApiTypesTs() },
-    { path: 'apps/api/src/utils/auth.ts', content: generateAuthUtils() },
+    { path: 'apps/api/src/router.ts', content: auth('api/router.auth.ts') },
+    { path: 'apps/api/src/index.ts', content: auth('api/index.auth.ts') },
+    { path: 'apps/api/src/config/app.ts', content: compileTemplate('api/config/app.ts', config) },
+    { path: 'apps/api/src/config/auth.ts', content: auth('api/config/auth.ts') },
+    {
+      path: 'apps/api/src/config/database.ts',
+      content: compileTemplate('api/config/database.ts', config),
+    },
+    { path: 'apps/api/src/procedures/health.ts', content: auth('api/procedures/health.ts') },
+    { path: 'apps/api/src/procedures/auth.ts', content: auth('api/procedures/auth.ts') },
+    { path: 'apps/api/src/procedures/users.ts', content: auth('api/procedures/users.auth.ts') },
+    {
+      path: 'apps/api/src/procedures/profiles.ts',
+      content: auth('api/procedures/profiles.auth.ts'),
+    },
+    { path: 'apps/api/src/schemas/user.ts', content: auth('api/schemas/user.ts') },
+    { path: 'apps/api/src/schemas/auth.ts', content: auth('api/schemas/auth.ts') },
+    { path: 'apps/api/src/schemas/health.ts', content: auth('api/schemas/health.ts') },
+    { path: 'apps/api/src/types.ts', content: auth('api/types.auth.ts') },
+    { path: 'apps/api/src/utils/auth.ts', content: auth('api/utils/auth.ts') },
   ];
 
   // Add docker-compose for PostgreSQL
   if (config.database === 'postgresql') {
     files.push({
       path: 'apps/api/docker-compose.yml',
-      content: generateDockerCompose(config),
+      content: compileTemplate('api/docker-compose.yml', config),
     });
   }
 

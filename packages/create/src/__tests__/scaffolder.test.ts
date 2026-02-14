@@ -202,23 +202,23 @@ describe('Project Name Validation', () => {
 describe('ProjectConfig structure', () => {
   it('should support all template types', () => {
     const templates = ['spa', 'auth', 'trpc', 'rsc', 'rsc-auth'] as const;
-    templates.forEach((template) => {
+    for (const template of templates) {
       expect(['spa', 'auth', 'trpc', 'rsc', 'rsc-auth']).toContain(template);
-    });
+    }
   });
 
   it('should support all database types', () => {
     const databases = ['sqlite', 'postgresql', 'mysql'] as const;
-    databases.forEach((db) => {
+    for (const db of databases) {
       expect(['sqlite', 'postgresql', 'mysql']).toContain(db);
-    });
+    }
   });
 
   it('should support all package managers', () => {
     const packageManagers = ['npm', 'pnpm', 'yarn'] as const;
-    packageManagers.forEach((pm) => {
+    for (const pm of packageManagers) {
       expect(['npm', 'pnpm', 'yarn']).toContain(pm);
-    });
+    }
   });
 });
 
@@ -296,13 +296,13 @@ describe('Template-Specific Behavior', () => {
       const rscTemplates = ['rsc', 'rsc-auth'];
       const apiTemplates = ['spa', 'auth', 'trpc'];
 
-      rscTemplates.forEach((t) => {
+      for (const t of rscTemplates) {
         expect(t === 'rsc' || t === 'rsc-auth').toBe(true);
-      });
+      }
 
-      apiTemplates.forEach((t) => {
+      for (const t of apiTemplates) {
         expect(t === 'rsc' || t === 'rsc-auth').toBe(false);
-      });
+      }
     });
   });
 
@@ -310,9 +310,9 @@ describe('Template-Specific Behavior', () => {
     it('should identify auth templates correctly', () => {
       const authTemplates = ['auth', 'rsc-auth'];
 
-      authTemplates.forEach((t) => {
+      for (const t of authTemplates) {
         expect(t.includes('auth')).toBe(true);
-      });
+      }
     });
   });
 });

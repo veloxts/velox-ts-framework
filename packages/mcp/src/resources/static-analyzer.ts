@@ -525,7 +525,18 @@ export function formatStaticAnalysisAsText(result: StaticAnalysisResult): string
     lines.push('');
 
     for (const proc of procs) {
-      const type = proc.type === 'query' ? 'Q' : proc.type === 'mutation' ? 'M' : '?';
+      let type: string;
+      switch (proc.type) {
+        case 'query':
+          type = 'Q';
+          break;
+        case 'mutation':
+          type = 'M';
+          break;
+        default:
+          type = '?';
+      }
+
       const route = proc.route ? ` -> ${proc.route.method} ${proc.route.path}` : '';
       const guards = proc.hasGuards ? ' [guarded]' : '';
       lines.push(`- [${type}] ${proc.name}${route}${guards}`);
