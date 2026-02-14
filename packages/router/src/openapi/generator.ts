@@ -271,6 +271,47 @@ function hasProperties(schema: JSONSchema): boolean {
 // ============================================================================
 
 /**
+ * Creates a standard error response schema with the given example code
+ *
+ * @param exampleCode - Example error code (e.g., 'VALIDATION_ERROR', 'NOT_FOUND')
+ * @param extraProperties - Additional properties on the error object (e.g., details)
+ */
+function createErrorSchema(
+  exampleCode: string,
+  extraProperties?: Record<string, JSONSchema>
+): JSONSchema {
+  return {
+    type: 'object',
+    properties: {
+      error: {
+        type: 'object',
+        properties: {
+          code: { type: 'string', example: exampleCode },
+          message: { type: 'string' },
+          ...extraProperties,
+        },
+        required: ['code', 'message'],
+      },
+    },
+    required: ['error'],
+  };
+}
+
+/**
+ * Creates a standard error response with the given description and example code
+ */
+function createErrorResponse(description: string, exampleCode: string): OpenAPIResponse {
+  return {
+    description,
+    content: {
+      'application/json': {
+        schema: createErrorSchema(exampleCode),
+      },
+    },
+  };
+}
+
+/**
  * Builds response definitions for an operation
  */
 function buildResponses(
@@ -286,7 +327,6 @@ function buildResponses(
 
   // Success response
   if (successCode === '204') {
-    // No content
     responses['204'] = { description: successDescription };
   } else {
     responses[successCode] = {
@@ -299,124 +339,32 @@ function buildResponses(
     };
   }
 
-  // Error responses
+  // Validation error
   responses['400'] = {
     description: 'Bad Request - Validation error',
     content: {
       'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            error: {
-              type: 'object',
-              properties: {
-                code: { type: 'string', example: 'VALIDATION_ERROR' },
-                message: { type: 'string' },
-                details: { type: 'object' },
-              },
-              required: ['code', 'message'],
-            },
-          },
-          required: ['error'],
-        },
+        schema: createErrorSchema('VALIDATION_ERROR', { details: { type: 'object' } }),
       },
     },
   };
 
   // Auth-related responses
   if (hasAuth) {
-    responses['401'] = {
-      description: 'Unauthorized - Authentication required',
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              error: {
-                type: 'object',
-                properties: {
-                  code: { type: 'string', example: 'UNAUTHORIZED' },
-                  message: { type: 'string' },
-                },
-                required: ['code', 'message'],
-              },
-            },
-            required: ['error'],
-          },
-        },
-      },
-    };
-
-    responses['403'] = {
-      description: 'Forbidden - Insufficient permissions',
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              error: {
-                type: 'object',
-                properties: {
-                  code: { type: 'string', example: 'FORBIDDEN' },
-                  message: { type: 'string' },
-                },
-                required: ['code', 'message'],
-              },
-            },
-            required: ['error'],
-          },
-        },
-      },
-    };
+    responses['401'] = createErrorResponse(
+      'Unauthorized - Authentication required',
+      'UNAUTHORIZED'
+    );
+    responses['403'] = createErrorResponse('Forbidden - Insufficient permissions', 'FORBIDDEN');
   }
 
   // Not found for single-resource operations
   if (['GET', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-    responses['404'] = {
-      description: 'Not Found - Resource does not exist',
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              error: {
-                type: 'object',
-                properties: {
-                  code: { type: 'string', example: 'NOT_FOUND' },
-                  message: { type: 'string' },
-                },
-                required: ['code', 'message'],
-              },
-            },
-            required: ['error'],
-          },
-        },
-      },
-    };
+    responses['404'] = createErrorResponse('Not Found - Resource does not exist', 'NOT_FOUND');
   }
 
   // Internal server error
-  responses['500'] = {
-    description: 'Internal Server Error',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            error: {
-              type: 'object',
-              properties: {
-                code: { type: 'string', example: 'INTERNAL_ERROR' },
-                message: { type: 'string' },
-              },
-              required: ['code', 'message'],
-            },
-          },
-          required: ['error'],
-        },
-      },
-    },
-  };
+  responses['500'] = createErrorResponse('Internal Server Error', 'INTERNAL_ERROR');
 
   return responses;
 }

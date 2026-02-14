@@ -284,26 +284,6 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
      *
      * Accepts either a plain `ResourceSchema` or a tagged schema
      * (e.g., `UserSchema.authenticated`) for declarative auto-projection.
-     *
-     * @example
-     * ```typescript
-     * // Tagged schema — auto-projects to authenticated fields
-     * procedure()
-     *   .guard(authenticated)
-     *   .resource(UserSchema.authenticated)
-     *   .query(handler);
-     *
-     * // Plain schema — defaults to public, or derives from guardNarrow
-     * procedure()
-     *   .resource(UserSchema)
-     *   .query(handler);
-     * ```
-     */
-    /**
-     * Sets the output type based on a resource schema
-     *
-     * Accepts either a plain `ResourceSchema` or a tagged schema
-     * (e.g., `UserSchema.authenticated`) for declarative auto-projection.
      */
     resource<TSchema extends ResourceSchema>(schema: TSchema) {
       const level = isTaggedResourceSchema(schema) ? schema._level : undefined;
@@ -352,9 +332,7 @@ function compileProcedure<
   // Pre-compile the middleware chain executor if middlewares exist
   // This avoids rebuilding the chain on every request
   const precompiledExecutor =
-    typedMiddlewares.length > 0
-      ? createPrecompiledMiddlewareExecutor(typedMiddlewares, handler)
-      : undefined;
+    typedMiddlewares.length > 0 ? createMiddlewareExecutor(typedMiddlewares, handler) : undefined;
 
   // Create the final procedure object
   return {
@@ -376,22 +354,6 @@ function compileProcedure<
     // Store explicit resource level from tagged schema (e.g., UserSchema.authenticated)
     _resourceLevel: state.resourceLevel,
   };
-}
-
-/**
- * Creates a pre-compiled middleware chain executor
- *
- * PERFORMANCE: This function builds the middleware chain once during procedure
- * compilation, creating a single reusable function that executes the entire chain.
- * This eliminates the need to rebuild closures on every request.
- *
- * @internal
- */
-function createPrecompiledMiddlewareExecutor<TInput, TOutput, TContext extends BaseContext>(
-  middlewares: ReadonlyArray<MiddlewareFunction<TInput, TContext, TContext, TOutput>>,
-  handler: ProcedureHandler<TInput, TOutput, TContext>
-): (input: TInput, ctx: TContext) => Promise<TOutput> {
-  return createMiddlewareExecutor(middlewares, handler);
 }
 
 // ============================================================================
@@ -657,7 +619,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     result = await procedure.handler({ input, ctx: ctxWithLevel as TContext });
   } else {
     // Fallback: Build middleware chain dynamically (should not normally happen)
-    result = await executeMiddlewareChainFallback(
+    result = await executeMiddlewareChain(
       procedure.middlewares as MiddlewareFunction<TInput, TContext, TContext, TOutput>[],
       input,
       ctxWithLevel as TContext,
@@ -696,23 +658,6 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   }
 
   return result;
-}
-
-/**
- * Fallback middleware chain executor for edge cases
- *
- * This function is only used when _precompiledExecutor is not available,
- * which should be rare in normal operation.
- *
- * @internal
- */
-async function executeMiddlewareChainFallback<TInput, TOutput, TContext extends BaseContext>(
-  middlewares: MiddlewareFunction<TInput, TContext, TContext, TOutput>[],
-  input: TInput,
-  ctx: TContext,
-  handler: () => Promise<TOutput>
-): Promise<TOutput> {
-  return executeMiddlewareChain(middlewares, input, ctx, handler);
 }
 
 // ============================================================================

@@ -377,11 +377,8 @@ function gatherInput(request: FastifyRequest, route: RestRoute): unknown {
 
   switch (route.method) {
     case 'GET':
-      // GET: params (for :id and all parent params) + query (for filters/pagination)
-      return { ...params, ...query };
-
     case 'DELETE':
-      // DELETE: params (for :id and all parent params) + query (for options), no body per REST conventions
+      // GET/DELETE: params (for :id and all parent params) + query (for filters/pagination/options)
       return { ...params, ...query };
 
     case 'PUT':
@@ -504,24 +501,7 @@ export function registerRestRoutes(
       const fullPath = _prefixHandledByFastify ? route.path : `${prefix}${route.path}`;
       const handler = createRouteHandler(route);
 
-      // Register route based on method
-      switch (route.method) {
-        case 'GET':
-          server.get(fullPath, handler);
-          break;
-        case 'POST':
-          server.post(fullPath, handler);
-          break;
-        case 'PUT':
-          server.put(fullPath, handler);
-          break;
-        case 'PATCH':
-          server.patch(fullPath, handler);
-          break;
-        case 'DELETE':
-          server.delete(fullPath, handler);
-          break;
-      }
+      server.route({ method: route.method, url: fullPath, handler });
     }
   }
 }

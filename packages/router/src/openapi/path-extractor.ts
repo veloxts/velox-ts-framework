@@ -111,7 +111,7 @@ export function parsePathParameters(
  * @returns True if path contains parameters
  */
 export function hasPathParameters(path: string): boolean {
-  return PATH_PARAM_REGEX.test(path);
+  return path.includes(':');
 }
 
 // ============================================================================

@@ -216,43 +216,24 @@ function buildTRPCProcedure(t: TRPCInstance<BaseContext>, procedure: CompiledPro
     builder = builder.output(procedure.outputSchema);
   }
 
-  // Select handler based on whether input is expected
-  const handler = procedure.inputSchema
-    ? createHandler(procedure)
-    : createNoInputHandler(procedure);
+  // Create handler that works with or without input
+  const handler = createProcedureHandler(procedure);
 
   // Finalize as query or mutation
   return procedure.type === 'query' ? builder.query(handler) : builder.mutation(handler);
 }
 
 /**
- * Create a handler function for a procedure with input
+ * Create a tRPC handler function from a compiled procedure
+ *
+ * Works for both procedures with and without input schemas.
  *
  * @internal
  */
-function createHandler(procedure: CompiledProcedure) {
-  return async (opts: { input: unknown; ctx: BaseContext }) => {
-    const { input, ctx } = opts;
-
-    // Execute middleware chain if any
-    if (procedure.middlewares.length > 0) {
-      return executeWithMiddleware(procedure, input, ctx);
-    }
-
-    // Direct handler execution
-    return procedure.handler({ input, ctx });
-  };
-}
-
-/**
- * Create a handler function for a procedure without input
- *
- * @internal
- */
-function createNoInputHandler(procedure: CompiledProcedure) {
-  return async (opts: { ctx: BaseContext }) => {
+function createProcedureHandler(procedure: CompiledProcedure) {
+  return async (opts: { input?: unknown; ctx: BaseContext }) => {
     const { ctx } = opts;
-    const input = undefined;
+    const input = opts.input ?? undefined;
 
     // Execute middleware chain if any
     if (procedure.middlewares.length > 0) {

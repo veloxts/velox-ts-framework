@@ -10,6 +10,8 @@
 
 import { z } from 'zod';
 
+import { createPaginationSchema } from './pagination.js';
+
 // ============================================================================
 // Number Helpers
 // ============================================================================
@@ -180,20 +182,22 @@ export function queryArray(
 
   // Apply min/max constraints via refinement if needed
   if (min !== undefined || max !== undefined) {
+    let message: string;
+    if (min !== undefined && max !== undefined) {
+      message = `Array must have ${min}-${max} items`;
+    } else if (min !== undefined) {
+      message = `Array must have at least ${min} item(s)`;
+    } else {
+      message = `Array must have at most ${max} item(s)`;
+    }
+
     return baseSchema.refine(
       (arr) => {
         if (min !== undefined && arr.length < min) return false;
         if (max !== undefined && arr.length > max) return false;
         return true;
       },
-      {
-        message:
-          min !== undefined && max !== undefined
-            ? `Array must have ${min}-${max} items`
-            : min !== undefined
-              ? `Array must have at least ${min} item(s)`
-              : `Array must have at most ${max} item(s)`,
-      }
+      { message }
     );
   }
 
@@ -281,10 +285,5 @@ export function pagination(
     maxLimit?: number;
   } = {}
 ) {
-  const { defaultPage = 1, defaultLimit = 20, maxLimit = 100 } = options;
-
-  return z.object({
-    page: z.coerce.number().int().positive().default(defaultPage),
-    limit: z.coerce.number().int().positive().max(maxLimit).default(defaultLimit),
-  });
+  return createPaginationSchema(options);
 }
