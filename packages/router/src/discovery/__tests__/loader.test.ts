@@ -919,8 +919,14 @@ describe('Warning Message Format', () => {
 
     await discoverProcedures(tempDir, { onInvalidExport: 'warn' });
 
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[Discovery Warning]'));
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid.ts'));
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[@veloxts/router]',
+      expect.stringContaining('[Discovery Warning]')
+    );
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[@veloxts/router]',
+      expect.stringContaining('invalid.ts')
+    );
 
     warnSpy.mockRestore();
   });

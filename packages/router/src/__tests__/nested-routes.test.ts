@@ -810,6 +810,10 @@ describe('shortcuts option', () => {
 });
 
 describe('nesting depth warnings', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('should warn for 3+ levels of nesting', () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -826,10 +830,9 @@ describe('nesting depth warnings', () => {
     generateRestRoutes(collection, { nestingWarnings: true });
 
     expect(consoleSpy).toHaveBeenCalledWith(
+      '[@veloxts/router]',
       expect.stringContaining("Resource 'subtasks/getSubtask' has 4 levels of nesting")
     );
-
-    consoleSpy.mockRestore();
   });
 
   it('should not warn for 2 levels of nesting', () => {
@@ -844,8 +847,6 @@ describe('nesting depth warnings', () => {
     generateRestRoutes(collection, { nestingWarnings: true });
 
     expect(consoleSpy).not.toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
   });
 
   it('should suppress warnings when nestingWarnings is false', () => {
@@ -864,8 +865,6 @@ describe('nesting depth warnings', () => {
     generateRestRoutes(collection, { nestingWarnings: false });
 
     expect(consoleSpy).not.toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
   });
 });
 
