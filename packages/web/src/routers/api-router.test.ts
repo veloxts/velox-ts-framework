@@ -9,18 +9,19 @@ import { createApiRouter, isApiError } from './api-router.js';
 
 describe('createApiRouter', () => {
   let originalEnv: NodeJS.ProcessEnv;
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let consoleDebugSpy: ReturnType<typeof vi.spyOn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    process.env.VELOX_LOG_LEVEL = 'debug';
+    consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    consoleLogSpy.mockRestore();
+    consoleDebugSpy.mockRestore();
     consoleErrorSpy.mockRestore();
   });
 
@@ -129,11 +130,12 @@ describe('createApiRouter', () => {
       const request = new Request('http://localhost:3030/api/users');
       await handler(request);
 
-      expect(consoleLogSpy).toHaveBeenCalled();
-      expect(consoleLogSpy.mock.calls[0][0]).toContain('[API]');
-      expect(consoleLogSpy.mock.calls[0][0]).toContain('GET');
-      expect(consoleLogSpy.mock.calls[0][0]).toContain('/users');
-      expect(consoleLogSpy.mock.calls[0][0]).toContain('200');
+      expect(consoleDebugSpy).toHaveBeenCalled();
+      expect(consoleDebugSpy.mock.calls[0][0]).toBe('[@veloxts/web]');
+      const logCall = consoleDebugSpy.mock.calls[0][1];
+      expect(logCall).toContain('GET');
+      expect(logCall).toContain('/users');
+      expect(logCall).toContain('200');
     });
 
     it('should not log in production mode by default', async () => {
@@ -143,7 +145,7 @@ describe('createApiRouter', () => {
       const request = new Request('http://localhost:3030/api/users');
       await handler(request);
 
-      expect(consoleLogSpy).not.toHaveBeenCalled();
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
     });
 
     it('should log when explicitly enabled', async () => {
@@ -153,7 +155,7 @@ describe('createApiRouter', () => {
       const request = new Request('http://localhost:3030/api/users');
       await handler(request);
 
-      expect(consoleLogSpy).toHaveBeenCalled();
+      expect(consoleDebugSpy).toHaveBeenCalled();
     });
 
     it('should not log when explicitly disabled', async () => {
@@ -163,7 +165,7 @@ describe('createApiRouter', () => {
       const request = new Request('http://localhost:3030/api/users');
       await handler(request);
 
-      expect(consoleLogSpy).not.toHaveBeenCalled();
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
     });
 
     it('should include request method and path in logs', async () => {
@@ -173,7 +175,7 @@ describe('createApiRouter', () => {
       const request = new Request('http://localhost:3030/api/users');
       await handler(request);
 
-      const logCall = consoleLogSpy.mock.calls[0][0];
+      const logCall = consoleDebugSpy.mock.calls[0][1];
       expect(logCall).toContain('GET');
       expect(logCall).toContain('/users');
     });
@@ -185,7 +187,7 @@ describe('createApiRouter', () => {
       const request = new Request('http://localhost:3030/api/users');
       await handler(request);
 
-      const logCall = consoleLogSpy.mock.calls[0][0];
+      const logCall = consoleDebugSpy.mock.calls[0][1];
       expect(logCall).toContain('200');
     });
 
@@ -196,7 +198,7 @@ describe('createApiRouter', () => {
       const request = new Request('http://localhost:3030/api/users');
       await handler(request);
 
-      const logCall = consoleLogSpy.mock.calls[0][0];
+      const logCall = consoleDebugSpy.mock.calls[0][1];
       expect(logCall).toMatch(/\d+\.\d+ms/);
     });
 
@@ -208,9 +210,8 @@ describe('createApiRouter', () => {
       await handler(request);
 
       // Fastify errors are converted to 500 responses and logged normally
-      expect(consoleLogSpy).toHaveBeenCalled();
-      const logCall = consoleLogSpy.mock.calls[0][0];
-      expect(logCall).toContain('[API]');
+      expect(consoleDebugSpy).toHaveBeenCalled();
+      const logCall = consoleDebugSpy.mock.calls[0][1];
       expect(logCall).toContain('GET');
       expect(logCall).toContain('/error');
       expect(logCall).toContain('500');

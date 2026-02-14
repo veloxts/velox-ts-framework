@@ -112,7 +112,10 @@ describe('Resource Policies', () => {
       const result = await can(user, 'view', 'UnknownResource');
 
       expect(result).toBe(false);
-      expect(consoleSpy).toHaveBeenCalledWith('No policy registered for resource: UnknownResource');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[@veloxts/auth]',
+        'No policy registered for resource: UnknownResource'
+      );
 
       consoleSpy.mockRestore();
     });
