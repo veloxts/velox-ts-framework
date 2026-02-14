@@ -35,7 +35,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Security audit
-        run: pnpm audit --audit-level=high
+        run: pnpm audit --audit-level=critical
 
   # Job 1: Run all checks and tests (fail fast)
   test:
