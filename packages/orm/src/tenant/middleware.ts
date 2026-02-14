@@ -104,13 +104,15 @@ export function createTenantMiddleware<TClient extends DatabaseClient>(
     // Get tenant-scoped database client
     const db = await clientPool.getClient(tenant.schemaName);
 
-    // Build extended context
     const extendedCtx: TenantContextInput & TenantContext<TClient> = {
       ...ctx,
       tenant,
       db,
-      ...(publicClient ? { publicDb: publicClient } : {}),
     };
+
+    if (publicClient) {
+      extendedCtx.publicDb = publicClient;
+    }
 
     try {
       // Continue to next middleware/handler

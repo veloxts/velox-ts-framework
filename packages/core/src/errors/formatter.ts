@@ -339,17 +339,14 @@ export function formatErrorForApi(
     code: catalogCode ?? error.code,
   };
 
-  // Include field errors for validation
   if (error.fields) {
     response.fields = error.fields;
   }
 
-  // Include fix suggestion in development
   if (process.env.NODE_ENV !== 'production' && entry?.fix) {
     response.fix = entry.fix.suggestion;
   }
 
-  // Include docs link
   if (entry?.docsUrl) {
     response.docs = entry.docsUrl;
   }

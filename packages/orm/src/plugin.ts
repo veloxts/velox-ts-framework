@@ -74,16 +74,6 @@ const ORM_PLUGIN_VERSION = packageJson.version ?? '0.0.0-unknown';
 const DEFAULT_PLUGIN_NAME = '@veloxts/orm';
 
 /**
- * Storage for the database wrapper instance
- *
- * This allows access to the wrapper from the plugin hooks
- * without storing it directly in module scope.
- */
-interface PluginState<TClient extends DatabaseClient> {
-  database: Database<TClient> | null;
-}
-
-/**
  * Creates a database plugin for VeloxApp integration
  *
  * This plugin:
@@ -160,21 +150,15 @@ export function databasePlugin<TClient extends DatabaseClient>(config: OrmPlugin
 
   const pluginName = config.name ?? DEFAULT_PLUGIN_NAME;
 
-  // Plugin state - holds the database wrapper
-  const state: PluginState<TClient> = {
-    database: null,
-  };
+  let database: Database<TClient> | null = null;
 
   return definePlugin({
     name: pluginName,
     version: ORM_PLUGIN_VERSION,
 
     async register(server) {
-      // Create database wrapper
-      state.database = createDatabase({ client: config.client });
-
-      // Connect to the database
-      await state.database.connect();
+      database = createDatabase({ client: config.client });
+      await database.connect();
 
       // Add database client to request context via onRequest hook
       server.addHook('onRequest', async (request) => {
@@ -192,12 +176,10 @@ export function databasePlugin<TClient extends DatabaseClient>(config: OrmPlugin
         }
       });
 
-      // Register shutdown hook using Fastify's onClose hook
-      // This ensures the database disconnects during graceful shutdown
       server.addHook('onClose', async () => {
-        if (state.database?.isConnected) {
+        if (database?.isConnected) {
           try {
-            await state.database.disconnect();
+            await database.disconnect();
             server.log.info('Database disconnected successfully during shutdown');
           } catch (error) {
             // Log error but don't rethrow - allow graceful shutdown to continue

@@ -39,7 +39,6 @@ export class LifecycleManager {
    * ```
    */
   addShutdownHandler(handler: ShutdownHandler): void {
-    // Prevent memory leaks from unbounded growth
     if (this.shutdownHandlers.size >= LifecycleManager.MAX_SHUTDOWN_HANDLERS) {
       throw new Error(
         `Maximum number of shutdown handlers (${LifecycleManager.MAX_SHUTDOWN_HANDLERS}) exceeded. ` +
@@ -47,7 +46,6 @@ export class LifecycleManager {
       );
     }
 
-    // Set automatically prevents duplicates
     this.shutdownHandlers.add(handler);
   }
 
@@ -101,7 +99,7 @@ export class LifecycleManager {
   setupSignalHandlers(onShutdown: () => Promise<void>): void {
     const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
 
-    signals.forEach((signal) => {
+    for (const signal of signals) {
       const handler = async () => {
         log.info(`\nReceived ${signal}, initiating graceful shutdown...`);
 
@@ -115,10 +113,9 @@ export class LifecycleManager {
         }
       };
 
-      // Store handler reference so it can be removed later
       this.signalHandlers.set(signal, handler);
       process.once(signal, handler);
-    });
+    }
   }
 
   /**

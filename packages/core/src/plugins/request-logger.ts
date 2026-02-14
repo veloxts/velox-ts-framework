@@ -110,19 +110,15 @@ interface RequestWithTiming extends FastifyRequest {
  * @param server - Fastify instance
  */
 async function requestLoggerPlugin(server: FastifyInstance): Promise<void> {
-  // Skip if request logging not enabled via environment
   if (process.env.VELOX_REQUEST_LOGGING !== 'true') {
     return;
   }
 
-  // Track request start time
   server.addHook('onRequest', async (request: FastifyRequest) => {
     (request as RequestWithTiming)._veloxStartTime = performance.now();
   });
 
-  // Log on response with timing
   server.addHook('onResponse', async (request: FastifyRequest, reply: FastifyReply) => {
-    // Wrap in try-catch to ensure logging never breaks request handling
     try {
       const startTime = (request as RequestWithTiming)._veloxStartTime;
       const duration = startTime ? performance.now() - startTime : 0;
@@ -137,7 +133,7 @@ async function requestLoggerPlugin(server: FastifyInstance): Promise<void> {
         `${COLORS.dim}${timestamp}${COLORS.reset}  ${color}${method}${COLORS.reset} ${url} ${color}${status}${COLORS.reset} ${COLORS.dim}${formatDuration(duration)}${COLORS.reset}`
       );
     } catch {
-      // Silently fail - logging should never affect application behavior
+      // Logging failures must not affect request handling
     }
   });
 }

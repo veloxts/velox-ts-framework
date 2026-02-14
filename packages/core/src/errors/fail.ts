@@ -41,6 +41,18 @@ export type ErrorCode = keyof typeof ERROR_CATALOG;
  */
 export type InterpolationVars = Record<string, string | number | boolean | undefined>;
 
+/**
+ * JSON representation of a VeloxFailure for API responses
+ */
+interface VeloxFailureJson {
+  error: string;
+  message: string;
+  statusCode: number;
+  code: string;
+  fix?: string;
+  docs?: string;
+}
+
 // ============================================================================
 // VeloxFailure Class
 // ============================================================================
@@ -78,7 +90,6 @@ export class VeloxFailure extends Error {
     this.statusCode = entry.statusCode;
     this.entry = entry;
 
-    // Maintains proper stack trace
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, VeloxFailure);
     }
@@ -167,34 +178,18 @@ export class VeloxFailure extends Error {
   /**
    * Convert to JSON for API responses
    */
-  toJSON(): {
-    error: string;
-    message: string;
-    statusCode: number;
-    code: string;
-    fix?: string;
-    docs?: string;
-  } {
-    const json: {
-      error: string;
-      message: string;
-      statusCode: number;
-      code: string;
-      fix?: string;
-      docs?: string;
-    } = {
+  toJSON(): VeloxFailureJson {
+    const json: VeloxFailureJson = {
       error: this.name,
       message: this.message,
       statusCode: this.statusCode,
       code: this.code,
     };
 
-    // Include fix in development
     if (process.env.NODE_ENV !== 'production' && this.suggestion) {
       json.fix = this.suggestion;
     }
 
-    // Always include docs URL
     if (this.docsUrl) {
       json.docs = this.docsUrl;
     }

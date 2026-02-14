@@ -22,9 +22,9 @@ import {
   getValidatedCookieContext,
 } from './utils/cookie-support.js';
 
+// Re-export types, constants, and store from session module
 export type { SessionStore } from './session/store.js';
 export { inMemorySessionStore } from './session/store.js';
-// Re-export types, constants, and store from session module
 export type {
   Session,
   SessionAuthContext,
@@ -40,9 +40,9 @@ export {
   SESSION_ID_BYTES,
 } from './session/types.js';
 
+// Internal imports (same modules, used within this file)
 import type { SessionStore } from './session/store.js';
 import { inMemorySessionStore } from './session/store.js';
-// Import types and constants for internal use
 import type {
   Session,
   SessionAuthContext,
@@ -447,8 +447,7 @@ export function sessionManager(config: SessionConfig): SessionManager {
       },
 
       getFlash<T = unknown>(key: string): T | undefined {
-        const value = currentData._flashOld?.[key] as T | undefined;
-        return value;
+        return currentData._flashOld?.[key] as T | undefined;
       },
 
       getAllFlash(): Record<string, unknown> {
@@ -700,6 +699,33 @@ declare module 'fastify' {
 }
 
 // ============================================================================
+// Session Helpers
+// ============================================================================
+
+/**
+ * Runs a middleware next() call with automatic session save on both success and error.
+ * Extracts the duplicated try/catch pattern from session middleware functions.
+ */
+async function withSessionSave<T>(session: Session, fn: () => Promise<T>): Promise<T> {
+  try {
+    const result = await fn();
+    if (session.isModified && !session.isDestroyed) {
+      await session.save();
+    }
+    return result;
+  } catch (error) {
+    if (session.isModified && !session.isDestroyed) {
+      try {
+        await session.save();
+      } catch {
+        // Ignore save errors during error handling
+      }
+    }
+    throw error;
+  }
+}
+
+// ============================================================================
 // Session Middleware Factory
 // ============================================================================
 
@@ -774,31 +800,7 @@ export function sessionMiddleware(config: SessionConfig) {
       // Attach to request for hooks
       request.session = session;
 
-      try {
-        const result = await next({
-          ctx: {
-            ...ctx,
-            session,
-          },
-        });
-
-        // Auto-save session if modified
-        if (session.isModified && !session.isDestroyed) {
-          await session.save();
-        }
-
-        return result;
-      } catch (error) {
-        // Still try to save session on error
-        if (session.isModified && !session.isDestroyed) {
-          try {
-            await session.save();
-          } catch {
-            // Ignore save errors during error handling
-          }
-        }
-        throw error;
-      }
+      return withSessionSave(session, () => next({ ctx: { ...ctx, session } }));
     };
   }
 
@@ -845,31 +847,9 @@ export function sessionMiddleware(config: SessionConfig) {
 
       request.session = session;
 
-      try {
-        const result = await next({
-          ctx: {
-            ...ctx,
-            session,
-            user,
-            isAuthenticated: true,
-          },
-        });
-
-        if (session.isModified && !session.isDestroyed) {
-          await session.save();
-        }
-
-        return result;
-      } catch (error) {
-        if (session.isModified && !session.isDestroyed) {
-          try {
-            await session.save();
-          } catch {
-            // Ignore
-          }
-        }
-        throw error;
-      }
+      return withSessionSave(session, () =>
+        next({ ctx: { ...ctx, session, user, isAuthenticated: true } })
+      );
     };
   }
 
@@ -912,31 +892,9 @@ export function sessionMiddleware(config: SessionConfig) {
 
       request.session = session;
 
-      try {
-        const result = await next({
-          ctx: {
-            ...ctx,
-            session,
-            user,
-            isAuthenticated,
-          },
-        });
-
-        if (session.isModified && !session.isDestroyed) {
-          await session.save();
-        }
-
-        return result;
-      } catch (error) {
-        if (session.isModified && !session.isDestroyed) {
-          try {
-            await session.save();
-          } catch {
-            // Ignore
-          }
-        }
-        throw error;
-      }
+      return withSessionSave(session, () =>
+        next({ ctx: { ...ctx, session, user, isAuthenticated } })
+      );
     };
   }
 

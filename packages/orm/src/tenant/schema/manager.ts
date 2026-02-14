@@ -67,24 +67,34 @@ const RESERVED_SCHEMAS = new Set([
 ]);
 
 /**
+ * Patterns that indicate dangerous input (SQL injection, shell injection, path traversal)
+ */
+const DANGEROUS_PATTERNS = [
+  /[;|&$`<>]/, // Shell metacharacters
+  /['"`]/, // SQL quotes
+  /\0/, // Null bytes
+  /\.\./, // Path traversal
+  /[\\/]/, // Path separators
+];
+
+/**
  * Validate database URL format and check for injection patterns
  */
 function validateDatabaseUrl(url: string): void {
+  let parsed: URL;
   try {
-    const parsed = new URL(url);
-
-    // Only allow postgresql:// protocol
-    if (parsed.protocol !== 'postgresql:' && parsed.protocol !== 'postgres:') {
-      throw new Error('Invalid database protocol');
-    }
-
-    // Check for shell metacharacters
-    const DANGEROUS_CHARS = /[;|&$`<>(){}[\]!]/;
-    if (DANGEROUS_CHARS.test(url)) {
-      throw new Error('Database URL contains dangerous characters');
-    }
+    parsed = new URL(url);
   } catch {
     throw new Error('Invalid database URL format');
+  }
+
+  if (parsed.protocol !== 'postgresql:' && parsed.protocol !== 'postgres:') {
+    throw new Error('Invalid database protocol');
+  }
+
+  const DANGEROUS_CHARS = /[;|&$`<>(){}[\]!]/;
+  if (DANGEROUS_CHARS.test(url)) {
+    throw new Error('Database URL contains dangerous characters');
   }
 }
 
@@ -216,15 +226,6 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
       );
     }
 
-    // Check for dangerous patterns
-    const DANGEROUS_PATTERNS = [
-      /[;|&$`<>]/, // Shell metacharacters
-      /['"`]/, // SQL quotes
-      /\0/, // Null bytes
-      /\.\./, // Path traversal
-      /[\\/]/, // Path separators
-    ];
-
     for (const pattern of DANGEROUS_PATTERNS) {
       if (pattern.test(slug)) {
         throw new InvalidSlugError(slug, 'slug contains forbidden characters');
@@ -264,9 +265,6 @@ export function createTenantSchemaManager(config: TenantSchemaManagerConfig): IT
     if (RESERVED_SCHEMAS.has(schemaName.toLowerCase())) {
       throw new Error(`Cannot use reserved schema name: ${schemaName}`);
     }
-
-    // Additional security checks
-    const DANGEROUS_PATTERNS = [/[;|&$`<>]/, /['"`]/, /\0/, /\.\./, /[\\/]/];
 
     for (const pattern of DANGEROUS_PATTERNS) {
       if (pattern.test(schemaName)) {

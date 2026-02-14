@@ -173,7 +173,7 @@ export function isValidPort(port: number): port is ValidPort {
  * @returns true if host is valid (non-empty string), narrowing to ValidHost
  */
 export function isValidHost(host: string): host is ValidHost {
-  return typeof host === 'string' && host.length > 0;
+  return host.length > 0;
 }
 
 // ============================================================================
@@ -228,10 +228,9 @@ export function validateConfig(config: Required<VeloxAppConfig>): FrozenVeloxApp
     throw new Error('Host must be a non-empty string.');
   }
 
-  // Return frozen config with branded types
   return Object.freeze({
-    port: config.port, // Already narrowed to ValidPort by isValidPort
-    host: config.host, // Already narrowed to ValidHost by isValidHost
+    port: config.port,
+    host: config.host,
     logger: config.logger,
     fastify: config.fastify,
   });
