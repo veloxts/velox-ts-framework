@@ -20,7 +20,14 @@ import { checkDoubleRegistration, decorateAuth } from './decoration.js';
 import { PasswordHasher } from './hash.js';
 import type { JwtManager, TokenStore } from './jwt.js';
 import { authMiddleware } from './middleware.js';
-import type { AdapterAuthContext, AuthConfig, JwtConfig, TokenPair, User } from './types.js';
+import type {
+  AdapterAuthContext,
+  AuthConfig,
+  AuthContext,
+  JwtConfig,
+  TokenPair,
+  User,
+} from './types.js';
 
 // Read version from package.json dynamically
 const require = createRequire(import.meta.url);
@@ -92,8 +99,6 @@ export interface AuthService {
 // ============================================================================
 // Fastify Type Extensions
 // ============================================================================
-
-import type { AuthContext } from './types.js';
 
 declare module 'fastify' {
   interface FastifyInstance {

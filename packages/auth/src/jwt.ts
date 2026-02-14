@@ -8,10 +8,9 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createLogger } from '@veloxts/core';
 
 import type { JwtConfig, TokenPair, TokenPayload, User } from './types.js';
+import { AuthError } from './types.js';
 
 const log = createLogger('auth');
-
-import { AuthError } from './types.js';
 
 // ============================================================================
 // Constants

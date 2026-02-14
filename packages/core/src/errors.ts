@@ -4,14 +4,12 @@
  * @module errors
  */
 
-// Import catalog for use in error classes
 import { ERROR_CATALOG } from './errors/catalog.js';
 import { formatError as _formatError } from './errors/formatter.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('core');
 
-// Re-export the enhanced error catalog, formatter, and fail()
 export {
   ERROR_CATALOG,
   ERROR_DOMAINS,
@@ -228,7 +226,6 @@ export class VeloxError<TCode extends string = string> extends Error {
     this.statusCode = statusCode;
     this.code = code;
 
-    // Look up catalog entry for enhanced error info
     if (code != null && String(code).startsWith('VELOX-')) {
       const entry = ERROR_CATALOG[code];
       if (entry) {
@@ -237,7 +234,6 @@ export class VeloxError<TCode extends string = string> extends Error {
       }
     }
 
-    // Maintains proper stack trace for where error was thrown (V8 only)
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, VeloxError);
     }
@@ -256,12 +252,10 @@ export class VeloxError<TCode extends string = string> extends Error {
       code: this.code,
     };
 
-    // Include fix suggestion in development only
     if (process.env.NODE_ENV !== 'production' && this.fix) {
       response.fix = this.fix;
     }
 
-    // Always include docs URL if available
     if (this.docsUrl) {
       response.docs = this.docsUrl;
     }
@@ -466,7 +460,7 @@ export class NotFoundError extends VeloxError<'NOT_FOUND'> {
  * ```
  */
 export function isVeloxError(error: unknown): error is VeloxError {
-  return error != null && error instanceof VeloxError;
+  return error instanceof VeloxError;
 }
 
 /**

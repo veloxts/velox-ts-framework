@@ -31,12 +31,10 @@ export function printBanner(server: FastifyInstance, options: BannerOptions): vo
   const elapsed = Math.round(performance.now() - startTime);
 
   if (env === 'production') {
-    // Production: single line, minimal, machine-parseable
     console.log(`  VeloxTS v${VELOX_VERSION} | ${env} | ${address}`);
     return;
   }
 
-  // Development: detailed banner with route information
   const routes = collectRoutes(server);
 
   console.log('');
@@ -87,13 +85,7 @@ interface RouteInfo {
  */
 function collectRoutes(server: FastifyInstance): RouteInfo[] {
   const routes: RouteInfo[] = [];
-
-  // Fastify exposes routes via printRoutes or we can iterate
-  // Using the internal routes map after ready()
   const routesList = server.printRoutes({ commonPrefix: false });
-
-  // Parse the route tree output
-  // Format: "└── /api (GET, HEAD)\n    └── /users (GET, POST, HEAD)"
   const lines = routesList.split('\n');
   for (const line of lines) {
     const match = line.match(/([/][^\s(]*)\s*\(([^)]+)\)/);

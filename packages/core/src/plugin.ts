@@ -175,7 +175,6 @@ export function validatePluginMetadata(
     );
   }
 
-  // Validate dependencies array if provided
   if (plugin.dependencies !== undefined) {
     if (!Array.isArray(plugin.dependencies)) {
       throw new VeloxError(
@@ -218,7 +217,6 @@ export function isVeloxPlugin(value: unknown): value is VeloxPlugin {
     return false;
   }
 
-  // Use 'in' operator for safe property access without type assertions
   return (
     'name' in value &&
     'version' in value &&

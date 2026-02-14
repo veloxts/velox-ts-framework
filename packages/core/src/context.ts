@@ -82,20 +82,16 @@ export function createContext(request: FastifyRequest, reply: FastifyReply): Bas
  * ```
  */
 export function isContext(value: unknown): value is BaseContext {
-  // Early return for non-objects
   if (typeof value !== 'object' || value === null) {
     return false;
   }
 
-  // Check properties exist using 'in' operator
   if (!('request' in value) || !('reply' in value)) {
     return false;
   }
 
-  // After 'in' checks, safely access properties
   const ctx = value as { request: unknown; reply: unknown };
 
-  // Verify request and reply are non-null objects
   return (
     typeof ctx.request === 'object' &&
     ctx.request !== null &&
@@ -115,12 +111,7 @@ export function isContext(value: unknown): value is BaseContext {
  * @internal
  */
 export function setupContextHook(server: FastifyInstance): void {
-  // Create context for each request via direct assignment
-  // TypeScript's declaration merging provides type safety
   server.addHook('onRequest', async (request, reply) => {
-    // Direct assignment is ~100-400ns faster than Object.defineProperty
-    // We use a mutable type assertion here because this is the framework's
-    // initialization code - the readonly constraint is for user code safety
     (request as { context: BaseContext }).context = createContext(request, reply);
   });
 }

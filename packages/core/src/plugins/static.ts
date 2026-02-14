@@ -170,10 +170,8 @@ export async function registerStatic(
 ): Promise<void> {
   const { spa = false, prefix = '/', cache = {}, exclude = [], index = 'index.html' } = options;
 
-  // Resolve to absolute path
   const absoluteRoot = resolve(process.cwd(), path);
 
-  // Dynamically import @fastify/static (optional peer dependency)
   let fastifyStatic: typeof import('@fastify/static').default;
   try {
     const module = await import('@fastify/static');
@@ -184,10 +182,8 @@ export async function registerStatic(
     );
   }
 
-  // Build cache control header
   const cacheControl = buildCacheControl(cache);
 
-  // Register static plugin
   await server.register(fastifyStatic, {
     root: absoluteRoot,
     prefix,
@@ -198,10 +194,8 @@ export async function registerStatic(
     },
   });
 
-  // SPA fallback: serve index.html for non-file routes
   if (spa) {
     server.setNotFoundHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-      // Skip excluded paths (API routes, etc.)
       for (const excludePath of exclude) {
         if (request.url.startsWith(excludePath)) {
           return reply.status(404).send({
@@ -212,7 +206,6 @@ export async function registerStatic(
         }
       }
 
-      // Skip requests for files (have extensions)
       if (/\.\w+$/.test(request.url)) {
         return reply.status(404).send({
           error: 'NotFound',
@@ -221,7 +214,6 @@ export async function registerStatic(
         });
       }
 
-      // Serve index.html for SPA routes
       return reply.sendFile(index, absoluteRoot);
     });
   }

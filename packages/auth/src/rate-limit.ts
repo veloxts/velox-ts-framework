@@ -407,12 +407,8 @@ export function createAuthRateLimiter(config: AuthRateLimiterConfig = {}) {
       const fullKey = `auth:${operation}:${key}`;
       const entry = authRateLimitStore.get(fullKey);
 
-      if (!entry || !entry.lockoutUntil) return false;
-      if (entry.lockoutUntil <= Date.now()) {
-        // Lockout expired
-        return false;
-      }
-      return true;
+      if (!entry?.lockoutUntil) return false;
+      return entry.lockoutUntil > Date.now();
     },
 
     /**

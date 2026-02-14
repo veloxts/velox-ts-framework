@@ -19,6 +19,18 @@ import type {
 import { AuthError } from './types.js';
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+const UNAUTHENTICATED_CONTEXT: NativeAuthContext = {
+  authMode: 'native',
+  user: undefined,
+  token: undefined,
+  payload: undefined,
+  isAuthenticated: false,
+};
+
+// ============================================================================
 // Auth Middleware Factory
 // ============================================================================
 
@@ -82,25 +94,11 @@ export function authMiddleware(config: AuthConfig) {
       // No token handling
       if (!token) {
         if (options.optional) {
-          // Optional auth - continue without user
-          const authContext: NativeAuthContext = {
-            authMode: 'native',
-            user: undefined,
-            token: undefined,
-            payload: undefined,
-            isAuthenticated: false,
-          };
-
           return next({
-            ctx: {
-              ...ctx,
-              auth: authContext,
-              user: undefined,
-            },
+            ctx: { ...ctx, auth: UNAUTHENTICATED_CONTEXT, user: undefined },
           });
         }
 
-        // Required auth - reject
         throw new AuthError('Authorization header required', 401);
       }
 
@@ -110,21 +108,8 @@ export function authMiddleware(config: AuthConfig) {
         payload = jwt.verifyToken(token);
       } catch (error) {
         if (options.optional) {
-          // Invalid token with optional auth - continue without user
-          const authContext: NativeAuthContext = {
-            authMode: 'native',
-            user: undefined,
-            token: undefined,
-            payload: undefined,
-            isAuthenticated: false,
-          };
-
           return next({
-            ctx: {
-              ...ctx,
-              auth: authContext,
-              user: undefined,
-            },
+            ctx: { ...ctx, auth: UNAUTHENTICATED_CONTEXT, user: undefined },
           });
         }
 
@@ -241,12 +226,6 @@ export function authMiddleware(config: AuthConfig) {
     jwt,
   };
 }
-
-// ============================================================================
-// Error Helpers
-// ============================================================================
-
-// AuthError is now imported from types.ts
 
 // ============================================================================
 // Rate Limiting Middleware

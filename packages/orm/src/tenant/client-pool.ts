@@ -281,8 +281,3 @@ export function createTenantClientPool<TClient extends DatabaseClient>(
     },
   };
 }
-
-/**
- * Type alias for the client pool
- */
-export type { ITenantClientPool as TenantClientPool };

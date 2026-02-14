@@ -4,11 +4,7 @@
  * @module app
  */
 
-import fastify, {
-  type FastifyInstance,
-  type FastifyPluginAsync,
-  type FastifyServerOptions,
-} from 'fastify';
+import fastify, { type FastifyInstance, type FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
 import { setupContextHook } from './context.js';
@@ -69,33 +65,22 @@ export class VeloxApp {
    * @internal
    */
   constructor(config: VeloxAppConfig) {
-    // Merge user config with defaults and validate
     const merged = mergeConfig(config);
-
-    // Validate and freeze configuration
     this._config = validateConfig(merged);
 
-    // Create Fastify instance
-    const fastifyOptions: FastifyServerOptions = {
+    this._server = fastify({
       logger: this._config.logger,
       ...this._config.fastify,
-    };
+    });
 
-    this._server = fastify(fastifyOptions);
-
-    // Initialize lifecycle manager
     this._lifecycle = new LifecycleManager();
 
-    // Set up context decorator
-    this._setupContext();
-
-    // Set up error handling
+    setupContextHook(this._server);
     this._setupErrorHandling();
+    this._lifecycle.setupSignalHandlers(async () => {
+      await this.stop();
+    });
 
-    // Set up graceful shutdown
-    this._setupGracefulShutdown();
-
-    // Register request logger if enabled via environment
     if (process.env.VELOX_REQUEST_LOGGING === 'true') {
       this._server.register(requestLogger);
     }
@@ -144,25 +129,13 @@ export class VeloxApp {
   }
 
   /**
-   * Async initialization (called by factory function)
-   *
-   * @internal - This method is public for factory access but should not be called directly.
-   * Use createVeloxApp() instead.
-   */
-  async initialize(): Promise<void> {
-    // Keep empty - ready() must be called in start() after plugins are registered
-    // This is a Fastify constraint: plugins must be registered before ready()
-  }
-
-  /**
-   * Sets up request context decorator
-   *
-   * Adds `request.context` property to all requests via onRequest hook
+   * Async initialization hook for factory function.
+   * Empty because Fastify's ready() must be called in start() after plugin registration.
    *
    * @internal
    */
-  private _setupContext(): void {
-    setupContextHook(this._server);
+  async initialize(): Promise<void> {
+    // Intentionally empty - ready() is called in start()
   }
 
   /**
@@ -175,7 +148,6 @@ export class VeloxApp {
   private _setupErrorHandling(): void {
     this._server.setErrorHandler(async (error, request, reply) => {
       try {
-        // Handle ZodError (validation errors) - return 400
         if (error instanceof Error && error.name === 'ZodError' && 'issues' in error) {
           const zodError = error as Error & { issues: Array<{ path: string[]; message: string }> };
           return reply.status(400).send({
@@ -189,7 +161,6 @@ export class VeloxApp {
           });
         }
 
-        // Handle Prisma unique constraint errors - return 409 Conflict
         if (
           error instanceof Error &&
           error.name === 'PrismaClientKnownRequestError' &&
@@ -205,23 +176,21 @@ export class VeloxApp {
           });
         }
 
-        // Only log server errors (5xx), not client errors (4xx)
-        const statusCode = isVeloxError(error)
-          ? error.statusCode
-          : typeof error === 'object' && error !== null && 'statusCode' in error
-            ? (error.statusCode as number)
-            : 500;
+        let statusCode = 500;
+        if (isVeloxError(error)) {
+          statusCode = error.statusCode;
+        } else if (typeof error === 'object' && error !== null && 'statusCode' in error) {
+          statusCode = error.statusCode as number;
+        }
 
         if (statusCode >= 500) {
           request.log.error(error);
         }
 
-        // Handle VeloxError instances (fast path - most common case)
         if (isVeloxError(error)) {
           return reply.status(error.statusCode).send(error.toJSON());
         }
 
-        // Handle other errors
         const message = error instanceof Error ? error.message : 'Internal Server Error';
         const name = error instanceof Error ? error.name : 'Error';
 
@@ -231,7 +200,6 @@ export class VeloxApp {
           statusCode,
         });
       } catch (handlerError) {
-        // Last resort error handling - prevents unhandled rejections
         log.error('Critical error in error handler:', handlerError);
         if (!reply.sent) {
           return reply.status(500).send({
@@ -241,17 +209,6 @@ export class VeloxApp {
           });
         }
       }
-    });
-  }
-
-  /**
-   * Sets up graceful shutdown handlers for process signals
-   *
-   * @internal
-   */
-  private _setupGracefulShutdown(): void {
-    this._lifecycle.setupSignalHandlers(async () => {
-      await this.stop();
     });
   }
 
@@ -287,19 +244,15 @@ export class VeloxApp {
     plugin: VeloxPlugin<Options> | FastifyPluginAsync<Options>,
     options?: Options
   ): Promise<void> {
-    // Handle VeloxPlugin objects (with name, version, register)
     if (isVeloxPlugin(plugin)) {
-      // Validate plugin metadata
       validatePluginMetadata(plugin);
 
-      // Wrap plugin with fastify-plugin for proper encapsulation
       const wrappedPlugin = fp(plugin.register, {
         name: plugin.name,
         dependencies: plugin.dependencies,
         fastify: '5.x',
       });
 
-      // Register with Fastify
       try {
         await this._server.register(wrappedPlugin, options ?? ({} as Options));
       } catch (error) {
@@ -312,7 +265,6 @@ export class VeloxApp {
       return;
     }
 
-    // Handle FastifyPluginAsync functions (standard Fastify plugins)
     if (isFastifyPlugin<Options>(plugin)) {
       try {
         await this._server.register(plugin, options ?? ({} as Options));
@@ -326,7 +278,6 @@ export class VeloxApp {
       return;
     }
 
-    // Invalid plugin type
     throw new VeloxError(
       'Invalid plugin: must be a VeloxPlugin object or FastifyPluginAsync function',
       500,
@@ -423,10 +374,8 @@ export class VeloxApp {
     const startTime = performance.now();
 
     try {
-      // Ensure Fastify is ready before listening (must be after plugin registration)
       await this._server.ready();
 
-      // Start listening
       const address = await this._server.listen({
         port: this._config.port,
         host: this._config.host,
@@ -435,7 +384,6 @@ export class VeloxApp {
       this._isRunning = true;
       this._address = address;
 
-      // Print startup banner unless silent
       if (!options.silent) {
         printBanner(this._server, {
           address,
@@ -474,13 +422,8 @@ export class VeloxApp {
     }
 
     try {
-      // Execute shutdown handlers
       await this._lifecycle.executeShutdownHandlers();
-
-      // Clean up signal handlers to prevent memory leaks in tests
       this._lifecycle.cleanupSignalHandlers();
-
-      // Close server
       await this._server.close();
 
       this._isRunning = false;

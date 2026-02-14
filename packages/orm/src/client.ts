@@ -238,19 +238,17 @@ export function createDatabase<TClient extends DatabaseClient>(
 
     try {
       await config.client.$disconnect();
-      state.connectionState = 'disconnected';
-      state.connectedAt = undefined;
-      updateCachedStatus();
     } catch (error) {
-      // Even if disconnect fails, mark as disconnected
-      state.connectionState = 'disconnected';
-      state.connectedAt = undefined;
-      updateCachedStatus();
       throw new VeloxError(
         `Failed to disconnect from database: ${error instanceof Error ? error.message : String(error)}`,
         500,
         'DATABASE_DISCONNECTION_ERROR'
       );
+    } finally {
+      // Even if disconnect fails, mark as disconnected
+      state.connectionState = 'disconnected';
+      state.connectedAt = undefined;
+      updateCachedStatus();
     }
   }
 

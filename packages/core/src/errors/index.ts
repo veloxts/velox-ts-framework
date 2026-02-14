@@ -10,7 +10,6 @@
  * @module errors
  */
 
-// Re-export catalog
 export {
   ERROR_CATALOG,
   ERROR_DOMAINS,
@@ -21,7 +20,6 @@ export {
   getErrorsByDomain,
   isKnownErrorCode,
 } from './catalog.js';
-// Re-export fail() - the elegant error creation API
 export {
   type ErrorCode,
   fail,
@@ -29,7 +27,6 @@ export {
   isVeloxFailure,
   VeloxFailure,
 } from './fail.js';
-// Re-export formatter
 export {
   type ErrorLocation,
   extractErrorLocation,

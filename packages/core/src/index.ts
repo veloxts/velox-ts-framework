@@ -17,19 +17,16 @@
 
 import { createRequire } from 'node:module';
 
-// Read version from package.json dynamically
 const require = createRequire(import.meta.url);
 const packageJson = require('../package.json') as { version: string };
 
 /** VeloxTS framework version */
 export const VELOX_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
-// Re-export Fastify types needed by user code
 export type { FastifyLoggerOptions, FastifyReply, FastifyRequest } from 'fastify';
 
 export type { StartOptions } from './app.js';
 export { VeloxApp, velox, veloxApp } from './app.js';
-// Context system
 export type { BaseContext } from './context.js';
 export { createContext, isContext, setupContextHook, setupTestContext } from './context.js';
 // Error handling
@@ -47,7 +44,6 @@ export type {
 export {
   assertNever,
   ConfigurationError,
-  // Elegant error creation API
   fail,
   isConfigurationError,
   isNotFoundError,
@@ -56,7 +52,6 @@ export {
   isValidationErrorResponse,
   isVeloxError,
   isVeloxFailure,
-  // Developer experience utilities
   logDeprecation,
   logWarning,
   NotFoundError,
@@ -65,9 +60,7 @@ export {
   VeloxFailure,
 } from './errors.js';
 export type { InferPluginOptions, PluginMetadata, PluginOptions, VeloxPlugin } from './plugin.js';
-// Plugin system
 export { definePlugin, isFastifyPlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
-// Core types
 export type {
   AsyncHandler,
   JsonArray,

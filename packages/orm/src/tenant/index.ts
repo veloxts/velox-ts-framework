@@ -59,25 +59,19 @@ export type {
   CachedClient,
   SchemaCreateResult,
   SchemaMigrateResult,
-  // Tenant entity
   Tenant,
   TenantClientPool,
-  // Client pool
   TenantClientPoolConfig,
   TenantContext,
   TenantContextInput,
-  // Prisma-specific client interface
   TenantDatabaseClient,
-  // Middleware
   TenantMiddlewareConfig,
   TenantPoolStats,
   TenantProvisioner,
-  // Provisioner
   TenantProvisionerConfig,
   TenantProvisionInput,
   TenantProvisionResult,
   TenantSchemaManager,
-  // Schema manager
   TenantSchemaManagerConfig,
   TenantStatus,
 } from './types.js';
@@ -89,31 +83,23 @@ export type {
 export {
   ClientCreateError,
   ClientDisconnectError,
-  // Client pool errors
   ClientPoolExhaustedError,
   DeprovisionError,
   getTenantStatusError,
-  // Validation errors
   InvalidSlugError,
-  // Utilities
   isTenantError,
-  // Provisioning errors
   ProvisionError,
   SchemaAlreadyExistsError,
-  // Schema errors
   SchemaCreateError,
   SchemaDeleteError,
   SchemaListError,
   SchemaMigrateError,
   SchemaNotFoundError,
-  // Authorization error
   TenantAccessDeniedError,
-  // Base error
   TenantError,
   type TenantErrorCode,
   TenantIdMissingError,
   TenantMigratingError,
-  // Tenant errors
   TenantNotFoundError,
   TenantPendingError,
   TenantSuspendedError,
