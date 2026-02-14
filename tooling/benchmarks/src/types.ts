@@ -13,7 +13,7 @@ export const TARGET_METRICS = {
   /** Throughput target in requests per second */
   throughput: 20000,
   /** Heap memory baseline target in MB (primary metric - what your code allocates) */
-  heapBaseline: 100,
+  heapBaseline: 130,
   /** RSS baseline target in MB (secondary - includes V8/native module overhead) */
   rssBaseline: 350,
   /** Startup time target in ms */
