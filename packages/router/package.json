@@ -47,14 +47,14 @@
     }
   },
   "dependencies": {
-    "@trpc/server": "11.9.0",
+    "@trpc/server": "11.10.0",
     "@veloxts/core": "workspace:*",
     "@veloxts/validation": "workspace:*",
     "fastify": "5.7.4"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "4.0.18",
-    "esbuild": "0.27.2",
+    "esbuild": "0.27.3",
     "typescript": "5.9.3",
     "vite": "7.3.1",
     "vitest": "4.0.18",

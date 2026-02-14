@@ -43,14 +43,14 @@
     }
   },
   "dependencies": {
-    "@clack/prompts": "1.0.0",
+    "@clack/prompts": "1.0.1",
     "@veloxts/auth": "workspace:*",
     "@veloxts/core": "workspace:*",
     "@veloxts/orm": "workspace:*",
     "@veloxts/router": "workspace:*",
     "@veloxts/validation": "workspace:*",
     "commander": "14.0.3",
-    "dotenv": "17.2.3",
+    "dotenv": "17.3.1",
     "hot-hook": "0.4.0",
     "pg": "8.18.0",
     "picocolors": "1.1.1",
@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@prisma/client": "7.4.0",
-    "@types/node": "25.1.0",
+    "@types/node": "25.2.3",
     "@types/pg": "8.16.0",
     "@types/pluralize": "0.0.33",
     "@vitest/coverage-v8": "4.0.18",

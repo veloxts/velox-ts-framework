@@ -152,9 +152,8 @@ export type ExtractTag<TContext> =
  * type IsAuth = HasTag<AdminContext, typeof AUTHENTICATED>; // false
  * ```
  */
-export type HasTag<TContext, TTag extends ContextTag> = ExtractTag<TContext> extends TTag
-  ? true
-  : false;
+export type HasTag<TContext, TTag extends ContextTag> =
+  ExtractTag<TContext> extends TTag ? true : false;
 
 /**
  * Creates a tagged context type by combining a base context with a tag

@@ -239,12 +239,10 @@ type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
  * // Result: { id: string; name: string; email: string }
  * ```
  */
-export type OutputForTag<
-  TSchema extends ResourceSchema,
-  TTag extends ContextTag,
-> = TSchema extends ResourceSchema<infer TFields>
-  ? Simplify<FilterFieldsByTag<TFields, TTag>>
-  : never;
+export type OutputForTag<TSchema extends ResourceSchema, TTag extends ContextTag> =
+  TSchema extends ResourceSchema<infer TFields>
+    ? Simplify<FilterFieldsByTag<TFields, TTag>>
+    : never;
 
 /**
  * Convenience type aliases for common tag outputs

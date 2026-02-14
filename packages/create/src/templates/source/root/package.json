@@ -21,7 +21,7 @@
     "@veloxts/velox": "__VELOXTS_VERSION__"
   },
   "devDependencies": {
-    "@types/node": "25.1.0",
+    "@types/node": "25.2.3",
     "@veloxts/cli": "__VELOXTS_VERSION__",
     "@veloxts/mcp": "__VELOXTS_VERSION__",
     "tsx": "4.21.0",
