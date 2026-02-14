@@ -84,11 +84,11 @@
     }
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "3.980.0",
-    "@aws-sdk/lib-storage": "3.980.0",
-    "@aws-sdk/s3-request-presigner": "3.980.0",
+    "@aws-sdk/client-s3": "3.990.0",
+    "@aws-sdk/lib-storage": "3.990.0",
+    "@aws-sdk/s3-request-presigner": "3.990.0",
     "@types/mime-types": "3.0.1",
-    "@types/node": "25.1.0",
+    "@types/node": "25.2.3",
     "@veloxts/testing": "workspace:*",
     "@vitest/coverage-v8": "4.0.18",
     "fastify": "5.7.4",

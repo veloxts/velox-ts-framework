@@ -280,8 +280,9 @@ describe('client-hydrator utilities', () => {
       showErrorOverlay(error);
 
       const overlay = document.getElementById('velox-error-overlay');
-      expect(overlay?.style.position).toBe('fixed');
-      expect(overlay?.style.zIndex).toBe('999999');
+      const style = overlay?.getAttribute('style') ?? '';
+      expect(style).toContain('position: fixed');
+      expect(style).toContain('z-index: 999999');
     });
   });
 

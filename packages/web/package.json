@@ -75,7 +75,7 @@
     "@vinxi/server-functions": "0.5.1",
     "radix3": "1.1.2",
     "vinxi": "0.5.11",
-    "vite-tsconfig-paths": "6.0.5",
+    "vite-tsconfig-paths": "6.1.1",
     "zod": "4.3.6"
   },
   "peerDependencies": {
@@ -96,8 +96,8 @@
   },
   "devDependencies": {
     "@types/jsdom": "27.0.0",
-    "@types/node": "25.1.0",
-    "@types/react": "19.2.10",
+    "@types/node": "25.2.3",
+    "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@veloxts/auth": "workspace:*",
     "@veloxts/client": "workspace:*",
@@ -105,7 +105,7 @@
     "@veloxts/router": "workspace:*",
     "@vitest/coverage-v8": "4.0.18",
     "fastify": "5.7.4",
-    "jsdom": "27.4.0",
+    "jsdom": "28.0.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "typescript": "5.9.3",

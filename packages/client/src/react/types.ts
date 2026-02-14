@@ -34,11 +34,12 @@ export type GetProcedure<
   TRouter,
   TNamespace extends keyof TRouter,
   TProcedureName extends keyof GetProceduresFromCollection<TRouter[TNamespace]>,
-> = TRouter[TNamespace] extends ProcedureCollection<infer _TN, infer TProcedures>
-  ? TProcedureName extends keyof TProcedures
-    ? TProcedures[TProcedureName]
-    : never
-  : never;
+> =
+  TRouter[TNamespace] extends ProcedureCollection<infer _TN, infer TProcedures>
+    ? TProcedureName extends keyof TProcedures
+      ? TProcedures[TProcedureName]
+      : never
+    : never;
 
 /**
  * Extracts the procedures record from a collection

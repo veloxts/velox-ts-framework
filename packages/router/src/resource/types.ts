@@ -126,9 +126,10 @@ export type AnyResourceOutput<TSchema extends ResourceSchema> =
 export type IfAuthenticated<
   TContext extends TaggedContext<ContextTag>,
   TSchema extends ResourceSchema,
-> = ExtractTag<TContext> extends typeof ANONYMOUS
-  ? never
-  : OutputForTag<TSchema, ExtractTag<TContext>>;
+> =
+  ExtractTag<TContext> extends typeof ANONYMOUS
+    ? never
+    : OutputForTag<TSchema, ExtractTag<TContext>>;
 
 /**
  * Returns the output type if the context has admin access
@@ -140,10 +141,8 @@ export type IfAuthenticated<
  * // Otherwise: never
  * ```
  */
-export type IfAdmin<
-  TContext extends TaggedContext<ContextTag>,
-  TSchema extends ResourceSchema,
-> = ExtractTag<TContext> extends typeof ADMIN ? AdminOutput<TSchema> : never;
+export type IfAdmin<TContext extends TaggedContext<ContextTag>, TSchema extends ResourceSchema> =
+  ExtractTag<TContext> extends typeof ADMIN ? AdminOutput<TSchema> : never;
 
 // ============================================================================
 // Re-exports for Convenience

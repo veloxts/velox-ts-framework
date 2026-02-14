@@ -27,15 +27,15 @@
     "@veloxts/validation": "__VELOXTS_VERSION__",
     "@veloxts/web": "__VELOXTS_VERSION__",
     "@vinxi/server-functions": "0.5.1",
-    "dotenv": "17.2.3",
+    "dotenv": "17.3.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "vinxi": "0.5.11",
     "zod": "4.3.6"
   },
   "devDependencies": {
-    "@types/node": "25.1.0",
-    "@types/react": "19.2.10",
+    "@types/node": "25.2.3",
+    "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@veloxts/cli": "__VELOXTS_VERSION__",
     "@veloxts/mcp": "__VELOXTS_VERSION__",

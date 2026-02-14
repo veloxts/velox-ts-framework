@@ -286,19 +286,10 @@ export function showErrorOverlay(error: Error): void {
 
   const overlay = document.createElement('div');
   overlay.id = 'velox-error-overlay';
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 2rem;
-    overflow: auto;
-    z-index: 999999;
-    font-family: monospace;
-  `;
+  overlay.setAttribute(
+    'style',
+    'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); color: white; padding: 2rem; overflow: auto; z-index: 999999; font-family: monospace;'
+  );
 
   overlay.innerHTML = `
     <h1 style="color: #ef4444; margin-top: 0;">Hydration Error</h1>
