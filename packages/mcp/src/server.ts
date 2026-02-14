@@ -390,10 +390,7 @@ const orgId = fullUser.organizationId;
     }
 
     // Helper to format Zod validation errors into a tool error response
-    function validationError(
-      toolName: string,
-      issues: { path: (string | number)[]; message: string }[]
-    ) {
+    function validationError(toolName: string, issues: { path: PropertyKey[]; message: string }[]) {
       const errors = issues.map((e) => `${e.path.join('.')}: ${e.message}`);
       return toolResult(`Invalid arguments for ${toolName}:\n${errors.join('\n')}`, true);
     }
