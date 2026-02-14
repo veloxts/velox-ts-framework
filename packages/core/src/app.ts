@@ -146,9 +146,9 @@ export class VeloxApp {
    * @internal
    */
   private _setupErrorHandling(): void {
-    this._server.setErrorHandler(async (error, request, reply) => {
+    this._server.setErrorHandler<Error>(async (error, request, reply) => {
       try {
-        if (error instanceof Error && error.name === 'ZodError' && 'issues' in error) {
+        if (error.name === 'ZodError' && 'issues' in error) {
           const zodError = error as Error & { issues: Array<{ path: string[]; message: string }> };
           return reply.status(400).send({
             error: 'ValidationError',
@@ -162,7 +162,6 @@ export class VeloxApp {
         }
 
         if (
-          error instanceof Error &&
           error.name === 'PrismaClientKnownRequestError' &&
           'code' in error &&
           error.code === 'P2002'
@@ -191,8 +190,8 @@ export class VeloxApp {
           return reply.status(error.statusCode).send(error.toJSON());
         }
 
-        const message = error instanceof Error ? error.message : 'Internal Server Error';
-        const name = error instanceof Error ? error.name : 'Error';
+        const message = error.message ?? 'Internal Server Error';
+        const name = error.name ?? 'Error';
 
         return reply.status(statusCode).send({
           error: name,
