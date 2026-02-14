@@ -5,6 +5,7 @@
  * This module provides utilities for configuring the API router.
  */
 
+import { createLogger } from '@veloxts/core';
 import type { FastifyInstance } from 'fastify';
 
 import { createApiHandler } from '../adapters/fastify-adapter.js';
@@ -60,6 +61,8 @@ export interface ApiRouterOptions {
  * });
  * ```
  */
+const log = createLogger('web');
+
 export function createApiRouter(options: ApiRouterOptions): VinxiHandler {
   const { app, basePath = '/api', timeout = 30_000, logging } = options;
 
@@ -78,17 +81,14 @@ export function createApiRouter(options: ApiRouterOptions): VinxiHandler {
         const response = await handler(request);
         const elapsed = performance.now() - startTime;
 
-        console.log(
-          `[API] ${request.method} ${url.pathname} → ${response.status} (${elapsed.toFixed(1)}ms)`
+        log.debug(
+          `${request.method} ${url.pathname} → ${response.status} (${elapsed.toFixed(1)}ms)`
         );
 
         return response;
       } catch (error) {
         const elapsed = performance.now() - startTime;
-        console.error(
-          `[API] ${request.method} ${url.pathname} → ERROR (${elapsed.toFixed(1)}ms)`,
-          error
-        );
+        log.error(`${request.method} ${url.pathname} → ERROR (${elapsed.toFixed(1)}ms)`, error);
         throw error;
       }
     };

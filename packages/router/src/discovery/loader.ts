@@ -12,7 +12,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { createLogger } from '@veloxts/core';
+
 import { isProcedureCollection } from '../procedure/builder.js';
+
+const log = createLogger('router');
+
 import type { ProcedureCollection } from '../types.js';
 import {
   type DiscoveryError,
@@ -156,7 +161,7 @@ export async function discoverProceduresVerbose(
 
       // Log warning if mode is 'warn'
       if (onInvalidExport === 'warn') {
-        console.warn(`[Discovery Warning] ${file}: ${result.message}`);
+        log.warn(`[Discovery Warning] ${file}: ${result.message}`);
       }
     }
   }

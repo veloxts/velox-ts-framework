@@ -7,9 +7,13 @@
  * @module @veloxts/web/actions/handler
  */
 
+import { createLogger } from '@veloxts/core';
 import { ZodError, type ZodIssue, type ZodType } from 'zod';
 
 import { toActionError } from './error-classifier.js';
+
+const log = createLogger('web');
+
 import type {
   ActionContext,
   ActionError,
@@ -145,7 +149,7 @@ async function validateOutput<T>(schema: ZodType<T>, output: unknown): Promise<A
     return success(result);
   } catch (err) {
     // Output validation errors are internal errors (shouldn't happen in production)
-    console.error('[VeloxTS] Action output validation failed:', err);
+    log.error('Action output validation failed:', err);
     return error('INTERNAL_ERROR', 'Action output validation failed');
   }
 }

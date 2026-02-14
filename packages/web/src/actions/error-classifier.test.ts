@@ -187,7 +187,8 @@ describe('classifyError', () => {
       process.env.NODE_ENV = 'development';
       classifyError(new Error('Unknown error'));
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[VeloxTS] Unclassified error:',
+        '[@veloxts/web]',
+        'Unclassified error:',
         expect.any(Error)
       );
     });

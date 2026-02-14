@@ -6,9 +6,12 @@
  * @module @veloxts/router/openapi/schema-converter
  */
 
+import { createLogger } from '@veloxts/core';
 import { type ZodType, z } from 'zod';
 
 import type { JSONSchema } from './types.js';
+
+const log = createLogger('router');
 
 // ============================================================================
 // Schema Conversion
@@ -97,7 +100,7 @@ export function zodSchemaToJsonSchema(
     return cleaned;
   } catch (error) {
     // Log error but don't fail - return a generic schema
-    console.warn('[VeloxTS] Failed to convert Zod schema to JSON Schema:', error);
+    log.warn('Failed to convert Zod schema to JSON Schema:', error);
     return { type: 'object' };
   }
 }

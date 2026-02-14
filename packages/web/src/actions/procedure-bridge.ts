@@ -10,9 +10,13 @@
  */
 
 import type { BaseContext } from '@veloxts/core';
+import { createLogger } from '@veloxts/core';
 import type { CompiledProcedure, InferProcedureInput, InferProcedureOutput } from '@veloxts/router';
 
 import { toActionError } from './error-classifier.js';
+
+const log = createLogger('web');
+
 import type { ActionContext, ActionResult, AuthenticatedActionContext } from './types.js';
 
 // ============================================================================
@@ -161,8 +165,8 @@ function validateContextExtensions(ctx: BaseContext, requiredKeys: readonly stri
 
   const missingKeys = requiredKeys.filter((key) => !(key in ctx));
   if (missingKeys.length > 0) {
-    console.warn(
-      `[VeloxTS] Procedure context missing expected properties: ${missingKeys.join(', ')}. ` +
+    log.warn(
+      `Procedure context missing expected properties: ${missingKeys.join(', ')}. ` +
         'Ensure contextExtensions includes all properties required by your procedure context type.'
     );
   }
@@ -324,7 +328,7 @@ export async function executeProcedureDirectly<
       try {
         result = procedure.outputSchema.parse(result);
       } catch (err) {
-        console.error('[VeloxTS] Procedure output validation failed:', err);
+        log.error('Procedure output validation failed:', err);
         return {
           success: false,
           error: {

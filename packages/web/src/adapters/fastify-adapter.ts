@@ -5,9 +5,12 @@
  * This enables embedding Fastify handlers inside Vinxi's HTTP routers.
  */
 
+import { createLogger } from '@veloxts/core';
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from 'fastify';
 
 import type { CreateApiHandlerOptions, VinxiHandler } from '../types.js';
+
+const log = createLogger('web');
 
 /**
  * Default timeout for API requests (30 seconds)
@@ -252,7 +255,7 @@ function createErrorResponse(error: unknown, elapsed: number): Response {
 
   // Only log errors in development to avoid performance overhead in production
   if (isDev) {
-    console.error('[VeloxTS] API handler error:', {
+    log.error('API handler error:', {
       error: message,
       elapsed: `${elapsed.toFixed(2)}ms`,
       stack: error instanceof Error ? error.stack : undefined,
@@ -383,7 +386,7 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
     // If already resolved, return it
     if (singleton.instance) {
       if (isDev) {
-        console.log('[VeloxTS] Returning cached Fastify instance for', cacheKey);
+        log.debug('Returning cached Fastify instance for', cacheKey);
       }
       return singleton.instance;
     }
@@ -391,13 +394,13 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
     // If initialization in progress, wait for it
     if (singleton.promise) {
       if (isDev) {
-        console.log('[VeloxTS] Waiting for Fastify initialization to complete for', cacheKey);
+        log.debug('Waiting for Fastify initialization to complete for', cacheKey);
       }
       return singleton.promise;
     }
 
     if (isDev) {
-      console.log('[VeloxTS] Creating new Fastify instance for', cacheKey);
+      log.debug('Creating new Fastify instance for', cacheKey);
     }
 
     // Determine if we have a factory or an instance
@@ -419,7 +422,7 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
 
         singleton.instance = app;
         if (isDev) {
-          console.log('[VeloxTS] Fastify instance initialized and cached for', cacheKey);
+          log.debug('Fastify instance initialized and cached for', cacheKey);
         }
         return app;
       })();
@@ -544,7 +547,7 @@ export function createH3ApiHandler(options: CreateApiHandlerOptions) {
       const message = error instanceof Error ? error.message : 'Internal Server Error';
 
       if (isDev) {
-        console.error('[VeloxTS] API handler error:', {
+        log.error('API handler error:', {
           error: message,
           elapsed: `${elapsed.toFixed(2)}ms`,
           stack: error instanceof Error ? error.stack : undefined,

@@ -6,7 +6,11 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 
+import { createLogger } from '@veloxts/core';
+
 import type { HashConfig } from './types.js';
+
+const log = createLogger('auth');
 
 const scryptAsync = promisify(scrypt);
 
@@ -149,7 +153,7 @@ export class PasswordHasher {
     } catch (error) {
       // Fallback to scrypt if bcrypt fails
       if ((error as Error).message.includes('not found')) {
-        console.warn('bcrypt not available, falling back to scrypt');
+        log.warn('bcrypt not available, falling back to scrypt');
         return this.hashWithScrypt(password);
       }
       throw error;
@@ -179,7 +183,7 @@ export class PasswordHasher {
     } catch (error) {
       // Fallback to scrypt if argon2 fails
       if ((error as Error).message.includes('not found')) {
-        console.warn('argon2 not available, falling back to scrypt');
+        log.warn('argon2 not available, falling back to scrypt');
         return this.hashWithScrypt(password);
       }
       throw error;

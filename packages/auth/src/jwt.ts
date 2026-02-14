@@ -5,7 +5,12 @@
 
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
+import { createLogger } from '@veloxts/core';
+
 import type { JwtConfig, TokenPair, TokenPayload, User } from './types.js';
+
+const log = createLogger('auth');
+
 import { AuthError } from './types.js';
 
 // ============================================================================
@@ -206,14 +211,14 @@ export function validateTokenExpiration(accessExpiry: string, refreshExpiry: str
 
   // Warn about exceeding recommended limits (non-fatal)
   if (accessSeconds > TOKEN_BOUNDS.access.recommended) {
-    console.warn(
+    log.warn(
       `[Security] Access token expiry (${accessExpiry}) exceeds recommended maximum of 15 minutes. ` +
         'Consider using shorter-lived access tokens with refresh.'
     );
   }
 
   if (refreshSeconds > TOKEN_BOUNDS.refresh.recommended) {
-    console.warn(
+    log.warn(
       `[Security] Refresh token expiry (${refreshExpiry}) exceeds recommended maximum of 7 days. ` +
         'Long-lived refresh tokens increase the window for token theft attacks.'
     );

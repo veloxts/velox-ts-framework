@@ -5,6 +5,9 @@
  */
 
 import type { ShutdownHandler } from '../types.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('core');
 
 /**
  * Manages graceful shutdown for the VeloxTS application
@@ -78,7 +81,7 @@ export class LifecycleManager {
         await handler();
       } catch (error) {
         // Log error but continue with other handlers
-        console.error('Error during shutdown handler execution:', error);
+        log.error('Error during shutdown handler execution:', error);
       }
     }
 
@@ -100,14 +103,14 @@ export class LifecycleManager {
 
     signals.forEach((signal) => {
       const handler = async () => {
-        console.log(`\nReceived ${signal}, initiating graceful shutdown...`);
+        log.info(`\nReceived ${signal}, initiating graceful shutdown...`);
 
         try {
           await onShutdown();
-          console.log('Graceful shutdown completed');
+          log.info('Graceful shutdown completed');
           process.exit(0);
         } catch (error) {
-          console.error('Error during graceful shutdown:', error);
+          log.error('Error during graceful shutdown:', error);
           process.exit(1);
         }
       };

@@ -23,6 +23,9 @@ import { printBanner } from './utils/banner.js';
 import type { FrozenVeloxAppConfig, VeloxAppConfig } from './utils/config.js';
 import { mergeConfig, validateConfig } from './utils/config.js';
 import { LifecycleManager } from './utils/lifecycle.js';
+import { createLogger } from './utils/logger.js';
+
+const log = createLogger('core');
 
 /**
  * Options for starting the server
@@ -229,7 +232,7 @@ export class VeloxApp {
         });
       } catch (handlerError) {
         // Last resort error handling - prevents unhandled rejections
-        console.error('Critical error in error handler:', handlerError);
+        log.error('Critical error in error handler:', handlerError);
         if (!reply.sent) {
           return reply.status(500).send({
             error: 'InternalServerError',

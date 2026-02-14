@@ -9,6 +9,10 @@
  * @module auth/token-store
  */
 
+import { createLogger } from '@veloxts/core';
+
+const log = createLogger('auth');
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -136,7 +140,7 @@ export function createEnhancedTokenStore(options?: EnhancedTokenStoreOptions): E
 
     revokeAllUserTokens(userId: string): void {
       // Placeholder - in production, implement proper user->token mapping
-      console.warn(
+      log.warn(
         `[Security] Token reuse detected for user ${userId}. ` +
           'All tokens should be revoked. Implement proper user->token mapping for production.'
       );

@@ -72,18 +72,19 @@ function createMockH3Event(
 
 describe('createSsrRouter', () => {
   let originalEnv: NodeJS.ProcessEnv;
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let consoleDebugSpy: ReturnType<typeof vi.spyOn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    process.env.VELOX_LOG_LEVEL = 'debug';
+    consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    consoleLogSpy.mockRestore();
+    consoleDebugSpy.mockRestore();
     consoleErrorSpy.mockRestore();
   });
 
@@ -425,9 +426,9 @@ describe('createSsrRouter', () => {
       const { event } = createMockH3Event('http://localhost:3030/');
       await handler(event);
 
-      expect(consoleLogSpy).toHaveBeenCalled();
-      const logCall = consoleLogSpy.mock.calls[0][0];
-      expect(logCall).toContain('[SSR]');
+      expect(consoleDebugSpy).toHaveBeenCalled();
+      expect(consoleDebugSpy.mock.calls[0][0]).toBe('[@veloxts/web]');
+      const logCall = consoleDebugSpy.mock.calls[0][1];
       expect(logCall).toContain('/');
       expect(logCall).toContain('200');
     });
@@ -453,7 +454,7 @@ describe('createSsrRouter', () => {
       const { event } = createMockH3Event('http://localhost:3030/');
       await handler(event);
 
-      expect(consoleLogSpy).not.toHaveBeenCalled();
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
     });
 
     it('should log when explicitly enabled', async () => {
@@ -468,7 +469,7 @@ describe('createSsrRouter', () => {
       const { event } = createMockH3Event('http://localhost:3030/test');
       await handler(event);
 
-      expect(consoleLogSpy).toHaveBeenCalled();
+      expect(consoleDebugSpy).toHaveBeenCalled();
     });
 
     it('should not log when explicitly disabled', async () => {
@@ -493,7 +494,7 @@ describe('createSsrRouter', () => {
       const { event } = createMockH3Event('http://localhost:3030/test');
       await handler(event);
 
-      expect(consoleLogSpy).not.toHaveBeenCalled();
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
     });
 
     it('should log 404 responses', async () => {
@@ -507,9 +508,8 @@ describe('createSsrRouter', () => {
       const { event } = createMockH3Event('http://localhost:3030/missing');
       await handler(event);
 
-      expect(consoleLogSpy).toHaveBeenCalled();
-      const logCall = consoleLogSpy.mock.calls[0][0];
-      expect(logCall).toContain('[SSR]');
+      expect(consoleDebugSpy).toHaveBeenCalled();
+      const logCall = consoleDebugSpy.mock.calls[0][1];
       expect(logCall).toContain('/missing');
       expect(logCall).toContain('404');
     });
@@ -528,8 +528,8 @@ describe('createSsrRouter', () => {
       await handler(event);
 
       expect(consoleErrorSpy).toHaveBeenCalled();
-      const errorLog = consoleErrorSpy.mock.calls[0][0];
-      expect(errorLog).toContain('[SSR]');
+      expect(consoleErrorSpy.mock.calls[0][0]).toBe('[@veloxts/web]');
+      const errorLog = consoleErrorSpy.mock.calls[0][1];
       expect(errorLog).toContain('/error');
       expect(errorLog).toContain('ERROR');
     });
@@ -555,7 +555,7 @@ describe('createSsrRouter', () => {
       const { event } = createMockH3Event('http://localhost:3030/test');
       await handler(event);
 
-      const logCall = consoleLogSpy.mock.calls[0][0];
+      const logCall = consoleDebugSpy.mock.calls[0][1];
       expect(logCall).toMatch(/\d+\.\d+ms/);
     });
 
@@ -573,7 +573,7 @@ describe('createSsrRouter', () => {
       await handler(event);
 
       expect(consoleErrorSpy).toHaveBeenCalled();
-      expect(consoleErrorSpy.mock.calls[0][1]).toBeInstanceOf(Error);
+      expect(consoleErrorSpy.mock.calls[0][2]).toBeInstanceOf(Error);
     });
   });
 

@@ -205,7 +205,9 @@ describe('LifecycleManager - Unit Tests', () => {
       await manager.executeShutdownHandlers();
 
       expect(executed).toEqual([1, 2, 3]);
+      // Logger prepends [@veloxts/core] as first arg
       expect(consoleSpy).toHaveBeenCalledWith(
+        '[@veloxts/core]',
         'Error during shutdown handler execution:',
         expect.any(Error)
       );

@@ -8,8 +8,10 @@
  * @module rest/adapter
  */
 
-import { type BaseContext, ConfigurationError } from '@veloxts/core';
+import { type BaseContext, ConfigurationError, createLogger } from '@veloxts/core';
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+
+const log = createLogger('router');
 
 import { executeProcedure } from '../procedure/builder.js';
 import type { CompiledProcedure, HttpMethod, ProcedureCollection } from '../types.js';
@@ -145,8 +147,8 @@ export function generateRestRoutes(
       if (nestingWarnings) {
         const depth = calculateNestingDepth(procedure.parentResource, procedure.parentResources);
         if (depth >= NESTING_DEPTH_WARNING_THRESHOLD) {
-          console.warn(
-            `⚠️  Resource '${collection.namespace}/${name}' has ${depth} levels of nesting. ` +
+          log.warn(
+            `Resource '${collection.namespace}/${name}' has ${depth} levels of nesting. ` +
               `Consider using shortcuts: true or restructuring your API.`
           );
         }

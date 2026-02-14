@@ -5,6 +5,8 @@
  * Wraps the underlying driver with a clean, Laravel-inspired interface.
  */
 
+import { createLogger } from '@veloxts/core';
+
 import type {
   BroadcastDriver,
   BroadcastEvent,
@@ -14,6 +16,8 @@ import type {
   EventsWsOptions,
   PresenceMember,
 } from './types.js';
+
+const log = createLogger('events');
 
 /**
  * Create an events manager with the specified driver.
@@ -117,7 +121,7 @@ export function createManagerFromDriver(
     async toOthers<T>(channel: string, event: string, data: T, except: string): Promise<void> {
       // Runtime deprecation warning (development only)
       if (process.env.NODE_ENV === 'development') {
-        console.warn('[@veloxts/events] toOthers() is deprecated. Use broadcastExcept() instead.');
+        log.warn('toOthers() is deprecated. Use broadcastExcept() instead.');
       }
       await this.broadcastExcept(channel, event, data, except);
     },

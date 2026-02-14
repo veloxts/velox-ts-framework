@@ -7,7 +7,10 @@
  * @module errors/formatter
  */
 
+import { createLogger } from '../utils/logger.js';
 import { getErrorEntry } from './catalog.js';
+
+const log = createLogger('core');
 
 // ============================================================================
 // ANSI Color Codes (for terminal output)
@@ -382,7 +385,7 @@ export function formatErrorOneLine(error: Error, catalogCode?: string): string {
  * @param catalogCode - Optional catalog error code
  */
 export function logError(error: Error, catalogCode?: string): void {
-  console.error(formatError(error, catalogCode));
+  log.error(formatError(error, catalogCode));
 }
 
 /**
@@ -399,7 +402,7 @@ export function logWarning(message: string, suggestion?: string): void {
     lines.push(`   ${color('→', 'gray')} ${suggestion}`);
   }
   lines.push('');
-  console.warn(lines.join('\n'));
+  log.warn(lines.join('\n'));
 }
 
 /**
