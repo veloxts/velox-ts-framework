@@ -6,7 +6,7 @@
  * preventing crashes from missing DATABASE_URL or stale generated client.
  */
 
-import type { DatabaseClient } from '@veloxts/orm';
+import type { PrismaClient } from './prisma.js';
 
 export * from './mock-client.js';
 export type { PrismaClient } from './prisma.js';
@@ -16,10 +16,10 @@ export type { PrismaClient } from './prisma.js';
  * $connect/$disconnect and throws a clear error if any model is accessed.
  * When USE_MOCK_DB is not set, eagerly import and export the real client.
  */
-let prisma: DatabaseClient;
+let prisma: PrismaClient;
 
 if (process.env.USE_MOCK_DB === 'true') {
-  prisma = new Proxy({} as DatabaseClient, {
+  prisma = new Proxy({} as PrismaClient, {
     get(_target, prop) {
       if (prop === '$disconnect' || prop === '$connect') {
         return () => Promise.resolve();

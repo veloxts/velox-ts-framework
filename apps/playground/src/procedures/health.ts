@@ -52,7 +52,7 @@ export const healthProcedures = defineProcedures('health', {
     .output(
       z.object({
         ready: z.boolean(),
-        checks: z.record(z.boolean()),
+        checks: z.record(z.string(), z.boolean()),
       })
     )
     .query(async ({ ctx }) => {
