@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/__integration__/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -16,12 +16,13 @@ export default defineConfig({
         '**/types.ts',
         '**/index.ts',
         '**/__tests__/**',
+        '**/__integration__/**',
       ],
       thresholds: {
-        lines: 75,
+        lines: 80,
         functions: 75,
-        branches: 65,
-        statements: 75,
+        branches: 70,
+        statements: 80,
       },
     },
   },
