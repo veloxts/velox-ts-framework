@@ -513,5 +513,6 @@ export async function veloxApp(config: VeloxAppConfig = {}): Promise<VeloxApp> {
  *
  * const app = await velox({ port: 3030 });
  * ```
+ * @deprecated Use veloxApp() instead.
  */
 export const velox = veloxApp;
