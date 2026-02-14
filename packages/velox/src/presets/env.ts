@@ -5,23 +5,33 @@
 import type { Environment } from './types.js';
 
 /**
- * Detect current environment from NODE_ENV.
- * Defaults to 'development' if not set or unrecognized.
+ * Normalize a raw environment string to a recognized Environment value.
+ * Returns undefined if the value is not recognized.
  */
-export function detectEnvironment(): Environment {
-  const env = process.env.NODE_ENV?.toLowerCase().trim();
+function normalizeEnvironment(value: string | undefined): Environment | undefined {
+  const normalized = value?.toLowerCase().trim();
 
-  switch (env) {
+  switch (normalized) {
     case 'production':
     case 'prod':
       return 'production';
     case 'test':
     case 'testing':
       return 'test';
-    default:
-      // 'development', 'dev', undefined, or any unrecognized value
+    case 'development':
+    case 'dev':
       return 'development';
+    default:
+      return undefined;
   }
+}
+
+/**
+ * Detect current environment from NODE_ENV.
+ * Defaults to 'development' if not set or unrecognized.
+ */
+export function detectEnvironment(): Environment {
+  return normalizeEnvironment(process.env.NODE_ENV) ?? 'development';
 }
 
 /**
@@ -50,17 +60,11 @@ export function isTest(): boolean {
  * @throws Error if environment is not recognized.
  */
 export function validateEnvironment(env: string): Environment {
-  const normalized = env.toLowerCase().trim();
+  const result = normalizeEnvironment(env);
 
-  if (normalized === 'production' || normalized === 'prod') {
-    return 'production';
-  }
-  if (normalized === 'test' || normalized === 'testing') {
-    return 'test';
-  }
-  if (normalized === 'development' || normalized === 'dev') {
-    return 'development';
+  if (!result) {
+    throw new Error(`Invalid environment: "${env}". Must be one of: development, test, production`);
   }
 
-  throw new Error(`Invalid environment: "${env}". Must be one of: development, test, production`);
+  return result;
 }

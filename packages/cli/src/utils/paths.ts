@@ -6,6 +6,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { config as loadEnv } from 'dotenv';
+
 /** Common entry point file names, ordered by preference */
 const ENTRY_POINT_PATTERNS = [
   'src/index.ts',
@@ -291,8 +293,7 @@ export async function isVeloxProject(cwd: string = process.cwd()): Promise<boole
   }
 
   try {
-    const fs = await import('node:fs/promises');
-    const content = await fs.readFile(packageJsonPath, 'utf-8');
+    const content = await readFile(packageJsonPath, 'utf-8');
     const pkg = JSON.parse(content);
 
     // Check if any @veloxts packages are in dependencies
@@ -347,8 +348,7 @@ export async function detectProjectType(cwd: string = process.cwd()): Promise<Pr
   }
 
   try {
-    const fs = await import('node:fs/promises');
-    const content = await fs.readFile(packageJsonPath, 'utf-8');
+    const content = await readFile(packageJsonPath, 'utf-8');
     const pkg = JSON.parse(content);
 
     // Collect all dependencies
@@ -392,4 +392,14 @@ export async function writeJsonFile(filePath: string, data: unknown): Promise<vo
  */
 export function createDirectory(dirPath: string): void {
   mkdirSync(dirPath, { recursive: true });
+}
+
+/**
+ * Load environment variables from .env file if present
+ */
+export function loadEnvironment(cwd: string = process.cwd()): void {
+  const envPath = path.resolve(cwd, '.env');
+  if (existsSync(envPath)) {
+    loadEnv({ path: envPath });
+  }
 }

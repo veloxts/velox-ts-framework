@@ -16,57 +16,32 @@ const log = createLogger('velox');
  */
 interface PackageInfo {
   name: string;
-  importPath: string;
   pluginExport: string;
-  getDriver: (config: unknown) => string;
+  defaultDriver: string;
+}
+
+/**
+ * Extract the driver name from a package config object.
+ */
+function getDriver(config: unknown, defaultDriver: string): string {
+  if (config !== null && typeof config === 'object' && 'driver' in config) {
+    const driver = (config as { driver: unknown }).driver;
+    if (typeof driver === 'string') return driver;
+  }
+  return defaultDriver;
 }
 
 /**
  * All ecosystem packages that can be registered.
  */
 const PACKAGES: Record<keyof EcosystemPreset, PackageInfo> = {
-  cache: {
-    name: '@veloxts/cache',
-    importPath: '@veloxts/cache',
-    pluginExport: 'cachePlugin',
-    getDriver: (c) => (c as { driver?: string })?.driver ?? 'memory',
-  },
-  queue: {
-    name: '@veloxts/queue',
-    importPath: '@veloxts/queue',
-    pluginExport: 'queuePlugin',
-    getDriver: (c) => (c as { driver?: string })?.driver ?? 'sync',
-  },
-  mail: {
-    name: '@veloxts/mail',
-    importPath: '@veloxts/mail',
-    pluginExport: 'mailPlugin',
-    getDriver: (c) => (c as { driver?: string })?.driver ?? 'log',
-  },
-  storage: {
-    name: '@veloxts/storage',
-    importPath: '@veloxts/storage',
-    pluginExport: 'storagePlugin',
-    getDriver: (c) => (c as { driver?: string })?.driver ?? 'local',
-  },
-  events: {
-    name: '@veloxts/events',
-    importPath: '@veloxts/events',
-    pluginExport: 'eventsPlugin',
-    getDriver: (c) => (c as { driver?: string })?.driver ?? 'ws',
-  },
-  scheduler: {
-    name: '@veloxts/scheduler',
-    importPath: '@veloxts/scheduler',
-    pluginExport: 'schedulerPlugin',
-    getDriver: () => 'cron',
-  },
-  auth: {
-    name: '@veloxts/auth',
-    importPath: '@veloxts/auth',
-    pluginExport: 'authPlugin',
-    getDriver: () => 'jwt',
-  },
+  cache: { name: '@veloxts/cache', pluginExport: 'cachePlugin', defaultDriver: 'memory' },
+  queue: { name: '@veloxts/queue', pluginExport: 'queuePlugin', defaultDriver: 'sync' },
+  mail: { name: '@veloxts/mail', pluginExport: 'mailPlugin', defaultDriver: 'log' },
+  storage: { name: '@veloxts/storage', pluginExport: 'storagePlugin', defaultDriver: 'local' },
+  events: { name: '@veloxts/events', pluginExport: 'eventsPlugin', defaultDriver: 'ws' },
+  scheduler: { name: '@veloxts/scheduler', pluginExport: 'schedulerPlugin', defaultDriver: 'cron' },
+  auth: { name: '@veloxts/auth', pluginExport: 'authPlugin', defaultDriver: 'jwt' },
 };
 
 /**
@@ -115,7 +90,7 @@ export async function registerEcosystemPlugins(
 
     try {
       // Dynamic import to avoid hard dependency
-      const module = await import(info.importPath);
+      const module = await import(info.name);
       const plugin = module[info.pluginExport];
 
       if (!plugin) {
@@ -125,13 +100,11 @@ export async function registerEcosystemPlugins(
       await app.register(plugin(config));
 
       if (!options?.silent) {
-        const driver = info.getDriver(config);
-        log.info(`  ✓ ${info.name} [${driver}]`);
+        log.info(`  ✓ ${info.name} [${getDriver(config, info.defaultDriver)}]`);
       }
     } catch (error) {
       const err = error as Error & { code?: string };
 
-      // Check if it's a module not found error
       if (err.message?.includes('Cannot find module') || err.code === 'ERR_MODULE_NOT_FOUND') {
         throw new Error(
           `Package ${info.name} is not installed. Install it with: pnpm add ${info.name}`
@@ -177,27 +150,22 @@ export async function usePresets(app: VeloxApp, options: PresetOptions = {}): Pr
   const env = options.env ?? detectEnvironment();
   const basePreset = getPreset(env);
 
-  // Merge overrides with base preset using type-safe helper
-  // Partial<T> is assignable to DeepPartial<T> for single-level overrides
-  const merge = <T extends object>(
-    base: T | undefined,
-    override: Partial<T> | undefined
-  ): T | undefined => {
-    if (!base) return undefined;
-    if (!override) return base;
-    // Partial<T> is compatible with DeepPartial<T> at the first level
-    return mergeDeep(base, override as DeepPartial<T>);
-  };
+  // Merge each package's overrides with its base preset
+  const finalPreset: EcosystemPreset = { ...basePreset };
 
-  const finalPreset: EcosystemPreset = {
-    cache: merge(basePreset.cache, options.overrides?.cache),
-    queue: merge(basePreset.queue, options.overrides?.queue),
-    mail: merge(basePreset.mail, options.overrides?.mail),
-    storage: merge(basePreset.storage, options.overrides?.storage),
-    events: merge(basePreset.events, options.overrides?.events),
-    scheduler: merge(basePreset.scheduler, options.overrides?.scheduler),
-    auth: merge(basePreset.auth, options.overrides?.auth),
-  };
+  if (options.overrides) {
+    for (const key of Object.keys(options.overrides) as (keyof EcosystemPreset)[]) {
+      const base = basePreset[key];
+      const override = options.overrides[key];
+      if (base && override) {
+        // Partial<T> is compatible with DeepPartial<T> at the first level
+        (finalPreset as Record<string, unknown>)[key] = mergeDeep(
+          base,
+          override as DeepPartial<typeof base>
+        );
+      }
+    }
+  }
 
   if (!options.silent) {
     log.info(`\nVeloxTS Ecosystem Presets [${env}]`);

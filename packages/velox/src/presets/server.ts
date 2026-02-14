@@ -36,13 +36,9 @@ function isValidLogLevel(value: unknown): value is LogLevel {
  * @param defaultLevel - Fallback level if value is invalid
  */
 function parseLogLevel(value: string | undefined, defaultLevel: LogLevel): LogLevel {
-  if (value === undefined) {
-    return defaultLevel;
-  }
   if (isValidLogLevel(value)) {
     return value;
   }
-  // Invalid log level - return default
   return defaultLevel;
 }
 
@@ -54,14 +50,11 @@ function parseLogLevel(value: string | undefined, defaultLevel: LogLevel): LogLe
  * @param defaultPort - Fallback port if value is invalid
  */
 function parsePort(value: string | undefined, defaultPort: number): number {
-  if (value === undefined) {
-    return defaultPort;
-  }
+  if (value === undefined) return defaultPort;
+
   const parsed = parseInt(value, 10);
-  // Check for NaN and ensure port is in valid range (1-65535)
-  if (Number.isNaN(parsed) || parsed < 1 || parsed > 65535) {
-    return defaultPort;
-  }
+  if (Number.isNaN(parsed) || parsed < 1 || parsed > 65535) return defaultPort;
+
   return parsed;
 }
 

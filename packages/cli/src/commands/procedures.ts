@@ -5,9 +5,6 @@
  * - procedures:list - List all discovered procedures
  */
 
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import {
   type DiscoveryOptions,
   discoverProceduresVerbose,
@@ -15,18 +12,9 @@ import {
   type ProcedureCollection,
 } from '@veloxts/router';
 import { Command } from 'commander';
-import { config as loadEnv } from 'dotenv';
 import pc from 'picocolors';
 
-/**
- * Load environment variables from .env file if present
- */
-function loadEnvironment(): void {
-  const envPath = resolve(process.cwd(), '.env');
-  if (existsSync(envPath)) {
-    loadEnv({ path: envPath });
-  }
-}
+import { loadEnvironment } from '../utils/paths.js';
 
 // ============================================================================
 // Types
