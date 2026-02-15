@@ -6,6 +6,9 @@
  * custom procedures rather than pre-defined CRUD operations.
  */
 
+import type { FieldDefinition } from '../fields/types.js';
+import { FIELD_TYPES } from '../fields/types.js';
+import { fieldToZod } from '../templates/resource.js';
 import type { TemplateContext, TemplateFunction } from '../types.js';
 
 // ============================================================================
@@ -31,6 +34,8 @@ export interface NamespaceOptions {
   withTests: boolean;
   /** Detected relations from Prisma schema */
   relations?: RelationInfo;
+  /** Scalar fields extracted from Prisma model */
+  fields?: FieldDefinition[];
 }
 
 // ============================================================================
@@ -206,8 +211,101 @@ export const ${entity.camel}Procedures = procedures('${entity.plural}', {
  * Generate schema file for the namespace
  */
 export function namespaceSchemaTemplate(ctx: TemplateContext<NamespaceOptions>): string {
-  const { entity } = ctx;
+  const { entity, options } = ctx;
+  const fields = options.fields;
 
+  if (fields && fields.length > 0) {
+    return generateSchemaWithFields(entity, fields);
+  }
+
+  return generateSchemaPlaceholder(entity);
+}
+
+/**
+ * Generate schema with actual fields from Prisma model
+ */
+function generateSchemaWithFields(
+  entity: TemplateContext<NamespaceOptions>['entity'],
+  fields: FieldDefinition[]
+): string {
+  // Base schema: all fields
+  const baseFields = fields.map(fieldToZod).join('\n');
+
+  // Create input: non-auto-generated fields (those without @default or @updatedAt)
+  const createFields = fields.filter((f) => !f.attributes.hasDefault);
+  const createFieldLines = createFields.map((f) => {
+    // In create input, optional fields use .optional() instead of .nullable()
+    return fieldToZodForInput(f);
+  });
+  const createContent = createFieldLines.join('\n');
+
+  return `/**
+ * ${entity.pascal} Schemas
+ *
+ * Zod validation schemas for ${entity.humanReadable} entities.
+ */
+
+import { z } from 'zod';
+
+// ============================================================================
+// Base Schema
+// ============================================================================
+
+/**
+ * ${entity.pascal} entity schema
+ */
+export const ${entity.pascal}Schema = z.object({
+  id: z.string().uuid(),
+${baseFields}
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
+export type ${entity.pascal} = z.infer<typeof ${entity.pascal}Schema>;
+
+// ============================================================================
+// Input Schemas
+// ============================================================================
+
+/**
+ * Create ${entity.pascal} input
+ */
+export const Create${entity.pascal}Input = z.object({
+${createContent}
+});
+
+export type Create${entity.pascal}InputType = z.infer<typeof Create${entity.pascal}Input>;
+
+/**
+ * Update ${entity.pascal} input
+ */
+export const Update${entity.pascal}Input = z.object({
+${createContent}
+}).partial();
+
+export type Update${entity.pascal}InputType = z.infer<typeof Update${entity.pascal}Input>;
+`;
+}
+
+/**
+ * Convert a field to Zod for input schemas (optional → .optional() instead of .nullable())
+ */
+function fieldToZodForInput(field: FieldDefinition): string {
+  // Create a copy with optional mapped to .optional() suffix
+  const typeInfo = FIELD_TYPES.find((t) => t.type === field.type);
+  let zodType = typeInfo?.zodSchema ?? 'z.string()';
+
+  if (field.attributes.optional) {
+    zodType += '.optional()';
+  }
+
+  return `  ${field.name}: ${zodType},`;
+}
+
+/**
+ * Generate schema with TODO placeholders (no Prisma model found)
+ */
+function generateSchemaPlaceholder(entity: TemplateContext<NamespaceOptions>['entity']): string {
   return `/**
  * ${entity.pascal} Schemas
  *

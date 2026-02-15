@@ -11,9 +11,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   analyzePrismaSchema,
+  getModelFields,
   getModelRelations,
+  type PrismaFieldInfo,
   type PrismaModelInfo,
   type PrismaSchemaAnalysis,
+  prismaFieldToFieldDefinition,
 } from '../utils/prisma-schema.js';
 
 // ============================================================================
@@ -340,6 +343,263 @@ model User {
 
       expect(relations.hasOne).toEqual([]);
       expect(relations.hasMany).toEqual([]);
+    });
+  });
+
+  // ============================================================================
+  // isOptional / hasDefault Detection Tests
+  // ============================================================================
+
+  describe('field optionality and defaults', () => {
+    it('should detect optional fields with ?', () => {
+      const filePath = writeSchema(
+        'optional-fields',
+        `
+model Post {
+  id      String  @id @default(uuid())
+  title   String
+  bio     String?
+  age     Int?
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const postInfo = getModel(analysis, 'Post');
+
+      const titleField = postInfo.fields.find((f) => f.name === 'title');
+      expect(titleField?.isOptional).toBe(false);
+
+      const bioField = postInfo.fields.find((f) => f.name === 'bio');
+      expect(bioField?.isOptional).toBe(true);
+
+      const ageField = postInfo.fields.find((f) => f.name === 'age');
+      expect(ageField?.isOptional).toBe(true);
+    });
+
+    it('should detect fields with @default()', () => {
+      const filePath = writeSchema(
+        'default-fields',
+        `
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const userInfo = getModel(analysis, 'User');
+
+      const idField = userInfo.fields.find((f) => f.name === 'id');
+      expect(idField?.hasDefault).toBe(true);
+
+      const nameField = userInfo.fields.find((f) => f.name === 'name');
+      expect(nameField?.hasDefault).toBe(false);
+
+      const activeField = userInfo.fields.find((f) => f.name === 'active');
+      expect(activeField?.hasDefault).toBe(true);
+
+      const createdAtField = userInfo.fields.find((f) => f.name === 'createdAt');
+      expect(createdAtField?.hasDefault).toBe(true);
+
+      const updatedAtField = userInfo.fields.find((f) => f.name === 'updatedAt');
+      expect(updatedAtField?.hasDefault).toBe(true);
+    });
+  });
+
+  // ============================================================================
+  // prismaFieldToFieldDefinition Tests
+  // ============================================================================
+
+  describe('prismaFieldToFieldDefinition', () => {
+    it('should convert a basic scalar field', () => {
+      const field: PrismaFieldInfo = {
+        name: 'email',
+        type: 'String',
+        isRelation: false,
+        isArray: false,
+        relatedModel: undefined,
+        isOptional: false,
+        hasDefault: false,
+      };
+
+      const result = prismaFieldToFieldDefinition(field);
+      expect(result).toEqual({
+        name: 'email',
+        type: 'string',
+        attributes: { optional: false, unique: false, hasDefault: false },
+      });
+    });
+
+    it('should map optional and hasDefault correctly', () => {
+      const field: PrismaFieldInfo = {
+        name: 'bio',
+        type: 'String',
+        isRelation: false,
+        isArray: false,
+        relatedModel: undefined,
+        isOptional: true,
+        hasDefault: true,
+      };
+
+      const result = prismaFieldToFieldDefinition(field);
+      expect(result).not.toBeNull();
+      expect(result?.attributes.optional).toBe(true);
+      expect(result?.attributes.hasDefault).toBe(true);
+    });
+
+    it('should return null for relation fields', () => {
+      const field: PrismaFieldInfo = {
+        name: 'author',
+        type: 'User',
+        isRelation: true,
+        isArray: false,
+        relatedModel: 'User',
+        isOptional: false,
+        hasDefault: false,
+      };
+
+      expect(prismaFieldToFieldDefinition(field)).toBeNull();
+    });
+
+    it('should return null for reserved field names', () => {
+      for (const reserved of ['id', 'createdAt', 'updatedAt', 'deletedAt']) {
+        const field: PrismaFieldInfo = {
+          name: reserved,
+          type: 'String',
+          isRelation: false,
+          isArray: false,
+          relatedModel: undefined,
+          isOptional: false,
+          hasDefault: true,
+        };
+
+        expect(prismaFieldToFieldDefinition(field)).toBeNull();
+      }
+    });
+
+    it('should map Prisma types to FieldType correctly', () => {
+      const cases: Array<{ prismaType: string; expectedFieldType: string }> = [
+        { prismaType: 'String', expectedFieldType: 'string' },
+        { prismaType: 'Int', expectedFieldType: 'int' },
+        { prismaType: 'Float', expectedFieldType: 'float' },
+        { prismaType: 'Decimal', expectedFieldType: 'float' },
+        { prismaType: 'BigInt', expectedFieldType: 'float' },
+        { prismaType: 'Boolean', expectedFieldType: 'boolean' },
+        { prismaType: 'DateTime', expectedFieldType: 'datetime' },
+        { prismaType: 'Json', expectedFieldType: 'json' },
+        { prismaType: 'UnknownType', expectedFieldType: 'string' },
+      ];
+
+      for (const { prismaType, expectedFieldType } of cases) {
+        const field: PrismaFieldInfo = {
+          name: 'testField',
+          type: prismaType,
+          isRelation: false,
+          isArray: false,
+          relatedModel: undefined,
+          isOptional: false,
+          hasDefault: false,
+        };
+
+        const result = prismaFieldToFieldDefinition(field);
+        expect(result?.type).toBe(expectedFieldType);
+      }
+    });
+  });
+
+  // ============================================================================
+  // getModelFields Tests
+  // ============================================================================
+
+  describe('getModelFields', () => {
+    it('should return only scalar non-reserved fields', () => {
+      const filePath = writeSchema(
+        'model-fields',
+        `
+model Post {
+  id        String   @id @default(uuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User
+}
+
+model User {
+  id   String @id @default(uuid())
+  name String
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const fields = getModelFields(analysis, 'Post');
+
+      // Should include: title, content, published, authorId
+      // Should exclude: id, createdAt, updatedAt (reserved), author (relation)
+      expect(fields).toHaveLength(4);
+
+      const names = fields.map((f) => f.name);
+      expect(names).toContain('title');
+      expect(names).toContain('content');
+      expect(names).toContain('published');
+      expect(names).toContain('authorId');
+
+      expect(names).not.toContain('id');
+      expect(names).not.toContain('createdAt');
+      expect(names).not.toContain('updatedAt');
+      expect(names).not.toContain('author');
+    });
+
+    it('should preserve optionality and default info', () => {
+      const filePath = writeSchema(
+        'model-fields-attrs',
+        `
+model Article {
+  id        String   @id @default(uuid())
+  title     String
+  body      String?
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const fields = getModelFields(analysis, 'Article');
+
+      const titleField = fields.find((f) => f.name === 'title');
+      expect(titleField?.attributes.optional).toBe(false);
+      expect(titleField?.attributes.hasDefault).toBe(false);
+
+      const bodyField = fields.find((f) => f.name === 'body');
+      expect(bodyField?.attributes.optional).toBe(true);
+
+      const viewsField = fields.find((f) => f.name === 'views');
+      expect(viewsField?.attributes.hasDefault).toBe(true);
+      expect(viewsField?.type).toBe('int');
+    });
+
+    it('should return empty array for non-existent model', () => {
+      const filePath = writeSchema(
+        'model-fields-missing',
+        `
+model User {
+  id String @id @default(uuid())
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      expect(getModelFields(analysis, 'NonExistent')).toEqual([]);
     });
   });
 });

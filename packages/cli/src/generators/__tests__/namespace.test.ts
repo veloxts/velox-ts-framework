@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import type { FieldDefinition } from '../fields/types.js';
 import { createNamespaceGenerator } from '../generators/namespace.js';
 import type { GeneratorConfig, ProjectContext } from '../types.js';
 
@@ -388,6 +389,109 @@ describe('NamespaceGenerator', () => {
       const testFile = output.files.find((f) => f.path.includes('__tests__'));
 
       expect(testFile?.path).toBe('src/procedures/__tests__/widgets.test.ts');
+    });
+
+    it('should render actual Zod fields when fields option is provided', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'title',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+        {
+          name: 'content',
+          type: 'text',
+          attributes: { optional: true, unique: false, hasDefault: false },
+        },
+        {
+          name: 'published',
+          type: 'boolean',
+          attributes: { optional: false, unique: false, hasDefault: true },
+        },
+        {
+          name: 'authorId',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'post',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      // Should NOT have TODO placeholder
+      expect(schemaFile?.content).not.toContain('// TODO');
+
+      // Base schema should contain all fields with Zod types
+      expect(schemaFile?.content).toContain('title: z.string().min(1).max(255),');
+      expect(schemaFile?.content).toContain('content: z.string().nullable(),');
+      expect(schemaFile?.content).toContain('published: z.boolean()');
+      expect(schemaFile?.content).toContain('authorId: z.string().min(1).max(255),');
+    });
+
+    it('should omit auto-generated fields from CreateInput', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'title',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+        {
+          name: 'views',
+          type: 'int',
+          attributes: { optional: false, unique: false, hasDefault: true },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'article',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      // Base schema should have both fields
+      expect(schemaFile?.content).toContain('title:');
+      expect(schemaFile?.content).toContain('views:');
+
+      // Extract just the CreateArticleInput section
+      const createSection = schemaFile?.content?.split('CreateArticleInput')[1];
+      // 'views' has a default, so it should NOT appear in CreateInput
+      expect(createSection).not.toContain('views:');
+      // 'title' should appear in CreateInput
+      expect(createSection).toContain('title:');
+    });
+
+    it('should fall back to TODO placeholder when no fields provided', async () => {
+      const config: GeneratorConfig = {
+        entityName: 'event',
+        options: { withExample: false, withTests: true, skipRegistration: true },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('// TODO: Add Event fields');
     });
   });
 });

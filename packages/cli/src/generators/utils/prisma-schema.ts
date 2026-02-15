@@ -7,6 +7,8 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 
+import type { FieldDefinition } from '../fields/types.js';
+import { prismaTypeToFieldType, RESERVED_FIELD_NAMES } from '../fields/types.js';
 import { GeneratorError, GeneratorErrorCode } from '../types.js';
 
 // ============================================================================
@@ -27,6 +29,10 @@ export interface PrismaFieldInfo {
   readonly isArray: boolean;
   /** The related model name, if this is a relation field */
   readonly relatedModel: string | undefined;
+  /** Whether this field has a `?` modifier (nullable/optional) */
+  readonly isOptional: boolean;
+  /** Whether this field has `@default(...)` or `@updatedAt` */
+  readonly hasDefault: boolean;
 }
 
 /**
@@ -296,13 +302,15 @@ function parseModelFields(body: string, modelNames: Set<string>): PrismaFieldInf
     }
 
     // Parse field: name Type[?][] [@annotations...]
-    // Match: fieldName  TypeName  optional modifiers
-    const fieldMatch = trimmed.match(/^(\w+)\s+(\w+)(\[\])?\??/);
+    // Match: fieldName  TypeName  optional array and optional modifiers
+    const fieldMatch = trimmed.match(/^(\w+)\s+(\w+)(\[\])?(\?)?/);
     if (!fieldMatch) continue;
 
     const name = fieldMatch[1];
     const baseType = fieldMatch[2];
     const isArray = fieldMatch[3] === '[]';
+    const isOptional = fieldMatch[4] === '?';
+    const hasDefault = /@default\(/.test(trimmed) || /@updatedAt/.test(trimmed);
 
     // Check if this is a relation field (type matches a known model)
     const isRelation = modelNames.has(baseType);
@@ -314,6 +322,8 @@ function parseModelFields(body: string, modelNames: Set<string>): PrismaFieldInf
         isRelation: false,
         isArray: false,
         relatedModel: undefined,
+        isOptional,
+        hasDefault,
       });
       continue;
     }
@@ -332,6 +342,8 @@ function parseModelFields(body: string, modelNames: Set<string>): PrismaFieldInf
       isRelation: true,
       isArray,
       relatedModel: baseType,
+      isOptional,
+      hasDefault,
     });
   }
 
@@ -496,6 +508,57 @@ export function validateNoConflicts(
       );
     }
   }
+}
+
+// ============================================================================
+// Field Conversion
+// ============================================================================
+
+/**
+ * Convert a PrismaFieldInfo to a FieldDefinition for code generation
+ *
+ * Returns null for fields that should be skipped (relations, reserved names).
+ */
+export function prismaFieldToFieldDefinition(field: PrismaFieldInfo): FieldDefinition | null {
+  // Skip relation fields
+  if (field.isRelation) return null;
+
+  // Skip reserved fields (id, createdAt, updatedAt, deletedAt)
+  if (RESERVED_FIELD_NAMES.includes(field.name)) return null;
+
+  return {
+    name: field.name,
+    type: prismaTypeToFieldType(field.type),
+    attributes: {
+      optional: field.isOptional,
+      unique: false, // Not tracked in PrismaFieldInfo
+      hasDefault: field.hasDefault,
+    },
+  };
+}
+
+/**
+ * Get scalar, non-auto-generated fields from a Prisma model as FieldDefinitions
+ *
+ * Filters out relation fields, reserved fields (id, createdAt, updatedAt, deletedAt),
+ * and fields with @id annotation.
+ */
+export function getModelFields(
+  analysis: PrismaSchemaAnalysis,
+  modelName: string
+): FieldDefinition[] {
+  const modelInfo = analysis.modelDetails.get(modelName);
+  if (!modelInfo) return [];
+
+  const fields: FieldDefinition[] = [];
+  for (const field of modelInfo.fields) {
+    const converted = prismaFieldToFieldDefinition(field);
+    if (converted) {
+      fields.push(converted);
+    }
+  }
+
+  return fields;
 }
 
 // ============================================================================
