@@ -409,6 +409,81 @@ model User {
       const updatedAtField = userInfo.fields.find((f) => f.name === 'updatedAt');
       expect(updatedAtField?.hasDefault).toBe(true);
     });
+
+    it('should detect field with both ? and @default()', () => {
+      const filePath = writeSchema(
+        'optional-with-default',
+        `
+model Item {
+  id    String  @id @default(uuid())
+  label String? @default("untitled")
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const itemInfo = getModel(analysis, 'Item');
+
+      const labelField = itemInfo.fields.find((f) => f.name === 'label');
+      expect(labelField?.isOptional).toBe(true);
+      expect(labelField?.hasDefault).toBe(true);
+    });
+
+    it('should detect @default(autoincrement()) and @default(cuid())', () => {
+      const filePath = writeSchema(
+        'auto-defaults',
+        `
+model Counter {
+  id    Int    @id @default(autoincrement())
+  code  String @default(cuid())
+  name  String
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const info = getModel(analysis, 'Counter');
+
+      const idField = info.fields.find((f) => f.name === 'id');
+      expect(idField?.hasDefault).toBe(true);
+
+      const codeField = info.fields.find((f) => f.name === 'code');
+      expect(codeField?.hasDefault).toBe(true);
+
+      const nameField = info.fields.find((f) => f.name === 'name');
+      expect(nameField?.hasDefault).toBe(false);
+    });
+
+    it('should parse correct types for all Prisma scalar types', () => {
+      const filePath = writeSchema(
+        'all-scalar-types',
+        `
+model AllTypes {
+  id      String   @id @default(uuid())
+  name    String
+  count   Int
+  price   Float
+  amount  Decimal
+  bigNum  BigInt
+  active  Boolean
+  when    DateTime
+  data    Json
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const info = getModel(analysis, 'AllTypes');
+
+      expect(info.fields.find((f) => f.name === 'name')?.type).toBe('String');
+      expect(info.fields.find((f) => f.name === 'count')?.type).toBe('Int');
+      expect(info.fields.find((f) => f.name === 'price')?.type).toBe('Float');
+      expect(info.fields.find((f) => f.name === 'amount')?.type).toBe('Decimal');
+      expect(info.fields.find((f) => f.name === 'bigNum')?.type).toBe('BigInt');
+      expect(info.fields.find((f) => f.name === 'active')?.type).toBe('Boolean');
+      expect(info.fields.find((f) => f.name === 'when')?.type).toBe('DateTime');
+      expect(info.fields.find((f) => f.name === 'data')?.type).toBe('Json');
+    });
   });
 
   // ============================================================================
@@ -466,6 +541,20 @@ model User {
       expect(prismaFieldToFieldDefinition(field)).toBeNull();
     });
 
+    it('should return null for array relation fields', () => {
+      const field: PrismaFieldInfo = {
+        name: 'posts',
+        type: 'Post',
+        isRelation: true,
+        isArray: true,
+        relatedModel: 'Post',
+        isOptional: false,
+        hasDefault: false,
+      };
+
+      expect(prismaFieldToFieldDefinition(field)).toBeNull();
+    });
+
     it('should return null for reserved field names', () => {
       for (const reserved of ['id', 'createdAt', 'updatedAt', 'deletedAt']) {
         const field: PrismaFieldInfo = {
@@ -509,6 +598,21 @@ model User {
         const result = prismaFieldToFieldDefinition(field);
         expect(result?.type).toBe(expectedFieldType);
       }
+    });
+
+    it('should set unique to false (not tracked in PrismaFieldInfo)', () => {
+      const field: PrismaFieldInfo = {
+        name: 'email',
+        type: 'String',
+        isRelation: false,
+        isArray: false,
+        relatedModel: undefined,
+        isOptional: false,
+        hasDefault: false,
+      };
+
+      const result = prismaFieldToFieldDefinition(field);
+      expect(result?.attributes.unique).toBe(false);
     });
   });
 
@@ -600,6 +704,106 @@ model User {
 
       const analysis = analyzePrismaSchema(filePath);
       expect(getModelFields(analysis, 'NonExistent')).toEqual([]);
+    });
+
+    it('should return empty array for model with only reserved fields', () => {
+      const filePath = writeSchema(
+        'only-reserved',
+        `
+model Minimal {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      expect(getModelFields(analysis, 'Minimal')).toEqual([]);
+    });
+
+    it('should filter out deletedAt as reserved', () => {
+      const filePath = writeSchema(
+        'with-deleted-at',
+        `
+model SoftDelete {
+  id        String    @id @default(uuid())
+  name      String
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const fields = getModelFields(analysis, 'SoftDelete');
+
+      expect(fields).toHaveLength(1);
+      expect(fields[0].name).toBe('name');
+    });
+
+    it('should correctly map field types to FieldDefinition types', () => {
+      const filePath = writeSchema(
+        'type-mapping',
+        `
+model TypeTest {
+  id      String   @id @default(uuid())
+  name    String
+  count   Int
+  price   Float
+  active  Boolean
+  when    DateTime
+  data    Json
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const fields = getModelFields(analysis, 'TypeTest');
+
+      expect(fields.find((f) => f.name === 'name')?.type).toBe('string');
+      expect(fields.find((f) => f.name === 'count')?.type).toBe('int');
+      expect(fields.find((f) => f.name === 'price')?.type).toBe('float');
+      expect(fields.find((f) => f.name === 'active')?.type).toBe('boolean');
+      expect(fields.find((f) => f.name === 'when')?.type).toBe('datetime');
+      expect(fields.find((f) => f.name === 'data')?.type).toBe('json');
+    });
+
+    it('should exclude relation fields from results', () => {
+      const filePath = writeSchema(
+        'fields-with-relations',
+        `
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
+  author    User
+  authorId  String
+  post      Post
+  postId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id String @id @default(uuid())
+}
+
+model Post {
+  id String @id @default(uuid())
+}
+`
+      );
+
+      const analysis = analyzePrismaSchema(filePath);
+      const fields = getModelFields(analysis, 'Comment');
+
+      const names = fields.map((f) => f.name);
+      expect(names).toContain('text');
+      expect(names).toContain('authorId');
+      expect(names).toContain('postId');
+      expect(names).not.toContain('author');
+      expect(names).not.toContain('post');
     });
   });
 });
