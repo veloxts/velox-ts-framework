@@ -1,5 +1,14 @@
 # @veloxts/cli
 
+## 0.7.2
+
+### Patch Changes
+
+- fix(cli): replace require() with readFileSync in MCP tests
+- simplify code for clarity and maintainability
+- Updated dependencies
+  - @veloxts/core@0.7.2
+
 ## 0.7.1
 
 ### Patch Changes

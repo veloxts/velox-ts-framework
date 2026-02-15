@@ -1,5 +1,13 @@
 # @veloxts/core
 
+## 0.7.2
+
+### Patch Changes
+
+- fix(core): type error handler generic as Error to fix IDE null warning
+- chore(core): mark `velox` as deprecated in favor of `veloxApp`
+- simplify code for clarity and maintainability
+
 ## 0.7.1
 
 ### Patch Changes
