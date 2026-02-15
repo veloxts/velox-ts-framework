@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.7.2
+
+### Patch Changes
+
+- simplify code for clarity and maintainability
+
 ## 0.7.1
 
 ### Patch Changes

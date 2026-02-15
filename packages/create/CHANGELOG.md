@@ -1,5 +1,13 @@
 # create-velox-app
 
+## 0.7.2
+
+### Patch Changes
+
+- simplify code for clarity and maintainability
+- Updated dependencies
+  - @veloxts/core@0.7.2
+
 ## 0.7.1
 
 ### Patch Changes
