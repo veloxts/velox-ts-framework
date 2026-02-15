@@ -11,6 +11,7 @@ import {
   getFieldTypeInfo,
   isReservedFieldName,
   parseEnumValues,
+  prismaTypeToFieldType,
   RESERVED_FIELD_NAMES,
   validateEnumName,
   validateEnumValues,
@@ -406,5 +407,55 @@ describe('FIELD_TYPES', () => {
     expect(types).toContain('datetime');
     expect(types).toContain('json');
     expect(types).toContain('enum');
+  });
+});
+
+// ============================================================================
+// prismaTypeToFieldType Tests
+// ============================================================================
+
+describe('prismaTypeToFieldType', () => {
+  it('maps String to string', () => {
+    expect(prismaTypeToFieldType('String')).toBe('string');
+  });
+
+  it('maps Int to int', () => {
+    expect(prismaTypeToFieldType('Int')).toBe('int');
+  });
+
+  it('maps Float to float', () => {
+    expect(prismaTypeToFieldType('Float')).toBe('float');
+  });
+
+  it('maps Decimal to float', () => {
+    expect(prismaTypeToFieldType('Decimal')).toBe('float');
+  });
+
+  it('maps BigInt to float', () => {
+    expect(prismaTypeToFieldType('BigInt')).toBe('float');
+  });
+
+  it('maps Boolean to boolean', () => {
+    expect(prismaTypeToFieldType('Boolean')).toBe('boolean');
+  });
+
+  it('maps DateTime to datetime', () => {
+    expect(prismaTypeToFieldType('DateTime')).toBe('datetime');
+  });
+
+  it('maps Json to json', () => {
+    expect(prismaTypeToFieldType('Json')).toBe('json');
+  });
+
+  it('maps unknown types to string as fallback', () => {
+    expect(prismaTypeToFieldType('Bytes')).toBe('string');
+    expect(prismaTypeToFieldType('Unsupported')).toBe('string');
+    expect(prismaTypeToFieldType('')).toBe('string');
+  });
+
+  it('is case-sensitive (lowercase does not match)', () => {
+    expect(prismaTypeToFieldType('string')).toBe('string');
+    expect(prismaTypeToFieldType('int')).toBe('string');
+    expect(prismaTypeToFieldType('boolean')).toBe('string');
   });
 });

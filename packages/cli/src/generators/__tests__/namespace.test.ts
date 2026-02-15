@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import type { FieldDefinition } from '../fields/types.js';
 import { createNamespaceGenerator } from '../generators/namespace.js';
 import type { GeneratorConfig, ProjectContext } from '../types.js';
 
@@ -388,6 +389,436 @@ describe('NamespaceGenerator', () => {
       const testFile = output.files.find((f) => f.path.includes('__tests__'));
 
       expect(testFile?.path).toBe('src/procedures/__tests__/widgets.test.ts');
+    });
+
+    it('should render actual Zod fields when fields option is provided', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'title',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+        {
+          name: 'content',
+          type: 'text',
+          attributes: { optional: true, unique: false, hasDefault: false },
+        },
+        {
+          name: 'published',
+          type: 'boolean',
+          attributes: { optional: false, unique: false, hasDefault: true },
+        },
+        {
+          name: 'authorId',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'post',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      // Should NOT have TODO placeholder
+      expect(schemaFile?.content).not.toContain('// TODO');
+
+      // Base schema should contain all fields with Zod types
+      expect(schemaFile?.content).toContain('title: z.string().min(1).max(255),');
+      expect(schemaFile?.content).toContain('content: z.string().nullable(),');
+      expect(schemaFile?.content).toContain('published: z.boolean()');
+      expect(schemaFile?.content).toContain('authorId: z.string().min(1).max(255),');
+    });
+
+    it('should omit auto-generated fields from CreateInput', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'title',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+        {
+          name: 'views',
+          type: 'int',
+          attributes: { optional: false, unique: false, hasDefault: true },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'article',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      // Base schema should have both fields
+      expect(schemaFile?.content).toContain('title:');
+      expect(schemaFile?.content).toContain('views:');
+
+      // Extract just the CreateArticleInput section
+      const createSection = schemaFile?.content?.split('CreateArticleInput')[1];
+      // 'views' has a default, so it should NOT appear in CreateInput
+      expect(createSection).not.toContain('views:');
+      // 'title' should appear in CreateInput
+      expect(createSection).toContain('title:');
+    });
+
+    it('should fall back to TODO placeholder when no fields provided', async () => {
+      const config: GeneratorConfig = {
+        entityName: 'event',
+        options: { withExample: false, withTests: true, skipRegistration: true },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('// TODO: Add Event fields');
+    });
+
+    it('should fall back to TODO placeholder when fields array is empty', async () => {
+      const config: GeneratorConfig = {
+        entityName: 'event',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields: [] },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('// TODO: Add Event fields');
+    });
+
+    it('should render int field as z.number().int()', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'count',
+          type: 'int',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'metric',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('count: z.number().int()');
+    });
+
+    it('should render datetime field as z.date()', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'scheduledAt',
+          type: 'datetime',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'task',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('scheduledAt: z.date()');
+    });
+
+    it('should render json field as z.record(z.string(), z.unknown())', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'metadata',
+          type: 'json',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'config',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('metadata: z.record(z.string(), z.unknown())');
+    });
+
+    it('should render boolean field as z.boolean()', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'active',
+          type: 'boolean',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'feature',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('active: z.boolean()');
+    });
+
+    it('should render float field as z.number()', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'price',
+          type: 'float',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'product',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('price: z.number(),');
+    });
+
+    it('should use .optional() for optional fields in CreateInput', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'title',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+        {
+          name: 'description',
+          type: 'string',
+          attributes: { optional: true, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'note',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      // Base schema uses .nullable() for optional fields (via fieldToZod)
+      expect(schemaFile?.content).toContain('description: z.string().min(1).max(255).nullable(),');
+
+      // CreateInput uses .optional() instead of .nullable()
+      const createSection = schemaFile?.content?.split('CreateNoteInput')[1];
+      expect(createSection).toContain('description: z.string().min(1).max(255).optional(),');
+      // Required fields in CreateInput should NOT have .optional()
+      expect(createSection).toContain('title: z.string().min(1).max(255),');
+    });
+
+    it('should have .partial() on UpdateInput', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'name',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'label',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('}).partial();');
+    });
+
+    it('should produce empty CreateInput when all fields have defaults', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'views',
+          type: 'int',
+          attributes: { optional: false, unique: false, hasDefault: true },
+        },
+        {
+          name: 'active',
+          type: 'boolean',
+          attributes: { optional: false, unique: false, hasDefault: true },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'counter',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      // Base schema should have both fields
+      expect(schemaFile?.content).toContain('views:');
+      expect(schemaFile?.content).toContain('active:');
+
+      // CreateInput should be empty (both fields have defaults)
+      const createSection = schemaFile?.content
+        ?.split('CreateCounterInput = z.object({')[1]
+        ?.split('})')[0];
+      expect(createSection?.trim()).toBe('');
+    });
+
+    it('should NOT have TODO placeholders when fields are provided', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'name',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'item',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).not.toContain('// TODO');
+    });
+
+    it('should include id, createdAt, updatedAt in base schema even with custom fields', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'name',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'widget',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain('id: z.string().uuid(),');
+      expect(schemaFile?.content).toContain('createdAt: z.coerce.date(),');
+      expect(schemaFile?.content).toContain('updatedAt: z.coerce.date(),');
+    });
+
+    it('should generate correct type exports with fields', async () => {
+      const fields: FieldDefinition[] = [
+        {
+          name: 'title',
+          type: 'string',
+          attributes: { optional: false, unique: false, hasDefault: false },
+        },
+      ];
+
+      const config: GeneratorConfig = {
+        entityName: 'document',
+        options: { withExample: false, withTests: true, skipRegistration: true, fields },
+        cwd: '/test',
+        project: mockProject,
+        dryRun: true,
+        force: false,
+        conflictStrategy: 'prompt',
+      };
+
+      const output = await generator.generate(config);
+      const schemaFile = output.files.find((f) => f.path.includes('schemas'));
+
+      expect(schemaFile?.content).toContain(
+        'export type Document = z.infer<typeof DocumentSchema>;'
+      );
+      expect(schemaFile?.content).toContain(
+        'export type CreateDocumentInputType = z.infer<typeof CreateDocumentInput>;'
+      );
+      expect(schemaFile?.content).toContain(
+        'export type UpdateDocumentInputType = z.infer<typeof UpdateDocumentInput>;'
+      );
     });
   });
 });

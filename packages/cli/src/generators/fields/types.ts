@@ -234,6 +234,37 @@ export function validateEnumValues(values: string[]): string | undefined {
   return undefined;
 }
 
+// ============================================================================
+// Prisma Type Mapping
+// ============================================================================
+
+/**
+ * Map a Prisma schema type string to a FieldType
+ *
+ * Used when reading fields from an existing Prisma model to convert them
+ * into FieldDefinition objects for code generation.
+ */
+export function prismaTypeToFieldType(prismaType: string): FieldType {
+  switch (prismaType) {
+    case 'String':
+      return 'string';
+    case 'Int':
+      return 'int';
+    case 'Float':
+    case 'Decimal':
+    case 'BigInt':
+      return 'float';
+    case 'Boolean':
+      return 'boolean';
+    case 'DateTime':
+      return 'datetime';
+    case 'Json':
+      return 'json';
+    default:
+      return 'string';
+  }
+}
+
 /**
  * Parse comma-separated enum values
  */

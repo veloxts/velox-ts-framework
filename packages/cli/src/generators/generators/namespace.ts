@@ -34,6 +34,7 @@ import { deriveEntityNames } from '../utils/naming.js';
 import {
   analyzePrismaSchema,
   findPrismaSchema,
+  getModelFields,
   getModelRelations,
   hasModel,
 } from '../utils/prisma-schema.js';
@@ -144,9 +145,15 @@ Examples:
               hasMany: [...modelRelations.hasMany],
             };
           }
+
+          // Extract scalar fields for Zod schema generation
+          const scalarFields = getModelFields(schemaAnalysis, entity.pascal);
+          if (scalarFields.length > 0) {
+            enrichedOptions.fields = scalarFields;
+          }
         }
       } catch {
-        // Schema parsing failed — proceed without relations
+        // Schema parsing failed — proceed without relations or fields
       }
     }
 
