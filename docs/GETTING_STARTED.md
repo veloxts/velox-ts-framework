@@ -333,7 +333,7 @@ export const userProcedures = procedures('users', {
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-      return resource(user, UserSchema).forAnonymous();
+      return resource(user, UserSchema.public);
     }),
 
   // Authenticated - returns { id, name, email }
@@ -342,7 +342,7 @@ export const userProcedures = procedures('users', {
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-      return resource(user, UserSchema).forAuthenticated();
+      return resource(user, UserSchema.authenticated);
     }),
 
   // Admin - returns all fields
@@ -351,7 +351,7 @@ export const userProcedures = procedures('users', {
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-      return resource(user, UserSchema).forAdmin();
+      return resource(user, UserSchema.admin);
     }),
 });
 ```

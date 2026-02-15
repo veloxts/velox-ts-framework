@@ -131,7 +131,7 @@ export const userProcedures = procedures('users', {
   getPublicProfile: procedure()
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      return resource(user, UserSchema).forAnonymous();
+      return resource(user, UserSchema.public);
     }),
 
   // Authenticated: returns { id, name, email }
@@ -139,7 +139,7 @@ export const userProcedures = procedures('users', {
     .guard(authenticated)
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      return resource(user, UserSchema).forAuthenticated();
+      return resource(user, UserSchema.authenticated);
     }),
 });
 ```

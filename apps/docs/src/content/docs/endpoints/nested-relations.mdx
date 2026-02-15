@@ -83,16 +83,7 @@ const user = await ctx.db.user.findUnique({
   where: { id },
   include: { organization: true, posts: true },
 });
-return resource(user, UserSchema).forAuthenticated();
-```
-
-## Tagged Schema Views with Relations
-
-Tagged schema views (`.anonymous`, `.authenticated`, `.admin`) work with nested relations:
-
-```typescript
 return resource(user, UserSchema.authenticated);
-// Equivalent to resource(user, UserSchema).forAuthenticated()
 ```
 
 ## Null and Empty Handling
@@ -102,7 +93,7 @@ return resource(user, UserSchema.authenticated);
 
 ```typescript
 const userWithoutOrg = { id: '1', name: 'Jane', email: 'jane@example.com' };
-const result = resource(userWithoutOrg, UserSchema).forAuthenticated();
+const result = resource(userWithoutOrg, UserSchema.authenticated);
 // result.organization → null
 // result.posts → []
 ```

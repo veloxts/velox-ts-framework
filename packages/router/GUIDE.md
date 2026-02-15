@@ -503,7 +503,7 @@ export const userProcedures = procedures('users', {
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-      return resource(user, UserSchema).forAnonymous();
+      return resource(user, UserSchema.public);
     }),
 
   // Conditional projection based on ownership
@@ -514,9 +514,9 @@ export const userProcedures = procedures('users', {
       const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
       // Show more fields if viewing own profile
       if (user.id === ctx.user?.id) {
-        return resource(user, UserSchema).forAuthenticated();
+        return resource(user, UserSchema.authenticated);
       }
-      return resource(user, UserSchema).forAnonymous();
+      return resource(user, UserSchema.public);
     }),
 
   // Admin with explicit projection
@@ -525,7 +525,7 @@ export const userProcedures = procedures('users', {
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-      return resource(user, UserSchema).forAdmin();
+      return resource(user, UserSchema.admin);
     }),
 });
 ```
@@ -554,7 +554,7 @@ const listUsersManual = procedure()
   .guard(authenticated)
   .query(async ({ ctx }) => {
     const users = await ctx.db.user.findMany({ take: 50 });
-    return resourceCollection(users, UserSchema).forAuthenticated();
+    return resourceCollection(users, UserSchema.authenticated);
   });
 ```
 
@@ -577,9 +577,9 @@ const getUser = procedure()
 
 | Method | Fields Included | Use Case |
 |--------|-----------------|----------|
-| `.forAnonymous()` | `public` only | Public APIs, unauthenticated users |
-| `.forAuthenticated()` | `public` + `authenticated` | Logged-in users |
-| `.forAdmin()` | All fields | Admin dashboards, internal tools |
+| `UserSchema.public` | `public` only | Public APIs, unauthenticated users |
+| `UserSchema.authenticated` | `public` + `authenticated` | Logged-in users |
+| `UserSchema.admin` | All fields | Admin dashboards, internal tools |
 | `.for(ctx)` | Auto-detected from context | Dynamic access control |
 
 ### Type Safety
@@ -596,14 +596,14 @@ const getProfile = procedure()
   });
 // Return type: { id: string; name: string; email: string; createdAt: Date }
 
-// Manual projection - type inferred from method
-const result = resource(user, UserSchema).forAnonymous();
+// Tagged view projection - type inferred from schema view
+const result = resource(user, UserSchema.public);
 // Type: { id: string; name: string }
 
-const authResult = resource(user, UserSchema).forAuthenticated();
+const authResult = resource(user, UserSchema.authenticated);
 // Type: { id: string; name: string; email: string; createdAt: Date }
 
-const adminResult = resource(user, UserSchema).forAdmin();
+const adminResult = resource(user, UserSchema.admin);
 // Type: { id: string; name: string; email: string; createdAt: Date; internalNotes: string | null; lastLoginIp: string | null }
 ```
 
@@ -612,8 +612,8 @@ const adminResult = resource(user, UserSchema).forAdmin();
 | Scenario | Approach |
 |----------|----------|
 | Guard determines access level | **Automatic** (`.guardNarrow().resource()`) |
-| Public endpoints (no guard) | Manual (`.forAnonymous()`) |
-| Conditional/dynamic projection | Manual (`.forX()` in handler) |
+| Public endpoints (no guard) | Tagged view (`UserSchema.public`) |
+| Conditional/dynamic projection | Tagged view or `.for(ctx)` in handler |
 | Simple, declarative code | **Automatic** |
 | Complex access logic | Manual
 

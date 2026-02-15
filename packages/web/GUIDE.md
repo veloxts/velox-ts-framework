@@ -78,7 +78,7 @@ export const getPublicUser = action()
   .input(z.object({ id: z.string() }))
   .handler(async (input) => {
     const user = await db.user.findUniqueOrThrow({ where: { id: input.id } });
-    return resource(user, UserSchema).forAnonymous();
+    return resource(user, UserSchema.public);
   });
 
 // Protected action - returns { id, name, email }
@@ -87,7 +87,7 @@ export const getUser = action()
   .protected()
   .handler(async (input, ctx) => {
     const user = await db.user.findUniqueOrThrow({ where: { id: input.id } });
-    return resource(user, UserSchema).forAuthenticated();
+    return resource(user, UserSchema.authenticated);
   });
 ```
 
