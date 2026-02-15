@@ -537,8 +537,8 @@ export const userProcedures = procedures('users', {
 
 **Projection approaches (choose one per endpoint):**
 - `resource(data, UserSchema.public)` — Tagged view (recommended): explicit, type-safe, one-liner
-- `resource(data, UserSchema).forAnonymous()` / `.forAuthenticated()` / `.forAdmin()` — Manual projection for runtime branching (e.g., ownership checks)
-- `resource(data, UserSchema).for(ctx)` — Auto-detects level from request context
+- `resource(data, UserSchema.public)` / `.authenticated` / `.admin` — Tagged view for explicit projection
+- `resource(data, UserSchema).for(ctx)` — Auto-detects level from request context (runtime branching)
 - `.guardNarrow(authenticatedNarrow)` + `.resource(UserSchema)` — Automatic projection from guard's `accessLevel`
 - `resourceCollection(items, UserSchema.public)` — Tagged view for arrays
 

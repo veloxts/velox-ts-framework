@@ -163,9 +163,9 @@ getProfile: procedure()
   }),
 ```
 
-### Manual Projection
+### Conditional Projection
 
-For runtime branching that guards can't express — like showing more fields when a user views their own profile — use the `.forX()` methods on a Resource instance:
+For runtime branching that guards can't express — like showing more fields when a user views their own profile — use tagged views with conditional logic:
 
 ```typescript
 import { resource } from '@veloxts/router';
@@ -177,14 +177,13 @@ getOwnProfile: procedure()
     const user = await ctx.db.user.findUnique({ where: { id: input.id } });
     // Show more fields if viewing own profile
     if (user.id === ctx.user?.id) {
-      return resource(user, UserSchema).forAuthenticated();
+      return resource(user, UserSchema.authenticated);
     }
-    return resource(user, UserSchema).forAnonymous();
+    return resource(user, UserSchema.public);
   }),
 ```
 
-**When to use manual projection:**
-- Public endpoints with no guard
+**When to use conditional projection:**
 - Conditional logic (e.g., ownership checks)
 - Mixed access levels in one handler
 - Non-guard-based access decisions

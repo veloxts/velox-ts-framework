@@ -200,13 +200,13 @@ const UserSchema = resourceSchema()
   .build();
 
 // Returns different fields based on access level
-const publicUser = resource(user, UserSchema).forAnonymous();
+const publicUser = resource(user, UserSchema.public);
 // Type: { id: string; name: string }
 
-const authUser = resource(user, UserSchema).forAuthenticated();
+const authUser = resource(user, UserSchema.authenticated);
 // Type: { id: string; name: string; email: string }
 
-const adminUser = resource(user, UserSchema).forAdmin();
+const adminUser = resource(user, UserSchema.admin);
 // Type: { id: string; name: string; email: string; internalNotes: string | null }
 ```
 

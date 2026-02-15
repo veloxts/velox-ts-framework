@@ -100,7 +100,7 @@ const userProcedures = procedures('users', {
   getPublicProfile: procedure()
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      return resource(user, UserSchema).forAnonymous();
+      return resource(user, UserSchema.public);
     }),
 
   // Authenticated: returns { id, name, email }
@@ -108,7 +108,7 @@ const userProcedures = procedures('users', {
     .guard(authenticated)
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      return resource(user, UserSchema).forAuthenticated();
+      return resource(user, UserSchema.authenticated);
     }),
 
   // Admin: returns all fields
@@ -116,7 +116,7 @@ const userProcedures = procedures('users', {
     .guard(hasRole('admin'))
     .query(async ({ input, ctx }) => {
       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-      return resource(user, UserSchema).forAdmin();
+      return resource(user, UserSchema.admin);
     }),
 });
 ```

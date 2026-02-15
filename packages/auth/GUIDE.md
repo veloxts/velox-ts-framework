@@ -105,7 +105,7 @@ const UserSchema = resourceSchema()
 const getPublicUser = procedure()
   .query(async ({ input, ctx }) => {
     const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-    return resource(user, UserSchema).forAnonymous();
+    return resource(user, UserSchema.public);
   });
 
 // Authenticated - returns { id, name, email }
@@ -121,7 +121,7 @@ const getFullUser = procedure()
   .guardNarrow(adminNarrow)
   .query(async ({ input, ctx }) => {
     const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-    return resource(user, UserSchema).forAdmin();
+    return resource(user, UserSchema.admin);
   });
 ```
 
