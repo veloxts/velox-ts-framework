@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.7.3
+
+### Patch Changes
+
+- feat(cli): auto-populate Zod schemas from Prisma model fields
+
 ## 0.7.2
 
 ### Patch Changes

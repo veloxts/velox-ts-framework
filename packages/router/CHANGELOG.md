@@ -1,5 +1,14 @@
 # @veloxts/router
 
+## 0.7.3
+
+### Patch Changes
+
+- feat(cli): auto-populate Zod schemas from Prisma model fields
+- Updated dependencies
+  - @veloxts/core@0.7.3
+  - @veloxts/validation@0.7.3
+
 ## 0.7.2
 
 ### Patch Changes
