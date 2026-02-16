@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.7.4
+
+### Patch Changes
+
+- feat(cli): add velox sync command for whole-schema Prisma-to-TypeScript generation
+- Updated dependencies
+  - @veloxts/auth@0.7.4
+  - @veloxts/client@0.7.4
+  - @veloxts/core@0.7.4
+  - @veloxts/router@0.7.4
+
 ## 0.7.3
 
 ### Patch Changes

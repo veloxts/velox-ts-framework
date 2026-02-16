@@ -1,5 +1,11 @@
 # @veloxts/biome-config
 
+## 0.7.4
+
+### Patch Changes
+
+- feat(cli): add velox sync command for whole-schema Prisma-to-TypeScript generation
+
 ## 0.7.3
 
 ### Patch Changes

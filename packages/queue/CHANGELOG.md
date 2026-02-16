@@ -1,5 +1,13 @@
 # @veloxts/queue
 
+## 0.7.4
+
+### Patch Changes
+
+- feat(cli): add velox sync command for whole-schema Prisma-to-TypeScript generation
+- Updated dependencies
+  - @veloxts/core@0.7.4
+
 ## 0.7.3
 
 ### Patch Changes
