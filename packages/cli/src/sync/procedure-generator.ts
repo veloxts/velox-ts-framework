@@ -10,6 +10,7 @@
  * Both strategies generate CRUD procedures based on `plan.crud` flags.
  */
 
+import type { EntityNames } from '../generators/types.js';
 import { deriveEntityNames, toKebabCase } from '../generators/utils/naming.js';
 import type { ProcedureFilePlan } from './types.js';
 
@@ -37,17 +38,6 @@ export function generateProcedureFile(plan: ProcedureFilePlan): string {
 
   // Ensure trailing newline
   return `${lines.join('\n')}\n`;
-}
-
-// ============================================================================
-// Import Generation
-// ============================================================================
-
-interface NamesRef {
-  readonly pascal: string;
-  readonly camel: string;
-  readonly plural: string;
-  readonly pascalPlural: string;
 }
 
 function generateImports(plan: ProcedureFilePlan, pascal: string, pascalPlural: string): string {
@@ -117,7 +107,7 @@ function buildSchemaImportNames(
 // Procedures Collection
 // ============================================================================
 
-function generateProceduresCollection(plan: ProcedureFilePlan, names: NamesRef): string {
+function generateProceduresCollection(plan: ProcedureFilePlan, names: EntityNames): string {
   const routerName = toKebabCase(names.plural);
   const collectionVar = `${names.camel}Procedures`;
 
@@ -151,7 +141,7 @@ function generateProceduresCollection(plan: ProcedureFilePlan, names: NamesRef):
 // Individual Procedure Generators
 // ============================================================================
 
-function generateGetProcedure(plan: ProcedureFilePlan, names: NamesRef): string {
+function generateGetProcedure(plan: ProcedureFilePlan, names: EntityNames): string {
   const procName = `get${names.pascal}`;
   const hasIncludes = plan.includeRelations.length > 0;
   const lines: string[] = [];
@@ -186,7 +176,7 @@ function generateGetProcedure(plan: ProcedureFilePlan, names: NamesRef): string 
   return lines.join('\n');
 }
 
-function generateListProcedure(plan: ProcedureFilePlan, names: NamesRef): string {
+function generateListProcedure(plan: ProcedureFilePlan, names: EntityNames): string {
   const procName = `list${names.pascalPlural}`;
   const hasIncludes = plan.includeRelations.length > 0;
   const lines: string[] = [];
@@ -194,18 +184,16 @@ function generateListProcedure(plan: ProcedureFilePlan, names: NamesRef): string
   lines.push(`  ${procName}: procedure()`);
   lines.push(`    .input(List${names.pascalPlural}Schema)`);
 
-  if (plan.outputStrategy === 'output') {
-    lines.push(`    .query(async ({ input, ctx }) => {`);
-  } else {
-    lines.push(`    .query(async ({ input, ctx }) => {`);
-  }
+  lines.push(`    .query(async ({ input, ctx }) => {`);
 
   lines.push(`      const { page, perPage } = input;`);
   lines.push(`      const [items, total] = await Promise.all([`);
   lines.push(`        ctx.db.${names.camel}.findMany({`);
   lines.push(`          skip: (page - 1) * perPage,`);
   lines.push(`          take: perPage,`);
-  lines.push(`          orderBy: { createdAt: 'desc' },`);
+  if (plan.model.hasTimestamps) {
+    lines.push(`          orderBy: { createdAt: 'desc' },`);
+  }
   if (hasIncludes) {
     lines.push(generateIncludeBlock(plan.includeRelations, 10));
   }
@@ -227,7 +215,7 @@ function generateListProcedure(plan: ProcedureFilePlan, names: NamesRef): string
   return lines.join('\n');
 }
 
-function generateCreateProcedure(plan: ProcedureFilePlan, names: NamesRef): string {
+function generateCreateProcedure(plan: ProcedureFilePlan, names: EntityNames): string {
   const procName = `create${names.pascal}`;
   const userFkField = plan.model.fields.find((f) => f.isUserForeignKey);
   const lines: string[] = [];
@@ -249,12 +237,12 @@ function generateCreateProcedure(plan: ProcedureFilePlan, names: NamesRef): stri
   return lines.join('\n');
 }
 
-function generateUpdateProcedure(_plan: ProcedureFilePlan, names: NamesRef): string {
+function generateUpdateProcedure(_plan: ProcedureFilePlan, names: EntityNames): string {
   const procName = `update${names.pascal}`;
   const lines: string[] = [];
 
   lines.push(`  ${procName}: procedure()`);
-  lines.push(`    .input(z.object({ id: z.string().uuid() }).merge(Update${names.pascal}Schema))`);
+  lines.push(`    .input(Update${names.pascal}Schema.extend({ id: z.string().uuid() }))`);
   lines.push(`    .mutation(async ({ input, ctx }) => {`);
   lines.push(`      const { id, ...data } = input;`);
   lines.push(`      return ctx.db.${names.camel}.update({ where: { id }, data });`);
@@ -263,7 +251,7 @@ function generateUpdateProcedure(_plan: ProcedureFilePlan, names: NamesRef): str
   return lines.join('\n');
 }
 
-function generateDeleteProcedure(plan: ProcedureFilePlan, names: NamesRef): string {
+function generateDeleteProcedure(plan: ProcedureFilePlan, names: EntityNames): string {
   const procName = `delete${names.pascal}`;
   const lines: string[] = [];
 

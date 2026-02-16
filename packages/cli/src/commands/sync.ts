@@ -23,6 +23,7 @@ import pc from 'picocolors';
 import { ensureVeloxProject } from '../generators/index.js';
 import { findPrismaSchema } from '../generators/utils/prisma-schema.js';
 import { executeSync } from '../sync/index.js';
+import type { SyncCommandOptions } from '../sync/types.js';
 
 // ============================================================================
 // Command Creation
@@ -37,7 +38,7 @@ export function createSyncCommand(): Command {
     .option('-d, --dry-run', 'Preview changes without writing files', false)
     .option('-f, --force', 'Skip prompts and generate all models with defaults', false)
     .option('--skip-registration', 'Skip auto-registering procedures in router', false)
-    .action(async (options: { dryRun: boolean; force: boolean; skipRegistration: boolean }) => {
+    .action(async (options: SyncCommandOptions) => {
       await runSync(options);
     });
 
@@ -51,11 +52,7 @@ export function createSyncCommand(): Command {
 /**
  * Run the sync pipeline.
  */
-async function runSync(options: {
-  dryRun: boolean;
-  force: boolean;
-  skipRegistration: boolean;
-}): Promise<void> {
+async function runSync(options: SyncCommandOptions): Promise<void> {
   const projectRoot = process.cwd();
 
   try {

@@ -518,7 +518,7 @@ describe('generateProcedureFile', () => {
     const plan = makePlan({ model: postModel });
     const output = generateProcedureFile(plan);
 
-    expect(output).toContain('.input(z.object({ id: z.string().uuid() }).merge(UpdatePostSchema))');
+    expect(output).toContain('.input(UpdatePostSchema.extend({ id: z.string().uuid() }))');
   });
 
   // --------------------------------------------------------------------------

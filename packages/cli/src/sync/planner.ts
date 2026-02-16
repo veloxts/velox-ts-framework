@@ -12,7 +12,14 @@
 import { join } from 'node:path';
 
 import { deriveEntityNames, toKebabCase } from '../generators/utils/naming.js';
-import type { ModelChoices, SyncModelInfo, SyncPlan } from './types.js';
+import type {
+  ModelChoices,
+  ProcedureFilePlan,
+  RegistrationPlan,
+  SchemaFilePlan,
+  SyncModelInfo,
+  SyncPlan,
+} from './types.js';
 
 /**
  * Build a complete generation plan from analyzer models and user choices.
@@ -31,9 +38,9 @@ export function buildPlan(
   choices: readonly ModelChoices[],
   projectRoot: string
 ): SyncPlan {
-  const schemas: SyncPlan['schemas'][number][] = [];
-  const procedures: SyncPlan['procedures'][number][] = [];
-  const registrations: SyncPlan['registrations'][number][] = [];
+  const schemas: SchemaFilePlan[] = [];
+  const procedures: ProcedureFilePlan[] = [];
+  const registrations: RegistrationPlan[] = [];
 
   for (const choice of choices) {
     if (choice.action === 'skip') {

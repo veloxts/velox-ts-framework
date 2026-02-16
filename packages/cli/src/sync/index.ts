@@ -27,6 +27,7 @@ import { generateProcedureFile } from './procedure-generator.js';
 import { promptAllModels } from './prompter.js';
 import { generateSchemaFile } from './schema-generator.js';
 import type {
+  ExistingCodeMap,
   ModelChoices,
   SyncCommandOptions,
   SyncModelInfo,
@@ -75,7 +76,7 @@ export async function executeSync(
   let choices: readonly ModelChoices[];
 
   if (options.force) {
-    choices = models.map((model) => buildDefaultChoices(model));
+    choices = models.map((model) => buildDefaultChoices(model, existing));
   } else {
     const prompted = await promptAllModels(models, existing);
     if (prompted === null) {
@@ -304,11 +305,13 @@ function displayResults(
 /**
  * Build default ModelChoices for a model (used when --force is set).
  * Generates all CRUD, uses output strategy, includes no relations.
+ * Sets 'regenerate' if existing files are detected, so rollback works correctly.
  */
-function buildDefaultChoices(model: SyncModelInfo): ModelChoices {
+function buildDefaultChoices(model: SyncModelInfo, existing: ExistingCodeMap): ModelChoices {
+  const hasExisting = existing.procedures.has(model.name) || existing.schemas.has(model.name);
   return {
     model: model.name,
-    action: 'generate',
+    action: hasExisting ? 'regenerate' : 'generate',
     outputStrategy: 'output',
     crud: {
       get: true,
