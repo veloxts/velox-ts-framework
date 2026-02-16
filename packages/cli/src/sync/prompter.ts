@@ -37,7 +37,7 @@ const HEADER_WIDTH = 54;
  */
 export async function promptAllModels(
   models: readonly SyncModelInfo[],
-  existing: ExistingCodeMap,
+  existing: ExistingCodeMap
 ): Promise<readonly ModelChoices[] | null> {
   const results: ModelChoices[] = [];
 
@@ -58,7 +58,7 @@ export async function promptAllModels(
  */
 export async function promptForModel(
   model: SyncModelInfo,
-  existing: ExistingCodeMap,
+  existing: ExistingCodeMap
 ): Promise<ModelChoices | null> {
   // Step 1: Display model header
   displayModelHeader(model, existing);
@@ -130,10 +130,7 @@ function displayModelHeader(model: SyncModelInfo, existing: ExistingCodeMap): vo
   const fieldNames = nonAutoFields.map((f) => f.name).join(', ');
   const relationLabels = model.relations.map((r) => formatRelationLabel(r)).join(', ');
 
-  const lines: string[] = [
-    pc.bold(ruler),
-    `   Fields: ${fieldNames || pc.dim('(none)')}`,
-  ];
+  const lines: string[] = [pc.bold(ruler), `   Fields: ${fieldNames || pc.dim('(none)')}`];
 
   if (model.relations.length > 0) {
     lines.push(`   Relations: ${relationLabels}`);
@@ -165,7 +162,7 @@ function formatRelationLabel(relation: SyncRelationInfo): string {
  */
 async function promptAction(
   model: SyncModelInfo,
-  existing: ExistingCodeMap,
+  existing: ExistingCodeMap
 ): Promise<'generate' | 'regenerate' | 'skip' | null> {
   const hasExisting = existing.procedures.has(model.name);
 
@@ -201,9 +198,7 @@ async function promptAction(
 /**
  * Prompt for output strategy (plain .output() vs resource schema).
  */
-async function promptOutputStrategy(
-  model: SyncModelInfo,
-): Promise<'output' | 'resource' | null> {
+async function promptOutputStrategy(model: SyncModelInfo): Promise<'output' | 'resource' | null> {
   const hasSensitiveFields = model.fields.some((f) => f.isSensitive);
   const defaultToResource = hasSensitiveFields || RESOURCE_DEFAULT_MODELS.has(model.name);
 
@@ -264,18 +259,14 @@ async function promptCrudOperations(model: SyncModelInfo): Promise<CrudChoices |
 /**
  * Prompt for which relations to include in the Zod schema.
  */
-async function promptSchemaRelations(
-  model: SyncModelInfo,
-): Promise<readonly string[] | null> {
+async function promptSchemaRelations(model: SyncModelInfo): Promise<readonly string[] | null> {
   const schemaRelations = await p.multiselect<string>({
     message: 'Include relations in Zod schema?',
     options: model.relations.map((r) => ({
       value: r.name,
       label: `${r.name} (→${r.relatedModel}${r.kind === 'hasMany' ? '[]' : ''})`,
     })),
-    initialValues: model.relations
-      .filter((r) => r.kind === 'belongsTo')
-      .map((r) => r.name),
+    initialValues: model.relations.filter((r) => r.kind === 'belongsTo').map((r) => r.name),
     required: false,
   });
 
@@ -291,7 +282,7 @@ async function promptSchemaRelations(
  * Prompt for which of the selected schema relations to also fetch via Prisma includes.
  */
 async function promptIncludeRelations(
-  schemaRelations: readonly string[],
+  schemaRelations: readonly string[]
 ): Promise<readonly string[] | null> {
   const includeRelations = await p.multiselect<string>({
     message: 'Fetch relations in queries? (Prisma includes)',
@@ -318,7 +309,7 @@ type VisibilityLevel = 'public' | 'authenticated' | 'admin';
  * Returns a map of field name -> visibility level for ALL non-auto fields.
  */
 async function promptFieldVisibility(
-  model: SyncModelInfo,
+  model: SyncModelInfo
 ): Promise<ReadonlyMap<string, VisibilityLevel> | null> {
   const nonAutoFields = model.fields.filter((f) => !f.isAutoManaged);
 

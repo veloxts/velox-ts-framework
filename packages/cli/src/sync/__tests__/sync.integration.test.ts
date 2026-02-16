@@ -309,8 +309,8 @@ describe('sync pipeline integration', () => {
 
     // Verify Zod types for different Prisma types
     expect(schemaContent).toContain('z.string().uuid()'); // id field
-    expect(schemaContent).toContain('z.boolean()');       // published field
-    expect(schemaContent).toContain('z.date()');          // createdAt/updatedAt
+    expect(schemaContent).toContain('z.boolean()'); // published field
+    expect(schemaContent).toContain('z.date()'); // createdAt/updatedAt
     // content is optional String -> should have .nullable()
     expect(schemaContent).toContain('.nullable()');
   });

@@ -10,8 +10,8 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { SyncModelInfo } from '../types.js';
 import { analyzeSchema } from '../analyzer.js';
+import type { SyncModelInfo } from '../types.js';
 
 // ============================================================================
 // Test Setup

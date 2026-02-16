@@ -12,8 +12,7 @@
 
 import { readFileSync } from 'node:fs';
 
-import { findPrismaSchema, analyzePrismaSchema } from '../generators/utils/prisma-schema.js';
-
+import { analyzePrismaSchema, findPrismaSchema } from '../generators/utils/prisma-schema.js';
 import type { SyncFieldInfo, SyncModelInfo, SyncRelationInfo } from './types.js';
 
 // ============================================================================
@@ -48,9 +47,7 @@ const SENSITIVE_PATTERNS = [
 export function analyzeSchema(projectRoot: string): SyncModelInfo[] {
   const schemaPath = findPrismaSchema(projectRoot);
   if (!schemaPath) {
-    throw new Error(
-      'Prisma schema not found. Ensure prisma/schema.prisma exists in your project.'
-    );
+    throw new Error('Prisma schema not found. Ensure prisma/schema.prisma exists in your project.');
   }
 
   // Use the existing parser to discover model names
@@ -84,8 +81,8 @@ export function analyzeSchema(projectRoot: string): SyncModelInfo[] {
     }
 
     // Patch isUserForeignKey on fields
-    const patchedFields = fields.map((f): SyncFieldInfo =>
-      userFkNames.has(f.name) ? { ...f, isUserForeignKey: true } : f
+    const patchedFields = fields.map(
+      (f): SyncFieldInfo => (userFkNames.has(f.name) ? { ...f, isUserForeignKey: true } : f)
     );
 
     // Collect FK field names from all belongsTo relations
@@ -255,10 +252,7 @@ function extractDefaultValue(rawLine: string): string | undefined {
  * Unlike the existing parser, this does NOT skip `@relation(fields: [...])`
  * lines -- those are classified as `belongsTo`.
  */
-function buildRelationInfos(
-  rawLines: RawFieldLine[],
-  modelNames: Set<string>
-): SyncRelationInfo[] {
+function buildRelationInfos(rawLines: RawFieldLine[], modelNames: Set<string>): SyncRelationInfo[] {
   const relations: SyncRelationInfo[] = [];
 
   for (const line of rawLines) {

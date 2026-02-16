@@ -29,7 +29,7 @@ import type { ModelChoices, SyncModelInfo, SyncPlan } from './types.js';
 export function buildPlan(
   models: readonly SyncModelInfo[],
   choices: readonly ModelChoices[],
-  projectRoot: string,
+  projectRoot: string
 ): SyncPlan {
   const schemas: SyncPlan['schemas'][number][] = [];
   const procedures: SyncPlan['procedures'][number][] = [];
@@ -47,15 +47,14 @@ export function buildPlan(
       continue;
     }
 
-    const fileAction = choice.action === 'regenerate' ? 'overwrite' as const : 'create' as const;
+    const fileAction =
+      choice.action === 'regenerate' ? ('overwrite' as const) : ('create' as const);
     const pluralKebab = toKebabCase(names.plural);
 
     // ── Schema file plan ──────────────────────────────────────────────
     const allFields = model.fields;
     const fields = allFields.filter((f) => !f.isAutoManaged && !f.isSensitive);
-    const relations = model.relations.filter((r) =>
-      choice.schemaRelations.includes(r.name),
-    );
+    const relations = model.relations.filter((r) => choice.schemaRelations.includes(r.name));
 
     schemas.push({
       model,

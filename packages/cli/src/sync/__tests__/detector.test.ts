@@ -10,8 +10,8 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { SyncModelInfo } from '../types.js';
 import { detectExisting } from '../detector.js';
+import type { SyncModelInfo } from '../types.js';
 
 // ============================================================================
 // Test Setup
@@ -97,9 +97,7 @@ describe('detectExisting', () => {
 
     expect(result.procedures.size).toBe(1);
     expect(result.procedures.has('User')).toBe(true);
-    expect(result.procedures.get('User')).toBe(
-      join(root, 'src', 'procedures', 'users.ts'),
-    );
+    expect(result.procedures.get('User')).toBe(join(root, 'src', 'procedures', 'users.ts'));
   });
 
   // --------------------------------------------------------------------------
@@ -114,9 +112,7 @@ describe('detectExisting', () => {
 
     expect(result.schemas.size).toBe(1);
     expect(result.schemas.has('Post')).toBe(true);
-    expect(result.schemas.get('Post')).toBe(
-      join(root, 'src', 'schemas', 'post.schema.ts'),
-    );
+    expect(result.schemas.get('Post')).toBe(join(root, 'src', 'schemas', 'post.schema.ts'));
   });
 
   // --------------------------------------------------------------------------

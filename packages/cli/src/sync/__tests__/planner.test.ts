@@ -9,8 +9,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import type { ModelChoices, SyncFieldInfo, SyncModelInfo, SyncRelationInfo } from '../types.js';
 import { buildPlan } from '../planner.js';
+import type { ModelChoices, SyncFieldInfo, SyncModelInfo, SyncRelationInfo } from '../types.js';
 
 // ============================================================================
 // Test Helpers
@@ -38,7 +38,7 @@ function relation(
   name: string,
   relatedModel: string,
   kind: SyncRelationInfo['kind'],
-  foreignKey?: string,
+  foreignKey?: string
 ): SyncRelationInfo {
   return { name, relatedModel, kind, foreignKey };
 }
@@ -47,11 +47,24 @@ function relation(
 const postModel: SyncModelInfo = {
   name: 'Post',
   fields: [
-    field({ name: 'id', type: 'String', isId: true, isAutoManaged: true, hasDefault: true, defaultValue: 'uuid()' }),
+    field({
+      name: 'id',
+      type: 'String',
+      isId: true,
+      isAutoManaged: true,
+      hasDefault: true,
+      defaultValue: 'uuid()',
+    }),
     field({ name: 'title', type: 'String' }),
     field({ name: 'content', type: 'String' }),
     field({ name: 'authorId', type: 'String', isUserForeignKey: true }),
-    field({ name: 'createdAt', type: 'DateTime', isAutoManaged: true, hasDefault: true, defaultValue: 'now()' }),
+    field({
+      name: 'createdAt',
+      type: 'DateTime',
+      isAutoManaged: true,
+      hasDefault: true,
+      defaultValue: 'now()',
+    }),
     field({ name: 'updatedAt', type: 'DateTime', isAutoManaged: true }),
     field({ name: 'password', type: 'String', isSensitive: true }),
   ],
@@ -192,9 +205,7 @@ describe('buildPlan', () => {
 
     const plan = buildPlan([postModel], choices, PROJECT_ROOT);
 
-    expect(plan.schemas[0].outputPath).toBe(
-      join(PROJECT_ROOT, 'src/schemas/post.schema.ts'),
-    );
+    expect(plan.schemas[0].outputPath).toBe(join(PROJECT_ROOT, 'src/schemas/post.schema.ts'));
   });
 
   // --------------------------------------------------------------------------
@@ -215,9 +226,7 @@ describe('buildPlan', () => {
 
     const plan = buildPlan([postModel], choices, PROJECT_ROOT);
 
-    expect(plan.procedures[0].outputPath).toBe(
-      join(PROJECT_ROOT, 'src/procedures/posts.ts'),
-    );
+    expect(plan.procedures[0].outputPath).toBe(join(PROJECT_ROOT, 'src/procedures/posts.ts'));
   });
 
   // --------------------------------------------------------------------------
@@ -239,10 +248,10 @@ describe('buildPlan', () => {
     const plan = buildPlan([friendRequestModel], choices, PROJECT_ROOT);
 
     expect(plan.schemas[0].outputPath).toBe(
-      join(PROJECT_ROOT, 'src/schemas/friend-request.schema.ts'),
+      join(PROJECT_ROOT, 'src/schemas/friend-request.schema.ts')
     );
     expect(plan.procedures[0].outputPath).toBe(
-      join(PROJECT_ROOT, 'src/procedures/friend-requests.ts'),
+      join(PROJECT_ROOT, 'src/procedures/friend-requests.ts')
     );
   });
 

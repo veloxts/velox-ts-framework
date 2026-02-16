@@ -23,7 +23,7 @@ import type { ExistingCodeMap, SyncModelInfo } from './types.js';
  */
 export function detectExisting(
   projectRoot: string,
-  models: readonly SyncModelInfo[],
+  models: readonly SyncModelInfo[]
 ): ExistingCodeMap {
   const modelNames = new Set(models.map((m) => m.name));
 
@@ -45,7 +45,7 @@ export function detectExisting(
  */
 function scanProcedures(
   projectRoot: string,
-  modelNames: ReadonlySet<string>,
+  modelNames: ReadonlySet<string>
 ): ReadonlyMap<string, string> {
   const proceduresDir = join(projectRoot, 'src', 'procedures');
   const result = new Map<string, string>();
@@ -91,7 +91,7 @@ function scanProcedures(
  */
 function scanSchemas(
   projectRoot: string,
-  modelNames: ReadonlySet<string>,
+  modelNames: ReadonlySet<string>
 ): ReadonlyMap<string, string> {
   const schemasDir = join(projectRoot, 'src', 'schemas');
   const result = new Map<string, string>();
