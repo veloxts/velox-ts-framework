@@ -21,6 +21,7 @@ import { createMigrateCommand } from './commands/migrate.js';
 import { createOpenApiCommand } from './commands/openapi.js';
 import { createProceduresCommand } from './commands/procedures.js';
 import { createScheduleCommand } from './commands/schedule.js';
+import { createSyncCommand } from './commands/sync.js';
 import { createTenantCommand } from './commands/tenant.js';
 import { CLI_VERSION } from './index.js';
 
@@ -46,6 +47,7 @@ function createCLI(): Command {
   program.addCommand(createOpenApiCommand());
   program.addCommand(createProceduresCommand());
   program.addCommand(createScheduleCommand());
+  program.addCommand(createSyncCommand());
   program.addCommand(createTenantCommand());
 
   return program;
