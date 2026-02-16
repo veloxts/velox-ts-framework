@@ -191,6 +191,7 @@ async function generateFiles(
 
   // ── Register procedures in router ───────────────────────────
   if (!options.skipRegistration) {
+    let registrationFailures = 0;
     for (const reg of plan.registrations) {
       try {
         const result = registerProcedures(projectRoot, reg.entityName, reg.procedureVarName, false);
@@ -198,12 +199,20 @@ async function generateFiles(
         if (result.success) {
           registered.push(reg.procedureVarName);
         } else if (result.error) {
+          registrationFailures++;
           errors.push(`Registration ${reg.procedureVarName}: ${result.error}`);
         }
       } catch (err) {
+        registrationFailures++;
         const msg = err instanceof Error ? err.message : String(err);
         errors.push(`Registration ${reg.procedureVarName}: ${msg}`);
       }
+    }
+
+    if (registrationFailures > 0 && registrationFailures === plan.registrations.length) {
+      p.log.warn(
+        'All procedure registrations failed. You may need to manually register in src/index.ts.'
+      );
     }
   }
 

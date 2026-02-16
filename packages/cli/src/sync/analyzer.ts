@@ -154,7 +154,7 @@ function findClosingBrace(content: string, openIndex: number): number {
       if (depth === 0) return i;
     }
   }
-  return content.length;
+  throw new Error('Prisma schema has unbalanced braces — model block not properly closed');
 }
 
 /**
