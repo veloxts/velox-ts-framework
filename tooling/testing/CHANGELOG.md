@@ -1,5 +1,13 @@
 # @veloxts/testing
 
+## 0.7.5
+
+### Patch Changes
+
+- fix(cli): address sync command review findings
+- Updated dependencies
+  - @veloxts/core@0.7.5
+
 ## 0.7.4
 
 ### Patch Changes

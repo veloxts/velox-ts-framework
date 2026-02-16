@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.7.5
+
+### Patch Changes
+
+- fix(cli): address sync command review findings
+
 ## 0.7.4
 
 ### Patch Changes

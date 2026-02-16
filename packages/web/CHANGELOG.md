@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.7.5
+
+### Patch Changes
+
+- fix(cli): address sync command review findings
+- Updated dependencies
+  - @veloxts/auth@0.7.5
+  - @veloxts/client@0.7.5
+  - @veloxts/core@0.7.5
+  - @veloxts/router@0.7.5
+
 ## 0.7.4
 
 ### Patch Changes
