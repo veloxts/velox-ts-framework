@@ -256,7 +256,7 @@ function generateCreateProcedure(plan: ProcedureFilePlan, names: NamesRef): stri
 	return lines.join('\n');
 }
 
-function generateUpdateProcedure(plan: ProcedureFilePlan, names: NamesRef): string {
+function generateUpdateProcedure(_plan: ProcedureFilePlan, names: NamesRef): string {
 	const procName = `update${names.pascal}`;
 	const lines: string[] = [];
 
