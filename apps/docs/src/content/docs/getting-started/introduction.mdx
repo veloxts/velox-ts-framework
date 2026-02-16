@@ -17,18 +17,89 @@ Velox TS is built on four core principles:
 
 4. **Opinionated & Productive** - Expressive syntax, batteries included, progressive disclosure of complexity.
 
-## What You Get
+## Core Packages
 
-- **@veloxts/core** - Fastify wrapper, plugin system, error handling
-- **@veloxts/router** - Procedure-based API with tRPC + REST adapter
-- **@veloxts/validation** - Zod integration for schema validation
-- **@veloxts/orm** - Prisma wrapper with enhanced DX
-- **@veloxts/auth** - JWT, sessions, guards, policies, rate limiting
-- **@veloxts/client** - Type-safe frontend API client
-- **@veloxts/cli** - Development server, code generators, database tools
-- **@veloxts/web** - React Server Components with Vinxi
+| Package | Description |
+|---------|-------------|
+| **@veloxts/core** | Fastify wrapper, `definePlugin()` system, `VeloxError` hierarchy with `fail()` API |
+| **@veloxts/router** | Procedure-based API — tRPC + auto-generated REST from naming conventions, OpenAPI/Swagger generation, `resourceSchema()` for role-based field projection |
+| **@veloxts/validation** | Zod 4 integration — type inference, `z.toJSONSchema()` for OpenAPI, pagination schemas, query param helpers (`queryInt()`, `queryBoolean()`, `queryEnum()`) |
+| **@veloxts/orm** | Prisma 7 wrapper — driver adapters, schema-driven migrations, type-safe queries |
+| **@veloxts/auth** | JWT (access + refresh tokens), session auth (HMAC-signed, sliding expiration), guards (`authenticated`, `hasRole()`, `hasPermission()`, combinators), policies, CSRF, rate limiting with backoff, HIBP breach checking |
+| **@veloxts/client** | Type-safe frontend API client — types inferred directly from procedure definitions, zero codegen |
+| **@veloxts/cli** | Dev server with HMR, code generators (`velox make`, `velox sync`), migrations, OpenAPI CLI, MCP server, introspection |
+| **@veloxts/web** | React Server Components with Vinxi + React 19, file-based routing, `validated()` server actions with schema validation, `useAction()` / `useFormAction()` hooks |
 
-Plus ecosystem packages: cache, queue, mail, storage, scheduler, events.
+## Ecosystem Packages
+
+| Package | Description |
+|---------|-------------|
+| **@veloxts/cache** | Multi-driver caching (memory LRU, Redis) — `remember()`, tag-based invalidation, distributed locks |
+| **@veloxts/queue** | Background job processing (sync, BullMQ) — type-safe jobs with Zod schemas, retry with backoff |
+| **@veloxts/mail** | Email sending (SMTP, Resend, Log driver) — React Email templates, bulk send |
+| **@veloxts/storage** | File storage abstraction (local, S3/R2/MinIO) — signed URLs, streaming, MIME detection |
+| **@veloxts/scheduler** | Cron task scheduling — fluent API, timezone support, overlap prevention |
+| **@veloxts/events** | Real-time broadcasting (WebSocket, SSE) — public/private/presence channels, Redis pub/sub |
+| **@veloxts/mcp** | Model Context Protocol server — AI tool integration for project introspection, code generation, and guidance |
+
+## Feature Overview
+
+### Routing and API
+
+| Feature | How It Works |
+|---------|-------------|
+| Procedure Definition | `procedure().input().query()` fluent builder |
+| Dual Protocol | Single procedure serves both tRPC and REST |
+| REST Generation | Automatic from naming conventions — `getUser` becomes `GET /users/:id` |
+| OpenAPI/Swagger | Auto-generated spec + CLI + Swagger UI plugin |
+| Type-Safe Client | `createClient<T>()` — types inferred from procedures |
+| Resource API | `resourceSchema()` with role-based field projection (public, authenticated, admin) |
+| Rate Limiting | Built-in per-route limiter |
+
+### Database
+
+| Feature | How It Works |
+|---------|-------------|
+| ORM | Prisma 7 (Data Mapper pattern) |
+| Schema | Prisma Schema Language (`.prisma`) |
+| Migrations | Schema-driven via Prisma Migrate |
+| Type Safety | Fully auto-generated from schema |
+| Relationships | Schema-defined, queried via `include`/`select` |
+
+### Authentication and Authorization
+
+| Feature | How It Works |
+|---------|-------------|
+| JWT Auth | Access + refresh tokens with token store |
+| Session Auth | HMAC-signed cookies, sliding expiration |
+| Guards | `authenticated`, `hasRole()`, `hasPermission()`, combinators (`allOf`, `anyOf`, `not`) |
+| Narrowing Guards | `authenticatedNarrow` — auto-projects resource fields by access level |
+| Policies | `definePolicy()` with fluent builder, `can()` / `authorize()` |
+| CSRF | `csrfManager()` with timing-safe comparison |
+| Password Policy | `passwordPolicy()` with HIBP breach checking |
+
+### Frontend
+
+| Feature | How It Works |
+|---------|-------------|
+| Server Rendering | React Server Components (Vinxi + React 19) |
+| SPA | Vite + TanStack Router |
+| File-Based Routing | `app/pages/` directory (RSC mode) |
+| Server Actions | `validated()` wrapper with schema validation, rate limiting, CSRF |
+| Action Hooks | `useAction()`, `useFormAction()` for React |
+
+### Developer Tooling
+
+| Feature | How It Works |
+|---------|-------------|
+| Dev Server | `velox dev` with HMR, timing metrics, debug mode |
+| Schema Sync | `velox sync` — generate schemas + procedures for all Prisma models |
+| Code Generators | `velox make resource/namespace/procedure/schema` |
+| Migrations | `velox migrate` — status, run, rollback, fresh, reset |
+| OpenAPI CLI | `velox openapi generate/serve` |
+| Introspection | `velox introspect` — list procedures, routes |
+| Scaffolder | `create-velox-app` — 5 templates, 2 databases, 3 package managers |
+| MCP Server | `velox mcp start` — AI-assisted development via Claude |
 
 ## Two Architectures, One Framework
 
