@@ -128,6 +128,7 @@ export default defineConfig({
           items: [
             { slug: 'cli/overview' },
             { slug: 'cli/dev-server' },
+            { slug: 'cli/sync' },
             { slug: 'cli/generators' },
             { slug: 'cli/database-commands' },
             { slug: 'cli/mcp-integration' },

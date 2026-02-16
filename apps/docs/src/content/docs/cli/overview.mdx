@@ -10,7 +10,8 @@ The VeloxTS CLI provides development and code generation tools.
 | Command | Description |
 |---------|-------------|
 | `velox dev` | Start development server |
-| `velox make` | Generate code scaffolds |
+| `velox sync` | Generate schemas + procedures for all Prisma models |
+| `velox make` | Generate code scaffolds for a single model |
 | `velox migrate` | Database migrations |
 | `velox db:seed` | Database seeding |
 | `velox introspect` | Type introspection |
@@ -41,5 +42,6 @@ velox migrate --help
 ## Related Content
 
 - [Dev Server](/docs/cli/dev-server/) - Development workflow
-- [Generators](/docs/cli/generators/) - Code generation
+- [Schema Sync](/docs/cli/sync/) - Generate schemas + procedures for all models
+- [Generators](/docs/cli/generators/) - Single-model code generation
 - [Database Commands](/docs/cli/database-commands/) - Migration/seeding

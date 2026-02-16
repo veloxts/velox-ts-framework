@@ -16,23 +16,23 @@ I help you build type-safe full-stack applications with VeloxTS. Ask me about:
 
 ## Quick Decision: Which Generator?
 
-**"I want to create a new database entity"**
+**"I have multiple Prisma models and want schemas + procedures for all of them"**
 ```bash
-velox make resource Post        # RECOMMENDED - creates everything
+velox sync                      # RECOMMENDED - interactive, all models at once
+velox sync --force              # Skip prompts, generate everything with defaults
 ```
-Creates: Prisma model + Zod schema + Procedures + Tests + Auto-registers
+Generates: Zod schemas + CRUD procedures + router registration for every model
 
-**"I have an existing Prisma model"**
+**"I want to add a single new entity"**
 ```bash
-velox make namespace Order      # For existing models
+velox make resource Post        # Creates everything from scratch
+velox make namespace Order      # For existing Prisma models only
 ```
-Creates: Zod schema + Procedures (no Prisma injection)
 
 **"I need a single endpoint"**
 ```bash
 velox make procedure health     # Quick single procedure
 ```
-Creates: Procedure file with inline schemas
 
 See [GENERATORS.md](GENERATORS.md) for detailed guidance.
 
@@ -209,8 +209,9 @@ pnpm db:studio              # Open Prisma Studio
 pnpm velox migrate status   # Check migration status
 
 # Code Generation
-pnpm velox make resource Post --crud      # Full resource
-pnpm velox make namespace Order           # Namespace + schema
+pnpm velox sync                           # All models at once (recommended)
+pnpm velox make resource Post --crud      # Full resource (single model)
+pnpm velox make namespace Order           # Existing model (single)
 pnpm velox make procedure health          # Single procedure
 
 # Seeding

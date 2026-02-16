@@ -2,45 +2,49 @@
 
 ## AI Agent Recommended Workflow
 
-When creating new entities, the **recommended approach** is:
+### Multiple Models: `velox sync` (Recommended)
+
+When you have several Prisma models and want schemas + procedures for all of them:
+
+1. **Design all Prisma models** in `prisma/schema.prisma`
+2. **Run `velox sync`** to generate everything interactively
+
+```bash
+# Push schema to database, then sync all models
+pnpm db:push
+velox sync              # Interactive: choose output strategy + CRUD per model
+velox sync --force      # Non-interactive: generate all with defaults
+velox sync --dry-run    # Preview what would be generated
+```
+
+This generates Zod schemas, CRUD procedures, and router registrations for every model in one shot.
+
+### Single Model: `velox make namespace`
+
+When adding a single new model to an existing project:
 
 1. **Design and add the Prisma model** directly to `prisma/schema.prisma`
 2. **Run `velox make namespace EntityName`** to generate procedures
 
-This ensures complete, production-ready code because the AI can design the full schema based on requirements.
-
 ```bash
-# Example: Creating a Post entity
-
-# Step 1: AI adds model to prisma/schema.prisma
-model Post {
-  id        String   @id @default(uuid())
-  title     String
-  content   String
-  published Boolean  @default(false)
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@map("posts")
-}
-
-# Step 2: Generate procedures for the existing model
+# Example: Adding a Post entity to an existing project
 velox make namespace Post --example
 ```
 
 ## Decision Tree: Which Generator?
 
 ```
-Do you need a new database entity?
-├── YES (AI workflow) → 1. Design Prisma model in schema.prisma
-│                       2. velox make namespace EntityName --example
-│                       Creates: Schema + Procedures for existing model
+Do you need schemas + procedures for your Prisma models?
+├── MULTIPLE MODELS → velox sync
+│                     Generates all models interactively (or --force for defaults)
 │
-├── YES (Interactive) → velox make resource EntityName -i
-│                       Prompts for fields, creates everything
+├── SINGLE MODEL (existing) → velox make namespace EntityName --example
+│                              Creates: Schema + Procedures for one model
 │
-└── NO → What do you need?
+├── SINGLE MODEL (new) → velox make resource EntityName -i
+│                         Prompts for fields, creates everything
+│
+└── NOT A MODEL → What do you need?
          ├── Single API endpoint → velox make procedure
          ├── Validation schema only → velox make schema
          ├── Database model only → velox make model
@@ -58,16 +62,17 @@ Do you need a new database entity?
 
 | Generator | Creates | Use When |
 |-----------|---------|----------|
-| `namespace` | Schema + Procedures + Tests | **AI agents** or existing Prisma model |
+| `sync` | Schema + Procedures for **all** models | **Recommended** for multi-model projects |
+| `namespace` | Schema + Procedures + Tests | Single existing Prisma model |
 | `resource -i` | Prisma + Schema + Procedures + Tests | **Human interactive** field definition |
 | `resource` | Scaffolds with TODOs | Quick start (fields needed manually) |
 | `procedure` | Procedures (inline schemas) | Single endpoint, quick prototype |
 | `schema` | Zod schema file | Standalone validation |
 | `model` | Prisma model | Database-only change |
 
-## Namespace Generator [AI RECOMMENDED]
+## Namespace Generator (Single Model)
 
-Best choice for AI agents. Works with models you've already defined.
+Best choice when adding a single model to an existing project. Works with models you've already defined.
 
 ```bash
 # After adding model to schema.prisma:
@@ -260,35 +265,27 @@ velox make task SendDailyDigest --cron="0 9 * * *"
 
 ## Common Workflows
 
-### New Feature: Blog Posts (AI Agent)
+### Sync All Models (Recommended for New Projects)
+
+```bash
+# 1. Design all Prisma models in schema.prisma
+# 2. Push schema to database
+pnpm db:push
+
+# 3. Generate schemas + procedures for all models
+velox sync
+```
+
+### New Feature: Single Model (AI Agent)
 
 ```bash
 # 1. Design Prisma model directly in schema.prisma
-model Post {
-  id        String   @id @default(uuid())
-  title     String
-  slug      String   @unique
-  content   String
-  excerpt   String?
-  published Boolean  @default(false)
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@map("posts")
-}
-
-# 2. Generate procedures for the model
-velox make namespace Post --example
-
-# 3. Push database changes
+# 2. Push schema and generate for that one model
 pnpm db:push
-
-# 4. (Optional) Seed sample data
-velox make seeder PostSeeder
+velox make namespace Post --example
 ```
 
-### New Feature: Blog Posts (Human Interactive)
+### New Feature: Single Model (Human Interactive)
 
 ```bash
 # 1. Interactive field definition

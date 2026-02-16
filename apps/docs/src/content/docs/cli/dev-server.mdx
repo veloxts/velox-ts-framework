@@ -3,6 +3,8 @@ title: Dev Server
 description: Development server with hot module replacement.
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 The `velox dev` command starts a development server with HMR.
 
 ## Basic Usage
@@ -15,11 +17,56 @@ Server starts at `http://localhost:3030`.
 
 ## Options
 
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `--port <port>` | `-p` | `3030` | Port to listen on |
+| `--host <host>` | `-H` | `localhost` | Host to bind to |
+| `--entry <file>` | `-e` | *(auto-detected)* | Entry point file |
+| `--verbose` | `-v` | `false` | Show detailed timing and reload information |
+| `--debug` | `-d` | `false` | Enable debug logging and request tracing |
+| `--no-hmr` | | | Disable HMR and use legacy tsx watch mode |
+| `--no-clear` | | | Disable console clearing on restart |
+| `--all` | | `false` | Start both API and Web dev servers (workspace monorepos) |
+
+### Examples
+
 ```bash
-velox dev --port 4000      # Custom port
-velox dev --no-hmr         # Disable HMR (use tsx watch)
-velox dev --verbose        # Detailed output
+velox dev                         # Default: HMR on localhost:3030
+velox dev -p 4000                 # Custom port
+velox dev -H 0.0.0.0             # Bind to all interfaces
+velox dev -e src/server.ts        # Custom entry point
+velox dev --verbose               # Detailed timing metrics
+velox dev --debug                 # Debug logging + request tracing
+velox dev --no-hmr                # Legacy tsx watch mode
+velox dev --all                   # API + Web servers in parallel
 ```
+
+## Entry Point Detection
+
+The dev server auto-detects your entry point by looking for common patterns (`src/index.ts`, `src/server.ts`, etc.). In a workspace monorepo, it searches inside `apps/api/`.
+
+If multiple entry points are found, you'll be prompted to choose. To skip detection, specify one directly:
+
+```bash
+velox dev --entry src/server.ts
+```
+
+## Project Type Detection
+
+The dev server automatically detects your project type:
+
+- **API-only projects** — Starts with HMR (or tsx watch with `--no-hmr`)
+- **RSC/Vinxi projects** — Delegates to Vinxi's dev server with file-based routing
+
+## Workspace Monorepo Support
+
+In a workspace monorepo with `apps/api/` and `apps/web/`, use `--all` to start both servers:
+
+```bash
+velox dev --all
+```
+
+This starts the API server (with HMR) and the web dev server (`pnpm dev` in `apps/web/`) in parallel. Both are shut down together on Ctrl+C.
 
 ## Hot Module Replacement
 
@@ -56,6 +103,16 @@ if (process.send) {
 }
 ```
 
+## Debug Mode
+
+The `--debug` flag enables debug logging and request tracing by setting `LOG_LEVEL=debug` and `VELOX_REQUEST_LOGGING=true`:
+
+```bash
+velox dev --debug
+```
+
+Useful for diagnosing request handling, middleware execution, and route matching.
+
 ## Graceful Shutdown
 
 Add shutdown handlers to prevent connection leaks:
@@ -70,7 +127,12 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 ```
 
+<Aside type="tip">
+All scaffolded templates include graceful shutdown handlers by default.
+</Aside>
+
 ## Related Content
 
+- [Schema Sync](/docs/cli/sync/) - Generate schemas + procedures for all models
 - [Generators](/docs/cli/generators/) - Code scaffolding
 - [Configuration](/docs/core/configuration/) - Server config

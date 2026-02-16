@@ -100,7 +100,7 @@ const result = resource(userWithoutOrg, UserSchema.authenticated);
 
 ## CLI Code Generation
 
-When you run `velox make resource` or `velox make namespace` for a model that has Prisma relations, the CLI automatically detects them and generates `include:` clauses in the Prisma queries:
+When you run `velox sync`, `velox make resource`, or `velox make namespace` for a model that has Prisma relations, the CLI automatically detects them and generates `include:` clauses in the Prisma queries:
 
 ```typescript
 // Generated automatically when Post has relations to User and Comment
