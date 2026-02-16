@@ -1,0 +1,209 @@
+---
+title: Schema Sync
+description: Generate Zod schemas and CRUD procedures for all Prisma models at once.
+---
+
+import { Aside, Steps, Badge } from '@astrojs/starlight/components';
+
+The `velox sync` command reads your entire Prisma schema and interactively generates complete Zod validation schemas and CRUD procedure files for every model — in one shot.
+
+<Aside type="tip" title="When to use sync vs make">
+Use **`velox sync`** when you have multiple Prisma models and want schemas + procedures for all of them. Use **`velox make namespace`** when you're adding a single new model to an existing project.
+</Aside>
+
+## Quick Start
+
+<Steps>
+
+1. Define your Prisma models in `prisma/schema.prisma`
+
+2. Push the schema to your database
+
+   ```bash
+   pnpm db:push
+   ```
+
+3. Run sync
+
+   ```bash
+   velox sync
+   ```
+
+4. Follow the interactive prompts for each model
+
+</Steps>
+
+The command walks you through each model and generates type-safe schemas, procedures, and router registrations.
+
+## How It Works
+
+The sync pipeline has five stages:
+
+```
+  Prisma Schema
+       │
+  1. Analyze ─── Parse models, fields, relations, constraints
+       │
+  2. Detect ──── Scan for existing schema/procedure files
+       │
+  3. Prompt ──── Interactive choices per model
+       │
+  4. Plan ────── Build file generation plan
+       │
+  5. Generate ── Write files + register in router
+```
+
+## Interactive Prompts
+
+For each model, the command asks:
+
+1. **Action** — Generate, regenerate (if files exist), or skip
+2. **Output strategy** — `.output()` (plain Zod) or `.resource()` (visibility tiers)
+3. **CRUD operations** — Which endpoints to generate (get, list, create, update, delete)
+4. **Schema relations** — Which relations to include in the Zod schema
+5. **Query includes** — Which relations to fetch via Prisma `include`
+6. **Field visibility** *(resource strategy only)* — Per-field access level (public, authenticated, admin)
+
+### Output Strategies
+
+**Plain output** generates procedures with `.output(Schema)`:
+
+```typescript
+getPost: procedure()
+  .input(z.object({ id: z.string().uuid() }))
+  .output(PostSchema)
+  .query(async ({ input, ctx }) => {
+    return ctx.db.post.findUniqueOrThrow({
+      where: { id: input.id },
+    });
+  }),
+```
+
+**Resource** generates procedures with `resource()` projection and a `resourceSchema()` with visibility tiers:
+
+```typescript
+// Generated schema with per-field visibility
+export const PostSchema = resourceSchema()
+  .public('id', z.string().uuid())
+  .public('title', z.string())
+  .authenticated('authorId', z.string().uuid())
+  .admin('internalNotes', z.string().nullable())
+  .build();
+
+// Generated procedure using resource projection
+getPost: procedure()
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ input, ctx }) => {
+    const post = await ctx.db.post.findUniqueOrThrow({
+      where: { id: input.id },
+    });
+    return resource(post, PostSchema.public);
+  }),
+```
+
+## Generated Files
+
+For each model, sync creates:
+
+```
+src/
+├── schemas/
+│   └── post.schema.ts       # Zod schemas (base, Create, Update, List)
+└── procedures/
+    └── posts.ts              # CRUD procedures with Prisma queries
+```
+
+And auto-registers the procedures in your router (`src/index.ts`).
+
+### Schema File
+
+The generated schema file includes:
+
+- **Base schema** — All non-sensitive fields with correct Zod types
+- **CreateSchema** — Input fields for creation (excludes auto-managed, sensitive, and user FK fields)
+- **UpdateSchema** — Same fields as Create, all optional
+- **ListSchema** — Pagination with `page` and `perPage` defaults
+- **WithRelationsSchema** *(output strategy with relations)* — Extends base with relation shapes
+
+### Procedure File
+
+The generated procedure file includes whichever CRUD operations you selected:
+
+- **get** — `findUniqueOrThrow` by ID, with relation includes
+- **list** — Paginated `findMany` + `count`, ordered by `createdAt` when available
+- **create** — Auto-injects `ctx.user.id` for user foreign key fields
+- **update** — Merges ID input with update schema
+- **delete** — Supports compound unique keys for join tables
+
+## Smart Defaults
+
+The sync command applies intelligent defaults based on your schema:
+
+- **Join tables** default to only `create` and `delete` operations (no get/list/update)
+- **Models with sensitive fields** (password, token, secret) default to the resource strategy
+- **`belongsTo` relations** are pre-selected for schema inclusion
+- **User foreign key fields** (`userId`, `authorId` referencing User) are auto-injected from context
+
+## CLI Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--dry-run` | `-d` | Preview the generation plan without writing files |
+| `--force` | `-f` | Skip all prompts, generate all models with defaults |
+| `--skip-registration` | | Skip auto-registering procedures in the router |
+
+### Dry Run
+
+Preview what would be generated without writing any files:
+
+```bash
+velox sync --dry-run
+```
+
+### Force Mode
+
+Skip all prompts and generate everything with defaults (output strategy, all CRUD operations):
+
+```bash
+velox sync --force
+```
+
+<Aside type="caution">
+Force mode overwrites existing files. Use `--dry-run` first to preview what will change.
+</Aside>
+
+## Examples
+
+### Syncing a Fresh Project
+
+```bash
+# After defining models in prisma/schema.prisma
+pnpm db:push
+velox sync
+```
+
+Walk through each model interactively, choosing output strategies and CRUD operations.
+
+### Regenerating After Schema Changes
+
+```bash
+# After adding fields or relations to a Prisma model
+pnpm db:push
+velox sync
+```
+
+The command detects existing files and offers to regenerate them while preserving your choices.
+
+### CI/Scripting
+
+```bash
+# Generate all models with defaults, no prompts
+velox sync --force --skip-registration
+```
+
+## Related Content
+
+- [Code Generators](/docs/cli/generators/) - Single-model generators (`velox make`)
+- [Procedures](/docs/endpoints/procedures/) - Procedure API reference
+- [Resource API](/docs/endpoints/resource-api/) - Visibility-based field projection
+- [Nested Relations](/docs/endpoints/nested-relations/) - Auto-detected relation projection

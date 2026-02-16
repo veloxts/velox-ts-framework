@@ -5,7 +5,11 @@ description: Generate boilerplate code with velox make.
 
 import { Aside } from '@astrojs/starlight/components';
 
-The `velox make` command scaffolds common code patterns.
+The `velox make` command scaffolds common code patterns for a single model at a time.
+
+<Aside type="tip" title="Multiple models? Use velox sync">
+If you have multiple Prisma models and want schemas + procedures for all of them at once, use **[`velox sync`](/docs/cli/sync/)** instead. `velox make` is best for adding a single new model to an existing project.
+</Aside>
 
 ## Available Generators
 
@@ -19,9 +23,9 @@ The `velox make` command scaffolds common code patterns.
 | `model` | `m` | Full model setup |
 | `test` | `t`, `spec` | Test files |
 
-## Namespace (Recommended Workflow)
+## Namespace (Single Model)
 
-The fastest way to scaffold a complete API endpoint is:
+The fastest way to scaffold procedures for a single existing Prisma model:
 
 1. Define your Prisma model
 2. Run `velox make namespace`
