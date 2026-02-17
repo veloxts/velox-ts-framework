@@ -63,6 +63,7 @@ export default defineConfig({
             { slug: 'endpoints/procedures' },
             { slug: 'endpoints/resource-api' },
             { slug: 'endpoints/nested-relations' },
+            { slug: 'endpoints/services' },
           ],
         },
         {

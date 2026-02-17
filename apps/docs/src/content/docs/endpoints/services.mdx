@@ -1,0 +1,531 @@
+---
+title: Service Layer
+description: External APIs, transactions, and complex business logic in procedures.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Most documentation shows simple CRUD — fetch a record, return it. Real applications are different: they call payment APIs, send emails, orchestrate multi-step workflows, and handle failures gracefully. Procedures handle all of this. The procedure wrapper manages the HTTP boundary (validation, auth, routing), while the handler is a regular async function where your architecture lives.
+
+## The Service Layer
+
+For anything beyond trivial CRUD, extract business logic into a service layer. Procedures stay thin — they validate, authorize, and delegate:
+
+```
+src/
+├── procedures/
+│   └── orders.ts        # Thin: validate → delegate → respond
+├── services/
+│   ├── orders.ts        # Business logic and orchestration
+│   ├── payments.ts      # Stripe integration
+│   └── notifications.ts # Email and push notifications
+└── lib/
+    └── stripe.ts        # Client configuration
+```
+
+### Configuring External Clients
+
+Create configured clients in `src/lib/`:
+
+```typescript
+// src/lib/stripe.ts
+import Stripe from 'stripe';
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-01-27.acacia',
+});
+```
+
+```typescript
+// src/lib/resend.ts
+import { Resend } from 'resend';
+
+export const resend = new Resend(process.env.RESEND_API_KEY!);
+```
+
+### Writing Services
+
+Services contain the business logic. They receive what they need as arguments — no framework coupling:
+
+```typescript
+// src/services/payments.ts
+import { stripe } from '../lib/stripe.js';
+import type { PrismaClient } from '@prisma/client';
+
+export async function createSubscription(
+  db: PrismaClient,
+  userId: string,
+  priceId: string,
+) {
+  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+
+  // Create or retrieve Stripe customer
+  let stripeCustomerId = user.stripeCustomerId;
+  if (!stripeCustomerId) {
+    const customer = await stripe.customers.create({
+      email: user.email,
+      metadata: { userId: user.id },
+    });
+    stripeCustomerId = customer.id;
+    await db.user.update({
+      where: { id: userId },
+      data: { stripeCustomerId },
+    });
+  }
+
+  // Create subscription
+  const subscription = await stripe.subscriptions.create({
+    customer: stripeCustomerId,
+    items: [{ price: priceId }],
+  });
+
+  // Record locally
+  return db.subscription.create({
+    data: {
+      userId,
+      stripeSubscriptionId: subscription.id,
+      status: subscription.status,
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    },
+  });
+}
+```
+
+### Thin Procedures
+
+The procedure validates input, checks authorization, and calls the service:
+
+```typescript
+// src/procedures/orders.ts
+import { procedures, procedure } from '@veloxts/velox';
+import { z } from '@veloxts/velox';
+import { authenticated } from '@veloxts/auth';
+import { createSubscription } from '../services/payments.js';
+
+export const orderProcedures = procedures('orders', {
+  subscribe: procedure()
+    .input(z.object({ priceId: z.string() }))
+    .guard(authenticated)
+    .mutation(async ({ input, ctx }) => {
+      return createSubscription(ctx.db, ctx.user.id, input.priceId);
+    }),
+});
+```
+
+<Aside type="tip" title="Why This Separation?">
+Services are testable without HTTP — pass a mock `db` and assert the result. Procedures stay thin and focused on the API boundary. This also makes it easy to call the same business logic from a server action, a queue job, or a CLI command.
+</Aside>
+
+## Calling External APIs
+
+Integrating with third-party APIs is straightforward. The handler is async — call whatever you need.
+
+### Direct Imports
+
+For most cases, import configured clients directly:
+
+```typescript
+import { stripe } from '../lib/stripe.js';
+import { resend } from '../lib/resend.js';
+
+export const userProcedures = procedures('users', {
+  createUser: procedure()
+    .input(CreateUserSchema)
+    .mutation(async ({ input, ctx }) => {
+      const user = await ctx.db.user.create({ data: input });
+
+      // Send welcome email via Resend
+      await resend.emails.send({
+        from: 'onboarding@myapp.com',
+        to: user.email,
+        subject: 'Welcome!',
+        html: `<p>Hi ${user.name}, welcome aboard.</p>`,
+      });
+
+      return user;
+    }),
+});
+```
+
+### Context-Based Services
+
+For services that need request-scoped state (tenant ID, trace ID, user locale), register them on the [context](/docs/core/context/) via declaration merging and a plugin. Then access them naturally with `ctx.analytics`, `ctx.logger`, etc. in any procedure handler.
+
+## Multi-Step Mutations
+
+Real write operations often touch multiple tables and services. Use Prisma transactions to keep database operations atomic.
+
+### Database Transactions
+
+```typescript
+// src/services/orders.ts
+import type { PrismaClient } from '@prisma/client';
+import { stripe } from '../lib/stripe.js';
+
+export async function placeOrder(
+  db: PrismaClient,
+  userId: string,
+  items: Array<{ productId: string; quantity: number }>,
+) {
+  return db.$transaction(async (tx) => {
+    // 1. Fetch all products in one query (avoid N+1)
+    const productIds = items.map((i) => i.productId);
+    const products = await tx.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, price: true, stock: true },
+    });
+
+    // 2. Verify stock and calculate total
+    let total = 0;
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    for (const item of items) {
+      const product = productMap.get(item.productId);
+      if (!product) throw new Error(`Product ${item.productId} not found`);
+      if (product.stock < item.quantity) {
+        throw new Error(`Insufficient stock for ${product.name}`);
+      }
+      total += product.price * item.quantity;
+    }
+
+    // 3. Atomically decrement stock (guards against concurrent overselling)
+    for (const item of items) {
+      const updated = await tx.product.updateMany({
+        where: { id: item.productId, stock: { gte: item.quantity } },
+        data: { stock: { decrement: item.quantity } },
+      });
+      if (updated.count === 0) {
+        throw new Error(`Insufficient stock for ${productMap.get(item.productId)!.name}`);
+      }
+    }
+
+    // 4. Create order with nested items
+    return tx.order.create({
+      data: {
+        userId,
+        total,
+        status: 'pending',
+        items: {
+          create: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        },
+      },
+      select: { id: true, userId: true, total: true, status: true, items: true },
+    });
+  });
+}
+```
+
+<Aside type="tip" title="select vs include">
+Prefer `select` over `include` in service layer code. `include: { items: true }` fetches all columns from the relation, while `select` lets you pick only what you need. This reduces data transfer, avoids leaking sensitive fields, and makes return types explicit.
+</Aside>
+
+### Coordinating External Services
+
+When a mutation involves both database changes and external API calls, structure the operation so that the external call happens after the database transaction succeeds — or use a two-phase approach:
+
+```typescript
+// src/services/orders.ts
+export async function placeAndChargeOrder(
+  db: PrismaClient,
+  userId: string,
+  items: Array<{ productId: string; quantity: number }>,
+) {
+  // Phase 1: Create order in database
+  const order = await placeOrder(db, userId, items);
+
+  // Phase 2: Charge payment (external API)
+  try {
+    const charge = await stripe.paymentIntents.create({
+      amount: Math.round(order.total * 100),
+      currency: 'usd',
+      metadata: { orderId: order.id },
+    });
+
+    await db.order.update({
+      where: { id: order.id },
+      data: { status: 'paid', stripePaymentId: charge.id },
+    });
+
+    return { ...order, status: 'paid' };
+  } catch (error) {
+    // Payment failed — mark order accordingly
+    await db.order.update({
+      where: { id: order.id },
+      data: { status: 'payment_failed' },
+    });
+    throw error;
+  }
+}
+```
+
+The procedure stays thin:
+
+```typescript
+placeOrder: procedure()
+  .input(PlaceOrderSchema)
+  .guard(authenticated)
+  .mutation(async ({ input, ctx }) => {
+    return placeAndChargeOrder(ctx.db, ctx.user.id, input.items);
+  }),
+```
+
+## Error Handling
+
+External services fail. Network timeouts, rate limits, and transient errors are inevitable. Handle them explicitly in your services.
+
+### Typed Errors
+
+Use VeloxTS [error classes](/docs/core/error-handling/) to return meaningful HTTP responses:
+
+```typescript
+import { ValidationError, VeloxError } from '@veloxts/core';
+
+class PaymentError extends VeloxError {
+  constructor(message: string) {
+    super(message, 'PAYMENT_FAILED', 402);
+  }
+}
+
+export async function chargeCustomer(db: PrismaClient, userId: string, amount: number) {
+  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+
+  if (!user.stripeCustomerId) {
+    throw new ValidationError('No payment method on file. Please add a card first.');
+  }
+
+  try {
+    return await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      customer: user.stripeCustomerId,
+    });
+  } catch (error) {
+    if (error instanceof Stripe.errors.StripeCardError) {
+      throw new PaymentError(`Payment declined: ${error.message}`);
+    }
+    throw new VeloxError('Payment service unavailable. Please try again.', 'PAYMENT_UNAVAILABLE', 503);
+  }
+}
+```
+
+### Handling Prisma Errors
+
+Catch Prisma-specific errors to return user-friendly messages. The most common is `P2002` — a unique constraint violation (e.g., duplicate email):
+
+```typescript
+import { Prisma } from '@prisma/client';
+import { ConflictError } from '@veloxts/core';
+
+export async function createUser(db: PrismaClient, data: { name: string; email: string }) {
+  try {
+    return await db.user.create({ data });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError
+      && error.code === 'P2002'
+    ) {
+      const fields = (error.meta?.target as string[])?.join(', ') ?? 'unknown field';
+      throw new ConflictError(`A user with this ${fields} already exists.`);
+    }
+    throw error;
+  }
+}
+```
+
+### Retry Logic
+
+For transient failures, wrap calls with a retry helper:
+
+```typescript
+// src/lib/retry.ts
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: { attempts?: number; delayMs?: number } = {},
+): Promise<T> {
+  const { attempts = 3, delayMs = 500 } = options;
+  let lastError: unknown;
+
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (i < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs * 2 ** i));
+      }
+    }
+  }
+
+  throw lastError;
+}
+```
+
+```typescript
+// In a service
+import { withRetry } from '../lib/retry.js';
+
+const result = await withRetry(
+  () => externalApi.sendWebhook(payload),
+  { attempts: 3, delayMs: 1000 },
+);
+```
+
+<Aside type="note">
+For critical background work that must eventually complete (sending emails, syncing with external systems), consider using [`@veloxts/queue`](/docs/ecosystem/queue/) instead of inline retries. Queue jobs retry independently and don't block the HTTP response.
+</Aside>
+
+## Composing Multiple Services
+
+Complex endpoints often orchestrate several services. Keep the procedure as the coordinator, calling services in sequence:
+
+```typescript
+// src/procedures/checkout.ts
+import { createOrder } from '../services/orders.js';
+import { chargePayment } from '../services/payments.js';
+import { sendOrderConfirmation } from '../services/notifications.js';
+import { updateInventory } from '../services/inventory.js';
+
+export const checkoutProcedures = procedures('checkout', {
+  complete: procedure()
+    .input(CheckoutSchema)
+    .guard(authenticated)
+    .mutation(async ({ input, ctx }) => {
+      // 1. Create order (database transaction)
+      const order = await createOrder(ctx.db, ctx.user.id, input.items);
+
+      // 2. Charge payment (Stripe)
+      const payment = await chargePayment(ctx.db, ctx.user.id, order.total);
+
+      // 3. Update inventory (database)
+      await updateInventory(ctx.db, input.items);
+
+      // 4. Send confirmation (non-blocking — don't fail the request if email fails)
+      sendOrderConfirmation(ctx.user.email, order).catch((err) => {
+        console.error('Failed to send order confirmation:', err);
+      });
+
+      return { order, paymentId: payment.id };
+    }),
+});
+```
+
+<Aside type="caution" title="Fire-and-Forget">
+Notice that step 4 uses `.catch()` instead of `await`. This sends the email without blocking the response. If the email fails, the order still succeeds. For critical notifications, use a [queue job](/docs/ecosystem/queue/) instead.
+</Aside>
+
+## Webhook Handlers
+
+Receiving webhooks from external services (Stripe, GitHub, etc.) fits naturally into procedures:
+
+```typescript
+// src/procedures/webhooks.ts
+import { procedures, procedure } from '@veloxts/velox';
+import { z } from '@veloxts/velox';
+import { stripe } from '../lib/stripe.js';
+import { handlePaymentSuccess, handlePaymentFailure } from '../services/payments.js';
+
+export const webhookProcedures = procedures('webhooks', {
+  handleStripe: procedure()
+    .input(z.object({ rawBody: z.string(), signature: z.string() }))
+    .rest({ method: 'POST', path: '/webhooks/stripe' })
+    .mutation(async ({ input, ctx }) => {
+      const event = stripe.webhooks.constructEvent(
+        input.rawBody,
+        input.signature,
+        process.env.STRIPE_WEBHOOK_SECRET!,
+      );
+
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          await handlePaymentSuccess(ctx.db, event.data.object);
+          break;
+        case 'payment_intent.payment_failed':
+          await handlePaymentFailure(ctx.db, event.data.object);
+          break;
+      }
+
+      return { received: true };
+    }),
+});
+```
+
+## Testing
+
+The service layer makes testing straightforward. Services receive `db` as a parameter, so you can pass a mock directly — no HTTP layer needed:
+
+```typescript
+// src/services/__tests__/orders.test.ts
+import { describe, it, expect, vi } from 'vitest';
+import { placeOrder } from '../orders.js';
+
+describe('placeOrder', () => {
+  it('creates order with correct total', async () => {
+    const mockDb = {
+      $transaction: vi.fn((fn) => fn(mockDb)),
+      product: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'prod-1', name: 'Widget', price: 29.99, stock: 10 },
+        ]),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      order: {
+        create: vi.fn().mockResolvedValue({
+          id: 'order-1',
+          total: 59.98,
+          items: [],
+        }),
+      },
+    };
+
+    const order = await placeOrder(mockDb, 'user-1', [
+      { productId: 'prod-1', quantity: 2 },
+    ]);
+
+    expect(order.total).toBe(59.98);
+    expect(mockDb.order.create).toHaveBeenCalledOnce();
+  });
+
+  it('throws when stock is insufficient', async () => {
+    const mockDb = {
+      $transaction: vi.fn((fn) => fn(mockDb)),
+      product: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'prod-1', name: 'Widget', price: 29.99, stock: 0 },
+        ]),
+      },
+    };
+
+    await expect(
+      placeOrder(mockDb, 'user-1', [{ productId: 'prod-1', quantity: 1 }]),
+    ).rejects.toThrow('Insufficient stock');
+  });
+});
+```
+
+For integration tests, use `createTestApp` from `@veloxts/testing` to test procedures through HTTP with `app.inject()`. See [Testing Patterns](/docs/advanced/testing-patterns/) for details.
+
+## Summary
+
+| Concern | Pattern |
+|---------|---------|
+| Business logic | Extract to `src/services/` — procedures delegate |
+| External APIs | Import clients from `src/lib/`, call in services |
+| Request-scoped services | Register on [context](/docs/core/context/) via plugins |
+| Multi-step writes | Prisma `$transaction` for atomicity |
+| Concurrency safety | Atomic `updateMany` with `where` guards, not read-check-write |
+| External + DB coordination | Two-phase: DB first, external second, handle failure |
+| Prisma errors | Catch `PrismaClientKnownRequestError` by code (e.g., `P2002`) |
+| Transient failures | `withRetry` helper or `@veloxts/queue` for background work |
+| Query performance | Prefer `select` over `include`, batch with `findMany` |
+| Webhooks | Procedures with `.rest()` override for custom paths |
+| Testing | Unit test services with mocks, integration test procedures via HTTP |
+
+## Related Content
+
+- [Procedures](/docs/endpoints/procedures/) - Core procedure builder API
+- [Middleware](/docs/router/middleware/) - Cross-cutting concerns
+- [Context](/docs/core/context/) - Request-scoped state
+- [Error Handling](/docs/core/error-handling/) - Error classes and HTTP codes
+- [Queue](/docs/ecosystem/queue/) - Background job processing
