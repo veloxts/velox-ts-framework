@@ -486,6 +486,45 @@ await app.register(databasePlugin({ client: prisma }));
     docsUrl: 'https://veloxts.dev/errors/VELOX-4003',
   },
 
+  'VELOX-4004': {
+    code: 'VELOX-4004',
+    title: 'Unique Constraint Violation',
+    description: 'A database operation failed because it would create a duplicate record.',
+    statusCode: 409,
+    fix: {
+      suggestion: 'Check for existing records before creating, or use upsert.',
+      example: `// Use upsert to handle duplicates gracefully
+const user = await prisma.user.upsert({
+  where: { email: input.email },
+  create: input,
+  update: input,
+});
+
+// Or use the db() wrapper from @veloxts/orm
+import { db } from '@veloxts/orm';
+const user = await db(() => prisma.user.create({ data: input }));
+// Automatically throws ConflictError with field names`,
+    },
+    docsUrl: 'https://veloxts.dev/errors/VELOX-4004',
+  },
+
+  'VELOX-4005': {
+    code: 'VELOX-4005',
+    title: 'Foreign Key Constraint Violation',
+    description: 'A database operation failed because a related record does not exist.',
+    statusCode: 400,
+    fix: {
+      suggestion: 'Verify that all referenced records exist before creating or updating.',
+      example: `// Check related record exists first
+const post = await prisma.post.findUnique({ where: { id: input.postId } });
+if (!post) throw new NotFoundError('Post', input.postId);
+
+// Then create the comment
+const comment = await prisma.comment.create({ data: input });`,
+    },
+    docsUrl: 'https://veloxts.dev/errors/VELOX-4005',
+  },
+
   // ==========================================================================
   // VALIDATION ERRORS (5XXX)
   // ==========================================================================

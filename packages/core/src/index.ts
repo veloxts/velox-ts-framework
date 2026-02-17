@@ -47,8 +47,8 @@ export {
   assertNever,
   ConfigurationError,
   ConflictError,
-  fail,
   ForbiddenError,
+  fail,
   isConfigurationError,
   isConflictError,
   isForbiddenError,
@@ -73,8 +73,20 @@ export {
   VeloxError,
   VeloxFailure,
 } from './errors.js';
-export type { InferPluginOptions, PluginMetadata, PluginOptions, VeloxPlugin } from './plugin.js';
-export { definePlugin, isFastifyPlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
+export type {
+  ContextPluginConfig,
+  InferPluginOptions,
+  PluginMetadata,
+  PluginOptions,
+  VeloxPlugin,
+} from './plugin.js';
+export {
+  defineContextPlugin,
+  definePlugin,
+  isFastifyPlugin,
+  isVeloxPlugin,
+  validatePluginMetadata,
+} from './plugin.js';
 export type {
   AsyncHandler,
   JsonArray,
@@ -116,6 +128,12 @@ export type {
 
 export type { CacheControl, StaticOptions } from './plugins/static.js';
 export { registerStatic } from './plugins/static.js';
+
+// ============================================================================
+// Raw Body (Webhook Support)
+// ============================================================================
+
+export { rawBodyPlugin } from './plugins/raw-body.js';
 
 // ============================================================================
 // Request Logging (Development)

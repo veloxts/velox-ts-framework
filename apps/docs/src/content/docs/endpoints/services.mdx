@@ -149,7 +149,23 @@ export const userProcedures = procedures('users', {
 
 ### Context-Based Services
 
-For services that need request-scoped state (tenant ID, trace ID, user locale), register them on the [context](/docs/core/context/) via declaration merging and a plugin. Then access them naturally with `ctx.analytics`, `ctx.logger`, etc. in any procedure handler.
+For services that need request-scoped state (tenant ID, trace ID, user locale), use `defineContextPlugin` from `@veloxts/core` to inject them into the request context:
+
+```typescript
+import { defineContextPlugin } from '@veloxts/core';
+
+export const analyticsPlugin = defineContextPlugin({
+  name: '@myapp/analytics',
+  version: '1.0.0',
+  contextKey: 'analytics',
+  create: () => new Analytics(process.env.ANALYTICS_KEY!),
+  close: (a) => a.flush(),
+});
+
+// After registration: ctx.analytics.track(...) in any procedure handler
+```
+
+This eliminates the boilerplate of `Symbol.for()`, `decorateRequest()`, and `addHook()` that context-injecting plugins require. For full details, see [Context](/docs/core/context/).
 
 ## Multi-Step Mutations
 
@@ -277,16 +293,16 @@ External services fail. Network timeouts, rate limits, and transient errors are 
 
 ### Typed Errors
 
-Use VeloxTS [error classes](/docs/core/error-handling/) to return meaningful HTTP responses:
+Use VeloxTS [error classes](/docs/core/error-handling/) to return meaningful HTTP responses. The framework provides built-in error classes for common HTTP status codes:
 
 ```typescript
-import { ValidationError, VeloxError } from '@veloxts/core';
-
-class PaymentError extends VeloxError {
-  constructor(message: string) {
-    super(message, 'PAYMENT_FAILED', 402);
-  }
-}
+import {
+  ConflictError,
+  ServiceUnavailableError,
+  UnprocessableEntityError,
+  ValidationError,
+  VeloxError,
+} from '@veloxts/core';
 
 export async function chargeCustomer(db: PrismaClient, userId: string, amount: number) {
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
@@ -303,72 +319,75 @@ export async function chargeCustomer(db: PrismaClient, userId: string, amount: n
     });
   } catch (error) {
     if (error instanceof Stripe.errors.StripeCardError) {
-      throw new PaymentError(`Payment declined: ${error.message}`);
+      throw new UnprocessableEntityError(`Payment declined: ${error.message}`);
     }
-    throw new VeloxError('Payment service unavailable. Please try again.', 'PAYMENT_UNAVAILABLE', 503);
+    throw new ServiceUnavailableError('Payment service unavailable. Please try again.');
   }
 }
 ```
 
+Available error classes: `ConflictError` (409), `ForbiddenError` (403), `UnauthorizedError` (401), `ServiceUnavailableError` (503), `TooManyRequestsError` (429), `UnprocessableEntityError` (422), plus existing `ValidationError` (400) and `NotFoundError` (404).
+
 ### Handling Prisma Errors
 
-Catch Prisma-specific errors to return user-friendly messages. The most common is `P2002` — a unique constraint violation (e.g., duplicate email):
+Use the `db()` wrapper from `@veloxts/orm` to automatically convert Prisma errors into appropriate VeloxTS error classes:
 
 ```typescript
-import { Prisma } from '@prisma/client';
+import { db } from '@veloxts/orm';
+
+export async function createUser(prisma: PrismaClient, data: { name: string; email: string }) {
+  // P2002 → ConflictError, P2025 → NotFoundError, P2003 → ValidationError
+  return db(() => prisma.user.create({ data }));
+}
+```
+
+The `db()` wrapper handles the most common Prisma errors automatically. For custom error messages, catch and re-throw:
+
+```typescript
+import { db, handlePrismaError } from '@veloxts/orm';
 import { ConflictError } from '@veloxts/core';
 
-export async function createUser(db: PrismaClient, data: { name: string; email: string }) {
+export async function createTeamMember(prisma: PrismaClient, data: { email: string; teamId: string }) {
   try {
-    return await db.user.create({ data });
+    return await prisma.teamMember.create({ data });
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError
-      && error.code === 'P2002'
-    ) {
-      const fields = (error.meta?.target as string[])?.join(', ') ?? 'unknown field';
-      throw new ConflictError(`A user with this ${fields} already exists.`);
-    }
-    throw error;
+    // Custom message for this specific context
+    handlePrismaError(error); // throws ConflictError, NotFoundError, etc.
   }
 }
 ```
 
 ### Retry Logic
 
-For transient failures, wrap calls with a retry helper:
+For transient failures, use the built-in `withRetry` utility:
 
 ```typescript
-// src/lib/retry.ts
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: { attempts?: number; delayMs?: number } = {},
-): Promise<T> {
-  const { attempts = 3, delayMs = 500 } = options;
-  let lastError: unknown;
-
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      if (i < attempts - 1) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs * 2 ** i));
-      }
-    }
-  }
-
-  throw lastError;
-}
-```
-
-```typescript
-// In a service
-import { withRetry } from '../lib/retry.js';
+import { withRetry } from '@veloxts/core';
 
 const result = await withRetry(
   () => externalApi.sendWebhook(payload),
-  { attempts: 3, delayMs: 1000 },
+  { attempts: 3, delayMs: 1000, exponential: true },
+);
+```
+
+Use `retryIf` to avoid retrying non-transient errors (like 400 Bad Request):
+
+```typescript
+const result = await withRetry(
+  () => stripe.paymentIntents.create({ amount, currency: 'usd' }),
+  {
+    attempts: 3,
+    retryIf: (error) => {
+      // Only retry server errors, not client errors
+      if (error instanceof Stripe.errors.StripeError) {
+        return error.statusCode !== undefined && error.statusCode >= 500;
+      }
+      return true;
+    },
+    onRetry: (error, attempt) => {
+      console.warn(`Stripe retry ${attempt}:`, error);
+    },
+  },
 );
 ```
 
@@ -382,6 +401,7 @@ Complex endpoints often orchestrate several services. Keep the procedure as the 
 
 ```typescript
 // src/procedures/checkout.ts
+import { fireAndForget } from '@veloxts/core';
 import { createOrder } from '../services/orders.js';
 import { chargePayment } from '../services/payments.js';
 import { sendOrderConfirmation } from '../services/notifications.js';
@@ -402,22 +422,23 @@ export const checkoutProcedures = procedures('checkout', {
       await updateInventory(ctx.db, input.items);
 
       // 4. Send confirmation (non-blocking — don't fail the request if email fails)
-      sendOrderConfirmation(ctx.user.email, order).catch((err) => {
-        console.error('Failed to send order confirmation:', err);
-      });
+      fireAndForget(
+        sendOrderConfirmation(ctx.user.email, order),
+        { label: 'order-confirmation' },
+      );
 
       return { order, paymentId: payment.id };
     }),
 });
 ```
 
-<Aside type="caution" title="Fire-and-Forget">
-Notice that step 4 uses `.catch()` instead of `await`. This sends the email without blocking the response. If the email fails, the order still succeeds. For critical notifications, use a [queue job](/docs/ecosystem/queue/) instead.
+<Aside type="tip" title="Fire-and-Forget">
+`fireAndForget()` from `@veloxts/core` runs a promise without blocking the response. Errors are automatically logged with the label you provide — no manual `.catch()` needed. For critical work that must eventually complete, use a [queue job](/docs/ecosystem/queue/) instead.
 </Aside>
 
 ## Webhook Handlers
 
-Receiving webhooks from external services (Stripe, GitHub, etc.) fits naturally into procedures:
+Receiving webhooks from external services (Stripe, GitHub, etc.) fits naturally into procedures. Use `.webhook()` to define a POST endpoint at a custom path:
 
 ```typescript
 // src/procedures/webhooks.ts
@@ -429,7 +450,7 @@ import { handlePaymentSuccess, handlePaymentFailure } from '../services/payments
 export const webhookProcedures = procedures('webhooks', {
   handleStripe: procedure()
     .input(z.object({ rawBody: z.string(), signature: z.string() }))
-    .rest({ method: 'POST', path: '/webhooks/stripe' })
+    .webhook('/webhooks/stripe')
     .mutation(async ({ input, ctx }) => {
       const event = stripe.webhooks.constructEvent(
         input.rawBody,
@@ -450,6 +471,10 @@ export const webhookProcedures = procedures('webhooks', {
     }),
 });
 ```
+
+<Aside type="note" title="Raw Body for Signature Verification">
+Webhook signature verification (Stripe, GitHub, etc.) requires the raw request body as a Buffer. Register the `rawBodyPlugin` from `@veloxts/core` to make `request.rawBody` available for HMAC verification.
+</Aside>
 
 ## Testing
 
@@ -512,14 +537,15 @@ For integration tests, use `createTestApp` from `@veloxts/testing` to test proce
 |---------|---------|
 | Business logic | Extract to `src/services/` — procedures delegate |
 | External APIs | Import clients from `src/lib/`, call in services |
-| Request-scoped services | Register on [context](/docs/core/context/) via plugins |
+| Request-scoped services | `defineContextPlugin()` from `@veloxts/core` |
 | Multi-step writes | Prisma `$transaction` for atomicity |
 | Concurrency safety | Atomic `updateMany` with `where` guards, not read-check-write |
 | External + DB coordination | Two-phase: DB first, external second, handle failure |
-| Prisma errors | Catch `PrismaClientKnownRequestError` by code (e.g., `P2002`) |
-| Transient failures | `withRetry` helper or `@veloxts/queue` for background work |
+| Prisma errors | `db()` wrapper from `@veloxts/orm` for automatic conversion |
+| Transient failures | `withRetry` from `@veloxts/core` or `@veloxts/queue` for background work |
+| Non-blocking side effects | `fireAndForget()` from `@veloxts/core` |
 | Query performance | Prefer `select` over `include`, batch with `findMany` |
-| Webhooks | Procedures with `.rest()` override for custom paths |
+| Webhooks | `.webhook()` builder method for custom POST endpoints |
 | Testing | Unit test services with mocks, integration test procedures via HTTP |
 
 ## Related Content

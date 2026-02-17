@@ -17,10 +17,7 @@ describe('withRetry', () => {
   });
 
   it('should retry on failure and succeed', async () => {
-    const fn = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('fail'))
-      .mockResolvedValue('ok');
+    const fn = vi.fn().mockRejectedValueOnce(new Error('fail')).mockResolvedValue('ok');
 
     const result = await withRetry(fn, { delayMs: 1 });
 

@@ -180,6 +180,47 @@ describe('Procedure Builder', () => {
     });
   });
 
+  describe('webhook()', () => {
+    it('should set REST override with POST method and path', () => {
+      const proc = procedure()
+        .webhook('/webhooks/stripe')
+        .mutation(async () => ({ received: true }));
+
+      expect(proc.restOverride).toEqual({
+        method: 'POST',
+        path: '/webhooks/stripe',
+      });
+      expect(proc.isWebhook).toBe(true);
+    });
+
+    it('should set isWebhook flag', () => {
+      const proc = procedure()
+        .webhook('/webhooks/github')
+        .mutation(async () => ({ ok: true }));
+
+      expect(proc.isWebhook).toBe(true);
+    });
+
+    it('should work with input schema', () => {
+      const proc = procedure()
+        .input(z.object({ event: z.string() }))
+        .webhook('/webhooks/custom')
+        .mutation(async ({ input }) => ({ event: input.event }));
+
+      expect(proc.restOverride?.path).toBe('/webhooks/custom');
+      expect(proc.isWebhook).toBe(true);
+      expect(proc.inputSchema).toBeDefined();
+    });
+
+    it('should not set isWebhook when using rest()', () => {
+      const proc = procedure()
+        .rest({ method: 'POST', path: '/custom' })
+        .mutation(async () => ({ ok: true }));
+
+      expect(proc.isWebhook).toBeUndefined();
+    });
+  });
+
   describe('query()', () => {
     it('should create a query procedure', () => {
       const proc = procedure().query(async () => ({ data: 'test' }));

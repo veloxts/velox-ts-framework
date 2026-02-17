@@ -219,6 +219,17 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
+     * Configures the procedure as a webhook endpoint
+     */
+    webhook(path: string): ProcedureBuilder<TInput, TOutput, TContext> {
+      return createBuilder<TInput, TOutput, TContext>({
+        ...state,
+        restOverride: { method: 'POST', path },
+        isWebhook: true,
+      });
+    },
+
+    /**
      * Marks the procedure as deprecated
      */
     deprecated(message?: string): ProcedureBuilder<TInput, TOutput, TContext> {
@@ -345,6 +356,7 @@ function compileProcedure<
     restOverride: state.restOverride,
     deprecated: state.deprecated,
     deprecationMessage: state.deprecationMessage,
+    isWebhook: state.isWebhook,
     parentResource: state.parentResource,
     parentResources: state.parentResources,
     // Store pre-compiled executor for performance

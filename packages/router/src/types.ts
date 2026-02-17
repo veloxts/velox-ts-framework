@@ -356,6 +356,8 @@ export interface CompiledProcedure<
   readonly deprecated?: boolean;
   /** Deprecation message explaining why and what to use instead */
   readonly deprecationMessage?: string;
+  /** Whether this procedure is a webhook endpoint */
+  readonly isWebhook?: boolean;
   /**
    * Parent resource configuration for nested routes (single level)
    *

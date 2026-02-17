@@ -36,10 +36,7 @@ export interface FireAndForgetOptions {
  * return user; // Returns immediately
  * ```
  */
-export function fireAndForget(
-  promise: Promise<unknown>,
-  options?: FireAndForgetOptions
-): void {
+export function fireAndForget(promise: Promise<unknown>, options?: FireAndForgetOptions): void {
   const { label, onError } = options ?? {};
 
   promise.catch((error: unknown) => {

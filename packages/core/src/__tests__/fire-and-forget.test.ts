@@ -44,9 +44,7 @@ describe('fireAndForget', () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     const callArgs = consoleSpy.mock.calls[0];
-    expect(callArgs.some((arg) => typeof arg === 'string' && arg.includes('analytics'))).toBe(
-      true
-    );
+    expect(callArgs.some((arg) => typeof arg === 'string' && arg.includes('analytics'))).toBe(true);
     consoleSpy.mockRestore();
   });
 
