@@ -116,32 +116,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Retry a function with exponential backoff.
+ * Re-export withRetry from @veloxts/core.
+ * @deprecated Import from '@veloxts/core' instead.
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: {
-    attempts: number;
-    backoff: { type: 'fixed' | 'exponential'; delay: number };
-  }
-): Promise<T> {
-  let lastError: Error | undefined;
-
-  for (let attempt = 1; attempt <= options.attempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-
-      if (attempt < options.attempts) {
-        const delay =
-          options.backoff.type === 'exponential'
-            ? options.backoff.delay * 2 ** (attempt - 1)
-            : options.backoff.delay;
-        await sleep(delay);
-      }
-    }
-  }
-
-  throw lastError;
-}
+export { withRetry } from '@veloxts/core';

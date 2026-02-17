@@ -31,11 +31,13 @@ export type { BaseContext } from './context.js';
 export { createContext, isContext, setupContextHook, setupTestContext } from './context.js';
 // Error handling
 export type {
+  ConflictErrorResponse,
   ErrorCode,
   ErrorResponse,
   GenericErrorResponse,
   InterpolationVars,
   NotFoundErrorResponse,
+  TooManyRequestsErrorResponse,
   ValidationErrorResponse,
   VeloxCoreErrorCode,
   VeloxErrorCode,
@@ -44,10 +46,18 @@ export type {
 export {
   assertNever,
   ConfigurationError,
+  ConflictError,
   fail,
+  ForbiddenError,
   isConfigurationError,
+  isConflictError,
+  isForbiddenError,
   isNotFoundError,
   isNotFoundErrorResponse,
+  isServiceUnavailableError,
+  isTooManyRequestsError,
+  isUnauthorizedError,
+  isUnprocessableEntityError,
   isValidationError,
   isValidationErrorResponse,
   isVeloxError,
@@ -55,6 +65,10 @@ export {
   logDeprecation,
   logWarning,
   NotFoundError,
+  ServiceUnavailableError,
+  TooManyRequestsError,
+  UnauthorizedError,
+  UnprocessableEntityError,
   ValidationError,
   VeloxError,
   VeloxFailure,
@@ -115,3 +129,12 @@ export { requestLogger } from './plugins/request-logger.js';
 
 export type { Logger, LogLevel } from './utils/logger.js';
 export { createLogger } from './utils/logger.js';
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
+export type { FireAndForgetOptions } from './utils/fire-and-forget.js';
+export { fireAndForget } from './utils/fire-and-forget.js';
+export type { RetryOptions } from './utils/retry.js';
+export { withRetry } from './utils/retry.js';

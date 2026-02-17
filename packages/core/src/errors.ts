@@ -46,6 +46,12 @@ export {
 export type VeloxCoreErrorCode =
   | 'VALIDATION_ERROR'
   | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'FORBIDDEN'
+  | 'UNAUTHORIZED'
+  | 'SERVICE_UNAVAILABLE'
+  | 'RATE_LIMITED'
+  | 'UNPROCESSABLE'
   | 'CONFIGURATION_ERROR'
   | 'PLUGIN_REGISTRATION_ERROR'
   | 'SERVER_ALREADY_RUNNING'
@@ -119,6 +125,26 @@ export interface NotFoundErrorResponse extends BaseErrorResponse {
 }
 
 /**
+ * Conflict error response with field details
+ */
+export interface ConflictErrorResponse extends BaseErrorResponse {
+  error: 'ConflictError';
+  statusCode: 409;
+  code: 'CONFLICT';
+  fields?: string[];
+}
+
+/**
+ * Too many requests error response with retry timing
+ */
+export interface TooManyRequestsErrorResponse extends BaseErrorResponse {
+  error: 'TooManyRequestsError';
+  statusCode: 429;
+  code: 'RATE_LIMITED';
+  retryAfter?: number;
+}
+
+/**
  * Generic VeloxTS error response for all other errors
  */
 export interface GenericErrorResponse extends BaseErrorResponse {
@@ -141,7 +167,12 @@ export interface GenericErrorResponse extends BaseErrorResponse {
  * }
  * ```
  */
-export type ErrorResponse = ValidationErrorResponse | NotFoundErrorResponse | GenericErrorResponse;
+export type ErrorResponse =
+  | ValidationErrorResponse
+  | NotFoundErrorResponse
+  | ConflictErrorResponse
+  | TooManyRequestsErrorResponse
+  | GenericErrorResponse;
 
 /**
  * Type guard for validation error responses
@@ -438,6 +469,161 @@ export class NotFoundError extends VeloxError<'NOT_FOUND'> {
   }
 }
 
+/**
+ * Conflict error for duplicate resources
+ *
+ * Used when an operation would violate a uniqueness constraint
+ * (e.g., creating a user with an email that already exists)
+ *
+ * @example
+ * ```typescript
+ * throw new ConflictError('A user with this email already exists', ['email']);
+ * ```
+ */
+export class ConflictError extends VeloxError<'CONFLICT'> {
+  public readonly fields?: string[];
+
+  constructor(message: string, fields?: string[]) {
+    super(message, 409, 'CONFLICT');
+    this.name = 'ConflictError';
+    this.fields = fields;
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ConflictError);
+    }
+  }
+
+  override toJSON(): ConflictErrorResponse {
+    return {
+      error: 'ConflictError',
+      message: this.message,
+      statusCode: 409,
+      code: 'CONFLICT',
+      fields: this.fields,
+    };
+  }
+}
+
+/**
+ * Forbidden error for insufficient permissions
+ *
+ * Used when an authenticated user lacks the required permissions
+ * for an operation (different from UnauthorizedError which means not authenticated)
+ *
+ * @example
+ * ```typescript
+ * throw new ForbiddenError('You do not have permission to delete this resource');
+ * ```
+ */
+export class ForbiddenError extends VeloxError<'FORBIDDEN'> {
+  constructor(message: string = 'Forbidden') {
+    super(message, 403, 'FORBIDDEN');
+    this.name = 'ForbiddenError';
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ForbiddenError);
+    }
+  }
+}
+
+/**
+ * Unauthorized error for missing or invalid authentication
+ *
+ * Used when a request lacks valid authentication credentials
+ *
+ * @example
+ * ```typescript
+ * throw new UnauthorizedError('Invalid or expired token');
+ * ```
+ */
+export class UnauthorizedError extends VeloxError<'UNAUTHORIZED'> {
+  constructor(message: string = 'Unauthorized') {
+    super(message, 401, 'UNAUTHORIZED');
+    this.name = 'UnauthorizedError';
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, UnauthorizedError);
+    }
+  }
+}
+
+/**
+ * Service unavailable error for downstream failures
+ *
+ * Used when an external service or dependency is unreachable
+ *
+ * @example
+ * ```typescript
+ * throw new ServiceUnavailableError('Payment gateway is temporarily unavailable');
+ * ```
+ */
+export class ServiceUnavailableError extends VeloxError<'SERVICE_UNAVAILABLE'> {
+  constructor(message: string = 'Service unavailable') {
+    super(message, 503, 'SERVICE_UNAVAILABLE');
+    this.name = 'ServiceUnavailableError';
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ServiceUnavailableError);
+    }
+  }
+}
+
+/**
+ * Too many requests error for rate limiting
+ *
+ * Used when a client exceeds the allowed request rate
+ *
+ * @example
+ * ```typescript
+ * throw new TooManyRequestsError('Rate limit exceeded', 60);
+ * ```
+ */
+export class TooManyRequestsError extends VeloxError<'RATE_LIMITED'> {
+  public readonly retryAfter?: number;
+
+  constructor(message: string = 'Too many requests', retryAfter?: number) {
+    super(message, 429, 'RATE_LIMITED');
+    this.name = 'TooManyRequestsError';
+    this.retryAfter = retryAfter;
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, TooManyRequestsError);
+    }
+  }
+
+  override toJSON(): TooManyRequestsErrorResponse {
+    return {
+      error: 'TooManyRequestsError',
+      message: this.message,
+      statusCode: 429,
+      code: 'RATE_LIMITED',
+      retryAfter: this.retryAfter,
+    };
+  }
+}
+
+/**
+ * Unprocessable entity error for semantically invalid requests
+ *
+ * Used when the request is syntactically valid but semantically wrong
+ * (e.g., trying to publish a draft that has no content)
+ *
+ * @example
+ * ```typescript
+ * throw new UnprocessableEntityError('Cannot publish a post without content');
+ * ```
+ */
+export class UnprocessableEntityError extends VeloxError<'UNPROCESSABLE'> {
+  constructor(message: string) {
+    super(message, 422, 'UNPROCESSABLE');
+    this.name = 'UnprocessableEntityError';
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, UnprocessableEntityError);
+    }
+  }
+}
+
 // ============================================================================
 // Type Guards
 // ============================================================================
@@ -491,6 +677,48 @@ export function isNotFoundError(error: unknown): error is NotFoundError {
  */
 export function isConfigurationError(error: unknown): error is ConfigurationError {
   return error instanceof ConfigurationError;
+}
+
+/**
+ * Type guard to check if an error is a ConflictError
+ */
+export function isConflictError(error: unknown): error is ConflictError {
+  return error instanceof ConflictError;
+}
+
+/**
+ * Type guard to check if an error is a ForbiddenError
+ */
+export function isForbiddenError(error: unknown): error is ForbiddenError {
+  return error instanceof ForbiddenError;
+}
+
+/**
+ * Type guard to check if an error is an UnauthorizedError
+ */
+export function isUnauthorizedError(error: unknown): error is UnauthorizedError {
+  return error instanceof UnauthorizedError;
+}
+
+/**
+ * Type guard to check if an error is a ServiceUnavailableError
+ */
+export function isServiceUnavailableError(error: unknown): error is ServiceUnavailableError {
+  return error instanceof ServiceUnavailableError;
+}
+
+/**
+ * Type guard to check if an error is a TooManyRequestsError
+ */
+export function isTooManyRequestsError(error: unknown): error is TooManyRequestsError {
+  return error instanceof TooManyRequestsError;
+}
+
+/**
+ * Type guard to check if an error is an UnprocessableEntityError
+ */
+export function isUnprocessableEntityError(error: unknown): error is UnprocessableEntityError {
+  return error instanceof UnprocessableEntityError;
 }
 
 // ============================================================================
