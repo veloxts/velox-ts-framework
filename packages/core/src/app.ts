@@ -8,7 +8,7 @@ import fastify, { type FastifyInstance, type FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin';
 
 import { setupContextHook } from './context.js';
-import { isVeloxError, VeloxError } from './errors.js';
+import { ConflictError, isVeloxError, VeloxError } from './errors.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
 import { isFastifyPlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
 import { requestLogger } from './plugins/request-logger.js';
@@ -166,13 +166,17 @@ export class VeloxApp {
           'code' in error &&
           error.code === 'P2002'
         ) {
-          const prismaError = error as Error & { meta?: { target?: string[] } };
-          const fields = prismaError.meta?.target?.join(', ') ?? 'field';
-          return reply.status(409).send({
-            error: 'ConflictError',
-            message: `A record with this ${fields} already exists`,
-            statusCode: 409,
-          });
+          const meta =
+            'meta' in error && typeof error.meta === 'object' && error.meta !== null
+              ? (error.meta as Record<string, unknown>)
+              : undefined;
+          const target = Array.isArray(meta?.target) ? (meta.target as string[]) : [];
+          const fieldNames = target.length > 0 ? target.join(', ') : 'field';
+          const conflictError = new ConflictError(
+            `A record with this ${fieldNames} already exists`,
+            target.length > 0 ? target : undefined
+          );
+          return reply.status(conflictError.statusCode).send(conflictError.toJSON());
         }
 
         let statusCode = 500;

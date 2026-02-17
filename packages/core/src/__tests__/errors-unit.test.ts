@@ -8,13 +8,25 @@ import { describe, expect, it } from 'vitest';
 import {
   assertNever,
   ConfigurationError,
+  ConflictError,
+  ForbiddenError,
   isConfigurationError,
+  isConflictError,
+  isForbiddenError,
   isNotFoundError,
   isNotFoundErrorResponse,
+  isServiceUnavailableError,
+  isTooManyRequestsError,
+  isUnauthorizedError,
+  isUnprocessableEntityError,
   isValidationError,
   isValidationErrorResponse,
   isVeloxError,
   NotFoundError,
+  ServiceUnavailableError,
+  TooManyRequestsError,
+  UnauthorizedError,
+  UnprocessableEntityError,
   ValidationError,
   VeloxError,
 } from '../errors.js';
@@ -175,6 +187,150 @@ describe('Error Classes - Unit Tests', () => {
       });
     });
   });
+
+  describe('ConflictError', () => {
+    it('should create conflict error with correct defaults', () => {
+      const error = new ConflictError('Duplicate email');
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect(error).toBeInstanceOf(VeloxError);
+      expect(error.message).toBe('Duplicate email');
+      expect(error.statusCode).toBe(409);
+      expect(error.code).toBe('CONFLICT');
+      expect(error.name).toBe('ConflictError');
+      expect(error.fields).toBeUndefined();
+    });
+
+    it('should include field names when provided', () => {
+      const error = new ConflictError('Duplicate entry', ['email', 'username']);
+
+      expect(error.fields).toEqual(['email', 'username']);
+    });
+
+    it('should serialize to JSON with and without fields', () => {
+      const withFields = new ConflictError('Duplicate', ['email']);
+      const withoutFields = new ConflictError('Duplicate');
+
+      expect(withFields.toJSON()).toEqual({
+        error: 'ConflictError',
+        message: 'Duplicate',
+        statusCode: 409,
+        code: 'CONFLICT',
+        fields: ['email'],
+      });
+
+      expect(withoutFields.toJSON()).toEqual({
+        error: 'ConflictError',
+        message: 'Duplicate',
+        statusCode: 409,
+        code: 'CONFLICT',
+        fields: undefined,
+      });
+    });
+  });
+
+  describe('ForbiddenError', () => {
+    it('should create forbidden error with default message', () => {
+      const error = new ForbiddenError();
+
+      expect(error).toBeInstanceOf(ForbiddenError);
+      expect(error).toBeInstanceOf(VeloxError);
+      expect(error.message).toBe('Forbidden');
+      expect(error.statusCode).toBe(403);
+      expect(error.code).toBe('FORBIDDEN');
+      expect(error.name).toBe('ForbiddenError');
+    });
+
+    it('should accept custom message', () => {
+      const error = new ForbiddenError('Admin access required');
+
+      expect(error.message).toBe('Admin access required');
+      expect(error.statusCode).toBe(403);
+    });
+  });
+
+  describe('UnauthorizedError', () => {
+    it('should create unauthorized error with default message', () => {
+      const error = new UnauthorizedError();
+
+      expect(error).toBeInstanceOf(UnauthorizedError);
+      expect(error).toBeInstanceOf(VeloxError);
+      expect(error.message).toBe('Unauthorized');
+      expect(error.statusCode).toBe(401);
+      expect(error.code).toBe('UNAUTHORIZED');
+      expect(error.name).toBe('UnauthorizedError');
+    });
+
+    it('should accept custom message', () => {
+      const error = new UnauthorizedError('Token expired');
+
+      expect(error.message).toBe('Token expired');
+    });
+  });
+
+  describe('ServiceUnavailableError', () => {
+    it('should create service unavailable error with default message', () => {
+      const error = new ServiceUnavailableError();
+
+      expect(error).toBeInstanceOf(ServiceUnavailableError);
+      expect(error).toBeInstanceOf(VeloxError);
+      expect(error.message).toBe('Service unavailable');
+      expect(error.statusCode).toBe(503);
+      expect(error.code).toBe('SERVICE_UNAVAILABLE');
+      expect(error.name).toBe('ServiceUnavailableError');
+    });
+
+    it('should accept custom message', () => {
+      const error = new ServiceUnavailableError('Payment gateway down');
+
+      expect(error.message).toBe('Payment gateway down');
+    });
+  });
+
+  describe('TooManyRequestsError', () => {
+    it('should create rate limit error with default message', () => {
+      const error = new TooManyRequestsError();
+
+      expect(error).toBeInstanceOf(TooManyRequestsError);
+      expect(error).toBeInstanceOf(VeloxError);
+      expect(error.message).toBe('Too many requests');
+      expect(error.statusCode).toBe(429);
+      expect(error.code).toBe('RATE_LIMITED');
+      expect(error.name).toBe('TooManyRequestsError');
+      expect(error.retryAfter).toBeUndefined();
+    });
+
+    it('should include retryAfter when provided', () => {
+      const error = new TooManyRequestsError('Slow down', 60);
+
+      expect(error.retryAfter).toBe(60);
+    });
+
+    it('should serialize to JSON with retryAfter', () => {
+      const error = new TooManyRequestsError('Rate limit exceeded', 120);
+
+      expect(error.toJSON()).toEqual({
+        error: 'TooManyRequestsError',
+        message: 'Rate limit exceeded',
+        statusCode: 429,
+        code: 'RATE_LIMITED',
+        retryAfter: 120,
+      });
+    });
+  });
+
+  describe('UnprocessableEntityError', () => {
+    it('should create unprocessable entity error', () => {
+      const error = new UnprocessableEntityError('Cannot publish empty post');
+
+      expect(error).toBeInstanceOf(UnprocessableEntityError);
+      expect(error).toBeInstanceOf(VeloxError);
+      expect(error.message).toBe('Cannot publish empty post');
+      expect(error.statusCode).toBe(422);
+      expect(error.code).toBe('UNPROCESSABLE');
+      expect(error.name).toBe('UnprocessableEntityError');
+    });
+  });
 });
 
 describe('Error Type Guards', () => {
@@ -184,6 +340,12 @@ describe('Error Type Guards', () => {
     validation: new ValidationError('test'),
     notFound: new NotFoundError('test'),
     config: new ConfigurationError('test'),
+    conflict: new ConflictError('test'),
+    forbidden: new ForbiddenError('test'),
+    unauthorized: new UnauthorizedError('test'),
+    serviceUnavailable: new ServiceUnavailableError('test'),
+    tooManyRequests: new TooManyRequestsError('test'),
+    unprocessable: new UnprocessableEntityError('test'),
     standard: new Error('test'),
   };
 
@@ -195,6 +357,12 @@ describe('Error Type Guards', () => {
       expect(isVeloxError(allErrors.validation)).toBe(true);
       expect(isVeloxError(allErrors.notFound)).toBe(true);
       expect(isVeloxError(allErrors.config)).toBe(true);
+      expect(isVeloxError(allErrors.conflict)).toBe(true);
+      expect(isVeloxError(allErrors.forbidden)).toBe(true);
+      expect(isVeloxError(allErrors.unauthorized)).toBe(true);
+      expect(isVeloxError(allErrors.serviceUnavailable)).toBe(true);
+      expect(isVeloxError(allErrors.tooManyRequests)).toBe(true);
+      expect(isVeloxError(allErrors.unprocessable)).toBe(true);
     });
 
     it('should return false for non-VeloxError values', () => {
@@ -251,6 +419,88 @@ describe('Error Type Guards', () => {
       expect(isConfigurationError(allErrors.standard)).toBe(false);
       for (const value of invalidValues) {
         expect(isConfigurationError(value)).toBe(false);
+      }
+    });
+  });
+
+  describe('isConflictError', () => {
+    it('should return true only for ConflictError', () => {
+      expect(isConflictError(allErrors.conflict)).toBe(true);
+    });
+
+    it('should return false for other errors', () => {
+      expect(isConflictError(allErrors.velox)).toBe(false);
+      expect(isConflictError(allErrors.validation)).toBe(false);
+      expect(isConflictError(allErrors.standard)).toBe(false);
+      for (const value of invalidValues) {
+        expect(isConflictError(value)).toBe(false);
+      }
+    });
+  });
+
+  describe('isForbiddenError', () => {
+    it('should return true only for ForbiddenError', () => {
+      expect(isForbiddenError(allErrors.forbidden)).toBe(true);
+    });
+
+    it('should return false for other errors', () => {
+      expect(isForbiddenError(allErrors.velox)).toBe(false);
+      expect(isForbiddenError(allErrors.unauthorized)).toBe(false);
+      for (const value of invalidValues) {
+        expect(isForbiddenError(value)).toBe(false);
+      }
+    });
+  });
+
+  describe('isUnauthorizedError', () => {
+    it('should return true only for UnauthorizedError', () => {
+      expect(isUnauthorizedError(allErrors.unauthorized)).toBe(true);
+    });
+
+    it('should return false for other errors', () => {
+      expect(isUnauthorizedError(allErrors.velox)).toBe(false);
+      expect(isUnauthorizedError(allErrors.forbidden)).toBe(false);
+      for (const value of invalidValues) {
+        expect(isUnauthorizedError(value)).toBe(false);
+      }
+    });
+  });
+
+  describe('isServiceUnavailableError', () => {
+    it('should return true only for ServiceUnavailableError', () => {
+      expect(isServiceUnavailableError(allErrors.serviceUnavailable)).toBe(true);
+    });
+
+    it('should return false for other errors', () => {
+      expect(isServiceUnavailableError(allErrors.velox)).toBe(false);
+      for (const value of invalidValues) {
+        expect(isServiceUnavailableError(value)).toBe(false);
+      }
+    });
+  });
+
+  describe('isTooManyRequestsError', () => {
+    it('should return true only for TooManyRequestsError', () => {
+      expect(isTooManyRequestsError(allErrors.tooManyRequests)).toBe(true);
+    });
+
+    it('should return false for other errors', () => {
+      expect(isTooManyRequestsError(allErrors.velox)).toBe(false);
+      for (const value of invalidValues) {
+        expect(isTooManyRequestsError(value)).toBe(false);
+      }
+    });
+  });
+
+  describe('isUnprocessableEntityError', () => {
+    it('should return true only for UnprocessableEntityError', () => {
+      expect(isUnprocessableEntityError(allErrors.unprocessable)).toBe(true);
+    });
+
+    it('should return false for other errors', () => {
+      expect(isUnprocessableEntityError(allErrors.velox)).toBe(false);
+      for (const value of invalidValues) {
+        expect(isUnprocessableEntityError(value)).toBe(false);
       }
     });
   });

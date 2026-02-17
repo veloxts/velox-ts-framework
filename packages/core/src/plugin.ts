@@ -250,6 +250,98 @@ export function isFastifyPlugin<Options extends PluginOptions = PluginOptions>(
 }
 
 // ============================================================================
+// Context Plugin Helper
+// ============================================================================
+
+/**
+ * Configuration for a context-injecting plugin
+ *
+ * @template TService - The type of service to inject into the context
+ */
+export interface ContextPluginConfig<TService> {
+  /** Plugin name (e.g., '@myapp/analytics') */
+  name: string;
+  /** Plugin version (semver) */
+  version: string;
+  /** Context key used to access the service (e.g., 'analytics' for ctx.analytics) */
+  contextKey: string;
+  /** Factory function to create the service instance */
+  create: () => TService | Promise<TService>;
+  /** Optional cleanup function called on server shutdown */
+  close?: (service: TService) => void | Promise<void>;
+}
+
+/**
+ * Creates a plugin that injects a service into the request context
+ *
+ * Eliminates the runtime boilerplate of `Symbol.for()`, `decorateRequest()`,
+ * `addHook('onRequest')`, and `addHook('onClose')` that every
+ * context-injecting plugin must implement.
+ *
+ * **Note on types:** You still need `declare module` for TypeScript to
+ * know about the context property. This helper handles the runtime
+ * injection; declaration merging handles the types:
+ *
+ * ```typescript
+ * declare module '@veloxts/core' {
+ *   interface BaseContext {
+ *     analytics: Analytics;
+ *   }
+ * }
+ * ```
+ *
+ * @template TService - The type of service to inject
+ * @param config - Plugin configuration
+ * @returns A VeloxPlugin ready for registration
+ *
+ * @example
+ * ```typescript
+ * export const analyticsPlugin = defineContextPlugin({
+ *   name: '@myapp/analytics',
+ *   version: '1.0.0',
+ *   contextKey: 'analytics',
+ *   create: () => new Analytics(process.env.ANALYTICS_KEY!),
+ *   close: (a) => a.flush(),
+ * });
+ * ```
+ */
+export function defineContextPlugin<TService>(config: ContextPluginConfig<TService>): VeloxPlugin {
+  const symbolKey = Symbol.for(`${config.name}:${config.contextKey}`);
+
+  const plugin = definePlugin({
+    name: config.name,
+    version: config.version,
+    async register(fastify) {
+      const service = await config.create();
+
+      // Store on Fastify instance via symbol for programmatic retrieval
+      // (e.g., getCacheFromInstance pattern in ecosystem packages)
+      Object.defineProperty(fastify, symbolKey, {
+        value: service,
+        writable: false,
+        enumerable: false,
+        configurable: false,
+      });
+
+      fastify.decorateRequest(config.contextKey, undefined);
+
+      fastify.addHook('onRequest', async (request) => {
+        (request as unknown as Record<string, unknown>)[config.contextKey] = service;
+      });
+
+      if (config.close) {
+        const closeFn = config.close;
+        fastify.addHook('onClose', async () => {
+          await closeFn(service);
+        });
+      }
+    },
+  });
+
+  return plugin;
+}
+
+// ============================================================================
 // Utility Types
 // ============================================================================
 

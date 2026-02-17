@@ -304,6 +304,27 @@ export interface ProcedureBuilder<
   rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext>;
 
   /**
+   * Configures the procedure as a webhook endpoint
+   *
+   * Sugar for `.rest({ method: 'POST', path })` with a webhook flag.
+   * Webhook procedures expect raw body access for signature verification.
+   *
+   * @param path - The webhook endpoint path (e.g., '/webhooks/stripe')
+   * @returns New builder with webhook configuration
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .webhook('/webhooks/stripe')
+   *   .mutation(async ({ input, ctx }) => {
+   *     const isValid = verifySignature(ctx.request.rawBody, ctx.request.headers['stripe-signature']);
+   *     // ...
+   *   })
+   * ```
+   */
+  webhook(path: string): ProcedureBuilder<TInput, TOutput, TContext>;
+
+  /**
    * Marks the procedure as deprecated
    *
    * Deprecated procedures will be marked in OpenAPI documentation with the
@@ -505,6 +526,8 @@ export interface BuilderRuntimeState {
   deprecated?: boolean;
   /** Deprecation message */
   deprecationMessage?: string;
+  /** Whether this procedure is a webhook endpoint (metadata marker) */
+  isWebhook?: boolean;
 }
 
 // ============================================================================

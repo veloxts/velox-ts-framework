@@ -31,11 +31,17 @@ export type { BaseContext } from './context.js';
 export { createContext, isContext, setupContextHook, setupTestContext } from './context.js';
 // Error handling
 export type {
+  ConflictErrorResponse,
   ErrorCode,
   ErrorResponse,
+  ForbiddenErrorResponse,
   GenericErrorResponse,
   InterpolationVars,
   NotFoundErrorResponse,
+  ServiceUnavailableErrorResponse,
+  TooManyRequestsErrorResponse,
+  UnauthorizedErrorResponse,
+  UnprocessableEntityErrorResponse,
   ValidationErrorResponse,
   VeloxCoreErrorCode,
   VeloxErrorCode,
@@ -44,10 +50,18 @@ export type {
 export {
   assertNever,
   ConfigurationError,
+  ConflictError,
+  ForbiddenError,
   fail,
   isConfigurationError,
+  isConflictError,
+  isForbiddenError,
   isNotFoundError,
   isNotFoundErrorResponse,
+  isServiceUnavailableError,
+  isTooManyRequestsError,
+  isUnauthorizedError,
+  isUnprocessableEntityError,
   isValidationError,
   isValidationErrorResponse,
   isVeloxError,
@@ -55,12 +69,28 @@ export {
   logDeprecation,
   logWarning,
   NotFoundError,
+  ServiceUnavailableError,
+  TooManyRequestsError,
+  UnauthorizedError,
+  UnprocessableEntityError,
   ValidationError,
   VeloxError,
   VeloxFailure,
 } from './errors.js';
-export type { InferPluginOptions, PluginMetadata, PluginOptions, VeloxPlugin } from './plugin.js';
-export { definePlugin, isFastifyPlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
+export type {
+  ContextPluginConfig,
+  InferPluginOptions,
+  PluginMetadata,
+  PluginOptions,
+  VeloxPlugin,
+} from './plugin.js';
+export {
+  defineContextPlugin,
+  definePlugin,
+  isFastifyPlugin,
+  isVeloxPlugin,
+  validatePluginMetadata,
+} from './plugin.js';
 export type {
   AsyncHandler,
   JsonArray,
@@ -104,6 +134,12 @@ export type { CacheControl, StaticOptions } from './plugins/static.js';
 export { registerStatic } from './plugins/static.js';
 
 // ============================================================================
+// Raw Body (Webhook Support)
+// ============================================================================
+
+export { rawBodyPlugin } from './plugins/raw-body.js';
+
+// ============================================================================
 // Request Logging (Development)
 // ============================================================================
 
@@ -115,3 +151,12 @@ export { requestLogger } from './plugins/request-logger.js';
 
 export type { Logger, LogLevel } from './utils/logger.js';
 export { createLogger } from './utils/logger.js';
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
+export type { FireAndForgetOptions } from './utils/fire-and-forget.js';
+export { fireAndForget } from './utils/fire-and-forget.js';
+export type { RetryOptions } from './utils/retry.js';
+export { withRetry } from './utils/retry.js';

@@ -357,6 +357,13 @@ export interface CompiledProcedure<
   /** Deprecation message explaining why and what to use instead */
   readonly deprecationMessage?: string;
   /**
+   * Whether this procedure is a webhook endpoint.
+   * Set by `.webhook()` builder method. Currently a metadata marker;
+   * will be consumed by REST adapter and OpenAPI generator in a future release.
+   * @internal
+   */
+  readonly isWebhook?: boolean;
+  /**
    * Parent resource configuration for nested routes (single level)
    *
    * When specified, the REST path will be prefixed with the parent resource:
