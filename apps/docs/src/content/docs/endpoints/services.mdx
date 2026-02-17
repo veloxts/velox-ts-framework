@@ -443,18 +443,18 @@ Receiving webhooks from external services (Stripe, GitHub, etc.) fits naturally 
 ```typescript
 // src/procedures/webhooks.ts
 import { procedures, procedure } from '@veloxts/velox';
-import { z } from '@veloxts/velox';
 import { stripe } from '../lib/stripe.js';
 import { handlePaymentSuccess, handlePaymentFailure } from '../services/payments.js';
 
 export const webhookProcedures = procedures('webhooks', {
   handleStripe: procedure()
-    .input(z.object({ rawBody: z.string(), signature: z.string() }))
     .webhook('/webhooks/stripe')
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ ctx }) => {
+      // rawBody (Buffer) is available via rawBodyPlugin
+      // Stripe signature comes from the request header
       const event = stripe.webhooks.constructEvent(
-        input.rawBody,
-        input.signature,
+        ctx.request.rawBody!,
+        ctx.request.headers['stripe-signature'] as string,
         process.env.STRIPE_WEBHOOK_SECRET!,
       );
 
@@ -472,8 +472,13 @@ export const webhookProcedures = procedures('webhooks', {
 });
 ```
 
-<Aside type="note" title="Raw Body for Signature Verification">
-Webhook signature verification (Stripe, GitHub, etc.) requires the raw request body as a Buffer. Register the `rawBodyPlugin` from `@veloxts/core` to make `request.rawBody` available for HMAC verification.
+<Aside type="caution" title="Raw Body Required">
+Webhook signature verification requires the raw request body as a Buffer. You **must** register the `rawBodyPlugin` from `@veloxts/core` before using `ctx.request.rawBody`:
+
+```typescript
+import { rawBodyPlugin } from '@veloxts/core';
+await app.register(rawBodyPlugin);
+```
 </Aside>
 
 ## Testing

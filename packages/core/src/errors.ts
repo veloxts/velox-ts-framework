@@ -145,6 +145,42 @@ export interface TooManyRequestsErrorResponse extends BaseErrorResponse {
 }
 
 /**
+ * Forbidden error response
+ */
+export interface ForbiddenErrorResponse extends BaseErrorResponse {
+  error: 'ForbiddenError';
+  statusCode: 403;
+  code: 'FORBIDDEN';
+}
+
+/**
+ * Unauthorized error response
+ */
+export interface UnauthorizedErrorResponse extends BaseErrorResponse {
+  error: 'UnauthorizedError';
+  statusCode: 401;
+  code: 'UNAUTHORIZED';
+}
+
+/**
+ * Service unavailable error response
+ */
+export interface ServiceUnavailableErrorResponse extends BaseErrorResponse {
+  error: 'ServiceUnavailableError';
+  statusCode: 503;
+  code: 'SERVICE_UNAVAILABLE';
+}
+
+/**
+ * Unprocessable entity error response
+ */
+export interface UnprocessableEntityErrorResponse extends BaseErrorResponse {
+  error: 'UnprocessableEntityError';
+  statusCode: 422;
+  code: 'UNPROCESSABLE';
+}
+
+/**
  * Generic VeloxTS error response for all other errors
  */
 export interface GenericErrorResponse extends BaseErrorResponse {
@@ -172,6 +208,10 @@ export type ErrorResponse =
   | NotFoundErrorResponse
   | ConflictErrorResponse
   | TooManyRequestsErrorResponse
+  | ForbiddenErrorResponse
+  | UnauthorizedErrorResponse
+  | ServiceUnavailableErrorResponse
+  | UnprocessableEntityErrorResponse
   | GenericErrorResponse;
 
 /**
@@ -524,6 +564,15 @@ export class ForbiddenError extends VeloxError<'FORBIDDEN'> {
       Error.captureStackTrace(this, ForbiddenError);
     }
   }
+
+  override toJSON(): ForbiddenErrorResponse {
+    return {
+      error: 'ForbiddenError',
+      message: this.message,
+      statusCode: 403,
+      code: 'FORBIDDEN',
+    };
+  }
 }
 
 /**
@@ -545,6 +594,15 @@ export class UnauthorizedError extends VeloxError<'UNAUTHORIZED'> {
       Error.captureStackTrace(this, UnauthorizedError);
     }
   }
+
+  override toJSON(): UnauthorizedErrorResponse {
+    return {
+      error: 'UnauthorizedError',
+      message: this.message,
+      statusCode: 401,
+      code: 'UNAUTHORIZED',
+    };
+  }
 }
 
 /**
@@ -565,6 +623,15 @@ export class ServiceUnavailableError extends VeloxError<'SERVICE_UNAVAILABLE'> {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ServiceUnavailableError);
     }
+  }
+
+  override toJSON(): ServiceUnavailableErrorResponse {
+    return {
+      error: 'ServiceUnavailableError',
+      message: this.message,
+      statusCode: 503,
+      code: 'SERVICE_UNAVAILABLE',
+    };
   }
 }
 
@@ -621,6 +688,15 @@ export class UnprocessableEntityError extends VeloxError<'UNPROCESSABLE'> {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, UnprocessableEntityError);
     }
+  }
+
+  override toJSON(): UnprocessableEntityErrorResponse {
+    return {
+      error: 'UnprocessableEntityError',
+      message: this.message,
+      statusCode: 422,
+      code: 'UNPROCESSABLE',
+    };
   }
 }
 

@@ -526,7 +526,7 @@ export interface BuilderRuntimeState {
   deprecated?: boolean;
   /** Deprecation message */
   deprecationMessage?: string;
-  /** Whether this procedure is a webhook endpoint */
+  /** Whether this procedure is a webhook endpoint (metadata marker) */
   isWebhook?: boolean;
 }
 

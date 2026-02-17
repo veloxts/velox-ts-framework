@@ -101,6 +101,6 @@ export async function db<T>(operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();
   } catch (error) {
-    handlePrismaError(error);
+    return handlePrismaError(error);
   }
 }

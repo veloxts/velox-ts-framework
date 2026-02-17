@@ -166,12 +166,15 @@ export class VeloxApp {
           'code' in error &&
           error.code === 'P2002'
         ) {
-          const prismaError = error as Error & { meta?: { target?: string[] } };
-          const fields = prismaError.meta?.target ?? [];
-          const fieldNames = fields.length > 0 ? fields.join(', ') : 'field';
+          const meta =
+            'meta' in error && typeof error.meta === 'object' && error.meta !== null
+              ? (error.meta as Record<string, unknown>)
+              : undefined;
+          const target = Array.isArray(meta?.target) ? (meta.target as string[]) : [];
+          const fieldNames = target.length > 0 ? target.join(', ') : 'field';
           const conflictError = new ConflictError(
             `A record with this ${fieldNames} already exists`,
-            fields.length > 0 ? fields : undefined
+            target.length > 0 ? target : undefined
           );
           return reply.status(conflictError.statusCode).send(conflictError.toJSON());
         }

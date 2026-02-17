@@ -1,7 +1,9 @@
 /**
  * @veloxts/core - Raw Body Plugin Tests
- * Tests for raw body preservation functionality
+ * Tests for raw body preservation via preParsing hook
  */
+
+import { Readable } from 'node:stream';
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -9,108 +11,77 @@ import { rawBodyPlugin } from '../plugins/raw-body.js';
 
 describe('Raw Body Plugin', () => {
   function createMockServer() {
-    let contentTypeHandler:
-      | ((
-          request: { rawBody?: Buffer },
-          body: Buffer,
-          done: (err: Error | null, result?: unknown) => void
-        ) => void)
-      | null = null;
+    const hooks: Record<string, Array<(...args: unknown[]) => Promise<unknown>>> = {};
+    const decorations: Record<string, unknown> = {};
 
     return {
-      addContentTypeParser: vi.fn(
-        (
-          _contentType: string,
-          _opts: { parseAs: string },
-          handler: (
-            request: { rawBody?: Buffer },
-            body: Buffer,
-            done: (err: Error | null, result?: unknown) => void
-          ) => void
-        ) => {
-          contentTypeHandler = handler;
-        }
-      ),
-      getContentTypeHandler() {
-        return contentTypeHandler;
+      decorateRequest: vi.fn((key: string, value: unknown) => {
+        decorations[key] = value;
+      }),
+      addHook: vi.fn((hookName: string, handler: (...args: unknown[]) => Promise<unknown>) => {
+        if (!hooks[hookName]) hooks[hookName] = [];
+        hooks[hookName].push(handler);
+      }),
+      getHooks(name: string) {
+        return hooks[name] ?? [];
       },
     };
   }
 
-  it('should register an application/json content type parser', async () => {
+  it('should register a preParsing hook and decorate request', async () => {
     const server = createMockServer();
 
-    await rawBodyPlugin.register(server as never);
+    await rawBodyPlugin.register(server as never, {});
 
-    expect(server.addContentTypeParser).toHaveBeenCalledWith(
-      'application/json',
-      { parseAs: 'buffer' },
-      expect.any(Function)
-    );
+    expect(server.decorateRequest).toHaveBeenCalledWith('rawBody', undefined);
+    expect(server.addHook).toHaveBeenCalledWith('preParsing', expect.any(Function));
   });
 
-  it('should preserve raw body on request', async () => {
+  it('should preserve raw body on request and return a readable stream', async () => {
     const server = createMockServer();
+    await rawBodyPlugin.register(server as never, {});
 
-    await rawBodyPlugin.register(server as never);
+    const preParsingHooks = server.getHooks('preParsing');
+    expect(preParsingHooks).toHaveLength(1);
 
-    const handler = server.getContentTypeHandler();
-    expect(handler).not.toBeNull();
-
+    const body = JSON.stringify({ key: 'value' });
+    const payload = Readable.from(Buffer.from(body));
     const request: { rawBody?: Buffer } = {};
-    const body = Buffer.from(JSON.stringify({ key: 'value' }));
 
-    await new Promise<void>((resolve, reject) => {
-      handler?.(request, body, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          expect(request.rawBody).toBe(body);
-          expect(result).toEqual({ key: 'value' });
-          resolve();
-        }
-      });
-    });
+    const result = await preParsingHooks[0](request, {}, payload);
+
+    expect(request.rawBody).toBeInstanceOf(Buffer);
+    expect(request.rawBody?.toString()).toBe(body);
+    expect(result).toBeDefined();
   });
 
   it('should handle empty body', async () => {
     const server = createMockServer();
+    await rawBodyPlugin.register(server as never, {});
 
-    await rawBodyPlugin.register(server as never);
-
-    const handler = server.getContentTypeHandler();
+    const preParsingHooks = server.getHooks('preParsing');
+    const payload = Readable.from(Buffer.from(''));
     const request: { rawBody?: Buffer } = {};
-    const body = Buffer.from('');
 
-    await new Promise<void>((resolve, reject) => {
-      handler?.(request, body, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          expect(request.rawBody).toBe(body);
-          expect(result).toBeUndefined();
-          resolve();
-        }
-      });
-    });
+    await preParsingHooks[0](request, {}, payload);
+
+    expect(request.rawBody).toBeInstanceOf(Buffer);
+    expect(request.rawBody?.length).toBe(0);
   });
 
-  it('should call done with error for invalid JSON', async () => {
+  it('should handle binary body', async () => {
     const server = createMockServer();
+    await rawBodyPlugin.register(server as never, {});
 
-    await rawBodyPlugin.register(server as never);
-
-    const handler = server.getContentTypeHandler();
+    const preParsingHooks = server.getHooks('preParsing');
+    const binaryData = Buffer.from([0x00, 0x01, 0x02, 0xff]);
+    const payload = Readable.from(binaryData);
     const request: { rawBody?: Buffer } = {};
-    const body = Buffer.from('not valid json');
 
-    await new Promise<void>((resolve) => {
-      handler?.(request, body, (err) => {
-        expect(err).toBeInstanceOf(Error);
-        expect(request.rawBody).toBe(body);
-        resolve();
-      });
-    });
+    await preParsingHooks[0](request, {}, payload);
+
+    expect(request.rawBody).toBeInstanceOf(Buffer);
+    expect(Buffer.compare(request.rawBody as Buffer, binaryData)).toBe(0);
   });
 
   it('should have correct plugin metadata', () => {

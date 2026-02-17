@@ -46,7 +46,7 @@ describe('withRetry', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onRetry before each retry', async () => {
+  it('should call onRetry after each failed attempt including the last', async () => {
     const onRetry = vi.fn();
     const fn = vi
       .fn()
@@ -100,14 +100,33 @@ describe('withRetry', () => {
     expect(fn).toHaveBeenCalledTimes(3);
   });
 
-  it('should not call onRetry on final failure', async () => {
+  it('should call onRetry on final failure too', async () => {
     const onRetry = vi.fn();
     const fn = vi.fn().mockRejectedValue(new Error('fail'));
 
     await expect(withRetry(fn, { attempts: 2, delayMs: 1, onRetry })).rejects.toThrow();
 
-    // Only called once (before attempt 2), not after final failure
-    expect(onRetry).toHaveBeenCalledTimes(1);
+    // Called for both attempts (including the final failure)
+    expect(onRetry).toHaveBeenCalledTimes(2);
     expect(onRetry).toHaveBeenCalledWith(expect.any(Error), 1);
+    expect(onRetry).toHaveBeenCalledWith(expect.any(Error), 2);
+  });
+
+  it('should throw when attempts is less than 1', async () => {
+    const fn = vi.fn().mockResolvedValue('ok');
+
+    await expect(withRetry(fn, { attempts: 0 })).rejects.toThrow(
+      'withRetry: attempts must be at least 1'
+    );
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('should throw when attempts is negative', async () => {
+    const fn = vi.fn().mockResolvedValue('ok');
+
+    await expect(withRetry(fn, { attempts: -1 })).rejects.toThrow(
+      'withRetry: attempts must be at least 1'
+    );
+    expect(fn).not.toHaveBeenCalled();
   });
 });

@@ -274,9 +274,21 @@ export interface ContextPluginConfig<TService> {
 /**
  * Creates a plugin that injects a service into the request context
  *
- * Eliminates the boilerplate of `Symbol.for()`, `decorateRequest()`,
+ * Eliminates the runtime boilerplate of `Symbol.for()`, `decorateRequest()`,
  * `addHook('onRequest')`, and `addHook('onClose')` that every
  * context-injecting plugin must implement.
+ *
+ * **Note on types:** You still need `declare module` for TypeScript to
+ * know about the context property. This helper handles the runtime
+ * injection; declaration merging handles the types:
+ *
+ * ```typescript
+ * declare module '@veloxts/core' {
+ *   interface BaseContext {
+ *     analytics: Analytics;
+ *   }
+ * }
+ * ```
  *
  * @template TService - The type of service to inject
  * @param config - Plugin configuration
@@ -291,8 +303,6 @@ export interface ContextPluginConfig<TService> {
  *   create: () => new Analytics(process.env.ANALYTICS_KEY!),
  *   close: (a) => a.flush(),
  * });
- *
- * // After registration: ctx.analytics.track(...)
  * ```
  */
 export function defineContextPlugin<TService>(config: ContextPluginConfig<TService>): VeloxPlugin {
@@ -304,6 +314,8 @@ export function defineContextPlugin<TService>(config: ContextPluginConfig<TServi
     async register(fastify) {
       const service = await config.create();
 
+      // Store on Fastify instance via symbol for programmatic retrieval
+      // (e.g., getCacheFromInstance pattern in ecosystem packages)
       Object.defineProperty(fastify, symbolKey, {
         value: service,
         writable: false,
