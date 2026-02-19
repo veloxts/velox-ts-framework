@@ -28,7 +28,8 @@ export const userProcedures = procedures('users', {
 ## Procedure API
 
 - `.input(schema)` - Validate input with Zod
-- `.output(schema)` - Validate output with Zod, or context-dependent output with resource schema
+- `.output(schema)` - Validate output with Zod
+- `.expose(schema)` - Context-dependent output with resource schema
 - `.use(middleware)` - Add middleware
 - `.guard(guard)` - Add authorization guard
 - `.guardNarrow(guard)` - Add guard with TypeScript type narrowing
@@ -449,7 +450,7 @@ const UserSchema = resourceSchema()
 
 ### Automatic Projection (Simple Cases)
 
-The most elegant approach is to chain `.output()` with a narrowing guard. The procedure executor automatically projects fields based on the guard's access level:
+The most elegant approach is to chain `.expose()` with a narrowing guard. The procedure executor automatically projects fields based on the guard's access level:
 
 ```typescript
 import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
@@ -458,7 +459,7 @@ export const userProcedures = procedures('users', {
   // Authenticated endpoint - auto-projects { id, name, email, createdAt }
   getProfile: procedure()
     .guardNarrow(authenticatedNarrow)
-    .output(UserSchema)
+    .expose(UserSchema)
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       // Just return the full data - projection is automatic!
@@ -468,7 +469,7 @@ export const userProcedures = procedures('users', {
   // Admin endpoint - auto-projects all fields
   getFullProfile: procedure()
     .guardNarrow(adminNarrow)
-    .output(UserSchema)
+    .expose(UserSchema)
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
@@ -543,7 +544,7 @@ For arrays of items, use `resourceCollection()`:
 // Automatic projection (simple cases)
 const listUsers = procedure()
   .guardNarrow(authenticatedNarrow)
-  .output(UserSchema)
+  .expose(UserSchema)
   .query(async ({ ctx }) => {
     return ctx.db.user.findMany({ take: 50 });
   });
@@ -589,7 +590,7 @@ The Resource API provides compile-time type safety:
 // Automatic projection - type inferred from guard
 const getProfile = procedure()
   .guardNarrow(authenticatedNarrow)
-  .output(UserSchema)
+  .expose(UserSchema)
   .query(async ({ ctx }) => {
     return ctx.db.user.findFirst();
   });

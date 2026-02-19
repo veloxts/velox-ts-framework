@@ -128,29 +128,45 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext>;
 
   /**
-   * Defines the output schema for the procedure
+   * Defines the output validation schema (Zod)
    *
-   * Accepts three schema variants:
-   * 1. **Zod schema** — standard output validation (same fields for all callers)
-   * 2. **Tagged resource schema** (e.g., `UserSchema.authenticated`) — explicit field projection by access level
-   * 3. **Plain resource schema** (e.g., `UserSchema`) — context-derived field projection from `guardNarrow`
+   * Sets a Zod schema that validates the handler's return value.
+   * All callers receive the same fields.
    *
-   * @template TSchema - The schema type (Zod or Resource)
-   * @param schema - Zod schema for output validation, or resource schema for field projection
+   * For field-level visibility (different fields per access level),
+   * use `.expose()` with a resource schema instead.
+   *
+   * @template TSchema - The Zod schema type
+   * @param schema - Zod schema for output validation
    * @returns New builder with updated output type
    *
-   * @example Zod schema — standard output validation
+   * @example
    * ```typescript
    * procedure()
    *   .output(z.object({ id: z.string(), name: z.string() }))
    *   .query(handler) // handler must return { id: string; name: string }
    * ```
+   */
+  output<TSchema extends ValidSchema>(
+    schema: TSchema
+  ): ProcedureBuilder<TInput, InferSchemaOutput<TSchema>, TContext>;
+
+  /**
+   * Sets field-level visibility via a resource schema
+   *
+   * Accepts two resource schema variants:
+   * 1. **Tagged resource schema** (e.g., `UserSchema.authenticated`) — explicit field projection by access level
+   * 2. **Plain resource schema** (e.g., `UserSchema`) — context-derived field projection from `guardNarrow`
+   *
+   * @template TSchema - The resource schema type
+   * @param schema - Resource schema for field projection
+   * @returns New builder with updated output type
    *
    * @example Tagged resource schema — explicit projection level
    * ```typescript
    * procedure()
    *   .guard(authenticated)
-   *   .output(UserSchema.authenticated) // returns { id, name, email }
+   *   .expose(UserSchema.authenticated) // returns { id, name, email }
    *   .query(handler)
    * ```
    *
@@ -158,25 +174,21 @@ export interface ProcedureBuilder<
    * ```typescript
    * procedure()
    *   .guardNarrow(authenticatedNarrow)
-   *   .output(UserSchema) // auto-projects based on guard's accessLevel
+   *   .expose(UserSchema) // auto-projects based on guard's accessLevel
    *   .query(handler)
    * ```
    */
-  output<TSchema extends ValidSchema | ResourceSchema>(
+  expose<TSchema extends ResourceSchema>(
     schema: TSchema
   ): ProcedureBuilder<
     TInput,
     TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
       ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
-      : TSchema extends ResourceSchema
-        ? TContext extends TaggedContext<infer TTag>
-          ? TTag extends ContextTag
-            ? OutputForTag<TSchema, TTag>
-            : OutputForTag<TSchema, ExtractTag<TContext>>
+      : TContext extends TaggedContext<infer TTag>
+        ? TTag extends ContextTag
+          ? OutputForTag<TSchema, TTag>
           : OutputForTag<TSchema, ExtractTag<TContext>>
-        : TSchema extends ValidSchema
-          ? InferSchemaOutput<TSchema>
-          : never,
+        : OutputForTag<TSchema, ExtractTag<TContext>>,
     TContext
   >;
 
@@ -483,10 +495,9 @@ export interface ProcedureBuilder<
   ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
 
   /**
-   * @deprecated Use `.output()` instead. `.resource()` will be removed in v1.0.
+   * @deprecated Use `.expose()` instead. `.resource()` will be removed in v1.0.
    *
-   * Sets the output type based on a resource schema.
-   * The `.output()` method now accepts both Zod schemas and resource schemas.
+   * Sets field-level visibility via a resource schema.
    *
    * @example Migration
    * ```typescript
@@ -494,7 +505,7 @@ export interface ProcedureBuilder<
    * procedure().resource(UserSchema.authenticated).query(handler)
    *
    * // After
-   * procedure().output(UserSchema.authenticated).query(handler)
+   * procedure().expose(UserSchema.authenticated).query(handler)
    * ```
    */
   resource<TSchema extends ResourceSchema>(

@@ -58,9 +58,9 @@ Define the input validation schema:
 }))
 ```
 
-### `.output(schema)` with Resource Schemas
+### `.expose(schema)` with Resource Schemas
 
-The `.output()` method also accepts resource schemas for context-dependent output projection. The Resource API lets you define field visibility levels (`public`, `authenticated`, `admin`) once and project data based on access level.
+The `.expose()` method accepts resource schemas for context-dependent output projection. The Resource API lets you define field visibility levels (`public`, `authenticated`, `admin`) once and project data based on access level.
 
 ```typescript
 const UserSchema = resourceSchema()
@@ -80,7 +80,7 @@ getPublicProfile: procedure()
 // Automatic projection with guards
 getProfile: procedure()
   .guardNarrow(authenticatedNarrow)
-  .output(UserSchema) // auto-projects { id, name, email }
+  .expose(UserSchema) // auto-projects { id, name, email }
   .query(async ({ input, ctx }) => {
     return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   }),

@@ -48,10 +48,10 @@ const mockUser = {
 
 describe('Resource Guards Integration', () => {
   // ==========================================================================
-  // 1. guardNarrow(authenticatedNarrow) + .resource()
+  // 1. guardNarrow(authenticatedNarrow) + .expose()
   // ==========================================================================
 
-  describe('guardNarrow(authenticatedNarrow) + .resource()', () => {
+  describe('guardNarrow(authenticatedNarrow) + .expose()', () => {
     let server: FastifyInstance;
     let userToken: string;
 
@@ -66,7 +66,7 @@ describe('Resource Guards Integration', () => {
           .use(auth.middleware())
           .guardNarrow(authenticatedNarrow)
           .input(z.object({ id: z.string() }))
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .query(async () => mockUser),
       });
 
@@ -106,10 +106,10 @@ describe('Resource Guards Integration', () => {
   });
 
   // ==========================================================================
-  // 2. guardNarrow(adminNarrow) + .resource()
+  // 2. guardNarrow(adminNarrow) + .expose()
   // ==========================================================================
 
-  describe('guardNarrow(adminNarrow) + .resource()', () => {
+  describe('guardNarrow(adminNarrow) + .expose()', () => {
     let server: FastifyInstance;
     let adminToken: string;
     let userToken: string;
@@ -126,7 +126,7 @@ describe('Resource Guards Integration', () => {
           .use(auth.middleware())
           .guardNarrow(adminNarrow)
           .input(z.object({ id: z.string() }))
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .query(async () => mockUser),
       });
 
@@ -167,10 +167,10 @@ describe('Resource Guards Integration', () => {
   });
 
   // ==========================================================================
-  // 3. No guard + .resource() → public fields only
+  // 3. No guard + .expose() → public fields only
   // ==========================================================================
 
-  describe('No guard + .resource()', () => {
+  describe('No guard + .expose()', () => {
     let server: FastifyInstance;
 
     beforeEach(async () => {
@@ -179,7 +179,7 @@ describe('Resource Guards Integration', () => {
       const procs = defineProcedures('publicprofile', {
         getPublicprofile: procedure()
           .input(z.object({ id: z.string() }))
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .query(async () => mockUser),
       });
 
@@ -209,10 +209,10 @@ describe('Resource Guards Integration', () => {
   });
 
   // ==========================================================================
-  // 4. Regular guard(authenticated) + .resource() → defaults to public
+  // 4. Regular guard(authenticated) + .expose() → defaults to public
   // ==========================================================================
 
-  describe('Regular guard(authenticated) + .resource()', () => {
+  describe('Regular guard(authenticated) + .expose()', () => {
     let server: FastifyInstance;
     let userToken: string;
 
@@ -227,7 +227,7 @@ describe('Resource Guards Integration', () => {
           .use(auth.middleware())
           .guard(authenticated)
           .input(z.object({ id: z.string() }))
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .query(async () => mockUser),
       });
 
@@ -278,14 +278,14 @@ describe('Resource Guards Integration', () => {
         // Public endpoint (no guard) → 2 fields
         getPrecision: procedure()
           .input(z.object({ id: z.string() }))
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .query(async () => mockUser),
 
         // Authenticated endpoint → 3 fields
         listPrecision: procedure()
           .use(auth.middleware())
           .guardNarrow(authenticatedNarrow)
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .query(async () => mockUser),
 
         // Admin endpoint → 4 fields
@@ -293,7 +293,7 @@ describe('Resource Guards Integration', () => {
           .input(z.object({ name: z.string() }))
           .use(auth.middleware())
           .guardNarrow(adminNarrow)
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .mutation(async () => mockUser),
       });
 
@@ -371,10 +371,10 @@ describe('Resource Guards Integration', () => {
   });
 
   // ==========================================================================
-  // 6. Collection auto-projection via guardNarrow + .resource()
+  // 6. Collection auto-projection via guardNarrow + .expose()
   // ==========================================================================
 
-  describe('Collection auto-projection via guardNarrow + .resource()', () => {
+  describe('Collection auto-projection via guardNarrow + .expose()', () => {
     let server: FastifyInstance;
     let userToken: string;
     let adminToken: string;
@@ -396,14 +396,14 @@ describe('Resource Guards Integration', () => {
         listCollection: procedure()
           .use(auth.middleware())
           .guardNarrow(authenticatedNarrow)
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .query(async () => mockUsers),
 
         createCollection: procedure()
           .input(z.object({ name: z.string() }))
           .use(auth.middleware())
           .guardNarrow(adminNarrow)
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .mutation(async () => mockUsers),
       });
 
@@ -473,7 +473,7 @@ describe('Resource Guards Integration', () => {
 
       const procs = defineProcedures('pubcollection', {
         listPubcollection: procedure()
-          .resource(ProfileSchema)
+          .expose(ProfileSchema)
           .query(async () => mockUsers),
       });
 

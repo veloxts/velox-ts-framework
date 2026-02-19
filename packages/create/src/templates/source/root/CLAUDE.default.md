@@ -144,9 +144,9 @@ export const userProcedures = procedures('users', {
 });
 ```
 
-**When to use `.output()` with Zod vs resource schemas:**
+**When to use `.output()` vs `.expose()`:**
 - `.output(zodSchema)` - Same fields for all users
-- `.output(resourceSchema)` - Different fields per role (resource projection)
+- `.expose(resourceSchema)` - Different fields per role (resource projection)
 
 ## Prisma 7 Configuration
 

@@ -58,7 +58,7 @@ The sync pipeline has five stages:
 For each model, the command asks:
 
 1. **Action** — Generate, regenerate (if files exist), or skip
-2. **Output strategy** — `.output()` with plain Zod schema or `.output()` with resource schema (visibility tiers)
+2. **Output strategy** — `.output()` with plain Zod schema or `.expose()` with resource schema (visibility tiers)
 3. **CRUD operations** — Which endpoints to generate (get, list, create, update, delete)
 4. **Schema relations** — Which relations to include in the Zod schema
 5. **Query includes** — Which relations to fetch via Prisma `include`

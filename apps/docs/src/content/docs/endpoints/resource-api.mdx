@@ -103,7 +103,7 @@ The return type is automatically narrowed — TypeScript knows exactly which fie
 
 ### Automatic Projection with Guards
 
-When a guard already determines the access level, repeating it in `.output()` is redundant. Chain `.guardNarrow()` with `.output()` on the procedure builder and the executor projects fields automatically:
+When a guard already determines the access level, repeating it in `.expose()` is redundant. Chain `.guardNarrow()` with `.expose()` on the procedure builder and the executor projects fields automatically:
 
 ```typescript
 import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
@@ -112,7 +112,7 @@ import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
 getProfile: procedure()
   .input(z.object({ id: z.string().uuid() }))
   .guardNarrow(authenticatedNarrow)
-  .output(UserSchema)
+  .expose(UserSchema)
   .query(async ({ input, ctx }) => {
     // Just return the full data — projection is automatic
     return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
@@ -122,7 +122,7 @@ getProfile: procedure()
 getFullProfile: procedure()
   .input(z.object({ id: z.string().uuid() }))
   .guardNarrow(adminNarrow)
-  .output(UserSchema)
+  .expose(UserSchema)
   .query(async ({ input, ctx }) => {
     return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   }),

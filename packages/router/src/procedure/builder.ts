@@ -14,7 +14,6 @@ import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
 import {
   type AccessLevel,
-  isResourceSchema,
   isTaggedResourceSchema,
   type OutputForTag,
   Resource,
@@ -131,40 +130,38 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
-     * Sets the output schema — accepts Zod schemas or resource schemas
+     * Sets the output validation schema (Zod-only)
      */
-    output<TSchema extends ValidSchema | ResourceSchema>(schema: TSchema) {
-      // Runtime branching for state setup; single createBuilder call
-      // so TypeScript sees one return with the exact interface conditional type
-      const newState: BuilderRuntimeState = isResourceSchema(schema)
-        ? {
-            ...state,
-            resourceSchema: schema as ResourceSchema,
-            resourceLevel: isTaggedResourceSchema(schema) ? schema._level : undefined,
-            outputSchema: undefined,
-          }
-        : {
-            ...state,
-            outputSchema: schema as ValidSchema,
-            resourceSchema: undefined,
-            resourceLevel: undefined,
-          };
+    output<TSchema extends ValidSchema>(
+      schema: TSchema
+    ): ProcedureBuilder<TInput, InferSchemaOutput<TSchema>, TContext> {
+      return createBuilder<TInput, InferSchemaOutput<TSchema>, TContext>({
+        ...state,
+        outputSchema: schema,
+      });
+    },
 
+    /**
+     * Sets field-level visibility via a resource schema
+     */
+    expose<TSchema extends ResourceSchema>(schema: TSchema) {
+      const level = isTaggedResourceSchema(schema) ? schema._level : undefined;
       return createBuilder<
         TInput,
         TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
           ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
-          : TSchema extends ResourceSchema
-            ? TContext extends TaggedContext<infer TTag>
-              ? TTag extends ContextTag
-                ? OutputForTag<TSchema, TTag>
-                : OutputForTag<TSchema, ExtractTag<TContext>>
+          : TContext extends TaggedContext<infer TTag>
+            ? TTag extends ContextTag
+              ? OutputForTag<TSchema, TTag>
               : OutputForTag<TSchema, ExtractTag<TContext>>
-            : TSchema extends ValidSchema
-              ? InferSchemaOutput<TSchema>
-              : never,
+            : OutputForTag<TSchema, ExtractTag<TContext>>,
         TContext
-      >(newState);
+      >({
+        ...state,
+        resourceSchema: schema,
+        resourceLevel: level,
+        outputSchema: undefined,
+      });
     },
 
     /**
@@ -316,7 +313,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
-     * @deprecated Use `.output()` instead. `.resource()` will be removed in v1.0.
+     * @deprecated Use `.expose()` instead. `.resource()` will be removed in v1.0.
      */
     resource<TSchema extends ResourceSchema>(schema: TSchema) {
       const level = isTaggedResourceSchema(schema) ? schema._level : undefined;
@@ -334,6 +331,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
         ...state,
         resourceSchema: schema,
         resourceLevel: level,
+        outputSchema: undefined,
       });
     },
   };
