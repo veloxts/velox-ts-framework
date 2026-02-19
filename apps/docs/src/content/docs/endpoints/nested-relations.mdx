@@ -64,7 +64,7 @@ Use Prisma's `include` to fetch related data, then let the Resource API project 
 export const userProcedures = procedures('users', {
   getProfile: procedure()
     .guardNarrow(authenticatedNarrow)
-    .resource(UserSchema)
+    .expose(UserSchema)
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       return ctx.db.user.findUniqueOrThrow({

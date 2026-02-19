@@ -128,10 +128,13 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext>;
 
   /**
-   * Defines the output validation schema for the procedure
+   * Defines the output validation schema (Zod)
    *
-   * The output type is automatically inferred from the Zod schema.
-   * The handler return type will be validated against this schema.
+   * Sets a Zod schema that validates the handler's return value.
+   * All callers receive the same fields.
+   *
+   * For field-level visibility (different fields per access level),
+   * use `.expose()` with a resource schema instead.
    *
    * @template TSchema - The Zod schema type
    * @param schema - Zod schema for output validation
@@ -140,16 +143,54 @@ export interface ProcedureBuilder<
    * @example
    * ```typescript
    * procedure()
-   *   .output(z.object({
-   *     id: z.string(),
-   *     name: z.string(),
-   *   }))
-   *   // handler must return { id: string; name: string }
+   *   .output(z.object({ id: z.string(), name: z.string() }))
+   *   .query(handler) // handler must return { id: string; name: string }
    * ```
    */
   output<TSchema extends ValidSchema>(
     schema: TSchema
   ): ProcedureBuilder<TInput, InferSchemaOutput<TSchema>, TContext>;
+
+  /**
+   * Sets field-level visibility via a resource schema
+   *
+   * Accepts two resource schema variants:
+   * 1. **Tagged resource schema** (e.g., `UserSchema.authenticated`) — explicit field projection by access level
+   * 2. **Plain resource schema** (e.g., `UserSchema`) — context-derived field projection from `guardNarrow`
+   *
+   * @template TSchema - The resource schema type
+   * @param schema - Resource schema for field projection
+   * @returns New builder with updated output type
+   *
+   * @example Tagged resource schema — explicit projection level
+   * ```typescript
+   * procedure()
+   *   .guard(authenticated)
+   *   .expose(UserSchema.authenticated) // returns { id, name, email }
+   *   .query(handler)
+   * ```
+   *
+   * @example Plain resource schema — derives level from guardNarrow
+   * ```typescript
+   * procedure()
+   *   .guardNarrow(authenticatedNarrow)
+   *   .expose(UserSchema) // auto-projects based on guard's accessLevel
+   *   .query(handler)
+   * ```
+   */
+  expose<TSchema extends ResourceSchema>(
+    schema: TSchema
+  ): ProcedureBuilder<
+    TInput,
+    TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
+      ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
+      : TContext extends TaggedContext<infer TTag>
+        ? TTag extends ContextTag
+          ? OutputForTag<TSchema, TTag>
+          : OutputForTag<TSchema, ExtractTag<TContext>>
+        : OutputForTag<TSchema, ExtractTag<TContext>>,
+    TContext
+  >;
 
   /**
    * Adds middleware to the procedure chain
@@ -454,28 +495,17 @@ export interface ProcedureBuilder<
   ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
 
   /**
-   * Sets the output type based on a resource schema
+   * @deprecated Use `.expose()` instead. `.resource()` will be removed in v1.0.
    *
-   * Accepts either a tagged schema (e.g., `UserSchema.authenticated`) for
-   * explicit auto-projection, or a plain schema for backward compatibility.
+   * Sets field-level visibility via a resource schema.
    *
-   * When a tagged schema is used, the output type is computed from the
-   * tag's access level. When a plain schema is used, the output type is
-   * derived from the context's phantom tag (set by `guardNarrow`).
-   *
-   * @example
+   * @example Migration
    * ```typescript
-   * // Tagged schema — explicit projection level (recommended)
-   * procedure()
-   *   .guard(authenticated)
-   *   .resource(UserSchema.authenticated)
-   *   .query(async ({ ctx }) => ctx.db.user.findUnique(...));
+   * // Before
+   * procedure().resource(UserSchema.authenticated).query(handler)
    *
-   * // Plain schema — derives level from guardNarrow or defaults to public
-   * procedure()
-   *   .guardNarrow(authenticatedNarrow)
-   *   .resource(UserSchema)
-   *   .query(async ({ ctx }) => ctx.db.user.findUnique(...));
+   * // After
+   * procedure().expose(UserSchema.authenticated).query(handler)
    * ```
    */
   resource<TSchema extends ResourceSchema>(

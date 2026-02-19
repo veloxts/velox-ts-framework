@@ -477,7 +477,7 @@ export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = rea
    *   .build();
    *
    * // Use tagged views in procedures
-   * procedure().resource(UserSchema.authenticated).query(handler);
+   * procedure().expose(UserSchema.authenticated).query(handler);
    *
    * // Or in handlers
    * resource(data, UserSchema.authenticated);

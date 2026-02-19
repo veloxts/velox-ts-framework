@@ -206,7 +206,10 @@ async function promptOutputStrategy(model: SyncModelInfo): Promise<'output' | 'r
     message: 'Output strategy?',
     options: [
       { value: 'output' as const, label: '.output() \u2014 Same fields for all users' },
-      { value: 'resource' as const, label: '.resource() \u2014 Different fields per access level' },
+      {
+        value: 'resource' as const,
+        label: '.expose() \u2014 Different fields per access level (resource schema)',
+      },
     ],
     initialValue: defaultToResource ? ('resource' as const) : ('output' as const),
   });

@@ -130,15 +130,37 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
-     * Sets the output validation schema
+     * Sets the output validation schema (Zod-only)
      */
     output<TSchema extends ValidSchema>(
       schema: TSchema
     ): ProcedureBuilder<TInput, InferSchemaOutput<TSchema>, TContext> {
-      // Return new builder with updated output schema
       return createBuilder<TInput, InferSchemaOutput<TSchema>, TContext>({
         ...state,
         outputSchema: schema,
+      });
+    },
+
+    /**
+     * Sets field-level visibility via a resource schema
+     */
+    expose<TSchema extends ResourceSchema>(schema: TSchema) {
+      const level = isTaggedResourceSchema(schema) ? schema._level : undefined;
+      return createBuilder<
+        TInput,
+        TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
+          ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
+          : TContext extends TaggedContext<infer TTag>
+            ? TTag extends ContextTag
+              ? OutputForTag<TSchema, TTag>
+              : OutputForTag<TSchema, ExtractTag<TContext>>
+            : OutputForTag<TSchema, ExtractTag<TContext>>,
+        TContext
+      >({
+        ...state,
+        resourceSchema: schema,
+        resourceLevel: level,
+        outputSchema: undefined,
       });
     },
 
@@ -291,10 +313,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
-     * Sets the output type based on a resource schema
-     *
-     * Accepts either a plain `ResourceSchema` or a tagged schema
-     * (e.g., `UserSchema.authenticated`) for declarative auto-projection.
+     * @deprecated Use `.expose()` instead. `.resource()` will be removed in v1.0.
      */
     resource<TSchema extends ResourceSchema>(schema: TSchema) {
       const level = isTaggedResourceSchema(schema) ? schema._level : undefined;
@@ -312,6 +331,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
         ...state,
         resourceSchema: schema,
         resourceLevel: level,
+        outputSchema: undefined,
       });
     },
   };

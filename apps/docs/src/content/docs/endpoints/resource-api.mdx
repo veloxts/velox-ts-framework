@@ -103,7 +103,7 @@ The return type is automatically narrowed — TypeScript knows exactly which fie
 
 ### Automatic Projection with Guards
 
-When a guard already determines the access level, repeating it in `resource()` is redundant. Chain `.guardNarrow()` with `.resource()` on the procedure builder and the executor projects fields automatically:
+When a guard already determines the access level, repeating it in `.expose()` is redundant. Chain `.guardNarrow()` with `.expose()` on the procedure builder and the executor projects fields automatically:
 
 ```typescript
 import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
@@ -112,7 +112,7 @@ import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
 getProfile: procedure()
   .input(z.object({ id: z.string().uuid() }))
   .guardNarrow(authenticatedNarrow)
-  .resource(UserSchema)
+  .expose(UserSchema)
   .query(async ({ input, ctx }) => {
     // Just return the full data — projection is automatic
     return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
@@ -122,7 +122,7 @@ getProfile: procedure()
 getFullProfile: procedure()
   .input(z.object({ id: z.string().uuid() }))
   .guardNarrow(adminNarrow)
-  .resource(UserSchema)
+  .expose(UserSchema)
   .query(async ({ input, ctx }) => {
     return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   }),
@@ -334,7 +334,7 @@ export const productProcedures = procedures('products', {
    });
    ```
 
-3. **Use guards for automatic projection** — When access level maps directly to a guard, use `.guardNarrow()` + `.resource()` to eliminate manual projection calls entirely.
+3. **Use guards for automatic projection** — When access level maps directly to a guard, use `.guardNarrow()` + `.output()` to eliminate manual projection calls entirely.
 
 4. **Mark sensitive fields as admin only** — Defense in depth. Even if a guard fails, admin-only fields won't appear in lower-level projections.
 
@@ -344,7 +344,7 @@ Resource API filters fields at runtime without performance overhead. The project
 
 ## Related Content
 
-- [Procedures](/docs/endpoints/procedures/) — builder methods (`.resource()`, `.guardNarrow()`)
+- [Procedures](/docs/endpoints/procedures/) — builder methods (`.output()`, `.guardNarrow()`)
 - [Nested Relations](/docs/endpoints/nested-relations/) — `.hasOne()` and `.hasMany()` for related data
 - [Schemas](/docs/validation/schemas/) — Zod validation patterns
 - [Guards](/docs/authentication/guards/) — authorization and access levels

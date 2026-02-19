@@ -5,7 +5,7 @@
  * through the type system without any runtime overhead.
  *
  * Additionally provides runtime `__accessLevel` property for auto-projection
- * when using the chained `.resource()` method on procedures.
+ * when using the chained `.expose()` method on procedures.
  *
  * @module resource/tags
  */

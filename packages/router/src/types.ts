@@ -10,6 +10,8 @@
 import type { BaseContext } from '@veloxts/core';
 import type { HttpMethod } from '@veloxts/validation';
 
+import type { ResourceSchema } from './resource/schema.js';
+
 // ============================================================================
 // Procedure Types
 // ============================================================================
@@ -407,14 +409,14 @@ export interface CompiledProcedure<
   /**
    * Resource schema for auto-projection
    *
-   * When set via `.resource()`, the procedure executor will automatically
+   * When set via `.expose()`, the procedure executor will automatically
    * project the handler's return value based on `ctx.__accessLevel`.
    *
    * This enables the elegant chained API:
    * ```typescript
    * procedure()
    *   .guardNarrow(authenticatedNarrow)
-   *   .resource(UserSchema)
+   *   .expose(UserSchema)
    *   .query(async ({ ctx }) => {
    *     return ctx.db.user.findUnique(...);
    *     // Auto-projected based on __accessLevel
@@ -423,13 +425,12 @@ export interface CompiledProcedure<
    *
    * @internal
    */
-  // biome-ignore lint/suspicious/noExplicitAny: ResourceSchema type would create circular dependency
-  readonly _resourceSchema?: any;
+  readonly _resourceSchema?: ResourceSchema;
 
   /**
    * Explicit resource projection level from tagged schema
    *
-   * Set when using `.resource(UserSchema.authenticated)` etc.
+   * Set when using `.expose(UserSchema.authenticated)` etc.
    * Takes precedence over guard-derived access level.
    *
    * @internal

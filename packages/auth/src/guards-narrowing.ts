@@ -58,7 +58,7 @@ export interface NarrowingGuard<TRequired, TGuaranteed> {
    *
    * When set, the procedure builder will automatically assign this
    * value to `ctx.__accessLevel` after the guard passes, enabling
-   * auto-projection with `.resource()`.
+   * auto-projection with `.expose()`.
    */
   accessLevel?: AccessLevel;
 }

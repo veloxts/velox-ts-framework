@@ -70,7 +70,7 @@ export const userProcedures = procedures('users', {
   getUser: procedure()
     .input(z.object({ id: z.string().uuid() }))
     .guardNarrow(authenticatedNarrow)
-    .resource(UserSchema)
+    .expose(UserSchema)
     .query(async ({ input, ctx }) => {
       // input is typed: { id: string }
       // Just return data - projection is automatic based on guard
@@ -81,7 +81,7 @@ export const userProcedures = procedures('users', {
   createUser: procedure()
     .input(CreateUserSchema)
     .guardNarrow(authenticatedNarrow)
-    .resource(UserSchema)
+    .expose(UserSchema)
     .mutation(async ({ input, ctx }) => {
       // input is typed: { name: string; email: string; role: 'user' | 'admin' }
       return ctx.db.user.create({ data: input });

@@ -539,12 +539,12 @@ export const userProcedures = procedures('users', {
 - `resource(data, UserSchema.public)` — Tagged view (recommended): explicit, type-safe, one-liner
 - `resource(data, UserSchema.public)` / `.authenticated` / `.admin` — Tagged view for explicit projection
 - `resource(data, UserSchema).for(ctx)` — Auto-detects level from request context (runtime branching)
-- `.guardNarrow(authenticatedNarrow)` + `.resource(UserSchema)` — Automatic projection from guard's `accessLevel`
+- `.guardNarrow(authenticatedNarrow)` + `.expose(UserSchema)` — Automatic projection from guard's `accessLevel`
 - `resourceCollection(items, UserSchema.public)` — Tagged view for arrays
 
-**When to use `.output()` vs resource schema:**
+**When to use `.output()` vs `.expose()`:**
 - `.output(zodSchema)` - Same fields for all users
-- `resourceSchema()` + `resource()` - Different fields per role
+- `.expose(resourceSchema)` - Different fields per role (auto-projection)
 
 #### Context Object
 Request-scoped state extended via TypeScript declaration merging:
