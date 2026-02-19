@@ -9,6 +9,8 @@
 import { createLogger } from '@veloxts/core';
 import { type ZodType, z } from 'zod';
 
+import type { ResourceSchema } from '../resource/schema.js';
+import { isVisibleAtLevel, type VisibilityLevel } from '../resource/visibility.js';
 import type { JSONSchema } from './types.js';
 
 const log = createLogger('router');
@@ -325,4 +327,60 @@ export function schemaHasProperties(schema: JSONSchema | undefined): boolean {
   if (schema.type !== 'object') return false;
   if (!schema.properties) return false;
   return Object.keys(schema.properties).length > 0;
+}
+
+// ============================================================================
+// Resource Schema to JSON Schema
+// ============================================================================
+
+/**
+ * Converts a ResourceSchema to JSON Schema for OpenAPI, filtered by visibility level
+ *
+ * Iterates the resource's field definitions and includes only fields
+ * visible at the given access level. Nested resource schemas are
+ * converted recursively.
+ *
+ * @param schema - The resource schema
+ * @param level - The access level to generate documentation for (defaults to 'public')
+ * @returns JSON Schema with only the fields visible at the given level
+ */
+export function resourceSchemaToJsonSchema(
+  schema: ResourceSchema,
+  level: VisibilityLevel = 'public'
+): JSONSchema {
+  const properties: Record<string, JSONSchema> = {};
+  const required: string[] = [];
+
+  for (const field of schema.fields) {
+    if (!isVisibleAtLevel(field.visibility as VisibilityLevel, level)) {
+      continue;
+    }
+
+    if (field.nestedSchema) {
+      // Nested relation — recurse
+      const nestedJsonSchema = resourceSchemaToJsonSchema(field.nestedSchema, level);
+      if (field.cardinality === 'many') {
+        properties[field.name] = { type: 'array', items: nestedJsonSchema };
+      } else {
+        properties[field.name] = { ...nestedJsonSchema, nullable: true };
+      }
+    } else if (field.schema) {
+      // Scalar field with Zod schema
+      const fieldJsonSchema = zodSchemaToJsonSchema(field.schema);
+      if (fieldJsonSchema) {
+        properties[field.name] = fieldJsonSchema;
+      }
+    } else {
+      // Field without schema — generic
+      properties[field.name] = {};
+    }
+
+    required.push(field.name);
+  }
+
+  return {
+    type: 'object',
+    properties,
+    ...(required.length > 0 ? { required } : {}),
+  };
 }

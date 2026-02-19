@@ -11,7 +11,11 @@ import type { ZodType } from 'zod';
 import { generateRestRoutes, type RestRoute } from '../rest/adapter.js';
 import type { GuardLike, HttpMethod, ProcedureCollection } from '../types.js';
 import { buildParameters, convertToOpenAPIPath, joinPaths } from './path-extractor.js';
-import { removeSchemaProperties, zodSchemaToJsonSchema } from './schema-converter.js';
+import {
+  removeSchemaProperties,
+  resourceSchemaToJsonSchema,
+  zodSchemaToJsonSchema,
+} from './schema-converter.js';
 import {
   extractUsedSecuritySchemes,
   filterUsedSecuritySchemes,
@@ -157,9 +161,13 @@ function generateOperation(
   const inputSchema = procedure.inputSchema
     ? zodSchemaToJsonSchema(procedure.inputSchema as ZodType)
     : undefined;
-  const outputSchema = procedure.outputSchema
-    ? zodSchemaToJsonSchema(procedure.outputSchema as ZodType)
-    : undefined;
+  let outputSchema: JSONSchema | undefined;
+  if (procedure.outputSchema) {
+    outputSchema = zodSchemaToJsonSchema(procedure.outputSchema as ZodType);
+  } else if (procedure._resourceSchema) {
+    const level = procedure._resourceLevel ?? 'public';
+    outputSchema = resourceSchemaToJsonSchema(procedure._resourceSchema, level);
+  }
 
   // Build parameters
   const { pathParams, queryParams, pathParamNames } = buildParameters({

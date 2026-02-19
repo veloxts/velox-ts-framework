@@ -10,6 +10,8 @@
 import type { BaseContext } from '@veloxts/core';
 import type { HttpMethod } from '@veloxts/validation';
 
+import type { ResourceSchema } from './resource/schema.js';
+
 // ============================================================================
 // Procedure Types
 // ============================================================================
@@ -423,8 +425,7 @@ export interface CompiledProcedure<
    *
    * @internal
    */
-  // biome-ignore lint/suspicious/noExplicitAny: ResourceSchema type would create circular dependency
-  readonly _resourceSchema?: any;
+  readonly _resourceSchema?: ResourceSchema;
 
   /**
    * Explicit resource projection level from tagged schema
