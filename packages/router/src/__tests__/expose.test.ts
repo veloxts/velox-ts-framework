@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { executeProcedure, procedure } from '../procedure/builder.js';
-import { isResourceSchema, resourceSchema } from '../resource/index.js';
+import { isResourceSchema, resourceSchema } from '../resource';
 
 // ============================================================================
 // Test Fixtures
@@ -192,8 +192,9 @@ describe('.expose() with resource schema', () => {
 
   describe('array auto-projection', () => {
     it('should project each item in an array', async () => {
-      const proc = procedure()
+        const proc = procedure()
         .expose(ResourceUserSchema.public)
+        // @ts-expect-error Will only output public
         .query(async () => [
           {
             id: '550e8400-e29b-41d4-a716-446655440000',
