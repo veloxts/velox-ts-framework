@@ -192,7 +192,7 @@ describe('.expose() with resource schema', () => {
 
   describe('array auto-projection', () => {
     it('should project each item in an array', async () => {
-        const proc = procedure()
+      const proc = procedure()
         .expose(ResourceUserSchema.public)
         // @ts-expect-error Will only output public
         .query(async () => [
