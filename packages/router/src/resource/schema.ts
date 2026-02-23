@@ -260,10 +260,13 @@ export type OutputForLevel<TSchema extends TaggedResourceSchema> =
 /**
  * Convenience type aliases for common tag outputs
  */
-export type AnonymousOutput<TSchema extends ResourceSchema> = OutputForTag<
+export type PublicOutput<TSchema extends ResourceSchema> = OutputForTag<
   TSchema,
-  typeof import('./tags.js').ANONYMOUS
+  typeof import('./tags.js').PUBLIC
 >;
+
+/** @deprecated Use PublicOutput */
+export type AnonymousOutput<TSchema extends ResourceSchema> = PublicOutput<TSchema>;
 export type AuthenticatedOutput<TSchema extends ResourceSchema> = OutputForTag<
   TSchema,
   typeof import('./tags.js').AUTHENTICATED

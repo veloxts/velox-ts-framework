@@ -8,7 +8,7 @@
 import { expectType } from 'tsd';
 import { z } from 'zod';
 
-import type { ADMIN, ANONYMOUS, AUTHENTICATED, OutputForTag } from '../../dist/index.js';
+import type { ADMIN, AUTHENTICATED, OutputForTag, PUBLIC } from '../../dist/index.js';
 import { resource, resourceCollection, resourceSchema } from '../../dist/index.js';
 
 // ============================================================================
@@ -40,7 +40,7 @@ const UserSchema = resourceSchema()
 // Anonymous Output — includes hasOne(public), excludes hasMany(authenticated)
 // ============================================================================
 
-type AnonUser = OutputForTag<typeof UserSchema, typeof ANONYMOUS>;
+type AnonUser = OutputForTag<typeof UserSchema, typeof PUBLIC>;
 
 expectType<{
   id: string;
@@ -81,7 +81,7 @@ expectType<{
 // hasOne produces T | null
 // ============================================================================
 
-type OrgAnon = OutputForTag<typeof UserSchema, typeof ANONYMOUS>['organization'];
+type OrgAnon = OutputForTag<typeof UserSchema, typeof PUBLIC>['organization'];
 expectType<{ id: string; name: string } | null>({} as OrgAnon);
 
 // ============================================================================
@@ -101,7 +101,7 @@ const SimpleSchema = resourceSchema()
   .admin('secret', z.string())
   .build();
 
-type SimpleAnon = OutputForTag<typeof SimpleSchema, typeof ANONYMOUS>;
+type SimpleAnon = OutputForTag<typeof SimpleSchema, typeof PUBLIC>;
 expectType<{ id: string }>({} as SimpleAnon);
 
 type SimpleAuth = OutputForTag<typeof SimpleSchema, typeof AUTHENTICATED>;

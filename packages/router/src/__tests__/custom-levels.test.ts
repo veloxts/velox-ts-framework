@@ -383,7 +383,7 @@ describe('default 3-level backward compatibility', () => {
 
     const data = { id: '1', name: 'John', email: 'john@example.com', internalNotes: 'VIP' };
 
-    // forAnonymous
+    // forPublic
     const pub = resource(data, UserSchema.public);
     expect(pub).toEqual({ id: '1', name: 'John' });
 
@@ -396,7 +396,7 @@ describe('default 3-level backward compatibility', () => {
     expect(admin).toEqual(data);
   });
 
-  it('should preserve forAnonymous/forAuthenticated/forAdmin methods', () => {
+  it('should preserve forPublic/forAuthenticated/forAdmin methods', () => {
     const UserSchema = resourceSchema()
       .public('id', z.string())
       .authenticated('email', z.string())
@@ -406,7 +406,7 @@ describe('default 3-level backward compatibility', () => {
     const data = { id: '1', email: 'a@b.com', secret: 'x' };
     const r = new Resource(data, UserSchema);
 
-    expect(r.forAnonymous()).toEqual({ id: '1' });
+    expect(r.forPublic()).toEqual({ id: '1' });
     expect(r.forAuthenticated()).toEqual({ id: '1', email: 'a@b.com' });
     expect(r.forAdmin()).toEqual(data);
   });

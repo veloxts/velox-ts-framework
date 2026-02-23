@@ -18,10 +18,10 @@ import type {
 import { isTaggedResourceSchema } from './schema.js';
 import type {
   ADMIN,
-  ANONYMOUS,
   AUTHENTICATED,
   ContextTag,
   ExtractTag,
+  PUBLIC,
   TaggedContext,
 } from './tags.js';
 import type { VisibilityLevel } from './visibility.js';
@@ -147,7 +147,7 @@ function projectData(
  * const resource = new Resource(user, UserSchema);
  *
  * // Returns only public fields: { id, name }
- * const publicData = resource.forAnonymous();
+ * const publicData = resource.forPublic();
  *
  * // Returns public + authenticated fields: { id, name, email }
  * const authData = resource.forAuthenticated();
@@ -166,12 +166,17 @@ export class Resource<TSchema extends ResourceSchema> {
   }
 
   /**
-   * Projects data for anonymous (unauthenticated) access
+   * Projects data for public (unauthenticated) access
    *
    * Returns only fields marked as 'public'.
    */
-  forAnonymous(): OutputForTag<TSchema, typeof ANONYMOUS> {
-    return this.forLevel('public') as OutputForTag<TSchema, typeof ANONYMOUS>;
+  forPublic(): OutputForTag<TSchema, typeof PUBLIC> {
+    return this.forLevel('public') as OutputForTag<TSchema, typeof PUBLIC>;
+  }
+
+  /** @deprecated Use forPublic() */
+  forAnonymous(): OutputForTag<TSchema, typeof PUBLIC> {
+    return this.forPublic();
   }
 
   /**
@@ -302,7 +307,7 @@ export class Resource<TSchema extends ResourceSchema> {
  * const collection = new ResourceCollection(users, UserSchema);
  *
  * // Returns array of public views
- * const publicList = collection.forAnonymous();
+ * const publicList = collection.forPublic();
  *
  * // Returns array with authenticated fields
  * const authList = collection.forAuthenticated();
@@ -318,10 +323,15 @@ export class ResourceCollection<TSchema extends ResourceSchema> {
   }
 
   /**
-   * Projects all items for anonymous access
+   * Projects all items for public (unauthenticated) access
    */
-  forAnonymous(): Array<OutputForTag<TSchema, typeof ANONYMOUS>> {
-    return this._items.map((item) => new Resource(item, this._schema).forAnonymous());
+  forPublic(): Array<OutputForTag<TSchema, typeof PUBLIC>> {
+    return this._items.map((item) => new Resource(item, this._schema).forPublic());
+  }
+
+  /** @deprecated Use forPublic() */
+  forAnonymous(): Array<OutputForTag<TSchema, typeof PUBLIC>> {
+    return this.forPublic();
   }
 
   /**
@@ -390,7 +400,7 @@ export class ResourceCollection<TSchema extends ResourceSchema> {
  *
  * When called with a tagged schema (e.g., `UserSchema.authenticated`),
  * returns the projected data directly. When called with an untagged schema,
- * returns a Resource instance with `.forAnonymous()`, `.forAuthenticated()`,
+ * returns a Resource instance with `.forPublic()`, `.forAuthenticated()`,
  * `.forAdmin()`, `.forLevel()` methods.
  *
  * @param data - The raw data object

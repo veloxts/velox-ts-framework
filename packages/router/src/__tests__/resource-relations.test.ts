@@ -59,7 +59,7 @@ const testUser = {
 
 describe('hasOne relation', () => {
   it('should project nested fields at public level', () => {
-    const result = resource(testUser, UserSchema).forAnonymous();
+    const result = resource(testUser, UserSchema).forPublic();
 
     expect(result).toEqual({
       id: 'user-1',
@@ -105,21 +105,21 @@ describe('hasOne relation', () => {
 
   it('should return null for null data', () => {
     const userData = { ...testUser, organization: null };
-    const result = resource(userData, UserSchema).forAnonymous();
+    const result = resource(userData, UserSchema).forPublic();
 
     expect(result.organization).toBeNull();
   });
 
   it('should return null for undefined data', () => {
     const userData = { ...testUser, organization: undefined };
-    const result = resource(userData, UserSchema).forAnonymous();
+    const result = resource(userData, UserSchema).forPublic();
 
     expect(result.organization).toBeNull();
   });
 
   it('should return null for non-object data', () => {
     const userData = { ...testUser, organization: 'not-an-object' };
-    const result = resource(userData, UserSchema).forAnonymous();
+    const result = resource(userData, UserSchema).forPublic();
 
     expect(result.organization).toBeNull();
   });
@@ -131,7 +131,7 @@ describe('hasOne relation', () => {
 
 describe('hasMany relation', () => {
   it('should be excluded from public view (authenticated visibility)', () => {
-    const result = resource(testUser, UserSchema).forAnonymous();
+    const result = resource(testUser, UserSchema).forPublic();
 
     expect(result).not.toHaveProperty('posts');
   });
@@ -193,7 +193,7 @@ describe('hasMany relation', () => {
 
 describe('Mixed schema with scalars + hasOne + hasMany', () => {
   it('public level: scalars + hasOne, no hasMany', () => {
-    const result = resource(testUser, UserSchema).forAnonymous();
+    const result = resource(testUser, UserSchema).forPublic();
 
     expect(Object.keys(result).sort()).toEqual(['id', 'name', 'organization']);
     expect(result.organization).toEqual({ id: 'org-1', name: 'Acme Inc.' });
@@ -226,7 +226,7 @@ describe('Mixed schema with scalars + hasOne + hasMany', () => {
 
 describe('Security - nested relations', () => {
   it('should use null prototype for nested projected objects', () => {
-    const result = resource(testUser, UserSchema).forAnonymous();
+    const result = resource(testUser, UserSchema).forPublic();
 
     expect(Object.getPrototypeOf(result)).toBeNull();
     expect(Object.getPrototypeOf(result.organization)).toBeNull();
@@ -257,7 +257,7 @@ describe('Security - nested relations', () => {
       child: { id: 'child-1', __proto__: { polluted: true } },
     };
 
-    const result = resource(data, ParentSchema).forAnonymous();
+    const result = resource(data, ParentSchema).forPublic();
     const child = result.child as Record<string, unknown>;
 
     expect(child).toEqual({ id: 'child-1' });
@@ -283,7 +283,7 @@ describe('Circular reference and depth protection', () => {
     const circular: Record<string, unknown> = { id: 'p-1' };
     circular.child = circular;
 
-    const result = resource(circular, ParentSchema).forAnonymous();
+    const result = resource(circular, ParentSchema).forPublic();
 
     expect(result.id).toBe('p-1');
     // The circular child should be an empty object (cycle detected)
@@ -308,7 +308,7 @@ describe('Circular reference and depth protection', () => {
     };
 
     // 3 levels should work fine
-    const result = resource(data, Level1).forAnonymous();
+    const result = resource(data, Level1).forPublic();
     expect(result).toEqual({
       id: 'L1',
       next: { id: 'L2', next: { id: 'L3' } },
@@ -327,7 +327,7 @@ describe('Circular reference and depth protection', () => {
     const parent: Record<string, unknown> = { id: 'list-1' };
     parent.items = [{ id: 'item-1' }, parent]; // parent references itself in array
 
-    const result = resource(parent, ListSchema).forAnonymous();
+    const result = resource(parent, ListSchema).forPublic();
 
     expect(result.id).toBe('list-1');
     // The first item projects normally; the circular ref is filtered out
@@ -395,9 +395,9 @@ describe('Tagged schema with nested relations', () => {
 // ============================================================================
 
 describe('Auto-projection with nested relations', () => {
-  it('Resource class projects nested relations via forAnonymous()', () => {
+  it('Resource class projects nested relations via forPublic()', () => {
     const r = new Resource(testUser, UserSchema);
-    const result = r.forAnonymous();
+    const result = r.forPublic();
 
     expect(result.organization).toEqual({ id: 'org-1', name: 'Acme Inc.' });
     expect(result).not.toHaveProperty('posts');
@@ -434,7 +434,7 @@ describe('Backward compatibility', () => {
 
     const data = { id: '1', email: 'a@b.com', secret: 'shh' };
 
-    expect(resource(data, SimpleSchema).forAnonymous()).toEqual({ id: '1' });
+    expect(resource(data, SimpleSchema).forPublic()).toEqual({ id: '1' });
     expect(resource(data, SimpleSchema).forAuthenticated()).toEqual({
       id: '1',
       email: 'a@b.com',

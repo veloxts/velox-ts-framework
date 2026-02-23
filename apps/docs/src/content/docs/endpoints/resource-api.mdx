@@ -216,10 +216,10 @@ listFullUsers: procedure()
 The Resource API provides full compile-time type safety. The frontend client receives correctly narrowed types without code generation:
 
 ```typescript
-import type { AnonymousOutput, AuthenticatedOutput, AdminOutput } from '@veloxts/router';
+import type { PublicOutput, AuthenticatedOutput, AdminOutput } from '@veloxts/router';
 
 // Extract output types for each access level
-type PublicUser = AnonymousOutput<typeof UserSchema>;
+type PublicUser = PublicOutput<typeof UserSchema>;
 // { id: string; name: string; avatarUrl: string | null }
 
 type AuthUser = AuthenticatedOutput<typeof UserSchema>;

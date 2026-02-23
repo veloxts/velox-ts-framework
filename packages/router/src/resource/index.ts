@@ -34,7 +34,7 @@
  *     .input(z.object({ id: z.string() }))
  *     .query(async ({ input, ctx }) => {
  *       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
- *       return resource(user, UserSchema).forAnonymous();
+ *       return resource(user, UserSchema).forPublic();
  *     }),
  *
  *   // Authenticated endpoint → returns { id, name, email }
@@ -79,6 +79,7 @@ export type {
   FilterFieldsByLevel,
   OutputForLevel,
   OutputForTag,
+  PublicOutput,
   RelationField,
   ResourceField,
   ResourceSchema,
@@ -104,6 +105,7 @@ export type {
   ExtractTag,
   HasTag,
   LevelToTag,
+  PUBLIC,
   TaggedContext,
   TagToLevel,
   WithTag,
@@ -118,6 +120,7 @@ export type {
   IfAuthenticated,
   InferResourceData,
   InferResourceOutput,
+  PublicTaggedContext,
 } from './types.js';
 export type { IsVisibleToTag, VisibilityLevel } from './visibility.js';
 // Visibility

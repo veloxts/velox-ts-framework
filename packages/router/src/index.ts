@@ -370,15 +370,18 @@ export type {
   // Type-level output computation
   FilterFieldsByLevel,
   HasTag,
-  LevelToTag,
   IfAdmin,
   IfAuthenticated,
   // Type utilities
   InferResourceData,
   InferResourceOutput,
   IsVisibleToTag,
+  LevelToTag,
   OutputForLevel,
   OutputForTag,
+  PUBLIC,
+  PublicOutput,
+  PublicTaggedContext,
   RelationField,
   ResourceField,
   // Schema types
@@ -416,7 +419,7 @@ export type {
  *     .input(z.object({ id: z.string() }))
  *     .query(async ({ input, ctx }) => {
  *       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
- *       return resource(user, UserSchema).forAnonymous();
+ *       return resource(user, UserSchema).forPublic();
  *     }),
  * });
  * ```

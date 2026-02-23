@@ -33,12 +33,12 @@ export type VisibilityLevel = 'public' | 'authenticated' | 'admin';
  * Implements the visibility hierarchy:
  * - ADMIN sees: public, authenticated, admin
  * - AUTHENTICATED sees: public, authenticated
- * - ANONYMOUS sees: public only
+ * - PUBLIC sees: public only
  *
  * @example
  * ```typescript
- * type T1 = IsVisibleToTag<'public', typeof ANONYMOUS>; // true
- * type T2 = IsVisibleToTag<'authenticated', typeof ANONYMOUS>; // false
+ * type T1 = IsVisibleToTag<'public', typeof PUBLIC>; // true
+ * type T2 = IsVisibleToTag<'authenticated', typeof PUBLIC>; // false
  * type T3 = IsVisibleToTag<'admin', typeof AUTHENTICATED>; // false
  * type T4 = IsVisibleToTag<'admin', typeof ADMIN>; // true
  * ```
