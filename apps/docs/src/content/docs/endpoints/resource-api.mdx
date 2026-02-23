@@ -143,13 +143,13 @@ When you don't know the access level at coding time (e.g., a shared utility hand
 ```typescript
 import { resource } from '@veloxts/router';
 
-// Public endpoint — auto-detects anonymous
+// Public endpoint — auto-detects public access level
 getPublicProfile: procedure()
   .input(z.object({ id: z.string() }))
   .query(async ({ input, ctx }) => {
     const user = await ctx.db.user.findUnique({ where: { id: input.id } });
     return resource(user, UserSchema).for(ctx);
-    // Returns anonymous view
+    // Returns public view
   }),
 
 // Authenticated endpoint — auto-detects authenticated
@@ -316,6 +316,205 @@ export const productProcedures = procedures('products', {
 });
 ```
 
+## Custom Access Levels
+
+The default three-level system (`public`, `authenticated`, `admin`) covers most applications. When your domain has roles that don't fit neatly into this hierarchy — content platforms with reviewers and moderators, SaaS products with team-scoped visibility, or tiered subscription plans — you can define your own access levels with `defineAccessLevels()`.
+
+### Defining Custom Levels
+
+Call `defineAccessLevels()` with an array of level names and an optional groups map. Pass the result to `resourceSchema()` to get a Proxy-based builder where both level names and group names become fluent methods:
+
+```typescript
+import { defineAccessLevels, resourceSchema, resource } from '@veloxts/router';
+import { z } from '@veloxts/velox';
+
+// Define levels and groups
+const access = defineAccessLevels(
+  ['public', 'reviewer', 'authenticated', 'moderator', 'admin'],
+  {
+    everyone: '*',                             // all 5 levels
+    internal: ['reviewer', 'moderator', 'admin'],
+    staff: ['moderator', 'admin'],
+  }
+);
+
+// Group names and level names both become fluent builder methods
+const ArticleSchema = resourceSchema(access)
+  .everyone('id', z.string().uuid())
+  .everyone('title', z.string())
+  .everyone('publishedAt', z.date().nullable())
+  .internal('reviewerNotes', z.string())       // visible to reviewer, moderator, admin
+  .staff('moderationLog', z.string())          // visible to moderator, admin
+  .authenticated('authorEmail', z.string())    // level method — single level only
+  .admin('internalFlags', z.string())          // level method — single level only
+  .build();
+```
+
+The `'*'` wildcard in a group expands to all defined levels. Groups map names to explicit subsets.
+
+### Non-Hierarchical Visibility
+
+This is the most important distinction from the default builder. When you call a **level method** (like `.authenticated()` or `.admin()`) on a custom schema, it creates a **single-level visibility set** — the field is only visible to that exact level, not to higher levels.
+
+The schema defined earlier demonstrates this clearly:
+
+```typescript
+// .authenticated('authorEmail', ...) — visible ONLY to 'authenticated'
+// .admin('internalFlags', ...) — visible ONLY to 'admin'
+// .internal(...) — group: visible to reviewer, moderator, admin
+// .staff(...) — group: visible to moderator, admin
+```
+
+Given that schema, here is what each level sees:
+
+```typescript
+const data = {
+  id: '1',
+  title: 'Hello',
+  publishedAt: null,
+  reviewerNotes: 'Looks good',
+  moderationLog: 'Approved',
+  authorEmail: 'author@example.com',
+  internalFlags: 'FLAG_A',
+};
+
+resource(data, ArticleSchema.public);
+// { id, title, publishedAt }
+
+resource(data, ArticleSchema.reviewer);
+// { id, title, publishedAt, reviewerNotes }   ← 'internal' group includes reviewer
+
+resource(data, ArticleSchema.authenticated);
+// { id, title, publishedAt, authorEmail }     ← level method: single level only
+
+resource(data, ArticleSchema.moderator);
+// { id, title, publishedAt, reviewerNotes, moderationLog }   ← 'internal' + 'staff' groups
+
+resource(data, ArticleSchema.admin);
+// { id, title, publishedAt, reviewerNotes, moderationLog, internalFlags }
+```
+
+Notice that `authenticated` does not see `reviewerNotes` (an `internal` group field) and `moderator` does not see `authorEmail` (a single-level `.authenticated()` field). This non-hierarchical model gives you fine-grained control — but it means you must be intentional about which levels see which fields.
+
+Use `.visibleTo()` to express arbitrary visibility sets that don't map to a single level or group:
+
+```typescript
+// Visible to authenticated, moderator, and admin — but NOT reviewer
+.visibleTo('authorEmail', z.string(), ['authenticated', 'moderator', 'admin'])
+```
+
+### Replicating Hierarchical Behavior
+
+If you want custom levels but still need higher levels to inherit lower levels' fields (like the default system), define groups that mirror the hierarchy:
+
+```typescript
+const config = defineAccessLevels(
+  ['public', 'authenticated', 'admin'],
+  {
+    everyone: '*',                          // public + authenticated + admin
+    loggedIn: ['authenticated', 'admin'],   // authenticated + admin
+    adminsOnly: ['admin'],
+  }
+);
+
+const UserSchema = resourceSchema(config)
+  .everyone('id', z.string())     // public, authenticated, admin
+  .loggedIn('email', z.string())  // authenticated, admin
+  .adminsOnly('secret', z.string()) // admin only
+  .build();
+```
+
+This produces identical projections to the default `resourceSchema()` builder.
+
+### Projection with Custom Levels
+
+All projection methods work identically with custom levels. Tagged views use the level name as the property:
+
+```typescript
+// Tagged views — explicit projection
+resource(data, ArticleSchema.reviewer);     // reviewer view
+resource(data, ArticleSchema.moderator);    // moderator view
+resourceCollection(items, ArticleSchema.public);
+
+// String-based projection via forLevel()
+new Resource(data, ArticleSchema).forLevel('reviewer');
+new ResourceCollection(items, ArticleSchema).forLevel('moderator');
+```
+
+<Aside type="note" title="Build-time tags">
+Custom levels generate one tagged view property per level on the built schema. There are no typed helpers like `PublicOutput` or `AuthenticatedOutput` for custom levels — use `typeof ArticleSchema.reviewer` to extract the output type for a custom level.
+</Aside>
+
+### Custom Levels in Procedures
+
+Use tagged views in handlers just as you would with the default schema. The level names come from the `defineAccessLevels()` call:
+
+```typescript
+import { procedures, procedure } from '@veloxts/velox';
+import { authenticated, hasRole } from '@veloxts/auth';
+
+export const articleProcedures = procedures('articles', {
+  // Public: returns { id, title, publishedAt }
+  getArticle: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const article = await ctx.db.article.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(article, ArticleSchema.public);
+    }),
+
+  // Reviewers: returns { id, title, publishedAt, reviewerNotes }
+  reviewArticle: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .guard(hasRole('reviewer'))
+    .query(async ({ input, ctx }) => {
+      const article = await ctx.db.article.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(article, ArticleSchema.reviewer);
+    }),
+
+  // Moderators: returns all staff-visible fields
+  moderateArticle: procedure()
+    .input(z.object({ id: z.string().uuid() }))
+    .guard(hasRole('moderator'))
+    .query(async ({ input, ctx }) => {
+      const article = await ctx.db.article.findUniqueOrThrow({ where: { id: input.id } });
+      return resource(article, ArticleSchema.moderator);
+    }),
+});
+```
+
+### Nested Relations with Custom Levels
+
+`.hasOne()` and `.hasMany()` accept group names or explicit level arrays as their visibility parameter when used with custom access level schemas:
+
+```typescript
+const AuthorSchema = resourceSchema(access)
+  .everyone('name', z.string())
+  .authenticated('email', z.string())
+  .build();
+
+const ArticleSchema = resourceSchema(access)
+  .everyone('title', z.string())
+  .hasOne('author', AuthorSchema, 'internal')          // group name
+  .hasMany('comments', CommentSchema, ['authenticated', 'admin'])  // explicit array
+  .build();
+```
+
+See [Nested Relations](/docs/endpoints/nested-relations/) for full `.hasOne()` and `.hasMany()` documentation.
+
+### Validation Rules
+
+`defineAccessLevels()` throws at module initialization time if you pass invalid configuration:
+
+| Condition | Error |
+|-----------|-------|
+| Fewer than 2 levels | `"defineAccessLevels requires at least 2 levels"` |
+| Duplicate level names | `"Duplicate level: 'name'"` |
+| Group name matches a level name | `"Group name collides with a level name"` |
+| Group references unknown level | `"Group references unknown level"` |
+| Empty group array | `"Group must contain at least one level"` |
+
+---
+
 ## Best Practices
 
 1. **Define once, project everywhere** — Create resource schemas in a shared location and reuse them across endpoints. One source of truth for field visibility.
@@ -334,9 +533,11 @@ export const productProcedures = procedures('products', {
    });
    ```
 
-3. **Use guards for automatic projection** — When access level maps directly to a guard, use `.guardNarrow()` + `.output()` to eliminate manual projection calls entirely.
+3. **Use guards for automatic projection** — When access level maps directly to a guard, use `.guardNarrow()` + `.expose()` to eliminate manual projection calls entirely.
 
 4. **Mark sensitive fields as admin only** — Defense in depth. Even if a guard fails, admin-only fields won't appear in lower-level projections.
+
+5. **Use groups to express shared visibility** — When multiple levels share a set of fields, define a group rather than repeating `.visibleTo()` on every field. Groups keep schemas readable and changes localized.
 
 <Aside type="tip">
 Resource API filters fields at runtime without performance overhead. The projection is done in-memory after database fetch, ensuring clean separation of data access and presentation.
@@ -344,7 +545,7 @@ Resource API filters fields at runtime without performance overhead. The project
 
 ## Related Content
 
-- [Procedures](/docs/endpoints/procedures/) — builder methods (`.output()`, `.guardNarrow()`)
+- [Procedures](/docs/endpoints/procedures/) — builder methods (`.expose()`, `.guardNarrow()`)
 - [Nested Relations](/docs/endpoints/nested-relations/) — `.hasOne()` and `.hasMany()` for related data
 - [Schemas](/docs/validation/schemas/) — Zod validation patterns
 - [Guards](/docs/authentication/guards/) — authorization and access levels

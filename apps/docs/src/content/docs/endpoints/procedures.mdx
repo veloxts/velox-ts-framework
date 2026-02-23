@@ -88,6 +88,8 @@ getProfile: procedure()
 
 See [Resource API](/docs/endpoints/resource-api/) for tagged views, automatic projection, manual projection, collections, and type inference.
 
+For domain-specific roles beyond the default three levels, `defineAccessLevels()` lets you define arbitrary level names and named groups. The same tagged view pattern applies — `ArticleSchema.reviewer`, `ArticleSchema.moderator`, and so on. See [Custom Access Levels](/docs/endpoints/resource-api/#custom-access-levels) for details.
+
 ### `.query(handler)` / `.mutation(handler)`
 
 Define the handler function:
