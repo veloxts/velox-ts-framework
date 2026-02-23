@@ -34,7 +34,7 @@
  *     .input(z.object({ id: z.string() }))
  *     .query(async ({ input, ctx }) => {
  *       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
- *       return resource(user, UserSchema).forAnonymous();
+ *       return resource(user, UserSchema).forPublic();
  *     }),
  *
  *   // Authenticated endpoint → returns { id, name, email }
@@ -66,13 +66,20 @@
 
 // Resource instances
 export { Resource, ResourceCollection, resource, resourceCollection } from './instance.js';
+// Access level configuration
+export type { AccessLevelConfig } from './levels.js';
+export { defineAccessLevels } from './levels.js';
 export type {
   AdminOutput,
   AnonymousOutput,
   AuthenticatedOutput,
   BuilderField,
+  CustomResourceSchemaWithViews,
+  CustomSchemaBuilder,
+  FilterFieldsByLevel,
   OutputForLevel,
   OutputForTag,
+  PublicOutput,
   RelationField,
   ResourceField,
   ResourceSchema,
@@ -98,7 +105,9 @@ export type {
   ExtractTag,
   HasTag,
   LevelToTag,
+  PUBLIC,
   TaggedContext,
+  TagToLevel,
   WithTag,
 } from './tags.js';
 // Type utilities
@@ -111,7 +120,13 @@ export type {
   IfAuthenticated,
   InferResourceData,
   InferResourceOutput,
+  PublicTaggedContext,
 } from './types.js';
 export type { IsVisibleToTag, VisibilityLevel } from './visibility.js';
 // Visibility
-export { getAccessibleLevels, getVisibilityForTag, isVisibleAtLevel } from './visibility.js';
+export {
+  getAccessibleLevels,
+  getVisibilityForTag,
+  isFieldVisibleToLevel,
+  isVisibleAtLevel,
+} from './visibility.js';

@@ -19,8 +19,12 @@
  *
  * These values are set by narrowing guards at runtime and used for
  * automatic resource projection in the procedure builder.
+ *
+ * Widened to `string` to support custom access levels defined via
+ * `defineAccessLevels()`. The default 3-level system still uses
+ * `'public' | 'authenticated' | 'admin'` at the call site.
  */
-export type AccessLevel = 'public' | 'authenticated' | 'admin';
+export type AccessLevel = string;
 
 /**
  * Maps an AccessLevel string to its corresponding phantom ContextTag
@@ -32,24 +36,46 @@ export type AccessLevel = 'public' | 'authenticated' | 'admin';
  * ```typescript
  * type Tag = LevelToTag<'authenticated'>; // typeof AUTHENTICATED
  * type Tag = LevelToTag<'admin'>;         // typeof ADMIN
- * type Tag = LevelToTag<'public'>;        // typeof ANONYMOUS
+ * type Tag = LevelToTag<'public'>;        // typeof PUBLIC
  * ```
  */
-export type LevelToTag<TLevel extends AccessLevel> = TLevel extends 'admin'
+export type LevelToTag<TLevel extends string> = TLevel extends 'admin'
   ? typeof ADMIN
   : TLevel extends 'authenticated'
     ? typeof AUTHENTICATED
-    : typeof ANONYMOUS;
+    : typeof PUBLIC;
+
+/**
+ * Maps a phantom ContextTag to its corresponding level string
+ *
+ * Inverse of `LevelToTag`. Used by `FilterFieldsByLevel` to bridge
+ * the tag-based system to the set-based visibility model.
+ *
+ * @example
+ * ```typescript
+ * type L1 = TagToLevel<typeof ADMIN>;         // 'admin'
+ * type L2 = TagToLevel<typeof AUTHENTICATED>; // 'authenticated'
+ * type L3 = TagToLevel<typeof PUBLIC>;        // 'public'
+ * ```
+ */
+export type TagToLevel<TTag extends ContextTag> = TTag extends typeof ADMIN
+  ? 'admin'
+  : TTag extends typeof AUTHENTICATED
+    ? 'authenticated'
+    : 'public';
 
 // ============================================================================
 // Phantom Type Symbols
 // ============================================================================
 
 /**
- * Phantom symbol for anonymous (unauthenticated) context
+ * Phantom symbol for public (unauthenticated) context
  * @internal Compile-time only - never used at runtime
  */
-export declare const ANONYMOUS: unique symbol;
+export declare const PUBLIC: unique symbol;
+
+/** @deprecated Use PUBLIC */
+export declare const ANONYMOUS: typeof PUBLIC;
 
 /**
  * Phantom symbol for authenticated user context
@@ -72,7 +98,7 @@ export declare const ADMIN: unique symbol;
  *
  * Used to constrain generic type parameters that represent access levels.
  */
-export type ContextTag = typeof ANONYMOUS | typeof AUTHENTICATED | typeof ADMIN;
+export type ContextTag = typeof PUBLIC | typeof AUTHENTICATED | typeof ADMIN;
 
 // ============================================================================
 // Tagged Context Interface
@@ -89,7 +115,7 @@ export type ContextTag = typeof ANONYMOUS | typeof AUTHENTICATED | typeof ADMIN;
  * It enables automatic resource projection when using `.expose()` in
  * the procedure builder chain.
  *
- * @template TTag - The context tag type (defaults to ANONYMOUS)
+ * @template TTag - The context tag type (defaults to PUBLIC)
  *
  * @example
  * ```typescript
@@ -104,7 +130,7 @@ export type ContextTag = typeof ANONYMOUS | typeof AUTHENTICATED | typeof ADMIN;
  * }
  * ```
  */
-export interface TaggedContext<TTag extends ContextTag = typeof ANONYMOUS> {
+export interface TaggedContext<TTag extends ContextTag = typeof PUBLIC> {
   /**
    * Phantom field for carrying the context tag
    * @internal Never exists at runtime - purely for type inference
@@ -122,7 +148,7 @@ export interface TaggedContext<TTag extends ContextTag = typeof ANONYMOUS> {
    * - `adminNarrow` → 'admin'
    * - No guard → 'public' (default)
    */
-  __accessLevel?: AccessLevel;
+  __accessLevel?: string;
 }
 
 // ============================================================================
@@ -132,16 +158,16 @@ export interface TaggedContext<TTag extends ContextTag = typeof ANONYMOUS> {
 /**
  * Extracts the tag from a tagged context type
  *
- * Returns ANONYMOUS if the context is not tagged or has no tag.
+ * Returns PUBLIC if the context is not tagged or has no tag.
  *
  * @example
  * ```typescript
  * type Tag1 = ExtractTag<TaggedContext<typeof ADMIN>>; // typeof ADMIN
- * type Tag2 = ExtractTag<{ user: User }>; // typeof ANONYMOUS
+ * type Tag2 = ExtractTag<{ user: User }>; // typeof PUBLIC
  * ```
  */
 export type ExtractTag<TContext> =
-  TContext extends TaggedContext<infer TTag> ? TTag : typeof ANONYMOUS;
+  TContext extends TaggedContext<infer TTag> ? TTag : typeof PUBLIC;
 
 /**
  * Checks if a context has a specific tag

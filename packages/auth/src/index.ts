@@ -100,6 +100,7 @@ export type {
 export {
   adminNarrow,
   authenticatedNarrow,
+  createNarrowingGuard,
   hasRoleNarrow,
 } from './guards-narrowing.js';
 

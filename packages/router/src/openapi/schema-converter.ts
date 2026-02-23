@@ -9,8 +9,8 @@
 import { createLogger } from '@veloxts/core';
 import { type ZodType, z } from 'zod';
 
-import type { ResourceSchema } from '../resource/schema.js';
-import { isVisibleAtLevel, type VisibilityLevel } from '../resource/visibility.js';
+import type { ResourceSchema, RuntimeField } from '../resource/schema.js';
+import { isFieldVisibleToLevel } from '../resource/visibility.js';
 import type { JSONSchema } from './types.js';
 
 const log = createLogger('router');
@@ -346,13 +346,13 @@ export function schemaHasProperties(schema: JSONSchema | undefined): boolean {
  */
 export function resourceSchemaToJsonSchema(
   schema: ResourceSchema,
-  level: VisibilityLevel = 'public'
+  level: string = 'public'
 ): JSONSchema {
   const properties: Record<string, JSONSchema> = {};
   const required: string[] = [];
 
   for (const field of schema.fields) {
-    if (!isVisibleAtLevel(field.visibility as VisibilityLevel, level)) {
+    if (!isFieldVisibleToLevel(field as RuntimeField, level)) {
       continue;
     }
 

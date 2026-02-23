@@ -12,12 +12,12 @@ import { z } from 'zod';
 import type {
   ADMIN,
   AdminOutput,
-  ANONYMOUS,
-  AnonymousOutput,
   AUTHENTICATED,
   AuthenticatedOutput,
   ExtractTag,
   OutputForTag,
+  PUBLIC,
+  PublicOutput,
   TaggedContext,
 } from '../../dist/index.js';
 import { resource, resourceCollection, resourceSchema } from '../../dist/index.js';
@@ -44,8 +44,8 @@ expectType<typeof UserSchema>(UserSchema);
 // Output Type Computation
 // ============================================================================
 
-// AnonymousOutput should include only public fields
-type AnonUser = AnonymousOutput<typeof UserSchema>;
+// PublicOutput should include only public fields
+type AnonUser = PublicOutput<typeof UserSchema>;
 expectType<{ id: string; name: string }>({} as AnonUser);
 
 // AuthenticatedOutput should include public + authenticated fields
@@ -62,8 +62,8 @@ expectType<{ id: string; name: string; email: string; internalNotes: string | nu
 // OutputForTag Type Computation
 // ============================================================================
 
-// OutputForTag with ANONYMOUS should equal AnonymousOutput
-type OutputAnon = OutputForTag<typeof UserSchema, typeof ANONYMOUS>;
+// OutputForTag with ANONYMOUS should equal PublicOutput
+type OutputAnon = OutputForTag<typeof UserSchema, typeof PUBLIC>;
 expectType<AnonUser>({} as OutputAnon);
 
 // OutputForTag with AUTHENTICATED should equal AuthenticatedOutput
@@ -87,7 +87,7 @@ expectType<AdminUser>({} as VerifyExtractTag);
 
 // TaggedContext should work with different tags
 // These type aliases verify that TaggedContext can be instantiated with each tag
-type AnonCtx = TaggedContext<typeof ANONYMOUS>;
+type AnonCtx = TaggedContext<typeof PUBLIC>;
 type AuthCtx = TaggedContext<typeof AUTHENTICATED>;
 type AdminCtx = TaggedContext<typeof ADMIN>;
 
@@ -107,8 +107,8 @@ expectType<AdminCtx>(adminCtx);
 
 const testData = { id: '1', name: 'Test', email: 'test@test.com', internalNotes: null };
 
-// forAnonymous() should return AnonymousOutput
-const anonResult = resource(testData, UserSchema).forAnonymous();
+// forPublic() should return PublicOutput
+const anonResult = resource(testData, UserSchema).forPublic();
 expectType<AnonUser>(anonResult);
 
 // forAuthenticated() should return AuthenticatedOutput
@@ -126,7 +126,7 @@ expectType<AdminUser>(adminResult);
 const testDataArray = [testData];
 
 // Collection methods should return arrays of the correct type
-const collectionAnon = resourceCollection(testDataArray, UserSchema).forAnonymous();
+const collectionAnon = resourceCollection(testDataArray, UserSchema).forPublic();
 expectType<AnonUser[]>(collectionAnon);
 
 const collectionAuth = resourceCollection(testDataArray, UserSchema).forAuthenticated();
@@ -151,7 +151,7 @@ const ComplexSchema = resourceSchema()
   .build();
 
 // Verify complex schema output types
-type ComplexAnon = AnonymousOutput<typeof ComplexSchema>;
+type ComplexAnon = PublicOutput<typeof ComplexSchema>;
 expectType<{
   id: number;
   slug: string;

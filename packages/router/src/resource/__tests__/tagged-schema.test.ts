@@ -98,7 +98,7 @@ describe('Tagged Resource Schema', () => {
   describe('resource() with untagged schema (backward compat)', () => {
     it('returns Resource instance with projection methods', () => {
       const r = resource(mockUser, UserSchema);
-      expect(typeof r.forAnonymous).toBe('function');
+      expect(typeof r.forPublic).toBe('function');
       expect(typeof r.forAuthenticated).toBe('function');
       expect(typeof r.forAdmin).toBe('function');
 

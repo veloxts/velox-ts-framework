@@ -13,7 +13,7 @@ import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core'
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
 import {
-  type AccessLevel,
+  type FilterFieldsByLevel,
   isTaggedResourceSchema,
   type OutputForTag,
   Resource,
@@ -149,7 +149,9 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       return createBuilder<
         TInput,
         TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
-          ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
+          ? TLevel extends 'admin' | 'authenticated' | 'public'
+            ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
+            : FilterFieldsByLevel<TFields, TLevel>
           : TContext extends TaggedContext<infer TTag>
             ? TTag extends ContextTag
               ? OutputForTag<TSchema, TTag>
@@ -591,7 +593,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   ctx: TContext
 ): Promise<TOutput> {
   // Track the highest access level from narrowing guards
-  let accessLevel: AccessLevel = 'public';
+  let accessLevel: string = 'public';
 
   // Step 1: Execute guards if any
   if (procedure.guards.length > 0) {
@@ -617,22 +619,20 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
         throw new GuardError(guard.name, message, statusCode);
       }
 
-      // Track highest access level from narrowing guards
-      const guardWithLevel = guard as { accessLevel?: AccessLevel };
+      // Track access level from narrowing guards.
+      // IMPORTANT: last guard's accessLevel wins. With custom levels that
+      // have no inherent hierarchy, ordering of guards matters.
+      // Guards without accessLevel (e.g. plain `authenticated`) do NOT
+      // update the level — it stays at 'public' for .expose() projection.
+      const guardWithLevel = guard as { accessLevel?: string };
       if (guardWithLevel.accessLevel) {
-        // Admin > authenticated > public
-        if (
-          guardWithLevel.accessLevel === 'admin' ||
-          (guardWithLevel.accessLevel === 'authenticated' && accessLevel === 'public')
-        ) {
-          accessLevel = guardWithLevel.accessLevel;
-        }
+        accessLevel = guardWithLevel.accessLevel;
       }
     }
   }
 
   // Set __accessLevel on context for auto-projection
-  const ctxWithLevel = ctx as TContext & { __accessLevel?: AccessLevel };
+  const ctxWithLevel = ctx as TContext & { __accessLevel?: string };
   ctxWithLevel.__accessLevel = accessLevel;
 
   // Step 2: Validate input if schema provided
@@ -666,15 +666,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     const finalLevel = procedure._resourceLevel ?? accessLevel;
 
     const projectOne = (item: Record<string, unknown>): Record<string, unknown> => {
-      const r = new Resource(item, schema);
-      switch (finalLevel) {
-        case 'admin':
-          return r.forAdmin() as Record<string, unknown>;
-        case 'authenticated':
-          return r.forAuthenticated() as Record<string, unknown>;
-        default:
-          return r.forAnonymous() as Record<string, unknown>;
-      }
+      return new Resource(item, schema).forLevel(finalLevel) as Record<string, unknown>;
     };
 
     if (Array.isArray(result)) {

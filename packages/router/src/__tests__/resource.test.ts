@@ -9,14 +9,14 @@ import { z } from 'zod';
 import {
   type ADMIN,
   type AdminOutput,
-  type ANONYMOUS,
-  type AnonymousOutput,
   type AUTHENTICATED,
   type AuthenticatedOutput,
   getAccessibleLevels,
   isResourceSchema,
   isVisibleAtLevel,
   type OutputForTag,
+  type PUBLIC,
+  type PublicOutput,
   Resource,
   ResourceCollection,
   resource,
@@ -85,11 +85,13 @@ describe('Resource Schema Builder', () => {
         name: 'id',
         schema: expect.any(Object),
         visibility: 'public',
+        visibleTo: new Set(['public', 'authenticated', 'admin']),
       });
       expect(schema.fields[1]).toEqual({
         name: 'name',
         schema: expect.any(Object),
         visibility: 'public',
+        visibleTo: new Set(['public', 'authenticated', 'admin']),
       });
     });
 
@@ -185,9 +187,9 @@ describe('Visibility Helpers', () => {
 // ============================================================================
 
 describe('Resource Instance', () => {
-  describe('forAnonymous()', () => {
+  describe('forPublic()', () => {
     it('should return only public fields', () => {
-      const result = resource(testUser, UserSchema).forAnonymous();
+      const result = resource(testUser, UserSchema).forPublic();
 
       expect(result).toEqual({
         id: testUser.id,
@@ -236,7 +238,7 @@ describe('Resource Instance', () => {
   describe('for() with context', () => {
     it('should return public fields for context without user', () => {
       const ctx = { auth: { isAuthenticated: false } };
-      const result = resource(testUser, UserSchema).for(ctx as TaggedContext<typeof ANONYMOUS>);
+      const result = resource(testUser, UserSchema).for(ctx as TaggedContext<typeof PUBLIC>);
 
       expect(result).toEqual({
         id: testUser.id,
@@ -309,9 +311,9 @@ describe('Resource Instance', () => {
 // ============================================================================
 
 describe('Resource Collection', () => {
-  describe('forAnonymous()', () => {
+  describe('forPublic()', () => {
     it('should project all items to public fields', () => {
-      const results = resourceCollection(testUsers, UserSchema).forAnonymous();
+      const results = resourceCollection(testUsers, UserSchema).forPublic();
 
       expect(results).toHaveLength(2);
       expect(results[0]).toEqual({
@@ -369,11 +371,11 @@ describe('Resource Collection', () => {
 // ============================================================================
 
 describe('Type Inference', () => {
-  it('should infer correct types for anonymous output', () => {
-    type AnonymousUser = AnonymousOutput<typeof UserSchema>;
+  it('should infer correct types for public output', () => {
+    type PublicUser = PublicOutput<typeof UserSchema>;
 
     // This is a compile-time check - if types are wrong, this won't compile
-    const user: AnonymousUser = {
+    const user: PublicUser = {
       id: '123',
       name: 'Test',
       avatarUrl: null,
@@ -459,7 +461,7 @@ describe('ResourceCollection Class', () => {
 
 describe('Security - Prototype Pollution Prevention', () => {
   it('should use null prototype for result objects', () => {
-    const result = resource(testUser, UserSchema).forAnonymous();
+    const result = resource(testUser, UserSchema).forPublic();
 
     // Object.create(null) produces objects without prototype methods
     expect(Object.getPrototypeOf(result)).toBeNull();
@@ -479,7 +481,7 @@ describe('Security - Prototype Pollution Prevention', () => {
     // Store original Object.prototype state
     const originalPrototype = { ...Object.prototype };
 
-    const result = resource(dangerousData, dangerousSchema).forAnonymous();
+    const result = resource(dangerousData, dangerousSchema).forPublic();
 
     // Verify __proto__ field was skipped
     expect(result).toEqual({ id: '123' });
@@ -501,7 +503,7 @@ describe('Security - Prototype Pollution Prevention', () => {
       constructor: 'malicious',
     };
 
-    const result = resource(dangerousData, dangerousSchema).forAnonymous();
+    const result = resource(dangerousData, dangerousSchema).forPublic();
 
     // Verify constructor field was skipped
     expect(result).toEqual({ name: 'test' });
@@ -519,7 +521,7 @@ describe('Security - Prototype Pollution Prevention', () => {
       prototype: { malicious: true },
     };
 
-    const result = resource(dangerousData, dangerousSchema).forAnonymous();
+    const result = resource(dangerousData, dangerousSchema).forPublic();
 
     // Verify prototype field was skipped
     expect(result).toEqual({ value: 42 });
@@ -540,7 +542,7 @@ describe('Security - Prototype Pollution Prevention', () => {
     };
 
     // Test all projection methods
-    const anonResult = resource(dangerousData, dangerousSchema).forAnonymous();
+    const anonResult = resource(dangerousData, dangerousSchema).forPublic();
     const authResult = resource(dangerousData, dangerousSchema).forAuthenticated();
     const adminResult = resource(dangerousData, dangerousSchema).forAdmin();
 
@@ -564,7 +566,7 @@ describe('Security - Prototype Pollution Prevention', () => {
       { id: '2', __proto__: { polluted: true } },
     ];
 
-    const results = resourceCollection(dangerousItems, dangerousSchema).forAnonymous();
+    const results = resourceCollection(dangerousItems, dangerousSchema).forPublic();
 
     // Verify all items only contain safe fields
     expect(results).toEqual([{ id: '1' }, { id: '2' }]);
@@ -600,7 +602,7 @@ describe('Auto-Projection with .expose() in Procedure Builder', () => {
       .build();
 
     // Public access level
-    const publicResult = new Resource(data, schema).forAnonymous();
+    const publicResult = new Resource(data, schema).forPublic();
     expect(publicResult).toEqual({ id: '123', name: 'John' });
 
     // Authenticated access level

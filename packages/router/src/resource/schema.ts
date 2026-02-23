@@ -5,20 +5,18 @@
  * field-level visibility controls. The builder tracks field types
  * at compile time to enable type-safe projections.
  *
+ * Supports both the default 3-level system (public/authenticated/admin)
+ * and custom access levels defined via `defineAccessLevels()`.
+ *
  * @module resource/schema
  */
 
 import type { ZodType } from 'zod';
 
-import type {
-  AccessLevel,
-  ADMIN,
-  ANONYMOUS,
-  AUTHENTICATED,
-  ContextTag,
-  LevelToTag,
-} from './tags.js';
-import type { IsVisibleToTag, VisibilityLevel } from './visibility.js';
+import type { AccessLevelConfig } from './levels.js';
+import { defaultLevelToSet } from './levels.js';
+import type { ContextTag, TagToLevel } from './tags.js';
+import type { VisibilityLevel } from './visibility.js';
 
 // ============================================================================
 // Field Types
@@ -27,20 +25,28 @@ import type { IsVisibleToTag, VisibilityLevel } from './visibility.js';
 /**
  * A single field definition in a resource schema
  *
+ * The `TLevel` parameter is a union of level strings representing which
+ * access levels can see this field. For the default system:
+ * - `.public()` → `'public' | 'authenticated' | 'admin'`
+ * - `.authenticated()` → `'authenticated' | 'admin'`
+ * - `.admin()` → `'admin'`
+ *
+ * For custom levels, `TLevel` is the union of levels passed to the builder method.
+ *
  * @template TName - The field name as a literal type
  * @template TSchema - The Zod schema type for this field
- * @template TLevel - The visibility level for this field
+ * @template TLevel - Union of access level strings that can see this field
  */
 export interface ResourceField<
   TName extends string = string,
   TSchema extends ZodType = ZodType,
-  TLevel extends VisibilityLevel = VisibilityLevel,
+  TLevel extends string = string,
 > {
   /** Field name */
   readonly name: TName;
   /** Zod schema for validation */
   readonly schema: TSchema;
-  /** Visibility level */
+  /** Visibility level (union of levels that can see this field) */
   readonly visibility: TLevel;
 }
 
@@ -49,13 +55,13 @@ export interface ResourceField<
  *
  * @template TName - The field name as a literal type
  * @template TNestedFields - The nested schema's field definitions
- * @template TLevel - The visibility level controlling WHETHER the relation is included
+ * @template TLevel - Union of access level strings controlling WHETHER the relation is included
  * @template TCardinality - 'one' for nullable object, 'many' for array
  */
 export interface RelationField<
   TName extends string = string,
   TNestedFields extends readonly BuilderField[] = readonly BuilderField[],
-  TLevel extends VisibilityLevel = VisibilityLevel,
+  TLevel extends string = string,
   TCardinality extends 'one' | 'many' = 'one' | 'many',
 > {
   readonly name: TName;
@@ -77,7 +83,10 @@ export type BuilderField = ResourceField | RelationField;
 export interface RuntimeField {
   readonly name: string;
   readonly schema?: ZodType;
-  readonly visibility: VisibilityLevel;
+  /** Set of levels that can see this field (source of truth) */
+  readonly visibleTo: ReadonlySet<string>;
+  /** Single visibility level string (backward compat, first level in set) */
+  readonly visibility: string;
   readonly nestedSchema?: ResourceSchema;
   readonly cardinality?: 'one' | 'many';
 }
@@ -108,29 +117,15 @@ export interface ResourceSchema<TFields extends readonly BuilderField[] = readon
 /**
  * A resource schema tagged with an explicit access level
  *
- * Created by accessing `.public`, `.authenticated`, or `.admin` on a built schema.
- * Used in both procedure definitions (auto-projection) and handler-level
- * projection via `resource(data, Schema.authenticated)`.
+ * Created by accessing `.public`, `.authenticated`, or `.admin` on a built schema,
+ * or by accessing any custom level property on a custom-level schema.
  *
  * @template TFields - The field definitions from the base schema
- * @template TLevel - The access level for projection
- *
- * @example
- * ```typescript
- * const UserSchema = resourceSchema()
- *   .public('id', z.string())
- *   .authenticated('email', z.string())
- *   .build();
- *
- * // Tagged views
- * UserSchema.public        // TaggedResourceSchema<..., 'public'>
- * UserSchema.authenticated  // TaggedResourceSchema<..., 'authenticated'>
- * UserSchema.admin          // TaggedResourceSchema<..., 'admin'>
- * ```
+ * @template TLevel - The access level for projection (any string for custom levels)
  */
 export interface TaggedResourceSchema<
   TFields extends readonly BuilderField[] = readonly BuilderField[],
-  TLevel extends AccessLevel = AccessLevel,
+  TLevel extends string = string,
 > extends ResourceSchema<TFields> {
   readonly _level: TLevel;
 }
@@ -153,32 +148,20 @@ export interface ResourceSchemaWithViews<
 }
 
 /**
- * Computes the output type for a tagged resource schema
+ * A completed custom-level resource schema with tagged views for each level
  *
- * Maps the access level to the corresponding phantom tag and
- * computes the projected output type.
+ * Returned by `resourceSchema(config).build()`. Has one property per
+ * defined level, each a TaggedResourceSchema for that level.
  *
- * @template TSchema - A tagged resource schema
+ * @template TFields - The field definitions
+ * @template TLevels - The tuple of level names
  */
-export type OutputForLevel<TSchema extends TaggedResourceSchema> =
-  TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
-    ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
-    : never;
-
-/**
- * Type guard to check if a schema is a TaggedResourceSchema (has _level)
- */
-export function isTaggedResourceSchema(value: unknown): value is TaggedResourceSchema {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const obj = value as Record<string, unknown>;
-  return (
-    Array.isArray(obj.fields) &&
-    typeof obj._level === 'string' &&
-    (obj._level === 'public' || obj._level === 'authenticated' || obj._level === 'admin')
-  );
-}
+export type CustomResourceSchemaWithViews<
+  TFields extends readonly BuilderField[],
+  TLevels extends readonly string[],
+> = ResourceSchema<TFields> & {
+  [K in TLevels[number]]: TaggedResourceSchema<TFields, K>;
+} & { readonly _levelConfig: AccessLevelConfig };
 
 // ============================================================================
 // Type-Level Output Computation
@@ -190,34 +173,6 @@ export function isTaggedResourceSchema(value: unknown): value is TaggedResourceS
 type InferZodOutput<T> = T extends { parse: (data: unknown) => infer O } ? O : never;
 
 /**
- * Filters fields by visibility and extracts their types
- *
- * This type iterates over the fields tuple and includes only those
- * that are visible to the given context tag. RelationField entries
- * are recursively projected using the same tag.
- */
-type FilterFieldsByTag<
-  TFields extends readonly BuilderField[],
-  TTag extends ContextTag,
-> = TFields extends readonly [infer First, ...infer Rest]
-  ? Rest extends readonly BuilderField[]
-    ? First extends RelationField<infer Name, infer NestedFields, infer Level, infer Card>
-      ? IsVisibleToTag<Level, TTag> extends true
-        ? {
-            [K in Name]: Card extends 'one'
-              ? Simplify<FilterFieldsByTag<NestedFields, TTag>> | null
-              : Array<Simplify<FilterFieldsByTag<NestedFields, TTag>>>;
-          } & FilterFieldsByTag<Rest, TTag>
-        : FilterFieldsByTag<Rest, TTag>
-      : First extends ResourceField<infer Name, infer Schema, infer Level>
-        ? IsVisibleToTag<Level, TTag> extends true
-          ? { [K in Name]: InferZodOutput<Schema> } & FilterFieldsByTag<Rest, TTag>
-          : FilterFieldsByTag<Rest, TTag>
-        : FilterFieldsByTag<Rest, TTag>
-    : unknown
-  : unknown;
-
-/**
  * Simplifies an intersection type to a cleaner object type
  *
  * Converts `{ a: string } & { b: number }` to `{ a: string; b: number }`
@@ -225,19 +180,64 @@ type FilterFieldsByTag<
 type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 
 /**
+ * Converts a default VisibilityLevel to its union of visible levels
+ *
+ * Used by the default builder to track which levels can see a field:
+ * - `'public'` → `'public' | 'authenticated' | 'admin'`
+ * - `'authenticated'` → `'authenticated' | 'admin'`
+ * - `'admin'` → `'admin'`
+ */
+export type LevelToVisibleUnion<TLevel extends VisibilityLevel> = TLevel extends 'public'
+  ? 'public' | 'authenticated' | 'admin'
+  : TLevel extends 'authenticated'
+    ? 'authenticated' | 'admin'
+    : 'admin';
+
+/**
+ * Filters fields by level using set membership (union extends check)
+ *
+ * Includes a field if `TTarget extends TFieldLevels` — i.e., the target
+ * level string is a member of the field's visibility union.
+ *
+ * Works for both the default 3-level system and custom levels.
+ */
+export type FilterFieldsByLevel<
+  TFields extends readonly BuilderField[],
+  TTarget extends string,
+> = TFields extends readonly [infer First, ...infer Rest]
+  ? Rest extends readonly BuilderField[]
+    ? First extends RelationField<infer Name, infer NestedFields, infer Levels, infer Card>
+      ? TTarget extends Levels
+        ? {
+            [K in Name]: Card extends 'one'
+              ? Simplify<FilterFieldsByLevel<NestedFields, TTarget>> | null
+              : Array<Simplify<FilterFieldsByLevel<NestedFields, TTarget>>>;
+          } & FilterFieldsByLevel<Rest, TTarget>
+        : FilterFieldsByLevel<Rest, TTarget>
+      : First extends ResourceField<infer Name, infer Schema, infer Levels>
+        ? TTarget extends Levels
+          ? { [K in Name]: InferZodOutput<Schema> } & FilterFieldsByLevel<Rest, TTarget>
+          : FilterFieldsByLevel<Rest, TTarget>
+        : FilterFieldsByLevel<Rest, TTarget>
+    : unknown
+  : unknown;
+
+/**
+ * Filters fields by visibility using tag-based access
+ *
+ * Delegates to `FilterFieldsByLevel` using `TagToLevel` to convert the
+ * phantom tag to a level string. Works with the default 3-level system.
+ */
+type FilterFieldsByTag<
+  TFields extends readonly BuilderField[],
+  TTag extends ContextTag,
+> = FilterFieldsByLevel<TFields, TagToLevel<TTag>>;
+
+/**
  * Computes the output type for a schema at a given context tag
  *
  * @template TSchema - The resource schema type
  * @template TTag - The context tag to compute output for
- *
- * @example
- * ```typescript
- * type PublicOutput = OutputForTag<UserSchema, typeof ANONYMOUS>;
- * // Result: { id: string; name: string }
- *
- * type AuthOutput = OutputForTag<UserSchema, typeof AUTHENTICATED>;
- * // Result: { id: string; name: string; email: string }
- * ```
  */
 export type OutputForTag<TSchema extends ResourceSchema, TTag extends ContextTag> =
   TSchema extends ResourceSchema<infer TFields>
@@ -245,17 +245,36 @@ export type OutputForTag<TSchema extends ResourceSchema, TTag extends ContextTag
     : never;
 
 /**
+ * Computes the output type for a tagged resource schema
+ *
+ * Uses `FilterFieldsByLevel` directly, which works for both default
+ * and custom access levels.
+ *
+ * @template TSchema - A tagged resource schema
+ */
+export type OutputForLevel<TSchema extends TaggedResourceSchema> =
+  TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
+    ? Simplify<FilterFieldsByLevel<TFields, TLevel>>
+    : never;
+
+/**
  * Convenience type aliases for common tag outputs
  */
-export type AnonymousOutput<TSchema extends ResourceSchema> = OutputForTag<
+export type PublicOutput<TSchema extends ResourceSchema> = OutputForTag<
   TSchema,
-  typeof ANONYMOUS
+  typeof import('./tags.js').PUBLIC
 >;
+
+/** @deprecated Use PublicOutput */
+export type AnonymousOutput<TSchema extends ResourceSchema> = PublicOutput<TSchema>;
 export type AuthenticatedOutput<TSchema extends ResourceSchema> = OutputForTag<
   TSchema,
-  typeof AUTHENTICATED
+  typeof import('./tags.js').AUTHENTICATED
 >;
-export type AdminOutput<TSchema extends ResourceSchema> = OutputForTag<TSchema, typeof ADMIN>;
+export type AdminOutput<TSchema extends ResourceSchema> = OutputForTag<
+  TSchema,
+  typeof import('./tags.js').ADMIN
+>;
 
 // ============================================================================
 // Schema Builder
@@ -295,46 +314,50 @@ export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = rea
 
   /**
    * Adds a public field (visible to everyone)
-   *
-   * @param name - Field name
-   * @param schema - Zod schema for the field
-   * @returns New builder with the field added
    */
   public<TName extends string, TSchema extends ZodType>(
     name: TName,
     schema: TSchema
-  ): ResourceSchemaBuilder<readonly [...TFields, ResourceField<TName, TSchema, 'public'>]> {
+  ): ResourceSchemaBuilder<
+    readonly [...TFields, ResourceField<TName, TSchema, 'public' | 'authenticated' | 'admin'>]
+  > {
     return new ResourceSchemaBuilder([
       ...this._fields,
-      { name, schema, visibility: 'public' },
-    ]) as ResourceSchemaBuilder<readonly [...TFields, ResourceField<TName, TSchema, 'public'>]>;
+      {
+        name,
+        schema,
+        visibility: 'public',
+        visibleTo: new Set(['public', 'authenticated', 'admin']),
+      },
+    ]) as ResourceSchemaBuilder<
+      readonly [...TFields, ResourceField<TName, TSchema, 'public' | 'authenticated' | 'admin'>]
+    >;
   }
 
   /**
    * Adds an authenticated field (visible to authenticated users and admins)
-   *
-   * @param name - Field name
-   * @param schema - Zod schema for the field
-   * @returns New builder with the field added
    */
   authenticated<TName extends string, TSchema extends ZodType>(
     name: TName,
     schema: TSchema
-  ): ResourceSchemaBuilder<readonly [...TFields, ResourceField<TName, TSchema, 'authenticated'>]> {
+  ): ResourceSchemaBuilder<
+    readonly [...TFields, ResourceField<TName, TSchema, 'authenticated' | 'admin'>]
+  > {
     return new ResourceSchemaBuilder([
       ...this._fields,
-      { name, schema, visibility: 'authenticated' },
+      {
+        name,
+        schema,
+        visibility: 'authenticated',
+        visibleTo: new Set(['authenticated', 'admin']),
+      },
     ]) as ResourceSchemaBuilder<
-      readonly [...TFields, ResourceField<TName, TSchema, 'authenticated'>]
+      readonly [...TFields, ResourceField<TName, TSchema, 'authenticated' | 'admin'>]
     >;
   }
 
   /**
    * Adds an admin field (visible only to admins)
-   *
-   * @param name - Field name
-   * @param schema - Zod schema for the field
-   * @returns New builder with the field added
    */
   admin<TName extends string, TSchema extends ZodType>(
     name: TName,
@@ -342,33 +365,12 @@ export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = rea
   ): ResourceSchemaBuilder<readonly [...TFields, ResourceField<TName, TSchema, 'admin'>]> {
     return new ResourceSchemaBuilder([
       ...this._fields,
-      { name, schema, visibility: 'admin' },
+      { name, schema, visibility: 'admin', visibleTo: new Set(['admin']) },
     ]) as ResourceSchemaBuilder<readonly [...TFields, ResourceField<TName, TSchema, 'admin'>]>;
   }
 
   /**
    * Adds a has-one relation (nullable nested object)
-   *
-   * The relation's visibility controls WHETHER it appears in the output.
-   * The parent's projection level controls WHAT fields of the nested schema are shown.
-   *
-   * **Note:** The nested schema's generic field types are tracked at compile time
-   * for output type computation, but the runtime field stores an untyped
-   * `ResourceSchema` reference. Always pass the direct result of `.build()`
-   * to ensure the compile-time and runtime schemas stay in sync.
-   *
-   * @param name - Relation field name
-   * @param nestedSchema - The nested resource schema (result of `.build()`)
-   * @param visibility - Visibility level for this relation
-   * @returns New builder with the relation added
-   *
-   * @example
-   * ```typescript
-   * const UserSchema = resourceSchema()
-   *   .public('id', z.string())
-   *   .hasOne('organization', OrgSchema, 'public')
-   *   .build();
-   * ```
    */
   hasOne<
     TName extends string,
@@ -379,44 +381,24 @@ export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = rea
     nestedSchema: ResourceSchema<TNestedFields>,
     visibility: TLevel
   ): ResourceSchemaBuilder<
-    readonly [...TFields, RelationField<TName, TNestedFields, TLevel, 'one'>]
+    readonly [...TFields, RelationField<TName, TNestedFields, LevelToVisibleUnion<TLevel>, 'one'>]
   > {
     return new ResourceSchemaBuilder([
       ...this._fields,
       {
         name,
         visibility,
+        visibleTo: defaultLevelToSet(visibility),
         nestedSchema: nestedSchema as ResourceSchema,
         cardinality: 'one' as const,
       },
     ]) as ResourceSchemaBuilder<
-      readonly [...TFields, RelationField<TName, TNestedFields, TLevel, 'one'>]
+      readonly [...TFields, RelationField<TName, TNestedFields, LevelToVisibleUnion<TLevel>, 'one'>]
     >;
   }
 
   /**
    * Adds a has-many relation (array of nested objects)
-   *
-   * The relation's visibility controls WHETHER it appears in the output.
-   * The parent's projection level controls WHAT fields of the nested schema are shown.
-   *
-   * **Note:** The nested schema's generic field types are tracked at compile time
-   * for output type computation, but the runtime field stores an untyped
-   * `ResourceSchema` reference. Always pass the direct result of `.build()`
-   * to ensure the compile-time and runtime schemas stay in sync.
-   *
-   * @param name - Relation field name
-   * @param nestedSchema - The nested resource schema (result of `.build()`)
-   * @param visibility - Visibility level for this relation
-   * @returns New builder with the relation added
-   *
-   * @example
-   * ```typescript
-   * const UserSchema = resourceSchema()
-   *   .public('id', z.string())
-   *   .hasMany('posts', PostSchema, 'authenticated')
-   *   .build();
-   * ```
    */
   hasMany<
     TName extends string,
@@ -427,61 +409,45 @@ export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = rea
     nestedSchema: ResourceSchema<TNestedFields>,
     visibility: TLevel
   ): ResourceSchemaBuilder<
-    readonly [...TFields, RelationField<TName, TNestedFields, TLevel, 'many'>]
+    readonly [...TFields, RelationField<TName, TNestedFields, LevelToVisibleUnion<TLevel>, 'many'>]
   > {
     return new ResourceSchemaBuilder([
       ...this._fields,
       {
         name,
         visibility,
+        visibleTo: defaultLevelToSet(visibility),
         nestedSchema: nestedSchema as ResourceSchema,
         cardinality: 'many' as const,
       },
     ]) as ResourceSchemaBuilder<
-      readonly [...TFields, RelationField<TName, TNestedFields, TLevel, 'many'>]
+      readonly [
+        ...TFields,
+        RelationField<TName, TNestedFields, LevelToVisibleUnion<TLevel>, 'many'>,
+      ]
     >;
   }
 
   /**
    * Adds a field with explicit visibility level
-   *
-   * @param name - Field name
-   * @param schema - Zod schema for the field
-   * @param visibility - Visibility level
-   * @returns New builder with the field added
    */
   field<TName extends string, TSchema extends ZodType, TLevel extends VisibilityLevel>(
     name: TName,
     schema: TSchema,
     visibility: TLevel
-  ): ResourceSchemaBuilder<readonly [...TFields, ResourceField<TName, TSchema, TLevel>]> {
+  ): ResourceSchemaBuilder<
+    readonly [...TFields, ResourceField<TName, TSchema, LevelToVisibleUnion<TLevel>>]
+  > {
     return new ResourceSchemaBuilder([
       ...this._fields,
-      { name, schema, visibility },
-    ]) as ResourceSchemaBuilder<readonly [...TFields, ResourceField<TName, TSchema, TLevel>]>;
+      { name, schema, visibility, visibleTo: defaultLevelToSet(visibility) },
+    ]) as ResourceSchemaBuilder<
+      readonly [...TFields, ResourceField<TName, TSchema, LevelToVisibleUnion<TLevel>>]
+    >;
   }
 
   /**
    * Builds the final resource schema with tagged views
-   *
-   * Returns a schema with `.public`, `.authenticated`, and `.admin`
-   * properties for declarative projection in procedures.
-   *
-   * @returns Completed resource schema with tagged views
-   *
-   * @example
-   * ```typescript
-   * const UserSchema = resourceSchema()
-   *   .public('id', z.string())
-   *   .authenticated('email', z.string())
-   *   .build();
-   *
-   * // Use tagged views in procedures
-   * procedure().expose(UserSchema.authenticated).query(handler);
-   *
-   * // Or in handlers
-   * resource(data, UserSchema.authenticated);
-   * ```
    */
   build(): ResourceSchemaWithViews<TFields> {
     const fields = [...this._fields];
@@ -504,45 +470,322 @@ export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = rea
 }
 
 // ============================================================================
+// Custom Schema Builder (Proxy-based)
+// ============================================================================
+
+/**
+ * Resolves a group reference to its union of level strings
+ */
+type ResolveGroupToUnion<
+  TLevels extends readonly string[],
+  TGroups extends Record<string, '*' | readonly string[]>,
+  K extends keyof TGroups,
+> = TGroups[K] extends '*'
+  ? TLevels[number]
+  : TGroups[K] extends readonly (infer U extends string)[]
+    ? U
+    : never;
+
+/**
+ * Resolves a group name or levels array to a union of level strings
+ */
+type ResolveRefToUnion<
+  TLevels extends readonly string[],
+  TGroups extends Record<string, '*' | readonly string[]>,
+  TRef,
+> = TRef extends keyof TGroups
+  ? ResolveGroupToUnion<TLevels, TGroups, TRef>
+  : TRef extends readonly (infer U extends string)[]
+    ? U
+    : never;
+
+/**
+ * Methods available on the custom schema builder (non-dynamic)
+ */
+interface CustomSchemaBuilderMethods<
+  TLevels extends readonly string[],
+  TGroups extends Record<string, '*' | readonly string[]>,
+  TFields extends readonly BuilderField[],
+> {
+  /** Adds a field visible to an explicit set of levels */
+  visibleTo<
+    TName extends string,
+    TSchema extends ZodType,
+    const TSet extends readonly TLevels[number][],
+  >(
+    name: TName,
+    schema: TSchema,
+    levels: TSet
+  ): CustomSchemaBuilder<
+    TLevels,
+    TGroups,
+    readonly [...TFields, ResourceField<TName, TSchema, TSet[number]>]
+  >;
+
+  /** Adds a has-one relation */
+  hasOne<
+    TName extends string,
+    TNestedFields extends readonly BuilderField[],
+    TRef extends (keyof TGroups & string) | readonly TLevels[number][],
+  >(
+    name: TName,
+    nestedSchema: ResourceSchema<TNestedFields>,
+    visibility: TRef
+  ): CustomSchemaBuilder<
+    TLevels,
+    TGroups,
+    readonly [
+      ...TFields,
+      RelationField<TName, TNestedFields, ResolveRefToUnion<TLevels, TGroups, TRef>, 'one'>,
+    ]
+  >;
+
+  /** Adds a has-many relation */
+  hasMany<
+    TName extends string,
+    TNestedFields extends readonly BuilderField[],
+    TRef extends (keyof TGroups & string) | readonly TLevels[number][],
+  >(
+    name: TName,
+    nestedSchema: ResourceSchema<TNestedFields>,
+    visibility: TRef
+  ): CustomSchemaBuilder<
+    TLevels,
+    TGroups,
+    readonly [
+      ...TFields,
+      RelationField<TName, TNestedFields, ResolveRefToUnion<TLevels, TGroups, TRef>, 'many'>,
+    ]
+  >;
+
+  /** Builds the final schema with one tagged view per level */
+  build(): CustomResourceSchemaWithViews<TFields, TLevels>;
+}
+
+/**
+ * Custom schema builder type with dynamic methods from groups and levels
+ *
+ * Group names become fluent methods that resolve to the group's level set.
+ * Level names (that don't collide with groups) become methods for single-level visibility.
+ */
+export type CustomSchemaBuilder<
+  TLevels extends readonly string[],
+  TGroups extends Record<string, '*' | readonly string[]>,
+  TFields extends readonly BuilderField[] = readonly [],
+> = {
+  [K in keyof TGroups & string]: <TName extends string, TSchema extends ZodType>(
+    name: TName,
+    schema: TSchema
+  ) => CustomSchemaBuilder<
+    TLevels,
+    TGroups,
+    readonly [...TFields, ResourceField<TName, TSchema, ResolveGroupToUnion<TLevels, TGroups, K>>]
+  >;
+} & {
+  [K in TLevels[number] as K extends keyof TGroups ? never : K]: <
+    TName extends string,
+    TSchema extends ZodType,
+  >(
+    name: TName,
+    schema: TSchema
+  ) => CustomSchemaBuilder<
+    TLevels,
+    TGroups,
+    readonly [...TFields, ResourceField<TName, TSchema, K>]
+  >;
+} & CustomSchemaBuilderMethods<TLevels, TGroups, TFields>;
+
+/**
+ * Resolves a visibility reference (group name, level name, or array) to a Set.
+ * Group names are resolved via config, level names become single-element sets,
+ * and arrays are used directly.
+ *
+ * @internal
+ */
+function resolveVisibilityRef(
+  visibility: string | readonly string[],
+  config: AccessLevelConfig<readonly string[], Record<string, '*' | readonly string[]>>,
+  groupNames: Set<string>,
+  levelSet: ReadonlySet<string>
+): ReadonlySet<string> {
+  if (typeof visibility !== 'string') {
+    return new Set(visibility);
+  }
+  if (groupNames.has(visibility)) {
+    return config.resolve(visibility);
+  }
+  if (levelSet.has(visibility)) {
+    return new Set([visibility]);
+  }
+  throw new Error(`Unknown group or level: "${visibility}"`);
+}
+
+/**
+ * Creates a Proxy-based custom schema builder
+ *
+ * @internal
+ */
+function createCustomSchemaBuilder<
+  TLevels extends readonly string[],
+  TGroups extends Record<string, '*' | readonly string[]>,
+  TFields extends readonly BuilderField[],
+>(
+  config: AccessLevelConfig<TLevels, TGroups>,
+  fields: RuntimeField[]
+): CustomSchemaBuilder<TLevels, TGroups, TFields> {
+  const levelSet = config.allLevels();
+  const groupNames = new Set(Object.keys(config.groups));
+
+  const base = {
+    visibleTo(name: string, schema: ZodType, levels: readonly string[]) {
+      const set = new Set(levels);
+      return createCustomSchemaBuilder(config, [
+        ...fields,
+        { name, schema, visibleTo: set, visibility: levels[0] ?? '' },
+      ]);
+    },
+
+    hasOne(name: string, nestedSchema: ResourceSchema, visibility: string | readonly string[]) {
+      const set = resolveVisibilityRef(visibility, config, groupNames, levelSet);
+      return createCustomSchemaBuilder(config, [
+        ...fields,
+        {
+          name,
+          nestedSchema,
+          visibleTo: set,
+          visibility: [...set][0] ?? '',
+          cardinality: 'one' as const,
+        },
+      ]);
+    },
+
+    hasMany(name: string, nestedSchema: ResourceSchema, visibility: string | readonly string[]) {
+      const set = resolveVisibilityRef(visibility, config, groupNames, levelSet);
+      return createCustomSchemaBuilder(config, [
+        ...fields,
+        {
+          name,
+          nestedSchema,
+          visibleTo: set,
+          visibility: [...set][0] ?? '',
+          cardinality: 'many' as const,
+        },
+      ]);
+    },
+
+    build() {
+      const frozenFields = [...fields];
+      const baseSchema = { fields: frozenFields } as ResourceSchema<TFields>;
+      const result = Object.assign(baseSchema, { _levelConfig: config }) as unknown as Record<
+        string,
+        unknown
+      >;
+
+      for (const level of config.levels) {
+        result[level] = Object.assign(
+          { fields: frozenFields },
+          { _level: level }
+        ) as TaggedResourceSchema<TFields, string>;
+      }
+
+      return result as CustomResourceSchemaWithViews<TFields, TLevels>;
+    },
+  };
+
+  return new Proxy(base, {
+    get(target, prop, receiver) {
+      if (typeof prop === 'string') {
+        // Check if it's a group name
+        if (groupNames.has(prop)) {
+          return (name: string, schema: ZodType) => {
+            const set = config.resolve(prop as keyof TGroups & string);
+            return createCustomSchemaBuilder(config, [
+              ...fields,
+              { name, schema, visibleTo: set, visibility: [...set][0] ?? '' },
+            ]);
+          };
+        }
+        // Check if it's a level name (not a group)
+        if (levelSet.has(prop)) {
+          return (name: string, schema: ZodType) => {
+            const set = new Set([prop]);
+            return createCustomSchemaBuilder(config, [
+              ...fields,
+              { name, schema, visibleTo: set, visibility: prop },
+            ]);
+          };
+        }
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as CustomSchemaBuilder<TLevels, TGroups, TFields>;
+}
+
+// ============================================================================
 // Factory Function
 // ============================================================================
 
 /**
  * Creates a new resource schema builder
  *
- * This is the primary entry point for defining resource schemas with
- * field-level visibility controls.
+ * Without arguments, returns the default 3-level builder with
+ * `.public()`, `.authenticated()`, `.admin()` methods.
  *
- * @returns New empty schema builder
+ * With an `AccessLevelConfig` argument (from `defineAccessLevels()`),
+ * returns a custom builder whose methods correspond to the defined
+ * levels and groups.
  *
- * @example
+ * @example Default (3-level)
  * ```typescript
- * import { z } from 'zod';
- * import { resourceSchema } from '@veloxts/router';
- *
  * const UserSchema = resourceSchema()
- *   .public('id', z.string().uuid())
- *   .public('name', z.string())
- *   .public('avatarUrl', z.string().url().nullable())
- *   .authenticated('email', z.string().email())
- *   .authenticated('createdAt', z.date())
- *   .admin('internalNotes', z.string().nullable())
- *   .admin('lastLoginIp', z.string().nullable())
+ *   .public('id', z.string())
+ *   .authenticated('email', z.string())
+ *   .admin('internalNotes', z.string())
  *   .build();
+ * ```
  *
- * // Type inference:
- * // AnonymousOutput<typeof UserSchema> = { id: string; name: string; avatarUrl: string | null }
- * // AuthenticatedOutput<typeof UserSchema> = { id: string; name: string; avatarUrl: string | null; email: string; createdAt: Date }
- * // AdminOutput<typeof UserSchema> = { id: string; name: string; avatarUrl: string | null; email: string; createdAt: Date; internalNotes: string | null; lastLoginIp: string | null }
+ * @example Custom levels
+ * ```typescript
+ * const access = defineAccessLevels(
+ *   ['public', 'reviewer', 'authenticated', 'moderator', 'admin'],
+ *   { everyone: '*', staff: ['moderator', 'admin'] }
+ * );
+ *
+ * const ArticleSchema = resourceSchema(access)
+ *   .everyone('id', z.string())
+ *   .staff('moderationLog', z.string())
+ *   .visibleTo('authorEmail', z.string(), ['authenticated', 'admin'])
+ *   .build();
  * ```
  */
-export function resourceSchema(): ResourceSchemaBuilder<readonly []> {
-  return ResourceSchemaBuilder.create();
+export function resourceSchema(): ResourceSchemaBuilder<readonly []>;
+export function resourceSchema<
+  const TLevels extends readonly [string, ...string[]],
+  const TGroups extends Record<string, '*' | readonly string[]>,
+>(config: AccessLevelConfig<TLevels, TGroups>): CustomSchemaBuilder<TLevels, TGroups, readonly []>;
+export function resourceSchema(config?: AccessLevelConfig): unknown {
+  if (!config) {
+    return ResourceSchemaBuilder.create();
+  }
+  return createCustomSchemaBuilder(config, []);
 }
 
 // ============================================================================
 // Type Guards
 // ============================================================================
+
+/**
+ * Type guard to check if a schema is a TaggedResourceSchema (has _level)
+ *
+ * Accepts any string _level to support custom access levels.
+ */
+export function isTaggedResourceSchema(value: unknown): value is TaggedResourceSchema {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return Array.isArray(obj.fields) && typeof obj._level === 'string';
+}
 
 /**
  * Type guard to check if a value is a ResourceSchema

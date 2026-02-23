@@ -9,17 +9,17 @@
 
 import type {
   AdminOutput,
-  AnonymousOutput,
   AuthenticatedOutput,
   OutputForTag,
+  PublicOutput,
   ResourceSchema,
 } from './schema.js';
 import type {
   ADMIN,
-  ANONYMOUS,
   AUTHENTICATED,
   ContextTag,
   ExtractTag,
+  PUBLIC,
   TaggedContext,
 } from './tags.js';
 
@@ -63,12 +63,15 @@ export type InferResourceOutput<
 // ============================================================================
 
 /**
- * Type that represents any anonymous-level tagged context
+ * Type that represents any public-level (unauthenticated) tagged context
  *
  * This is a minimal tagged context type. For auth-specific contexts with
  * user and auth properties, use the types from @veloxts/auth.
  */
-export type AnonymousTaggedContext = TaggedContext<typeof ANONYMOUS>;
+export type PublicTaggedContext = TaggedContext<typeof PUBLIC>;
+
+/** @deprecated Use PublicTaggedContext */
+export type AnonymousTaggedContext = PublicTaggedContext;
 
 /**
  * Type that represents any authenticated-level tagged context
@@ -105,7 +108,7 @@ export type AdminTaggedContext = TaggedContext<typeof ADMIN>;
  * ```
  */
 export type AnyResourceOutput<TSchema extends ResourceSchema> =
-  | AnonymousOutput<TSchema>
+  | PublicOutput<TSchema>
   | AuthenticatedOutput<TSchema>
   | AdminOutput<TSchema>;
 
@@ -127,9 +130,7 @@ export type IfAuthenticated<
   TContext extends TaggedContext<ContextTag>,
   TSchema extends ResourceSchema,
 > =
-  ExtractTag<TContext> extends typeof ANONYMOUS
-    ? never
-    : OutputForTag<TSchema, ExtractTag<TContext>>;
+  ExtractTag<TContext> extends typeof PUBLIC ? never : OutputForTag<TSchema, ExtractTag<TContext>>;
 
 /**
  * Returns the output type if the context has admin access
@@ -153,6 +154,7 @@ export type {
   AnonymousOutput,
   AuthenticatedOutput,
   OutputForTag,
+  PublicOutput,
   ResourceSchema,
 } from './schema.js';
 export type {
@@ -162,6 +164,7 @@ export type {
   ContextTag,
   ExtractTag,
   HasTag,
+  PUBLIC,
   TaggedContext,
   WithTag,
 } from './tags.js';

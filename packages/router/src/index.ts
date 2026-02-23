@@ -346,6 +346,8 @@ export {
 export type {
   // Runtime access level (for auto-projection)
   AccessLevel,
+  // Access level configuration
+  AccessLevelConfig,
   // Phantom tags (type-only - these are ambient declarations)
   ADMIN,
   AdminOutput,
@@ -361,7 +363,12 @@ export type {
   BuilderField,
   // Tag types
   ContextTag,
+  // Custom schema builder types
+  CustomResourceSchemaWithViews,
+  CustomSchemaBuilder,
   ExtractTag,
+  // Type-level output computation
+  FilterFieldsByLevel,
   HasTag,
   IfAdmin,
   IfAuthenticated,
@@ -369,13 +376,20 @@ export type {
   InferResourceData,
   InferResourceOutput,
   IsVisibleToTag,
+  LevelToTag,
+  OutputForLevel,
   OutputForTag,
+  PUBLIC,
+  PublicOutput,
+  PublicTaggedContext,
   RelationField,
   ResourceField,
   // Schema types
   ResourceSchema,
+  ResourceSchemaWithViews,
   RuntimeField,
   TaggedContext,
+  TagToLevel,
   // Visibility types
   VisibilityLevel,
   WithTag,
@@ -405,14 +419,17 @@ export type {
  *     .input(z.object({ id: z.string() }))
  *     .query(async ({ input, ctx }) => {
  *       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
- *       return resource(user, UserSchema).forAnonymous();
+ *       return resource(user, UserSchema).forPublic();
  *     }),
  * });
  * ```
  */
 export {
+  // Access level configuration
+  defineAccessLevels,
   getAccessibleLevels,
   getVisibilityForTag,
+  isFieldVisibleToLevel,
   isResourceSchema,
   // Visibility
   isVisibleAtLevel,
