@@ -19,8 +19,12 @@
  *
  * These values are set by narrowing guards at runtime and used for
  * automatic resource projection in the procedure builder.
+ *
+ * Widened to `string` to support custom access levels defined via
+ * `defineAccessLevels()`. The default 3-level system still uses
+ * `'public' | 'authenticated' | 'admin'` at the call site.
  */
-export type AccessLevel = 'public' | 'authenticated' | 'admin';
+export type AccessLevel = string;
 
 /**
  * Maps an AccessLevel string to its corresponding phantom ContextTag
@@ -35,11 +39,30 @@ export type AccessLevel = 'public' | 'authenticated' | 'admin';
  * type Tag = LevelToTag<'public'>;        // typeof ANONYMOUS
  * ```
  */
-export type LevelToTag<TLevel extends AccessLevel> = TLevel extends 'admin'
+export type LevelToTag<TLevel extends string> = TLevel extends 'admin'
   ? typeof ADMIN
   : TLevel extends 'authenticated'
     ? typeof AUTHENTICATED
     : typeof ANONYMOUS;
+
+/**
+ * Maps a phantom ContextTag to its corresponding level string
+ *
+ * Inverse of `LevelToTag`. Used by `FilterFieldsByLevel` to bridge
+ * the tag-based system to the set-based visibility model.
+ *
+ * @example
+ * ```typescript
+ * type L1 = TagToLevel<typeof ADMIN>;         // 'admin'
+ * type L2 = TagToLevel<typeof AUTHENTICATED>; // 'authenticated'
+ * type L3 = TagToLevel<typeof ANONYMOUS>;     // 'public'
+ * ```
+ */
+export type TagToLevel<TTag extends ContextTag> = TTag extends typeof ADMIN
+  ? 'admin'
+  : TTag extends typeof AUTHENTICATED
+    ? 'authenticated'
+    : 'public';
 
 // ============================================================================
 // Phantom Type Symbols
@@ -122,7 +145,7 @@ export interface TaggedContext<TTag extends ContextTag = typeof ANONYMOUS> {
    * - `adminNarrow` → 'admin'
    * - No guard → 'public' (default)
    */
-  __accessLevel?: AccessLevel;
+  __accessLevel?: string;
 }
 
 // ============================================================================

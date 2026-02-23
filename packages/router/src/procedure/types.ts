@@ -13,7 +13,12 @@
 import type { BaseContext } from '@veloxts/core';
 import type { ZodType } from 'zod';
 
-import type { OutputForTag, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
+import type {
+  FilterFieldsByLevel,
+  OutputForTag,
+  ResourceSchema,
+  TaggedResourceSchema,
+} from '../resource/index.js';
 import type { ContextTag, ExtractTag, LevelToTag, TaggedContext } from '../resource/tags.js';
 import type {
   CompiledProcedure,
@@ -183,7 +188,9 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<
     TInput,
     TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
-      ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
+      ? TLevel extends 'admin' | 'authenticated' | 'public'
+        ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
+        : FilterFieldsByLevel<TFields, TLevel>
       : TContext extends TaggedContext<infer TTag>
         ? TTag extends ContextTag
           ? OutputForTag<TSchema, TTag>
@@ -541,7 +548,7 @@ export interface BuilderRuntimeState {
   /** Resource schema for context-dependent output */
   resourceSchema?: ResourceSchema;
   /** Explicit resource level from tagged schema (e.g., UserSchema.authenticated) */
-  resourceLevel?: 'public' | 'authenticated' | 'admin';
+  resourceLevel?: string;
   /** Middleware chain */
   middlewares: MiddlewareFunction<unknown, BaseContext, BaseContext, unknown>[];
   /** Guards to execute before handler */

@@ -85,11 +85,13 @@ describe('Resource Schema Builder', () => {
         name: 'id',
         schema: expect.any(Object),
         visibility: 'public',
+        visibleTo: new Set(['public', 'authenticated', 'admin']),
       });
       expect(schema.fields[1]).toEqual({
         name: 'name',
         schema: expect.any(Object),
         visibility: 'public',
+        visibleTo: new Set(['public', 'authenticated', 'admin']),
       });
     });
 

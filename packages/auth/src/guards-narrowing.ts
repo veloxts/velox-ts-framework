@@ -200,6 +200,57 @@ export function hasRoleNarrow(
 // ============================================================================
 
 /**
+ * Creates a custom narrowing guard with a specified access level.
+ *
+ * Use this to create guards for custom access levels defined via
+ * `defineAccessLevels()`. The guard's `accessLevel` is used by
+ * `executeProcedure()` for automatic resource projection.
+ *
+ * @param level - The access level string (e.g., 'reviewer', 'moderator')
+ * @param check - Guard check function
+ * @param options - Optional guard configuration
+ * @returns NarrowingGuard with the specified access level
+ *
+ * @example
+ * ```typescript
+ * import { createNarrowingGuard } from '@veloxts/auth';
+ *
+ * const reviewerNarrow = createNarrowingGuard(
+ *   'reviewer',
+ *   async (ctx) => ctx.user?.roles?.includes('reviewer') ?? false,
+ *   { name: 'reviewer', message: 'Reviewer access required' }
+ * );
+ *
+ * procedure()
+ *   .guardNarrow(reviewerNarrow)
+ *   .expose(ArticleSchema)
+ *   .query(handler);
+ * ```
+ */
+export function createNarrowingGuard<
+  TLevel extends string,
+  TRequired = unknown,
+  TGuaranteed = unknown,
+>(
+  level: TLevel,
+  check: GuardFunction<TRequired>,
+  options?: {
+    name?: string;
+    message?: string;
+    statusCode?: number;
+  }
+): NarrowingGuard<TRequired, TGuaranteed> {
+  return {
+    name: options?.name ?? level,
+    check,
+    message: options?.message,
+    statusCode: options?.statusCode,
+    _narrows: undefined as unknown as TGuaranteed,
+    accessLevel: level,
+  };
+}
+
+/**
  * Extracts the narrowed context type from a NarrowingGuard.
  *
  * @example

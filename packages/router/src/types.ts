@@ -435,7 +435,7 @@ export interface CompiledProcedure<
    *
    * @internal
    */
-  readonly _resourceLevel?: 'public' | 'authenticated' | 'admin';
+  readonly _resourceLevel?: string;
 }
 
 // ============================================================================

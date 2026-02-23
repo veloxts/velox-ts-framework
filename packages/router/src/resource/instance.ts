@@ -8,6 +8,7 @@
  */
 
 import type {
+  FilterFieldsByLevel,
   OutputForLevel,
   OutputForTag,
   ResourceSchema,
@@ -23,7 +24,8 @@ import type {
   ExtractTag,
   TaggedContext,
 } from './tags.js';
-import { isVisibleAtLevel, type VisibilityLevel } from './visibility.js';
+import type { VisibilityLevel } from './visibility.js';
+import { isFieldVisibleToLevel } from './visibility.js';
 
 // ============================================================================
 // Security Constants
@@ -59,7 +61,7 @@ const MAX_PROJECTION_DEPTH = 10;
  * @internal
  * @param data - The raw data object
  * @param schema - The resource schema to project against
- * @param level - The visibility level to project for
+ * @param level - The access level to project for (any string)
  * @param depth - Current recursion depth (defaults to 0)
  * @param visited - Set of already-visited data objects for cycle detection
  * @returns Projected object with null prototype
@@ -67,7 +69,7 @@ const MAX_PROJECTION_DEPTH = 10;
 function projectData(
   data: Record<string, unknown>,
   schema: ResourceSchema,
-  level: VisibilityLevel,
+  level: string,
   depth: number = 0,
   visited?: WeakSet<object>
 ): Record<string, unknown> {
@@ -84,7 +86,7 @@ function projectData(
   const result: Record<string, unknown> = Object.create(null);
 
   for (const field of schema.fields as readonly RuntimeField[]) {
-    if (!isVisibleAtLevel(field.visibility, level)) continue;
+    if (!isFieldVisibleToLevel(field, level)) continue;
     if (DANGEROUS_PROPERTIES.has(field.name)) continue;
 
     const value = data[field.name];
@@ -169,7 +171,7 @@ export class Resource<TSchema extends ResourceSchema> {
    * Returns only fields marked as 'public'.
    */
   forAnonymous(): OutputForTag<TSchema, typeof ANONYMOUS> {
-    return this._project('public') as OutputForTag<TSchema, typeof ANONYMOUS>;
+    return this.forLevel('public') as OutputForTag<TSchema, typeof ANONYMOUS>;
   }
 
   /**
@@ -178,7 +180,7 @@ export class Resource<TSchema extends ResourceSchema> {
    * Returns fields marked as 'public' or 'authenticated'.
    */
   forAuthenticated(): OutputForTag<TSchema, typeof AUTHENTICATED> {
-    return this._project('authenticated') as OutputForTag<TSchema, typeof AUTHENTICATED>;
+    return this.forLevel('authenticated') as OutputForTag<TSchema, typeof AUTHENTICATED>;
   }
 
   /**
@@ -187,7 +189,34 @@ export class Resource<TSchema extends ResourceSchema> {
    * Returns all fields (public, authenticated, and admin).
    */
   forAdmin(): OutputForTag<TSchema, typeof ADMIN> {
-    return this._project('admin') as OutputForTag<TSchema, typeof ADMIN>;
+    return this.forLevel('admin') as OutputForTag<TSchema, typeof ADMIN>;
+  }
+
+  /**
+   * Projects data for an explicit access level string
+   *
+   * Works with both default levels ('public', 'authenticated', 'admin')
+   * and custom levels defined via `defineAccessLevels()`.
+   *
+   * @param level - The access level to project for
+   * @returns Object with only the fields visible to the given level
+   *
+   * @example
+   * ```typescript
+   * // Custom level projection
+   * const data = resource.forLevel('reviewer');
+   * ```
+   */
+  forLevel<TLevel extends string>(
+    level: TLevel
+  ): TSchema extends ResourceSchema<infer TFields>
+    ? FilterFieldsByLevel<TFields, TLevel>
+    : Record<string, unknown> {
+    return projectData(this._data, this._schema, level) as TSchema extends ResourceSchema<
+      infer TFields
+    >
+      ? FilterFieldsByLevel<TFields, TLevel>
+      : Record<string, unknown>;
   }
 
   /**
@@ -211,20 +240,7 @@ export class Resource<TSchema extends ResourceSchema> {
     // At runtime, we need to determine the level from context properties
     // Since the tag is phantom (doesn't exist at runtime), we use heuristics
     const level = this._inferLevelFromContext(ctx);
-    return this._project(level) as OutputForTag<TSchema, ExtractTag<TContext>>;
-  }
-
-  /**
-   * Projects data for an explicit visibility level
-   *
-   * Delegates to the standalone `projectData()` function which supports
-   * recursive projection of nested relations.
-   *
-   * @param level - The visibility level to project for
-   * @returns Object with only the visible fields (null prototype)
-   */
-  private _project(level: VisibilityLevel): Record<string, unknown> {
-    return projectData(this._data, this._schema, level);
+    return this.forLevel(level) as OutputForTag<TSchema, ExtractTag<TContext>>;
   }
 
   /**
@@ -323,6 +339,25 @@ export class ResourceCollection<TSchema extends ResourceSchema> {
   }
 
   /**
+   * Projects all items for an explicit access level string
+   *
+   * Works with both default and custom access levels.
+   *
+   * @param level - The access level to project for
+   */
+  forLevel<TLevel extends string>(
+    level: TLevel
+  ): TSchema extends ResourceSchema<infer TFields>
+    ? Array<FilterFieldsByLevel<TFields, TLevel>>
+    : Array<Record<string, unknown>> {
+    return this._items.map((item) =>
+      new Resource(item, this._schema).forLevel(level)
+    ) as TSchema extends ResourceSchema<infer TFields>
+      ? Array<FilterFieldsByLevel<TFields, TLevel>>
+      : Array<Record<string, unknown>>;
+  }
+
+  /**
    * Projects all items based on a tagged context
    */
   for<TContext extends TaggedContext<ContextTag>>(
@@ -356,7 +391,7 @@ export class ResourceCollection<TSchema extends ResourceSchema> {
  * When called with a tagged schema (e.g., `UserSchema.authenticated`),
  * returns the projected data directly. When called with an untagged schema,
  * returns a Resource instance with `.forAnonymous()`, `.forAuthenticated()`,
- * `.forAdmin()` methods.
+ * `.forAdmin()`, `.forLevel()` methods.
  *
  * @param data - The raw data object
  * @param schema - Resource schema (tagged for direct projection, untagged for Resource instance)
@@ -388,15 +423,7 @@ export function resource(
   schema: ResourceSchema | TaggedResourceSchema
 ): unknown {
   if (isTaggedResourceSchema(schema)) {
-    const r = new Resource(data, schema);
-    switch (schema._level) {
-      case 'admin':
-        return r.forAdmin();
-      case 'authenticated':
-        return r.forAuthenticated();
-      default:
-        return r.forAnonymous();
-    }
+    return new Resource(data, schema).forLevel(schema._level);
   }
   return new Resource(data, schema);
 }
@@ -436,17 +463,8 @@ export function resourceCollection(
   schema: ResourceSchema | TaggedResourceSchema
 ): unknown {
   if (isTaggedResourceSchema(schema)) {
-    return items.map((item) => {
-      const r = new Resource(item, schema);
-      switch (schema._level) {
-        case 'admin':
-          return r.forAdmin();
-        case 'authenticated':
-          return r.forAuthenticated();
-        default:
-          return r.forAnonymous();
-      }
-    });
+    const level = schema._level;
+    return items.map((item) => new Resource(item, schema).forLevel(level));
   }
   return new ResourceCollection(items, schema);
 }

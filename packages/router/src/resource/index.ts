@@ -66,11 +66,17 @@
 
 // Resource instances
 export { Resource, ResourceCollection, resource, resourceCollection } from './instance.js';
+// Access level configuration
+export type { AccessLevelConfig } from './levels.js';
+export { defineAccessLevels } from './levels.js';
 export type {
   AdminOutput,
   AnonymousOutput,
   AuthenticatedOutput,
   BuilderField,
+  CustomResourceSchemaWithViews,
+  CustomSchemaBuilder,
+  FilterFieldsByLevel,
   OutputForLevel,
   OutputForTag,
   RelationField,
@@ -99,6 +105,7 @@ export type {
   HasTag,
   LevelToTag,
   TaggedContext,
+  TagToLevel,
   WithTag,
 } from './tags.js';
 // Type utilities
@@ -114,4 +121,9 @@ export type {
 } from './types.js';
 export type { IsVisibleToTag, VisibilityLevel } from './visibility.js';
 // Visibility
-export { getAccessibleLevels, getVisibilityForTag, isVisibleAtLevel } from './visibility.js';
+export {
+  getAccessibleLevels,
+  getVisibilityForTag,
+  isFieldVisibleToLevel,
+  isVisibleAtLevel,
+} from './visibility.js';

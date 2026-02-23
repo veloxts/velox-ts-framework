@@ -139,3 +139,24 @@ export function getAccessibleLevels(level: VisibilityLevel): VisibilityLevel[] {
   }
   return levels;
 }
+
+// ============================================================================
+// Set-Based Visibility (Custom Levels)
+// ============================================================================
+
+/**
+ * Runtime check: Is a field visible to a given level using set membership?
+ *
+ * All fields created by `ResourceSchemaBuilder` and `createCustomSchemaBuilder`
+ * include a `visibleTo` set, so this always uses set membership.
+ *
+ * @param field - The runtime field to check (must have `visibleTo` set)
+ * @param level - The access level to check visibility for
+ * @returns True if the field should be included in the output
+ */
+export function isFieldVisibleToLevel(
+  field: { visibleTo: ReadonlySet<string> },
+  level: string
+): boolean {
+  return field.visibleTo.has(level);
+}

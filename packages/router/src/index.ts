@@ -346,6 +346,8 @@ export {
 export type {
   // Runtime access level (for auto-projection)
   AccessLevel,
+  // Access level configuration
+  AccessLevelConfig,
   // Phantom tags (type-only - these are ambient declarations)
   ADMIN,
   AdminOutput,
@@ -361,21 +363,30 @@ export type {
   BuilderField,
   // Tag types
   ContextTag,
+  // Custom schema builder types
+  CustomResourceSchemaWithViews,
+  CustomSchemaBuilder,
   ExtractTag,
+  // Type-level output computation
+  FilterFieldsByLevel,
   HasTag,
+  LevelToTag,
   IfAdmin,
   IfAuthenticated,
   // Type utilities
   InferResourceData,
   InferResourceOutput,
   IsVisibleToTag,
+  OutputForLevel,
   OutputForTag,
   RelationField,
   ResourceField,
   // Schema types
   ResourceSchema,
+  ResourceSchemaWithViews,
   RuntimeField,
   TaggedContext,
+  TagToLevel,
   // Visibility types
   VisibilityLevel,
   WithTag,
@@ -411,8 +422,11 @@ export type {
  * ```
  */
 export {
+  // Access level configuration
+  defineAccessLevels,
   getAccessibleLevels,
   getVisibilityForTag,
+  isFieldVisibleToLevel,
   isResourceSchema,
   // Visibility
   isVisibleAtLevel,
