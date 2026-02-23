@@ -46,15 +46,27 @@ const UserSchema = resourceSchema()
 
 The `visibility` parameter controls **whether** the relation is included in the output. The parent's projection level controls **what fields** of the nested schema are shown.
 
+When using custom access levels (defined via `defineAccessLevels()`), the `visibility` parameter accepts a **group name** from your config or an **explicit array of level names**:
+
+```typescript
+// Group name
+.hasOne('author', AuthorSchema, 'internal')              // group defined in access config
+
+// Explicit array of levels
+.hasMany('comments', CommentSchema, ['authenticated', 'moderator', 'admin'])
+```
+
+The default three-level builder accepts `'public'`, `'authenticated'`, or `'admin'` as the visibility parameter — this is unchanged.
+
 ## Projection Behavior
 
 | Access Level | Output |
 |---|---|
-| Anonymous | `{ id, name, organization: { id, name } }` |
+| Public | `{ id, name, organization: { id, name } }` |
 | Authenticated | `{ id, name, email, organization: { id, name }, posts: [{ id, title, draft }] }` |
 | Admin | All fields, including `internalNotes`, `organization.taxId` |
 
-The `posts` relation has `'authenticated'` visibility, so it's excluded at the anonymous level. The `organization` relation has `'public'` visibility, so it's always included — but its `taxId` field (admin-only) is only visible at the admin level.
+The `posts` relation has `'authenticated'` visibility, so it's excluded at the public level. The `organization` relation has `'public'` visibility, so it's always included — but its `taxId` field (admin-only) is only visible at the admin level.
 
 ## Integration with Prisma `include`
 
@@ -118,3 +130,9 @@ The CLI parses your `schema.prisma` to detect:
 <Aside type="tip" title="Best Practice">
 Define leaf schemas first, then compose parent schemas. This ensures each schema is self-contained and reusable across different parent contexts.
 </Aside>
+
+## Related Content
+
+- [Resource API](/docs/endpoints/resource-api/) — Tagged views, projection methods, and custom access levels
+- [Procedures](/docs/endpoints/procedures/) — Builder API including `.expose()`
+- [Guards](/docs/authentication/guards/) — Authorization and access levels
