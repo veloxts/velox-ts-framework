@@ -86,7 +86,7 @@ export type ContextTag = typeof ANONYMOUS | typeof AUTHENTICATED | typeof ADMIN;
  * without any memory overhead.
  *
  * The `__accessLevel` field is a runtime field set by narrowing guards.
- * It enables automatic resource projection when using `.resource()` in
+ * It enables automatic resource projection when using `.expose()` in
  * the procedure builder chain.
  *
  * @template TTag - The context tag type (defaults to ANONYMOUS)
@@ -115,7 +115,7 @@ export interface TaggedContext<TTag extends ContextTag = typeof ANONYMOUS> {
    * Runtime access level set by narrowing guards
    *
    * This field IS present at runtime (unlike __tag) and is used for
-   * automatic resource projection when using `.resource()` in procedures.
+   * automatic resource projection when using `.expose()` in procedures.
    *
    * Set automatically by:
    * - `authenticatedNarrow` → 'authenticated'

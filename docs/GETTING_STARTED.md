@@ -356,12 +356,12 @@ export const userProcedures = procedures('users', {
 });
 ```
 
-**When to use `.output()` vs `.resource()`:**
+**When to use `.output()` vs `.expose()`:**
 
 | Scenario | Method |
 |----------|--------|
 | Same fields for all users | `.output(zodSchema)` |
-| Different fields per role | `resourceSchema()` + `resource()` |
+| Different fields per role | `.expose(resourceSchema)` |
 
 ## CLI Generators
 

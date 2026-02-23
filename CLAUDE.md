@@ -25,7 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Documentation
 
-Full documentation is available at **[veloxts.dev/docs](https://www.veloxts.dev/docs/)**.
+Full documentation is available at **[veloxts.dev/docs](https://www.veloxts.dev/docs/)**. (Local files: /apps/docs/src/content)
 
 ## Claude Code Skills
 
@@ -38,7 +38,7 @@ When using Claude Code (CLI), these skills are available:
 ```
 
 VeloxTS-specific help for:
-- Code generation (`velox make resource`, `velox make procedure`)
+- Code generation (`velox sync`, `velox make resource`, `velox make procedure`, etc.)
 - REST route inference from naming conventions
 - Authentication and guards
 - Validation with Zod schemas
@@ -100,6 +100,7 @@ velox dev              # Start dev server with HMR (default)
 velox dev --no-hmr     # Disable HMR, use legacy tsx watch mode
 velox dev --verbose    # Enable detailed HMR diagnostics
 velox dev --port 4000  # Custom port (default: 3030)
+velox dev --all        # Run both frontend and backend concurrently
 ```
 
 #### HMR Features (Default)

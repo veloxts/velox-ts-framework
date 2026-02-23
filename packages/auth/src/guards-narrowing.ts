@@ -131,7 +131,7 @@ export const authenticatedNarrow: NarrowingGuard<{ auth?: AuthContext }, Authent
   // Phantom type: value is never used at runtime, only carries type info.
   // The `undefined as unknown as T` pattern is standard for phantom types.
   _narrows: undefined as unknown as AuthenticatedContext,
-  // Runtime access level for auto-projection with .resource()
+  // Runtime access level for auto-projection with .expose()
   accessLevel: 'authenticated',
 };
 
@@ -150,7 +150,7 @@ export const authenticatedNarrow: NarrowingGuard<{ auth?: AuthContext }, Authent
  *   .guardNarrow(adminNarrow)
  *   .query(({ ctx }) => {
  *     // ctx.user is typed as User with roles: string[]
- *     // When used with resource(), returns all fields including admin-only
+ *     // When used with expose(), returns all fields including admin-only
  *     const user = await ctx.db.user.findUnique({ where: { id } });
  *     return resource(user, UserSchema).forAdmin();
  *   });
@@ -160,7 +160,7 @@ export const adminNarrow: NarrowingGuard<{ user?: User }, AdminContext> = {
   ...hasRoleBase('admin'),
   // Phantom type: carries type info for guardNarrow() and Resource API
   _narrows: undefined as unknown as AdminContext,
-  // Runtime access level for auto-projection with .resource()
+  // Runtime access level for auto-projection with .expose()
   accessLevel: 'admin',
 };
 

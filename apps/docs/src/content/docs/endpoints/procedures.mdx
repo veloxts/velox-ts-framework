@@ -140,6 +140,7 @@ procedure()
   .guard(guardFn)      // 2. Authorization (optional, can have multiple)
   .guardNarrow(guard)  // 2b. Narrowing guard (optional, sets access level)
   .output(schema)      // 3. Output schema or resource schema (optional)
+  .expose(schema)      // 3b. Context-dependent output projection (optional)
   .use(middleware)     // 4. Middleware (optional, can have multiple)
   .rest(options)       // 5. REST override (optional) - BEFORE handler
   .query(handler)      // 6. Handler - MUST be last
