@@ -64,7 +64,7 @@ The Prisma client is generated automatically via a `postinstall` hook — no nee
 ## Start Development
 
 ```bash
-pnpm dev
+velox dev
 ```
 
 Your API is now running at **http://localhost:3030**.
@@ -73,6 +73,12 @@ Test it:
 ```bash
 curl http://localhost:3030/api/health
 # {"status":"ok","timestamp":"..."}
+```
+
+If your project includes a frontend (`apps/web/`), add `--all` to start both backend and frontend:
+
+```bash
+velox dev --all
 ```
 
 Your frontend is now running at **http://localhost:8080**.
