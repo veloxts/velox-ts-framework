@@ -96,11 +96,11 @@ Examples:
    */
   async generate(config: GeneratorConfig<PageOptions>): Promise<GeneratorOutput> {
     // Check if this is a full-stack project
-    if (config.project.projectType !== 'fullstack') {
+    if (config.project.projectType !== 'vinxi') {
       throw new GeneratorError(
         GeneratorErrorCode.PROJECT_STRUCTURE,
         'Page generator requires a full-stack VeloxTS project.',
-        'Create a full-stack project with: npx create-velox-app my-app --full-stack'
+        'Create a full-stack project with: npx create-velox-app my-app --rsc'
       );
     }
 

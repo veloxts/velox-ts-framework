@@ -17,7 +17,7 @@ describe('MiddlewareGenerator', () => {
     name: 'test-app',
     hasAuth: false,
     database: 'sqlite',
-    projectType: 'api',
+    projectType: 'vite',
     isVinxiProject: false,
     hasWeb: false,
   };
