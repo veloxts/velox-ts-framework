@@ -56,12 +56,10 @@ npx create-velox-app my-app --rsc
 After creating your project:
 
 ```bash
-# Push schema to database
 pnpm db:push
-
-# Generate Prisma client
-pnpm db:generate
 ```
+
+The Prisma client is generated automatically via a `postinstall` hook — no need to run `db:generate` manually.
 
 ## Start Development
 
