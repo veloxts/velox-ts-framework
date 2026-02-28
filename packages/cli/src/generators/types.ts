@@ -54,9 +54,9 @@ export interface EntityNames {
 // ============================================================================
 
 /**
- * Project type based on architecture
+ * Rendering strategy: 'vite' for client-side SPA, 'vinxi' for server-side RSC
  */
-export type ProjectType = 'api' | 'fullstack';
+export type ProjectType = 'vite' | 'vinxi';
 
 /**
  * Project-level context for template generation
@@ -71,7 +71,7 @@ export interface ProjectContext {
   /** Database type from configuration */
   readonly database: 'sqlite' | 'postgresql' | 'mysql';
 
-  /** Project type: 'api' for API-only, 'fullstack' for RSC/Vinxi */
+  /** Rendering strategy: 'vite' for client-side SPA, 'vinxi' for server-side RSC */
   readonly projectType: ProjectType;
 
   /** Whether this is a Vinxi/RSC project */
@@ -80,13 +80,13 @@ export interface ProjectContext {
   /** Whether @veloxts/web is installed */
   readonly hasWeb: boolean;
 
-  /** Root directory for pages (app/pages for fullstack, undefined for api) */
+  /** Root directory for pages (app/pages for vinxi, undefined for vite) */
   readonly pagesDir?: string;
 
-  /** Root directory for layouts (app/layouts for fullstack, undefined for api) */
+  /** Root directory for layouts (app/layouts for vinxi, undefined for vite) */
   readonly layoutsDir?: string;
 
-  /** Root directory for actions (app/actions for fullstack, src/actions for api) */
+  /** Root directory for actions (app/actions for vinxi, src/actions for vite) */
   readonly actionsDir?: string;
 }
 

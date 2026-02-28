@@ -79,7 +79,7 @@ export async function detectProjectContext(cwd: string): Promise<ProjectContext>
       name: 'unknown',
       hasAuth: false,
       database: 'sqlite',
-      projectType: 'api',
+      projectType: 'vite',
       isVinxiProject: false,
       hasWeb: false,
     };
@@ -108,12 +108,12 @@ export async function detectProjectContext(cwd: string): Promise<ProjectContext>
 
   // Detect project type
   const hasAppPagesDir = existsSync(join(cwd, 'app', 'pages'));
-  const projectType: ProjectType = isVinxiProject || hasAppPagesDir ? 'fullstack' : 'api';
+  const projectType: ProjectType = isVinxiProject || hasAppPagesDir ? 'vinxi' : 'vite';
 
   // Detect directory structure
-  const pagesDir = projectType === 'fullstack' ? 'app/pages' : undefined;
-  const layoutsDir = projectType === 'fullstack' ? 'app/layouts' : undefined;
-  const actionsDir = projectType === 'fullstack' ? 'app/actions' : 'src/actions';
+  const pagesDir = projectType === 'vinxi' ? 'app/pages' : undefined;
+  const layoutsDir = projectType === 'vinxi' ? 'app/layouts' : undefined;
+  const actionsDir = projectType === 'vinxi' ? 'app/actions' : 'src/actions';
 
   return {
     name: packageJson.name ?? 'velox-app',

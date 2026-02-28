@@ -17,7 +17,7 @@ describe('PolicyGenerator', () => {
     name: 'test-app',
     hasAuth: true,
     database: 'sqlite',
-    projectType: 'api',
+    projectType: 'vite',
     isVinxiProject: false,
     hasWeb: false,
   };

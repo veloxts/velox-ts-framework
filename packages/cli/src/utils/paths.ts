@@ -312,7 +312,7 @@ const VINXI_PROJECT_MARKERS = ['vinxi', '@vinxi/server-functions', '@veloxts/web
 /**
  * Project type detection result
  */
-export interface ProjectType {
+export interface ProjectDetectionResult {
   /** Whether this is a Vinxi-based RSC project */
   isVinxi: boolean;
   /** Whether @veloxts/web is installed */
@@ -328,10 +328,12 @@ export interface ProjectType {
  * 1. Vinxi markers in dependencies (vinxi, @vinxi/server-functions, @veloxts/web)
  * 2. app.config.ts or app.config.js (Vinxi configuration)
  */
-export async function detectProjectType(cwd: string = process.cwd()): Promise<ProjectType> {
+export async function detectProjectType(
+  cwd: string = process.cwd()
+): Promise<ProjectDetectionResult> {
   const packageJsonPath = path.join(cwd, 'package.json');
 
-  const result: ProjectType = {
+  const result: ProjectDetectionResult = {
     isVinxi: false,
     hasWeb: false,
     dependencies: {},
