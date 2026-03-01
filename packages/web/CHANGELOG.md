@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.7.6
+
+### Patch Changes
+
+- feat(router): custom access levels for the Resource API + advanced Architectural Patterns
+- Updated dependencies
+  - @veloxts/auth@0.7.6
+  - @veloxts/client@0.7.6
+  - @veloxts/core@0.7.6
+  - @veloxts/router@0.7.6
+
 ## 0.7.5
 
 ### Patch Changes

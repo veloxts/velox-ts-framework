@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.7.6
+
+### Patch Changes
+
+- feat(router): custom access levels for the Resource API + advanced Architectural Patterns
+
 ## 0.7.5
 
 ### Patch Changes

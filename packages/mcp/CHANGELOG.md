@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.7.6
+
+### Patch Changes
+
+- feat(router): custom access levels for the Resource API + advanced Architectural Patterns
+- Updated dependencies
+  - @veloxts/cli@0.7.6
+  - @veloxts/router@0.7.6
+  - @veloxts/validation@0.7.6
+
 ## 0.7.5
 
 ### Patch Changes
