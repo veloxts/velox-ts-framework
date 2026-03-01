@@ -3,7 +3,7 @@ title: JWT Authentication
 description: Token-based authentication with access and refresh tokens.
 ---
 
-JWT authentication issues short-lived access tokens and long-lived refresh tokens. The server doesn't store session state, so it scales horizontally without a shared session store. Velox TS handles token generation, verification, refresh rotation, and automatic `ctx.user` injection.
+JWT authentication issues short-lived access tokens and long-lived refresh tokens. Velox TS handles token generation, verification, refresh rotation, and automatic `ctx.user` injection.
 
 ## Setup
 

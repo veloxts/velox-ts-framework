@@ -3,7 +3,7 @@ title: Session Authentication
 description: Cookie-based session authentication.
 ---
 
-Session authentication keeps the user's state on the server and sends only a signed cookie to the browser. This makes revocation instant, avoids token storage concerns on the client, and works naturally with server-rendered pages. Velox TS sessions include HMAC-SHA256 signing, sliding expiration, flash messages, and session regeneration on login to prevent fixation attacks.
+Session-based auth stores state on the server and identifies requests via a signed cookie. Velox TS sessions include HMAC-SHA256 signing, sliding expiration, flash messages, and session regeneration on login to prevent fixation attacks.
 
 ## Setup
 

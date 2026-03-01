@@ -3,7 +3,7 @@ title: Configuration
 description: Configure your Velox TS application.
 ---
 
-Most applications need different settings for development, testing, and production — database URLs, log levels, timeouts, secrets. Velox TS handles this through environment variables and configuration objects, with optional environment-aware presets that eliminate boilerplate.
+Velox TS handles configuration through environment variables and configuration objects, with optional environment-aware presets that adapt to your `NODE_ENV` automatically.
 
 :::tip[Environment-Aware Presets]
 For production-ready configuration with sensible defaults, use [`getServerConfig()`](/docs/core/environment-configuration/) and [`usePresets()`](/docs/core/environment-configuration/#ecosystem-presets) instead of manual configuration.
