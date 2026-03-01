@@ -3,7 +3,7 @@ title: Context
 description: Request-scoped state and context extension.
 ---
 
-The context (`ctx`) object provides access to request-scoped state in procedure handlers.
+Every procedure handler receives a `ctx` object with the current request, database client, authenticated user, and any state your plugins add. Instead of passing dependencies manually or relying on globals, the context gives each request its own isolated scope — extensible through TypeScript declaration merging.
 
 ## Default Context
 

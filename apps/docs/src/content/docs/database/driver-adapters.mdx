@@ -15,7 +15,7 @@ Prisma 7 requires driver adapters for database connections. Each adapter provide
 | PostgreSQL | `@prisma/adapter-pg` | pg | Production |
 
 <Aside type="note">
-Prisma 7 supports additional adapters (MySQL, LibSQL/Turso). VeloxTS templates currently ship with SQLite and PostgreSQL—LibSQL/Turso support for edge deployments is [on the roadmap](https://github.com/veloxts/velox-ts-framework/blob/main/.plans/ROADMAP.md) for v1.1.
+Prisma 7 supports additional adapters (MySQL, LibSQL/Turso). Velox TS templates currently ship with SQLite and PostgreSQL—LibSQL/Turso support for edge deployments is [on the roadmap](https://github.com/veloxts/velox-ts-framework/blob/main/.plans/ROADMAP.md) for v1.1.
 </Aside>
 
 ## SQLite (Development)
@@ -150,7 +150,7 @@ Always disconnect on shutdown to prevent connection leaks:
 ```typescript
 import { db } from './database';
 
-// VeloxTS handles this automatically via the ORM plugin
+// Velox TS handles this automatically via the ORM plugin
 // For manual setups:
 const shutdown = async () => {
   await db.$disconnect();

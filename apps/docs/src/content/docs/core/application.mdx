@@ -1,11 +1,11 @@
 ---
 title: Application
-description: The VeloxTS application instance and lifecycle.
+description: The Velox TS application instance and lifecycle.
 ---
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-The `veloxApp()` function creates your application instance, which wraps Fastify with VeloxTS conventions.
+Every Velox TS app starts with `veloxApp()`. It creates a configured Fastify instance with sensible defaults, registers your plugins and routes, and manages the server lifecycle. This is the entry point for everything your application does.
 
 ## Creating an App
 
@@ -106,7 +106,7 @@ app.server.addHook('onClose', async () => {
 
 ## Graceful Shutdown
 
-VeloxTS handles shutdown signals automatically. For database connections, add explicit cleanup:
+Velox TS handles shutdown signals automatically. For database connections, add explicit cleanup:
 
 ```typescript
 import { veloxApp, rest } from '@veloxts/velox';
@@ -136,7 +136,7 @@ All scaffolded templates include graceful shutdown handlers by default.
 
 ## Development Server (HMR)
 
-The VeloxTS CLI provides a development server with Hot Module Replacement:
+The Velox TS CLI provides a development server with Hot Module Replacement:
 
 ```bash
 velox dev              # Start with HMR (default)
@@ -200,12 +200,12 @@ await app.server.register(import('@fastify/helmet'));
 ```
 
 <Aside type="caution">
-Prefer VeloxTS abstractions when possible. Direct Fastify access bypasses type-safe procedure patterns.
+Prefer Velox TS abstractions when possible. Direct Fastify access bypasses type-safe procedure patterns.
 </Aside>
 
 ## Health Check Endpoint
 
-All VeloxTS apps include a health check at `/api/health`:
+All Velox TS apps include a health check at `/api/health`:
 
 ```bash
 curl http://localhost:3030/api/health

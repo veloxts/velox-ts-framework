@@ -1,11 +1,11 @@
 ---
 title: Authentication Adapters
-description: Integrate third-party authentication providers with VeloxTS.
+description: Integrate third-party authentication providers with Velox TS.
 ---
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-VeloxTS provides a pluggable authentication system that integrates with popular authentication providers through adapters. This allows you to use services like Clerk, Auth0, or Better Auth without writing custom authentication logic.
+Velox TS provides a pluggable authentication system that integrates with popular authentication providers through adapters. This allows you to use services like Clerk, Auth0, or Better Auth without writing custom authentication logic.
 
 ## Available Adapters
 
@@ -22,7 +22,7 @@ VeloxTS provides a pluggable authentication system that integrates with popular 
 
 All adapters implement the same interface, providing:
 - **Session verification** - Validate authentication tokens/cookies
-- **User loading** - Transform provider user data to VeloxTS format
+- **User loading** - Transform provider user data to Velox TS format
 - **Context integration** - Automatically inject `ctx.user` and `ctx.session`
 
 ### How It Works
@@ -113,7 +113,7 @@ interface ClerkAdapterConfig {
 1. Extracts JWT from `Authorization: Bearer <token>` header
 2. Verifies token with Clerk's backend SDK
 3. Optionally fetches full user profile from Clerk API
-4. Transforms Clerk user/session to VeloxTS format
+4. Transforms Clerk user/session to Velox TS format
 5. Injects into `ctx.user` and `ctx.session`
 
 ### Available User Data
@@ -242,7 +242,7 @@ interface Auth0AdapterConfig {
 2. Fetches JWKS (JSON Web Key Set) from Auth0
 3. Verifies JWT signature using JWKS public keys
 4. Validates claims (issuer, audience, expiration)
-5. Transforms Auth0 claims to VeloxTS format
+5. Transforms Auth0 claims to Velox TS format
 6. Injects into `ctx.user` and `ctx.session`
 
 ### JWKS Caching
@@ -382,7 +382,7 @@ app.register(createAuthAdapterPlugin(adapter));
 
 1. Reads session cookie set by Better Auth
 2. Calls Better Auth's session validation API
-3. Transforms Better Auth user/session to VeloxTS format
+3. Transforms Better Auth user/session to Velox TS format
 4. Injects into `ctx.user` and `ctx.session`
 
 ### Available User Data
@@ -409,7 +409,7 @@ Better Auth adapter does not register authentication routes. You must handle Bet
 
 ## Using Adapters with Guards
 
-All adapters work seamlessly with VeloxTS guards:
+All adapters work seamlessly with Velox TS guards:
 
 ```typescript
 import { authenticated, hasRole, hasPermission } from '@veloxts/auth';
@@ -466,7 +466,7 @@ class MyCustomAdapter extends BaseAuthAdapter<MyAdapterConfig> {
     const userData = await verifyWithMyProvider(token, this.apiKey);
     if (!userData) return null;
 
-    // Transform to VeloxTS format
+    // Transform to Velox TS format
     return {
       user: {
         id: userData.id,

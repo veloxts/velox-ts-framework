@@ -5,16 +5,16 @@ description: End-to-end type safety without code generation.
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-VeloxTS provides complete end-to-end type safety from database to frontend without any code generation step. Types flow naturally through the TypeScript compiler.
+Velox TS provides complete end-to-end type safety from database to frontend without any code generation step. Types flow naturally through the TypeScript compiler.
 
-## The VeloxTS Type Philosophy
+## The Velox TS Type Philosophy
 
 Traditional approaches require code generation:
 - GraphQL: `codegen` generates types from schema
 - tRPC standalone: Types work but REST requires separate typing
 - OpenAPI: Generate client SDKs from spec
 
-**VeloxTS approach:** Types are inferred instantly through TypeScript's type system. No build step, no generated files—you get autocomplete and error feedback as you type.
+**Velox TS approach:** Types are inferred instantly through TypeScript's type system. No build step, no generated files—you get autocomplete and error feedback as you type.
 
 ```
 Zod Schema → Procedure → tRPC Router → Client
@@ -194,7 +194,7 @@ type UserOutput = z.output<typeof UserSchema>;
 
 ## Context Type Extension
 
-VeloxTS uses TypeScript declaration merging to extend the context object:
+Velox TS uses TypeScript declaration merging to extend the context object:
 
 ```typescript
 // types/context.ts

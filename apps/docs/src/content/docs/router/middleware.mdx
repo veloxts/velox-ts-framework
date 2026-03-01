@@ -3,7 +3,7 @@ title: Middleware
 description: Add request processing logic to procedures.
 ---
 
-Middleware lets you run code before procedure handlers execute. Use it for logging, rate limiting, or request transformation.
+Sometimes you need to run logic before a procedure handler executes — logging the request, checking rate limits, transforming input, or injecting additional context. Middleware chains let you compose these concerns without cluttering your handler code.
 
 ## Using Middleware
 

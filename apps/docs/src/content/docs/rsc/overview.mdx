@@ -8,7 +8,7 @@ import { Aside } from '@astrojs/starlight/components';
 The `@veloxts/web` package enables React Server Components (RSC) with Vinxi and React 19, providing a unified full-stack architecture where server and client code coexist seamlessly.
 
 <Aside type="note">
-This section covers RSC templates (`--rsc`, `--rsc-auth`). For SPA templates that consume VeloxTS APIs from a separate frontend, see [Client Package](/docs/client/overview/).
+This section covers RSC templates (`--rsc`, `--rsc-auth`). For SPA templates that consume Velox TS APIs from a separate frontend, see [Client Package](/docs/client/overview/).
 </Aside>
 
 ## What is RSC?
@@ -44,7 +44,7 @@ Browser Request
 │  └── Client hydration               │
 └─────────────────────────────────────┘
      ↓
-VeloxTS Procedures (Business Logic)
+Velox TS Procedures (Business Logic)
      ↓
 Database (Prisma)
 ```
@@ -89,7 +89,7 @@ my-app/
 │   │   └── users.ts     # User mutations
 │   └── components/      # Shared components
 ├── api/
-│   ├── procedures/      # VeloxTS procedures
+│   ├── procedures/      # Velox TS procedures
 │   └── index.ts         # API entry point
 ├── prisma/
 │   └── schema.prisma    # Database schema

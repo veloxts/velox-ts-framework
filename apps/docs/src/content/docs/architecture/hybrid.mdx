@@ -3,7 +3,7 @@ title: Hybrid Architecture
 description: Combine REST and tRPC for different client needs.
 ---
 
-Use this architecture when you have both TypeScript and non-TypeScript clients.
+The hybrid architecture generates both REST and tRPC endpoints from the same procedure definitions. Your mobile team gets a standard REST API with OpenAPI docs, while your web dashboard talks directly over tRPC with full type safety. No code duplication, no separate API layers — one procedure serves both transports.
 
 ## Different Teams, Different Transports
 
@@ -14,7 +14,7 @@ Use this architecture when you have both TypeScript and non-TypeScript clients.
 
 ## Hybrid for the backend
 
-VeloxTS generates both REST and tRPC endpoints from the same procedures:
+Velox TS generates both REST and tRPC endpoints from the same procedures:
 
 ```typescript
 import { resourceSchema, resourceCollection } from '@veloxts/router';

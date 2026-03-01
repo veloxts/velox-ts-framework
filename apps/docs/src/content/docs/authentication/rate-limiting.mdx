@@ -3,7 +3,7 @@ title: Rate Limiting
 description: Protect your API from abuse with rate limiting.
 ---
 
-VeloxTS provides rate limiting for authentication endpoints.
+Login and registration endpoints are prime targets for brute-force attacks. Rate limiting restricts how many attempts a client can make within a time window, with progressive backoff that increases delays after repeated failures — making credential stuffing impractical without blocking legitimate users.
 
 ## Quick Setup
 

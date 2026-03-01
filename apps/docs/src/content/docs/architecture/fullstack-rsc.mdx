@@ -3,7 +3,7 @@ title: Full-stack RSC Architecture
 description: Unified codebase with React Server Components and Vinxi.
 ---
 
-Use this architecture for complete web applications with a unified codebase, server rendering, and streaming.
+The full-stack RSC architecture runs your entire application — API, server rendering, and client interactivity — in a single codebase using React Server Components and Vinxi. Server components fetch data directly without API calls, and client components hydrate only where interactivity is needed. Choose this for web applications where you want unified deployment, streaming SSR, and zero client-server boilerplate.
 
 ## When to Choose Full-stack RSC
 
@@ -22,7 +22,7 @@ npx create-velox-app my-app --rsc-auth
 
 ## How It Works
 
-VeloxTS uses **Vinxi** as the HTTP handler, with Fastify embedded for API routes:
+Velox TS uses **Vinxi** as the HTTP handler, with Fastify embedded for API routes:
 
 ```
 Browser Request

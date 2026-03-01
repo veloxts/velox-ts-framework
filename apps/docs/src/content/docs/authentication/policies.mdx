@@ -3,7 +3,7 @@ title: Policies
 description: Resource-level authorization with policies.
 ---
 
-Policies define authorization rules for specific resources.
+Guards check *who* the user is; policies check *what* they can do with a specific resource. A policy defines rules like "users can edit their own posts" or "only admins can delete comments," keeping authorization logic centralized rather than scattered across procedure handlers.
 
 ## Defining Policies
 

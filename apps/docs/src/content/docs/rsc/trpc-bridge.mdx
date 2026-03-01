@@ -3,7 +3,7 @@ title: tRPC Bridge
 description: Call backend procedures from server actions.
 ---
 
-Bridge server actions to your tRPC procedures for full type safety.
+Server actions can call your database directly, but then you lose the validation, authorization, and type safety that procedures provide. The tRPC bridge lets server actions invoke your existing procedures with full type inference, so your business logic stays in one place regardless of whether it's called from REST, tRPC, or a server action.
 
 ## Direct Procedure Call
 

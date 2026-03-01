@@ -3,7 +3,7 @@ title: Error Handling
 description: Handle errors consistently across your API.
 ---
 
-VeloxTS provides structured error handling with type-safe error responses.
+APIs need consistent error responses that clients can parse and act on. Velox TS provides a hierarchy of error classes (`NotFoundError`, `ValidationError`, `UnauthorizedError`, and more) that automatically map to the correct HTTP status codes and return structured JSON — no manual status code management required.
 
 ## Throwing Errors
 
@@ -58,7 +58,7 @@ class PaymentError extends VeloxError {
 
 ## Error Codes
 
-VeloxTS uses structured error codes (E1xxx-E9xxx) with fix suggestions:
+Velox TS uses structured error codes (E1xxx-E9xxx) with fix suggestions:
 
 ```
 VeloxError[E1001]: Procedure "getUser" missing required input schema
