@@ -153,10 +153,10 @@ A "collection" is the object returned by `procedures()` — the grouped set of e
 
 ```typescript
 import { procedures, procedure } from '@veloxts/velox';
-import type { BaseContext } from '@veloxts/core';
+import type { Middleware } from '@veloxts/router';
 
 // 1. Create a specialized middleware for the billing domain
-const requireStripeCustomer = async ({ ctx, next }: { ctx: BaseContext; next: () => Promise<unknown> }) => {
+const requireStripeCustomer: Middleware = async ({ ctx, next }) => {
   if (!ctx.user) throw new Error('Unauthorized');
   // Extend context directly — this is how VeloxTS middleware works
   ctx.stripeCustomerId = await ctx.db.getPaymentId(ctx.user.id);

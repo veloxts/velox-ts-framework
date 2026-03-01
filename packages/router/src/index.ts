@@ -64,6 +64,7 @@ export type {
   InferProcedureContext,
   InferProcedureInput,
   InferProcedureOutput,
+  Middleware,
   // Handler and middleware types
   MiddlewareArgs,
   MiddlewareFunction,
