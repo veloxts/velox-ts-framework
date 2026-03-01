@@ -5,7 +5,7 @@ description: Proper server/client boundaries in React Server Components.
 
 import { Aside } from '@astrojs/starlight/components';
 
-When using RSC, maintain strict module boundaries to prevent Node.js code from leaking into client bundles.
+React Server Components make it easy to accidentally pull Node.js dependencies into the client bundle. This page covers the module boundary patterns that keep your builds clean and your bundles lean.
 
 ## Why Module Boundaries Matter
 

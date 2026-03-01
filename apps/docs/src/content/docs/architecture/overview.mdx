@@ -1,9 +1,9 @@
 ---
 title: Architecture Overview
-description: Understanding VeloxTS architectural patterns and choices.
+description: Understanding Velox TS architectural patterns and choices.
 ---
 
-Velox TS is designed to be flexible. You choose the architecture that fits your needs.
+Velox TS doesn't lock you into a single architecture. Whether you're building a REST API for mobile clients, a tRPC-only service for TypeScript consumers, or a full-stack app with React Server Components, the same procedure definitions power all of them. This page explains the core abstraction and how it adapts to each pattern.
 
 ## The Core Abstraction: Procedures
 
@@ -41,7 +41,7 @@ This single definition generates:
 External-facing API with automatic OpenAPI generation.
 
 ```
-Client (any) → REST → VeloxTS → Database
+Client (any) → REST → Velox TS → Database
 ```
 
 [Learn more](/docs/architecture/rest-api/)
@@ -51,7 +51,7 @@ Client (any) → REST → VeloxTS → Database
 Maximum type safety for TypeScript clients.
 
 ```
-TypeScript Client → tRPC → VeloxTS → Database
+TypeScript Client → tRPC → Velox TS → Database
 ```
 
 [Learn more](/docs/architecture/trpc-api/)
@@ -61,7 +61,7 @@ TypeScript Client → tRPC → VeloxTS → Database
 Separate frontend, type-safe communication.
 
 ```
-React SPA → tRPC Client → VeloxTS API → Database
+React SPA → tRPC Client → Velox TS API → Database
 ```
 
 [Learn more](/docs/architecture/spa-backend/)
@@ -71,7 +71,7 @@ React SPA → tRPC Client → VeloxTS API → Database
 Unified codebase with React Server Components.
 
 ```
-Browser → Vinxi → RSC → Server Actions → VeloxTS → Database
+Browser → Vinxi → RSC → Server Actions → Velox TS → Database
 ```
 
 [Learn more](/docs/architecture/fullstack-rsc/)
@@ -82,7 +82,7 @@ Combine patterns - tRPC for internal, REST for external.
 
 ```
 Mobile App → REST ↘
-                    VeloxTS → Database
+                    Velox TS → Database
 Web App → tRPC   ↗
 ```
 

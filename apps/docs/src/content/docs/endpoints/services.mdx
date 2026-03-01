@@ -293,7 +293,7 @@ External services fail. Network timeouts, rate limits, and transient errors are 
 
 ### Typed Errors
 
-Use VeloxTS [error classes](/docs/core/error-handling/) to return meaningful HTTP responses. The framework provides built-in error classes for common HTTP status codes:
+Use Velox TS [error classes](/docs/core/error-handling/) to return meaningful HTTP responses. The framework provides built-in error classes for common HTTP status codes:
 
 ```typescript
 import {
@@ -330,7 +330,7 @@ Available error classes: `ConflictError` (409), `ForbiddenError` (403), `Unautho
 
 ### Handling Prisma Errors
 
-Use the `db()` wrapper from `@veloxts/orm` to automatically convert Prisma errors into appropriate VeloxTS error classes:
+Use the `db()` wrapper from `@veloxts/orm` to automatically convert Prisma errors into appropriate Velox TS error classes:
 
 ```typescript
 import { db } from '@veloxts/orm';

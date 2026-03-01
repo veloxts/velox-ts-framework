@@ -5,7 +5,7 @@ description: Configure tRPC for type-safe internal APIs.
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-VeloxTS uses tRPC under the hood for type-safe procedure calls. This page covers tRPC-specific configuration.
+When your frontend is TypeScript, tRPC lets you call procedures with full type inference — autocompletion, type errors at compile time, and no manual type definitions. Velox TS builds the tRPC router automatically from your procedure collections; this page covers how to configure and export it.
 
 ## Quick Start
 
@@ -109,7 +109,7 @@ await serve(app, collections, { rpc: false });
 ## Client Setup
 
 <Tabs>
-  <TabItem label="VeloxTS Client (Recommended)">
+  <TabItem label="Velox TS Client (Recommended)">
 ```typescript
 // lib/api.ts
 import { createClient } from '@veloxts/client';
@@ -235,11 +235,11 @@ try {
 | OpenAPI docs | No | Yes |
 
 <Aside type="tip">
-Use tRPC for internal TypeScript clients (React, React Native). Use REST for external APIs, mobile apps in other languages, or third-party integrations. VeloxTS generates both from the same procedures.
+Use tRPC for internal TypeScript clients (React, React Native). Use REST for external APIs, mobile apps in other languages, or third-party integrations. Velox TS generates both from the same procedures.
 </Aside>
 
 ## Related Content
 
-- [Client Package](/docs/client/overview/) - VeloxTS client
+- [Client Package](/docs/client/overview/) - Velox TS client
 - [REST Conventions](/docs/router/rest-conventions/) - REST endpoints
 - [Procedures](/docs/endpoints/procedures/) - Define procedures

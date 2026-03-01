@@ -3,7 +3,7 @@ title: Migrations
 description: Manage database schema changes with Prisma migrations.
 ---
 
-VeloxTS uses Prisma for database migrations.
+Velox TS wraps Prisma's migration system with CLI commands for creating, running, rolling back, and checking the status of schema changes — with separate workflows for rapid development (`db:push`) and production deployments (`migrate deploy`).
 
 ## Development Workflow
 
@@ -35,7 +35,7 @@ Creates a migration file for the schema change.
 
 ## Rollback Support
 
-VeloxTS generates `down.sql` files for rollbacks:
+Velox TS generates `down.sql` files for rollbacks:
 
 ```bash
 velox make migration add_status_to_orders

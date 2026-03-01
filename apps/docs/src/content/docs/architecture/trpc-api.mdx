@@ -3,7 +3,7 @@ title: tRPC API Architecture
 description: Maximum type safety with tRPC-only APIs.
 ---
 
-Use this architecture when all your clients are TypeScript and you want maximum type safety.
+The tRPC architecture skips REST endpoint generation entirely and exposes your procedures as type-safe RPC calls. Your frontend gets full autocompletion, compile-time error checking, and zero runtime overhead from schema serialization. Choose this when every client is TypeScript and you don't need REST or OpenAPI.
 
 ## When to Choose tRPC
 
@@ -20,7 +20,7 @@ npx create-velox-app my-api --trpc
 
 ## How It Works
 
-With `--trpc`, VeloxTS skips REST generation. You get pure tRPC:
+With `--trpc`, Velox TS skips REST generation. You get pure tRPC:
 
 ```typescript
 // src/procedures/users.ts
@@ -113,7 +113,7 @@ import type { AppRouter } from '../../api/src/router';
 export const trpc = createTRPCReact<TRPCRouter<AppRouter>>();
 ```
 
-For most VeloxTS apps, `@veloxts/client` is recommended.
+For most Velox TS apps, `@veloxts/client` is recommended.
 
 ## Type Inference
 

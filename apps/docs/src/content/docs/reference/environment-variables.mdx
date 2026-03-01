@@ -1,9 +1,9 @@
 ---
 title: Environment Variables
-description: Required and optional environment variables for VeloxTS.
+description: Required and optional environment variables for Velox TS.
 ---
 
-Environment variables configure VeloxTS applications at runtime.
+This page lists every environment variable that Velox TS reads, organized by package. Most are optional since environment-aware presets provide sensible defaults — you typically only need to set secrets and service URLs.
 
 :::tip[Environment-Aware Presets]
 Most configuration is handled automatically by [`getServerConfig()`](/docs/core/environment-configuration/) and [`usePresets()`](/docs/core/environment-configuration/#ecosystem-presets). You only need to set secrets and service URLs - driver selection is handled by presets based on `NODE_ENV`.
@@ -130,7 +130,7 @@ openssl rand -base64 32
 
 ## Loading Environment Variables
 
-VeloxTS uses `dotenv` for environment variable loading:
+Velox TS uses `dotenv` for environment variable loading:
 
 ```typescript
 // Automatic loading in entry point
@@ -158,7 +158,7 @@ dotenv.config({ path: resolve(__dirname, '..', '.env') });
 
 ### Built-in Security Validation
 
-VeloxTS provides built-in validation for production deployments:
+Velox TS provides built-in validation for production deployments:
 
 ```typescript
 import { validateSecurityOrThrow } from '@veloxts/velox';

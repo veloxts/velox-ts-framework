@@ -1,14 +1,14 @@
 ---
 title: Prisma 7 Setup
-description: Configure Prisma 7 with driver adapters for VeloxTS applications.
+description: Configure Prisma 7 with driver adapters for Velox TS applications.
 ---
 
 import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
 
-VeloxTS uses Prisma 7, which introduces significant architectural changes from previous versions.
+Velox TS uses Prisma 7, which introduces significant architectural changes from previous versions.
 
 <Aside type="caution" title="Breaking Changes in Prisma 7">
-Prisma 7 removes `datasourceUrl` from PrismaClient and requires driver adapters. All VeloxTS templates are pre-configured—this guide is for understanding or migrating existing projects.
+Prisma 7 removes `datasourceUrl` from PrismaClient and requires driver adapters. All Velox TS templates are pre-configured—this guide is for understanding or migrating existing projects.
 </Aside>
 
 ## What Changed in Prisma 7?
@@ -205,7 +205,7 @@ export const db = new PrismaClient({ adapter });
 DATABASE_URL="postgresql://user:password@localhost:5432/mydb?schema=public"
 ```
 
-## VeloxTS Integration
+## Velox TS Integration
 
 Extend the context to include your Prisma client:
 
@@ -221,7 +221,7 @@ const adapter = new PrismaBetterSqlite3({
 
 export const db = new PrismaClient({ adapter });
 
-// Extend VeloxTS context
+// Extend Velox TS context
 declare module '@veloxts/core' {
   interface BaseContext {
     db: PrismaClient;

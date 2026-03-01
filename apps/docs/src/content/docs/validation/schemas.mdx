@@ -5,7 +5,7 @@ description: Define validation schemas with Zod.
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-VeloxTS uses Zod for type-safe validation schemas. Schemas provide runtime validation while TypeScript infers static types automatically.
+Velox TS uses Zod for type-safe validation schemas. Schemas provide runtime validation while TypeScript infers static types automatically.
 
 ## Basic Schema Types
 
@@ -534,7 +534,7 @@ type Inferred = z.infer<typeof TransformSchema>; // Same as z.output<>
 
 ### Inferring from Procedures
 
-VeloxTS procedures automatically infer input and output types:
+Velox TS procedures automatically infer input and output types:
 
 ```typescript
 const createUser = procedure()
@@ -596,7 +596,7 @@ export const UserFilterSchema = z.object({
 
 ### Reusable Schema Utilities
 
-VeloxTS provides common schema helpers.
+Velox TS provides common schema helpers.
 
 ```typescript
 import {

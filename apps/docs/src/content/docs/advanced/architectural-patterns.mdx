@@ -1,9 +1,9 @@
 ---
 title: Architectural Patterns & Scalability
-description: Scale your VeloxTS application from prototype to enterprise with progressive architectural patterns.
+description: Scale your Velox TS application from prototype to enterprise with progressive architectural patterns.
 ---
 
-When you start with VeloxTS, the procedure pattern gets you running fast: type-safe endpoints, auto-generated REST routes, and integrated auth — all with minimal configuration.
+When you start with Velox TS, the procedure pattern gets you running fast: type-safe endpoints, auto-generated REST routes, and integrated auth — all with minimal configuration.
 
 But as your application grows, a natural question arises: **does the simple `procedure()` pattern scale to large, long-lived enterprise applications?**
 
@@ -11,7 +11,7 @@ Yes. Here's how.
 
 ## Levels of Architectural Complexity
 
-Traditional enterprise architectures enforce strict separation of concerns from day one — Controllers, DTOs, Services, Repositories — regardless of domain complexity. VeloxTS takes a different approach: it compresses this entire flow into a single, type-inferred **Procedure Definition** to eliminate boilerplate without sacrificing compiler safety.
+Traditional enterprise architectures enforce strict separation of concerns from day one — Controllers, DTOs, Services, Repositories — regardless of domain complexity. Velox TS takes a different approach: it compresses this entire flow into a single, type-inferred **Procedure Definition** to eliminate boilerplate without sacrificing compiler safety.
 
 As complexity grows, you progressively extract layers only when needed.
 
@@ -101,7 +101,7 @@ export const userProcedures = procedures('users', {
 
 Instead of grouping by horizontal technical layers (`schemas/`, `procedures/`, `policies/`), group by **vertical domains**. Each domain independently registers its own plugins, dependencies, and procedures.
 
-Because VeloxTS relies on compiler-driven type inference rather than code generation, you can structure domain directories however you like without breaking client type safety.
+Because Velox TS relies on compiler-driven type inference rather than code generation, you can structure domain directories however you like without breaking client type safety.
 
 ```typescript
 // features/billing/plugin.ts
@@ -143,7 +143,7 @@ await app.start();
 
 ## Plugin Isolation and Context Scoping
 
-Scaling effectively requires strict access control over shared dependencies and middleware. VeloxTS provides two complementary isolation mechanisms.
+Scaling effectively requires strict access control over shared dependencies and middleware. Velox TS provides two complementary isolation mechanisms.
 
 ### 1. Collection-Level Context Scoping
 
@@ -158,7 +158,7 @@ import type { Middleware } from '@veloxts/router';
 // 1. Create a specialized middleware for the billing domain
 const requireStripeCustomer: Middleware = async ({ ctx, next }) => {
   if (!ctx.user) throw new Error('Unauthorized');
-  // Extend context directly — this is how VeloxTS middleware works
+  // Extend context directly — this is how Velox TS middleware works
   ctx.stripeCustomerId = await ctx.db.getPaymentId(ctx.user.id);
   return next();
 };

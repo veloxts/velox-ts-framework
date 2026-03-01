@@ -3,7 +3,7 @@ title: SPA + Backend Architecture
 description: Separate frontend with type-safe API communication.
 ---
 
-Use this architecture when you have a separate frontend team or an existing React/Vue/Angular application.
+The SPA + Backend architecture separates your Velox TS API from your frontend entirely. Choose this when you have separate teams, an existing frontend, or different deployment strategies for each.
 
 ## When to Choose SPA + Backend
 
@@ -24,7 +24,7 @@ Create your SPA separately (Vite, Create React App, Next.js, etc.):
 npm create vite@latest my-frontend -- --template react-ts
 ```
 
-## Backend: VeloxTS API
+## Backend: Velox TS API
 
 ```typescript
 // api/src/procedures/products.ts
@@ -60,7 +60,7 @@ export const productProcedures = procedures('products', {
 
 ## Frontend: Type-Safe Client
 
-Install the VeloxTS client:
+Install the Velox TS client:
 
 ```bash
 cd my-frontend

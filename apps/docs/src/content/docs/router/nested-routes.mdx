@@ -5,7 +5,7 @@ description: Create hierarchical REST APIs with single-level and multi-level res
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-VeloxTS supports both single-level and multi-level resource nesting, allowing you to model hierarchical relationships in your REST API.
+Velox TS supports both single-level and multi-level resource nesting, allowing you to model hierarchical relationships in your REST API.
 
 ## Single-Level Nesting
 
@@ -62,7 +62,7 @@ export const commentProcedures = procedures('comments', {
 
 ### Custom Parameter Names
 
-By default, VeloxTS generates parameter names by singularizing the namespace and adding `Id`:
+By default, Velox TS generates parameter names by singularizing the namespace and adding `Id`:
 - `posts` → `postId`
 - `users` → `userId`
 - `categories` → `categoryId`
@@ -82,7 +82,7 @@ getComment: procedure()
 ```
 
 <Aside type="caution" title="Input Schema Requirement">
-Your input schema MUST include the parent parameter. VeloxTS extracts it from the URL and passes it to your handler through the `input` object.
+Your input schema MUST include the parent parameter. Velox TS extracts it from the URL and passes it to your handler through the `input` object.
 
 ```typescript
 // BAD - Missing postId in input
@@ -164,7 +164,7 @@ Parents are specified from **outermost to innermost**:
 ```
 
 <Aside type="tip" title="Parameter Name Inference">
-If you omit the `param` field, VeloxTS uses the same singularization logic:
+If you omit the `param` field, Velox TS uses the same singularization logic:
 
 ```typescript
 .parents([
@@ -260,7 +260,7 @@ getTask: procedure()
 
 ## Nesting Depth Warnings
 
-VeloxTS warns when resource nesting exceeds **3 levels**, as deeply nested APIs can become unwieldy.
+Velox TS warns when resource nesting exceeds **3 levels**, as deeply nested APIs can become unwieldy.
 
 ### Warning Example
 
@@ -518,7 +518,7 @@ app.register(
 
 ## Type Safety
 
-VeloxTS preserves full type safety through nested routes:
+Velox TS preserves full type safety through nested routes:
 
 ```typescript
 // Input type includes all parent parameters
