@@ -5,7 +5,7 @@ description: Proper server/client boundaries in React Server Components.
 
 import { Aside } from '@astrojs/starlight/components';
 
-React Server Components blur the line between server and client code, but Vite's bundler still analyzes the full import graph of client components. If a client component imports a server action that imports a database client, those Node.js dependencies get pulled into the client bundle analysis — causing cryptic build errors. Strict module boundaries prevent this.
+React Server Components make it easy to accidentally pull Node.js dependencies into the client bundle. This page covers the module boundary patterns that keep your builds clean and your bundles lean.
 
 ## Why Module Boundaries Matter
 
