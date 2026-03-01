@@ -253,6 +253,26 @@ export type MiddlewareFunction<
   args: MiddlewareArgs<TInput, TContext, TNewContext, TOutput>
 ) => Promise<MiddlewareResult<TOutput>>;
 
+/**
+ * Simple middleware type for most use cases.
+ *
+ * Use this when defining standalone middleware functions. All generics
+ * default to sensible values so you only need to specify what you customize.
+ *
+ * @example
+ * ```typescript
+ * const logging: Middleware = async ({ ctx, next }) => {
+ *   console.log(`${ctx.request.method} ${ctx.request.url}`);
+ *   return next();
+ * };
+ * ```
+ */
+export type Middleware<TContext extends BaseContext = BaseContext> = MiddlewareFunction<
+  unknown,
+  TContext,
+  TContext
+>;
+
 // ============================================================================
 // Procedure Definition Types
 // ============================================================================
