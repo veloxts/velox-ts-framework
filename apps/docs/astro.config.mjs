@@ -153,6 +153,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { slug: 'advanced/type-safety' },
+            { slug: 'advanced/architectural-patterns' },
             { slug: 'advanced/testing-patterns' },
             { slug: 'advanced/rsc-module-separation' },
           ],

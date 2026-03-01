@@ -1,0 +1,224 @@
+---
+title: Architectural Patterns & Scalability
+description: Scale your VeloxTS application from prototype to enterprise with progressive architectural patterns.
+---
+
+When you start with VeloxTS, the procedure pattern gets you running fast: type-safe endpoints, auto-generated REST routes, and integrated auth — all with minimal configuration.
+
+But as your application grows, a natural question arises: **does the simple `procedure()` pattern scale to large, long-lived enterprise applications?**
+
+Yes. Here's how.
+
+## Levels of Architectural Complexity
+
+Traditional enterprise architectures enforce strict separation of concerns from day one — Controllers, DTOs, Services, Repositories — regardless of domain complexity. VeloxTS takes a different approach: it compresses this entire flow into a single, type-inferred **Procedure Definition** to eliminate boilerplate without sacrificing compiler safety.
+
+As complexity grows, you progressively extract layers only when needed.
+
+## Scaling Procedure Definitions
+
+Keeping all procedures in a single `[resource].ts` file works well at first, but can lead to large files that are hard to navigate and prone to merge conflicts. Here are proven patterns for scaling procedure definitions:
+
+### Pattern 1: Split Handlers (Intermediate)
+
+*Best for: Medium-sized projects where procedure definitions are manageable, but business logic needs isolation.*
+
+Separate the **routing/schema definition** from the **handler implementation**:
+
+```typescript
+// procedures/users/handlers.ts
+import type { ProcedureHandlerArgs } from '@veloxts/router';
+import type { CreateUserInput } from './schema';
+
+export async function createUserHandler({ input, ctx }: ProcedureHandlerArgs<CreateUserInput>) {
+  return ctx.db.user.create({ data: input });
+}
+```
+
+```typescript
+// procedures/users/index.ts
+import { procedures, procedure } from '@veloxts/velox';
+import { createUserSchema, userSchema } from './schema';
+import { createUserHandler } from './handlers';
+
+export const userProcedures = procedures('users', {
+  createUser: procedure()
+    .input(createUserSchema)
+    .output(userSchema)
+    .mutation(createUserHandler),
+});
+```
+
+### Pattern 2: The Command/Action Pattern (Advanced)
+
+*Best for: Large applications, Domain-Driven Design (DDD), or CQRS-style structures.*
+
+Every procedure lives in its own file as a discrete action. This minimizes Git conflicts, follows the Single Responsibility Principle, and makes finding specific operations trivial.
+
+```typescript
+// procedures/users/actions/CreateUser.ts
+import { procedure } from '@veloxts/velox';
+import { CreateUserSchema, UserResponseSchema } from '../schema';
+
+export const CreateUser = procedure()
+  .input(CreateUserSchema)
+  .output(UserResponseSchema)
+  .mutation(async ({ input, ctx }) => {
+    return ctx.db.user.create({ data: input });
+  });
+```
+
+```typescript
+// procedures/users/actions/GetUser.ts
+import { procedure } from '@veloxts/velox';
+import { z } from 'zod';
+import { UserResponseSchema } from '../schema';
+
+export const GetUser = procedure()
+  .input(z.object({ id: z.string().uuid() }))
+  .output(UserResponseSchema)
+  .query(async ({ input, ctx }) => {
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
+  });
+```
+
+```typescript
+// procedures/users/index.ts
+import { procedures } from '@veloxts/velox';
+import { CreateUser } from './actions/CreateUser';
+import { GetUser } from './actions/GetUser';
+
+// The aggregator file assembles the bounded context
+export const userProcedures = procedures('users', {
+  createUser: CreateUser,
+  getUser: GetUser,
+});
+```
+
+### Pattern 3: Vertical Domain Slices (Enterprise)
+
+*Best for: Large monoliths containing distinct bounded contexts (e.g., E-Commerce + Admin Panel + Billing).*
+
+Instead of grouping by horizontal technical layers (`schemas/`, `procedures/`, `policies/`), group by **vertical domains**. Each domain independently registers its own plugins, dependencies, and procedures.
+
+Because VeloxTS relies on compiler-driven type inference rather than code generation, you can structure domain directories however you like without breaking client type safety.
+
+```typescript
+// features/billing/plugin.ts
+import { definePlugin } from '@veloxts/core';
+import { rest } from '@veloxts/router';
+import { billingProcedures } from './procedures';
+import { StripeService } from './services/StripeService';
+
+// The domain encapsulates its own dependencies and routes
+export const billingFeaturePlugin = definePlugin({
+  name: 'feature-billing',
+  version: '1.0.0',
+  async register(server) {
+    // 1. Register domain-specific services
+    server.decorate('stripe', new StripeService(process.env.STRIPE_SECRET));
+
+    // 2. Register domain-specific routes under a prefix
+    server.register(async (instance) => {
+      instance.routes(rest([billingProcedures], { prefix: '/billing' }));
+    });
+  },
+});
+```
+
+```typescript
+// index.ts
+import { veloxApp, rest } from '@veloxts/velox';
+import { billingFeaturePlugin } from './features/billing/plugin';
+import { inventoryFeaturePlugin } from './features/inventory/plugin';
+
+const app = await veloxApp({ port: 3030 });
+
+// Each domain is mounted as an independent vertical slice
+app.server.register(billingFeaturePlugin);
+app.server.register(inventoryFeaturePlugin);
+
+await app.start();
+```
+
+## Plugin Isolation and Context Scoping
+
+Scaling effectively requires strict access control over shared dependencies and middleware. VeloxTS provides two complementary isolation mechanisms.
+
+### 1. Collection-Level Context Scoping
+
+When a feature requires a domain-specific dependency (such as an extended context or a localized rate limit), bind it to a scoped procedure builder. This prevents global context pollution while remaining fully type-safe.
+
+A "collection" is the object returned by `procedures()` — the grouped set of endpoints for a resource.
+
+```typescript
+import { procedures, procedure } from '@veloxts/velox';
+
+// 1. Create a specialized middleware for the billing domain
+const requireStripeCustomer = async ({ ctx, next }) => {
+  if (!ctx.user) throw new Error('Unauthorized');
+  // Extend context directly — this is how VeloxTS middleware works
+  ctx.stripeCustomerId = await ctx.db.getPaymentId(ctx.user.id);
+  return next();
+};
+
+// 2. Derive a scoped procedure builder
+const billingProcedure = procedure().use(requireStripeCustomer);
+
+// 3. Apply the scoped builder exclusively to the billing domain
+export const billingProcedures = procedures('billing', {
+  getInvoices: billingProcedure
+    .query(async ({ ctx }) => {
+      // ctx.stripeCustomerId is available here
+      return stripe.invoices.list({ customer: ctx.stripeCustomerId });
+    }),
+});
+```
+
+### 2. Server-Level Encapsulation
+
+To isolate backend configurations — such as proprietary database connections or localized secrets — use Fastify's built-in encapsulation via `server.register()`. Parent scopes cannot access dependencies registered in child scopes.
+
+```typescript
+import { veloxApp, rest } from '@veloxts/velox';
+
+const app = await veloxApp({ port: 3030 });
+
+// Encapsulated bounded context (Admin)
+app.server.register(async (adminInstance) => {
+  // This dependency is ONLY accessible within this block
+  adminInstance.decorate('adminDb', new SecretAdminDbConnection());
+
+  adminInstance.routes(rest([adminProcedures], { prefix: '/internal/admin' }));
+});
+
+// The main application has zero visibility into `adminDb`
+```
+
+### 3. Procedure-Level Guards and Middleware
+
+For granular access control or specialized auditing on individual procedures, use `.guard()` for authorization and `.use()` for cross-cutting concerns like logging:
+
+```typescript
+import { procedures, procedure } from '@veloxts/velox';
+import { z } from 'zod';
+
+export const userProcedures = procedures('users', {
+  getProfile: procedure()
+    .query(getProfileHandler),
+
+  deleteUser: procedure()
+    .input(z.object({ id: z.string() }))
+    .guard(requireAdminRole)       // Authorization via guard
+    .use(auditLogMiddleware)       // Cross-cutting concern via middleware
+    .mutation(deleteUserHandler),
+});
+```
+
+## Related Content
+
+- [Procedures](/docs/endpoints/procedures/) - Core procedure API
+- [Plugins](/docs/core/plugins/) - Plugin system and encapsulation
+- [Middleware](/docs/router/middleware/) - Request processing middleware
+- [Guards](/docs/authentication/guards/) - Route-level authorization
+- [Resource API](/docs/endpoints/resource-api/) - Field-level visibility and projection
