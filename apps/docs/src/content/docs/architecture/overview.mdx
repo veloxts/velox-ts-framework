@@ -1,13 +1,15 @@
 ---
 title: Architecture Overview
-description: Understanding Velox TS architectural patterns and choices.
+description: Understand the two independent architectural choices in Velox TS — API protocol and frontend delivery.
 ---
 
-Velox TS doesn't lock you into a single architecture. Whether you're building a REST API for mobile clients, a tRPC-only service for TypeScript consumers, or a full-stack app with React Server Components, the same procedure definitions power all of them. This page explains the core abstraction and how it adapts to each pattern.
+import { Aside, Tabs, TabItem, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Every Velox TS application is built from **procedures** — type-safe functions that define your business logic once and expose it through multiple protocols and frontiers simultaneously. Your architecture is shaped by two independent choices: how clients talk to your API, and how (or whether) you deliver a frontend.
 
 ## The Core Abstraction: Procedures
 
-At the heart of Velox TS is the **procedure** — a type-safe function that can be exposed as both tRPC and REST:
+At the heart of Velox TS is the **procedure** — a type-safe function that can be exposed as both tRPC and REST:
 
 ```typescript
 import { resourceSchema, resource } from '@veloxts/router';
@@ -30,63 +32,65 @@ const getUser = procedure()
 ```
 
 This single definition generates:
-- **tRPC endpoint** - Full type inference for TypeScript clients
-- **REST endpoint** - `GET /api/users/:id` for any HTTP client
-- **Context-dependent outputs** - Different fields based on user access level
+- **tRPC endpoint** — Full type inference for TypeScript clients
+- **REST endpoint** — `GET /api/users/:id` for any HTTP client
+- **Context-dependent outputs** — Different fields based on user access level
 
-## Architectural Patterns
+Because the same procedures power every architecture, your choices come down to two questions.
 
-### 1. REST API
+## Two Choices, One Procedure Layer
 
-External-facing API with automatic OpenAPI generation.
+### API Protocol: tRPC, REST, or Both
 
-```
-Client (any) → REST → Velox TS → Database
-```
+These options are **non-exclusive**. A single set of procedures can expose tRPC endpoints, REST endpoints, or both at the same time. You don't have to pick one — and in fact, serving both protocols from the same procedures is the default.
 
-[Learn more](/docs/architecture/rest-api/)
+<Aside type="tip">
+Dual-protocol (tRPC + REST from the same procedures) is the default behavior, not a special configuration. You get both unless you explicitly opt out of one.
+</Aside>
 
-### 2. tRPC API
+| Protocol | Best for | Learn more |
+|----------|----------|------------|
+| tRPC | TypeScript clients, full type inference | [tRPC API](/docs/architecture/trpc-api/) |
+| REST | Non-TS clients, mobile apps, public APIs, OpenAPI | [REST API](/docs/architecture/rest-api/) |
+| Both | Different consumers with different needs (the default) | [Hybrid](/docs/architecture/hybrid/) |
 
-Maximum type safety for TypeScript clients.
+### Frontend Delivery: SPA or RSC
 
-```
-TypeScript Client → tRPC → Velox TS → Database
-```
+This choice is **mutually exclusive** — pick one project shape when you scaffold your application.
 
-[Learn more](/docs/architecture/trpc-api/)
+| Frontend | Project shape | Process model | Learn more |
+|----------|---------------|---------------|------------|
+| Vite SPA | Monorepo with `apps/api` + `apps/web` | Two processes | [SPA + Backend](/docs/architecture/spa-backend/) |
+| RSC (Vinxi) | Single package, file-based routing | One process | [Full-stack RSC](/docs/architecture/fullstack-rsc/) |
 
-### 3. SPA + Backend
+<Aside type="note">
+If you only need an API with no frontend, use the `--default` or `--auth` template and skip the web app. It's the SPA architecture without the SPA.
+</Aside>
 
-Separate frontend, type-safe communication.
+## Pick a Template
 
-```
-React SPA → tRPC Client → Velox TS API → Database
-```
+<Tabs>
+  <TabItem label="By use case">
+    - **Building a backend for a TypeScript SPA?** Use `--default` or `--trpc`
+    - **Building a full web app with SSR?** Use `--rsc` or `--rsc-auth`
+    - **Need authentication?** Use `--auth` or `--rsc-auth`
+    - **All your consumers are TypeScript?** Use `--trpc`
+    - **Need OpenAPI docs or non-TS clients?** Use `--default` or `--auth`
+  </TabItem>
+  <TabItem label="All templates">
+    | Template | Frontend | Protocol | Auth | Command |
+    |----------|----------|----------|------|---------|
+    | Default | Vite SPA | REST (+ tRPC ready) | No | `npx create-velox-app my-app` |
+    | Auth | Vite SPA | REST (+ tRPC ready) | JWT | `npx create-velox-app my-app --auth` |
+    | tRPC | Vite SPA | tRPC only (+ REST ready) | No | `npx create-velox-app my-app --trpc` |
+    | RSC | RSC (Vinxi) | REST (embedded) | No | `npx create-velox-app my-app --rsc` |
+    | RSC + Auth | RSC (Vinxi) | REST + auth (embedded) | JWT | `npx create-velox-app my-app --rsc-auth` |
+  </TabItem>
+</Tabs>
 
-[Learn more](/docs/architecture/spa-backend/)
-
-### 4. Full-stack RSC
-
-Unified codebase with React Server Components.
-
-```
-Browser → Vinxi → RSC → Server Actions → Velox TS → Database
-```
-
-[Learn more](/docs/architecture/fullstack-rsc/)
-
-### 5. Hybrid
-
-Combine patterns - tRPC for internal, REST for external.
-
-```
-Mobile App → REST ↘
-                    Velox TS → Database
-Web App → tRPC   ↗
-```
-
-[Learn more](/docs/architecture/hybrid/)
+<Aside type="tip">
+Templates are starting points. You can add tRPC to a REST template or REST to a tRPC template at any time.
+</Aside>
 
 ## Technology Stack
 
@@ -98,11 +102,19 @@ Web App → tRPC   ↗
 | ORM | Prisma |
 | Full-stack | Vinxi + React 19 |
 
-## Related Content
+## Deep Dives
 
-Choose your architecture:
+### API Protocol
 
-- [REST API](/docs/architecture/rest-api/) - External clients
-- [tRPC API](/docs/architecture/trpc-api/) - TypeScript clients
-- [SPA + Backend](/docs/architecture/spa-backend/) - Separate frontend
-- [Full-stack RSC](/docs/architecture/fullstack-rsc/) - Unified codebase
+<CardGrid>
+  <LinkCard title="REST API" href="/docs/architecture/rest-api/" description="Naming conventions, OpenAPI generation, and custom routes." />
+  <LinkCard title="tRPC API" href="/docs/architecture/trpc-api/" description="End-to-end type safety for TypeScript clients." />
+  <LinkCard title="Hybrid" href="/docs/architecture/hybrid/" description="Serve REST and tRPC from the same procedures." />
+</CardGrid>
+
+### Frontend Delivery
+
+<CardGrid>
+  <LinkCard title="SPA + Backend" href="/docs/architecture/spa-backend/" description="Separate frontend and backend with a type-safe client." />
+  <LinkCard title="Full-stack RSC" href="/docs/architecture/fullstack-rsc/" description="Unified codebase with React Server Components and Vinxi." />
+</CardGrid>
