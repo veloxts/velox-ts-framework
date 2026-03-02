@@ -1,15 +1,15 @@
 ---
 title: Architecture Overview
-description: Understand the two independent architectural choices in Velox TS — API protocol and frontend delivery.
+description: Understand the two independent architectural choices in VeloxTS — API protocol and frontend delivery.
 ---
 
 import { Aside, Tabs, TabItem, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-Every Velox TS application is built from **procedures** — type-safe functions that define your business logic once and expose it through multiple protocols and frontiers simultaneously. Your architecture is shaped by two independent choices: how clients talk to your API, and how (or whether) you deliver a frontend.
+Every Velox TS application is built from **procedures** — type-safe functions that define your business logic once and expose it through multiple protocols and frontiers simultaneously. Your architecture is shaped by two independent choices: how clients talk to your API, and how (or whether) you deliver a frontend.
 
 ## The Core Abstraction: Procedures
 
-At the heart of Velox TS is the **procedure** — a type-safe function that can be exposed as both tRPC and REST:
+At the heart of Velox TS is the **procedure** — a type-safe function that can be exposed as both tRPC and REST:
 
 ```typescript
 import { resourceSchema, resource } from '@veloxts/router';
