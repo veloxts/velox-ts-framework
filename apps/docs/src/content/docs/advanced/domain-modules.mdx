@@ -5,17 +5,13 @@ description: Organize large applications into self-contained vertical feature sl
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-<Aside type="caution" title="Proposition">
-This page describes a **proposed pattern** for organizing large Velox TS applications. The manual approach (using existing primitives) works today. The `defineModule()` API is planned but not yet implemented. We're sharing this early to gather community feedback.
-</Aside>
-
 As your application grows beyond a handful of resources, flat procedure files become difficult to navigate and prone to merge conflicts. A billing feature might need its own procedures, Stripe service, validation schemas, domain middleware, and cleanup hooks — but today these live in separate directories with no formal connection between them.
 
 Domain modules solve this by bundling everything a feature needs into a single mountable unit.
 
 ## The Module Pattern Today
 
-You can build domain modules right now using existing Velox TS primitives. The pattern combines `definePlugin()` for lifecycle, `procedures()` for endpoints, and scoped procedure builders for domain middleware.
+You can build domain modules right now using existing Velox TS primitives. The pattern combines `definePlugin()` for lifecycle, `procedures()` for endpoints, and scoped procedure builders for domain middleware.
 
 ### Directory Structure
 
