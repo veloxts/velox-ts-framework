@@ -43,11 +43,7 @@ export function createModulePlugin<TName extends string, TServices extends Servi
         const service = await def.factory();
         services[key] = service;
 
-        // TODO(phase-2): decorateRequest on scoped server — service names may
-        // collide between modules at the Fastify decorator level.
-        if (!server.hasRequestDecorator(key)) {
-          server.decorateRequest(key, undefined);
-        }
+        server.decorateRequest(key, undefined);
 
         server.addHook('onRequest', async (request) => {
           (request as unknown as Record<string, unknown>)[key] = service;

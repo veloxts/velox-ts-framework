@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.7.8
+
+### Patch Changes
+
+- New feature: Domain Module. defineModule() implementation
+- Updated dependencies
+  - @veloxts/core@0.7.8
+  - @veloxts/auth@0.7.8
+  - @veloxts/cache@0.7.8
+  - @veloxts/events@0.7.8
+  - @veloxts/mail@0.7.8
+  - @veloxts/orm@0.7.8
+  - @veloxts/queue@0.7.8
+  - @veloxts/router@0.7.8
+  - @veloxts/scheduler@0.7.8
+  - @veloxts/storage@0.7.8
+  - @veloxts/validation@0.7.8
+
 ## 0.7.7
 
 ### Patch Changes

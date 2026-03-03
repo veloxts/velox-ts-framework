@@ -6,7 +6,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type VeloxApp, veloxApp } from '../app.js';
-import { createModulePlugin, defineModule, isVeloxModule } from '../module/index.js';
+import { defineModule, isVeloxModule } from '../module/index.js';
+import { createModulePlugin } from '../module/register.js';
 import type { VeloxModule } from '../module/types.js';
 
 describe('defineModule()', () => {
@@ -410,13 +411,13 @@ describe('app.module()', () => {
     const order: string[] = [];
 
     const modA = defineModule('a', {
-      services: { s: { factory: () => 'A' } },
+      services: { svcA: { factory: () => 'A' } },
       boot: async () => {
         order.push('a');
       },
     });
     const modB = defineModule('b', {
-      services: { s: { factory: () => 'B' } },
+      services: { svcB: { factory: () => 'B' } },
       boot: async () => {
         order.push('b');
       },
@@ -435,6 +436,66 @@ describe('app.module()', () => {
     expect(() => ref.module({} as VeloxModule)).toThrow(
       'Invalid module: must be created via defineModule()'
     );
+  });
+
+  it('should throw SERVICE_NAME_COLLISION when two modules define the same service name', async () => {
+    const modA = defineModule('billing', {
+      services: { stripe: { factory: () => ({ pay: () => {} }) } },
+    });
+    const modB = defineModule('analytics', {
+      services: { stripe: { factory: () => ({ track: () => {} }) } },
+    });
+    app = await veloxApp({ port: 0, logger: false });
+    app.module(modA);
+    const ref = app;
+    expect(() => ref.module(modB)).toThrow(
+      'Service name "stripe" in module "analytics" conflicts with module "billing"'
+    );
+  });
+
+  it('should not partially register services when collision is detected', async () => {
+    const modA = defineModule('billing', {
+      services: {
+        stripe: { factory: () => 'stripe' },
+        shared: { factory: () => 'shared-billing' },
+      },
+    });
+    const modB = defineModule('analytics', {
+      services: {
+        mixpanel: { factory: () => 'mixpanel' },
+        shared: { factory: () => 'shared-analytics' },
+      },
+    });
+    app = await veloxApp({ port: 0, logger: false });
+    app.module(modA);
+    const ref = app;
+    expect(() => ref.module(modB)).toThrow('Service name "shared"');
+    // modB's "mixpanel" should NOT have been registered
+    const modC = defineModule('tracking', {
+      services: { mixpanel: { factory: () => 'mixpanel-v2' } },
+    });
+    expect(() => ref.module(modC)).not.toThrow();
+  });
+
+  it('should allow different service names across modules', async () => {
+    const modA = defineModule('billing', {
+      services: { stripe: { factory: () => 'stripe' } },
+    });
+    const modB = defineModule('analytics', {
+      services: { mixpanel: { factory: () => 'mixpanel' } },
+    });
+    app = await veloxApp({ port: 0, logger: false });
+    app.module(modA).module(modB);
+    await app.start({ silent: true });
+    expect(app.isRunning).toBe(true);
+  });
+
+  it('should throw MODULE_REGISTRATION_TOO_LATE when registering after start', async () => {
+    app = await veloxApp({ port: 0, logger: false });
+    await app.start({ silent: true });
+    const ref = app;
+    const mod = defineModule('late', {});
+    expect(() => ref.module(mod)).toThrow('Cannot register modules after server has started');
   });
 });
 
@@ -574,5 +635,12 @@ describe('Module Integration — full lifecycle', () => {
     const res = await app.server.inject({ method: 'GET', url: '/protected/secret' });
     expect(res.statusCode).toBe(403);
     expect(res.json()).toEqual({ error: 'Forbidden' });
+  });
+});
+
+describe('Module barrel exports', () => {
+  it('should not export createModulePlugin from module barrel', async () => {
+    const barrel = await import('../module/index.js');
+    expect('createModulePlugin' in barrel).toBe(false);
   });
 });

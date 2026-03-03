@@ -1,5 +1,16 @@
 # @veloxts/web
 
+## 0.7.8
+
+### Patch Changes
+
+- New feature: Domain Module. defineModule() implementation
+- Updated dependencies
+  - @veloxts/core@0.7.8
+  - @veloxts/auth@0.7.8
+  - @veloxts/client@0.7.8
+  - @veloxts/router@0.7.8
+
 ## 0.7.7
 
 ### Patch Changes

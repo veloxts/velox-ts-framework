@@ -11,7 +11,7 @@ import { setupContextHook } from './context.js';
 import { ConflictError, isVeloxError, VeloxError } from './errors.js';
 import { isVeloxModule } from './module/define-module.js';
 import { createModulePlugin } from './module/register.js';
-import type { VeloxModule } from './module/types.js';
+import type { InferServices, ServiceDefinitions, VeloxModule } from './module/types.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
 import { isFastifyPlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
 import { requestLogger } from './plugins/request-logger.js';
@@ -62,6 +62,7 @@ export class VeloxApp {
   private _address: string | null = null;
   private readonly _bootHooks: Array<() => Promise<void>> = [];
   private readonly _moduleNames: Set<string> = new Set();
+  private readonly _serviceNames: Map<string, string> = new Map();
 
   /**
    * Creates a new VeloxApp instance
@@ -301,9 +302,22 @@ export class VeloxApp {
    *
    * @param mod - VeloxModule created via defineModule()
    * @returns The app instance for method chaining
-   * @throws {VeloxError} If module is invalid or name is already registered
+   * @throws {VeloxError} INVALID_MODULE - If module was not created via defineModule()
+   * @throws {VeloxError} DUPLICATE_MODULE - If a module with the same name is already registered
+   * @throws {VeloxError} SERVICE_NAME_COLLISION - If a service name conflicts with another module
+   * @throws {VeloxError} MODULE_REGISTRATION_TOO_LATE - If called after server has started
    */
-  module(mod: VeloxModule): this {
+  module<TName extends string, TServices extends ServiceDefinitions>(
+    mod: VeloxModule<TName, TServices>
+  ): this {
+    if (this._isRunning) {
+      throw new VeloxError(
+        'Cannot register modules after server has started',
+        500,
+        'MODULE_REGISTRATION_TOO_LATE'
+      );
+    }
+
     if (!isVeloxModule(mod)) {
       throw new VeloxError(
         'Invalid module: must be created via defineModule()',
@@ -316,13 +330,30 @@ export class VeloxApp {
       throw new VeloxError(`Module "${mod.name}" is already registered`, 500, 'DUPLICATE_MODULE');
     }
 
+    // Check for service name collisions (all checks before any mutations)
+    const serviceNames = mod.config.services ? Object.keys(mod.config.services) : [];
+    for (const serviceName of serviceNames) {
+      const existingModule = this._serviceNames.get(serviceName);
+      if (existingModule) {
+        throw new VeloxError(
+          `Service name "${serviceName}" in module "${mod.name}" conflicts with module "${existingModule}"`,
+          500,
+          'SERVICE_NAME_COLLISION'
+        );
+      }
+    }
+
+    // All checks passed — commit all mutations
     this._moduleNames.add(mod.name);
+    for (const serviceName of serviceNames) {
+      this._serviceNames.set(serviceName, mod.name);
+    }
 
     // Track resolved services for boot/shutdown callbacks
-    let resolvedServices: Record<string, unknown> = {};
+    let resolvedServices: InferServices<TServices> | undefined;
 
     const plugin = createModulePlugin(mod, (services) => {
-      resolvedServices = services as Record<string, unknown>;
+      resolvedServices = services;
     });
 
     // Register module as encapsulated Fastify plugin
@@ -330,18 +361,22 @@ export class VeloxApp {
 
     // Register boot hook (runs between ready() and listen())
     if (mod.config.boot) {
-      const bootFn = mod.config.boot as (services: Record<string, unknown>) => Promise<void>;
+      const bootFn = mod.config.boot;
       this._bootHooks.push(async () => {
-        await bootFn(resolvedServices);
+        if (resolvedServices) {
+          await bootFn(resolvedServices);
+        }
       });
     }
 
     // Register shutdown hook
     if (mod.config.shutdown) {
-      const shutdownFn = mod.config.shutdown as (
-        services: Record<string, unknown>
-      ) => Promise<void>;
+      const shutdownFn = mod.config.shutdown;
       this.beforeShutdown(async () => {
+        if (!resolvedServices) {
+          log.warn(`Module "${mod.name}" shutdown skipped: services were never initialized`);
+          return;
+        }
         await shutdownFn(resolvedServices);
       });
     }

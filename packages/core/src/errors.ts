@@ -61,7 +61,9 @@ export type VeloxCoreErrorCode =
   | 'INVALID_PLUGIN_METADATA'
   | 'INVALID_MODULE'
   | 'INVALID_MODULE_NAME'
-  | 'DUPLICATE_MODULE';
+  | 'DUPLICATE_MODULE'
+  | 'SERVICE_NAME_COLLISION'
+  | 'MODULE_REGISTRATION_TOO_LATE';
 
 /**
  * Registry for error codes - allows plugins to extend via declaration merging

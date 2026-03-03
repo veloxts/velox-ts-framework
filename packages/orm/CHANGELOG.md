@@ -1,5 +1,13 @@
 # @veloxts/orm
 
+## 0.7.8
+
+### Patch Changes
+
+- New feature: Domain Module. defineModule() implementation
+- Updated dependencies
+  - @veloxts/core@0.7.8
+
 ## 0.7.7
 
 ### Patch Changes
