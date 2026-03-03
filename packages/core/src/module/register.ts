@@ -22,7 +22,9 @@ const log = createLogger('module');
  * Creates a Fastify plugin from a VeloxModule definition.
  *
  * @param mod - The module definition
- * @param onServicesResolved - Optional callback receiving resolved service instances
+ * @param onServicesResolved - Optional callback invoked after all services are created,
+ *   during plugin registration (before server.ready()). Used by app.module() to capture
+ *   resolved service references for boot/shutdown hooks.
  * @returns A Fastify plugin function
  *
  * @internal Used by app.module() — not typically called directly.
@@ -34,7 +36,6 @@ export function createModulePlugin<TName extends string, TServices extends Servi
   const { config } = mod;
 
   return async (server: FastifyInstance) => {
-    // --- 1. Create services ---
     const services: Record<string, unknown> = {};
 
     if (config.services) {
@@ -42,23 +43,19 @@ export function createModulePlugin<TName extends string, TServices extends Servi
         const service = await def.factory();
         services[key] = service;
 
-        // Decorate request so Fastify knows about the property
+        // TODO(phase-2): decorateRequest on scoped server — service names may
+        // collide between modules at the Fastify decorator level.
         if (!server.hasRequestDecorator(key)) {
           server.decorateRequest(key, undefined);
         }
 
-        // --- 2. Inject service into every request ---
         server.addHook('onRequest', async (request) => {
           (request as unknown as Record<string, unknown>)[key] = service;
         });
 
-        // --- 5. Cleanup on close ---
+        // Cleanup on close
         if (def.close) {
-          const closeFn = def.close;
-          const svc = service;
-          server.addHook('onClose', async () => {
-            await closeFn(svc as never);
-          });
+          addCloseHook(server, service, def.close);
         }
       }
     }
@@ -68,14 +65,14 @@ export function createModulePlugin<TName extends string, TServices extends Servi
       onServicesResolved(services as InferServices<TServices>);
     }
 
-    // --- 3. Apply module middleware ---
+    // Apply module middleware
     if (config.middleware) {
       for (const mw of config.middleware) {
         server.addHook('onRequest', mw);
       }
     }
 
-    // --- 4. Register routes with prefix ---
+    // Register routes with prefix
     if (config.routes) {
       const prefix = resolvePrefix(mod.name, config.prefix);
       if (prefix) {
@@ -87,6 +84,21 @@ export function createModulePlugin<TName extends string, TServices extends Servi
 
     log.debug(`Module "${mod.name}" registered`);
   };
+}
+
+/**
+ * Registers an onClose hook with properly correlated types.
+ * Object.entries() erases per-key generics, so we use a helper
+ * to preserve the relationship between the service and its close function.
+ */
+function addCloseHook<T>(
+  server: FastifyInstance,
+  service: T,
+  closeFn: (service: T) => void | Promise<void>
+): void {
+  server.addHook('onClose', async () => {
+    await closeFn(service);
+  });
 }
 
 /**
