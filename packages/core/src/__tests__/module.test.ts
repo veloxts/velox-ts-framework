@@ -437,3 +437,142 @@ describe('app.module()', () => {
     );
   });
 });
+
+describe('Module Integration — full lifecycle', () => {
+  let app: VeloxApp | null = null;
+
+  afterEach(async () => {
+    if (app?.isRunning) {
+      await app.stop();
+    }
+    app = null;
+  });
+
+  it('should execute full lifecycle: factory → boot → middleware → handler → shutdown → close', async () => {
+    const order: string[] = [];
+
+    const mod = defineModule('lifecycle', {
+      services: {
+        tracker: {
+          factory: () => {
+            order.push('factory');
+            return { events: [] as string[] };
+          },
+          close: () => {
+            order.push('close');
+          },
+        },
+      },
+      middleware: [
+        async () => {
+          order.push('middleware');
+        },
+      ],
+      routes: async (server) => {
+        server.get('/ping', async (request) => {
+          order.push('handler');
+          const tracker = (request as unknown as Record<string, { events: string[] }>).tracker;
+          tracker.events.push('pinged');
+          return { pong: true };
+        });
+      },
+      boot: async (services) => {
+        order.push('boot');
+        services.tracker.events.push('booted');
+      },
+      shutdown: async () => {
+        order.push('shutdown');
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    app.module(mod);
+    await app.start({ silent: true });
+
+    const response = await app.server.inject({
+      method: 'GET',
+      url: '/lifecycle/ping',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ pong: true });
+
+    await app.stop();
+    app = null;
+
+    expect(order).toEqual(['factory', 'boot', 'middleware', 'handler', 'shutdown', 'close']);
+  });
+
+  it('should support multiple modules with independent services and routes', async () => {
+    const billingMod = defineModule('billing', {
+      services: {
+        rate: { factory: () => 0.1 },
+      },
+      routes: async (server) => {
+        server.get('/calculate', async (request) => {
+          const rate = (request as unknown as Record<string, unknown>).rate;
+          return { tax: rate };
+        });
+      },
+    });
+
+    const inventoryMod = defineModule('inventory', {
+      services: {
+        stock: { factory: () => 42 },
+      },
+      routes: async (server) => {
+        server.get('/count', async (request) => {
+          const stock = (request as unknown as Record<string, unknown>).stock;
+          return { stock };
+        });
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    app.module(billingMod).module(inventoryMod);
+    await app.start({ silent: true });
+
+    const billingRes = await app.server.inject({ method: 'GET', url: '/billing/calculate' });
+    const inventoryRes = await app.server.inject({ method: 'GET', url: '/inventory/count' });
+
+    expect(billingRes.json()).toEqual({ tax: 0.1 });
+    expect(inventoryRes.json()).toEqual({ stock: 42 });
+  });
+
+  it('should work with modules that have no services', async () => {
+    const mod = defineModule('static', {
+      routes: async (server) => {
+        server.get('/health', async () => ({ status: 'ok' }));
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    app.module(mod);
+    await app.start({ silent: true });
+
+    const res = await app.server.inject({ method: 'GET', url: '/static/health' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ status: 'ok' });
+  });
+
+  it('should allow module middleware to block requests', async () => {
+    const mod = defineModule('protected', {
+      middleware: [
+        async (_request, reply) => {
+          reply.status(403).send({ error: 'Forbidden' });
+        },
+      ],
+      routes: async (server) => {
+        server.get('/secret', async () => ({ data: 'classified' }));
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    app.module(mod);
+    await app.start({ silent: true });
+
+    const res = await app.server.inject({ method: 'GET', url: '/protected/secret' });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'Forbidden' });
+  });
+});
