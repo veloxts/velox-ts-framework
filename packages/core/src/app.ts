@@ -9,6 +9,9 @@ import fp from 'fastify-plugin';
 
 import { setupContextHook } from './context.js';
 import { ConflictError, isVeloxError, VeloxError } from './errors.js';
+import { isVeloxModule } from './module/define-module.js';
+import { createModulePlugin } from './module/register.js';
+import type { VeloxModule } from './module/types.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
 import { isFastifyPlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
 import { requestLogger } from './plugins/request-logger.js';
@@ -57,6 +60,8 @@ export class VeloxApp {
   private readonly _lifecycle: LifecycleManager;
   private _isRunning = false;
   private _address: string | null = null;
+  private readonly _bootHooks: Array<() => Promise<void>> = [];
+  private readonly _moduleNames: Set<string> = new Set();
 
   /**
    * Creates a new VeloxApp instance
@@ -289,6 +294,62 @@ export class VeloxApp {
   }
 
   /**
+   * Registers a domain module with the application.
+   *
+   * Modules are self-contained vertical slices that bundle services,
+   * middleware, routes, and lifecycle hooks into a single unit.
+   *
+   * @param mod - VeloxModule created via defineModule()
+   * @returns The app instance for method chaining
+   * @throws {VeloxError} If module is invalid or name is already registered
+   */
+  module(mod: VeloxModule): this {
+    if (!isVeloxModule(mod)) {
+      throw new VeloxError(
+        'Invalid module: must be created via defineModule()',
+        500,
+        'INVALID_MODULE'
+      );
+    }
+
+    if (this._moduleNames.has(mod.name)) {
+      throw new VeloxError(`Module "${mod.name}" is already registered`, 500, 'DUPLICATE_MODULE');
+    }
+
+    this._moduleNames.add(mod.name);
+
+    // Track resolved services for boot/shutdown callbacks
+    let resolvedServices: Record<string, unknown> = {};
+
+    const plugin = createModulePlugin(mod, (services) => {
+      resolvedServices = services as Record<string, unknown>;
+    });
+
+    // Register module as encapsulated Fastify plugin
+    this._server.register(plugin);
+
+    // Register boot hook (runs between ready() and listen())
+    if (mod.config.boot) {
+      const bootFn = mod.config.boot as (services: Record<string, unknown>) => Promise<void>;
+      this._bootHooks.push(async () => {
+        await bootFn(resolvedServices);
+      });
+    }
+
+    // Register shutdown hook
+    if (mod.config.shutdown) {
+      const shutdownFn = mod.config.shutdown as (
+        services: Record<string, unknown>
+      ) => Promise<void>;
+      this.beforeShutdown(async () => {
+        await shutdownFn(resolvedServices);
+      });
+    }
+
+    return this;
+  }
+
+  /**
    * Registers routes with the application
    *
    * This is a convenience method that passes the Fastify server
@@ -378,6 +439,11 @@ export class VeloxApp {
 
     try {
       await this._server.ready();
+
+      // Execute module boot hooks (after plugins loaded, before accepting traffic)
+      for (const bootHook of this._bootHooks) {
+        await bootHook();
+      }
 
       const address = await this._server.listen({
         port: this._config.port,
