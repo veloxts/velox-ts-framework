@@ -1,0 +1,363 @@
+---
+title: Domain Modules
+description: Organize large applications into self-contained vertical feature slices with services, procedures, and lifecycle management.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Aside type="caution" title="Proposition">
+This page describes a **proposed pattern** for organizing large Velox TS applications. The manual approach (using existing primitives) works today. The `defineModule()` API is planned but not yet implemented. We're sharing this early to gather community feedback.
+</Aside>
+
+As your application grows beyond a handful of resources, flat procedure files become difficult to navigate and prone to merge conflicts. A billing feature might need its own procedures, Stripe service, validation schemas, domain middleware, and cleanup hooks — but today these live in separate directories with no formal connection between them.
+
+Domain modules solve this by bundling everything a feature needs into a single mountable unit.
+
+## The Module Pattern Today
+
+You can build domain modules right now using existing Velox TS primitives. The pattern combines `definePlugin()` for lifecycle, `procedures()` for endpoints, and scoped procedure builders for domain middleware.
+
+### Directory Structure
+
+```
+src/modules/billing/
+├── index.ts              # Feature plugin (definePlugin)
+├── procedures.ts         # billingProcedures collection
+├── schemas.ts            # Zod input/output schemas
+├── services/
+│   └── StripeService.ts  # Domain service class
+└── middleware.ts          # Domain-scoped middleware
+```
+
+### Service Class
+
+Services are plain classes. The module plugin manages their lifecycle — no singletons, no global state.
+
+```typescript
+// modules/billing/services/StripeService.ts
+export class StripeService {
+  private client: Stripe;
+
+  constructor(secretKey: string) {
+    this.client = new Stripe(secretKey);
+  }
+
+  async getInvoices(customerId: string) {
+    return this.client.invoices.list({ customer: customerId });
+  }
+
+  async createCharge(params: ChargeParams) {
+    return this.client.charges.create(params);
+  }
+
+  async disconnect() {
+    // Clean up connections
+  }
+}
+```
+
+### Domain Middleware
+
+Create a scoped procedure builder that applies domain-specific middleware to all procedures in the module:
+
+```typescript
+// modules/billing/middleware.ts
+import { procedure } from '@veloxts/velox';
+import type { Middleware } from '@veloxts/router';
+
+const requireStripeCustomer: Middleware = async ({ ctx, next }) => {
+  if (!ctx.user) throw new Error('Unauthorized');
+  const customerId = await ctx.db.user.findUnique({
+    where: { id: ctx.user.id },
+    select: { stripeCustomerId: true },
+  });
+  ctx.stripeCustomerId = customerId?.stripeCustomerId;
+  return next();
+};
+
+// Scoped builder — every procedure in this module inherits this middleware
+export const billingProcedure = procedure()
+  .guard(authenticated)
+  .use(requireStripeCustomer);
+```
+
+### Procedures
+
+Use the scoped builder so every procedure in the module automatically gets the domain middleware:
+
+```typescript
+// modules/billing/procedures.ts
+import { procedures } from '@veloxts/velox';
+import { z } from 'zod';
+import { billingProcedure } from './middleware';
+import { InvoiceSchema, ChargeSchema } from './schemas';
+
+export const billingProcedures = procedures('billing', {
+  listInvoices: billingProcedure
+    .output(z.array(InvoiceSchema))
+    .query(async ({ ctx }) => {
+      return ctx.stripe.getInvoices(ctx.stripeCustomerId);
+    }),
+
+  createCharge: billingProcedure
+    .input(ChargeSchema)
+    .mutation(async ({ input, ctx }) => {
+      return ctx.stripe.createCharge({
+        customer: ctx.stripeCustomerId,
+        ...input,
+      });
+    }),
+});
+```
+
+### Module Plugin
+
+The plugin ties everything together — service creation, context injection, route registration, and cleanup:
+
+```typescript
+// modules/billing/index.ts
+import { definePlugin } from '@veloxts/core';
+import { rest } from '@veloxts/router';
+import { StripeService } from './services/StripeService';
+import { billingProcedures } from './procedures';
+
+export { billingProcedures } from './procedures';
+
+export const billingModule = definePlugin({
+  name: 'module-billing',
+  version: '1.0.0',
+  async register(server) {
+    // 1. Create domain service
+    const stripe = new StripeService(process.env.STRIPE_SECRET!);
+
+    // 2. Inject into request context
+    server.decorateRequest('stripe', undefined);
+    server.addHook('onRequest', async (request) => {
+      (request as Record<string, unknown>).stripe = stripe;
+    });
+
+    // 3. Register routes with domain prefix
+    server.register(async (scope) => {
+      scope.routes(rest([billingProcedures], { prefix: '/billing' }));
+    });
+
+    // 4. Cleanup on shutdown
+    server.addHook('onClose', async () => {
+      await stripe.disconnect();
+    });
+  },
+});
+```
+
+### Mounting the Module
+
+```typescript
+// index.ts
+import { veloxApp } from '@veloxts/velox';
+import { billingModule } from './modules/billing';
+import { inventoryModule } from './modules/inventory';
+
+const app = await veloxApp({ port: 3030 });
+
+// Each module is self-contained
+app.register(billingModule);
+app.register(inventoryModule);
+
+await app.start();
+```
+
+## Module Conventions
+
+Following consistent conventions makes modules predictable across teams and projects:
+
+| Convention | Example |
+|---|---|
+| Directory | `src/modules/billing/` |
+| Plugin name | `module-billing` |
+| REST prefix | `/billing` (matches module name) |
+| Procedure namespace | `billing` (from `procedures('billing', ...)`) |
+| Service lifetime | Created in `register()`, destroyed in `onClose` |
+| Scoped builder | `billingProcedure` (shared by all procedures in module) |
+
+## Module Encapsulation & Security
+
+### Service Visibility
+
+When a module decorates a service on the Fastify server, sibling scopes can see it. For true isolation, register the module inside a child scope:
+
+```typescript
+// Isolated — stripe is only visible within this scope
+app.server.register(async (billingScope) => {
+  billingScope.register(billingModule);
+});
+```
+
+### Private Modules (Admin Example)
+
+An admin module can be locked down at three layers:
+
+<Tabs>
+<TabItem label="Module middleware">
+```typescript
+// Layer 1: All procedures require admin role
+import { authenticated, hasRole } from '@veloxts/auth';
+
+export const adminProcedure = procedure()
+  .guard(authenticated)
+  .guard(hasRole('admin'));
+
+export const adminProcedures = procedures('admin', {
+  listAllUsers: adminProcedure
+    .query(async ({ ctx }) => ctx.db.user.findMany()),
+
+  deleteUser: adminProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .guard(hasRole('super-admin'))  // Layer 2: individual procedure guard
+    .use(auditLogMiddleware)
+    .mutation(async ({ input, ctx }) => {
+      return ctx.db.user.delete({ where: { id: input.id } });
+    }),
+});
+```
+</TabItem>
+<TabItem label="Network isolation">
+```typescript
+// Layer 3: Restrict to internal network
+app.server.register(async (adminScope) => {
+  // Only accessible from internal IPs
+  adminScope.addHook('onRequest', async (request, reply) => {
+    const ip = request.ip;
+    if (!isInternalNetwork(ip)) {
+      reply.status(403).send({ error: 'Forbidden' });
+    }
+  });
+
+  // Separate CORS, rate limits, etc.
+  adminScope.register(adminModule);
+});
+```
+</TabItem>
+</Tabs>
+
+**Security layers summary:**
+
+| Layer | Mechanism | Scope |
+|-------|-----------|-------|
+| Module middleware | Scoped procedure builder with guards | All procedures in the module |
+| Procedure guards | `.guard(hasRole('super-admin'))` | Individual procedures |
+| Fastify encapsulation | `server.register(scope => ...)` | Network-level isolation |
+
+## Inter-Module Communication
+
+Modules can share services through Fastify's decoration system. Use `dependencies` to ensure correct registration order:
+
+```typescript
+// modules/orders/index.ts
+import { definePlugin } from '@veloxts/core';
+import { rest } from '@veloxts/router';
+import { orderProcedures } from './procedures';
+
+export const orderModule = definePlugin({
+  name: 'module-orders',
+  version: '1.0.0',
+  dependencies: ['module-billing'],  // ensures billing registers first
+  async register(server) {
+    // Access billing's stripe service (decorated on server by billing module)
+    const stripe = server.stripe;
+
+    server.register(async (scope) => {
+      scope.routes(rest([orderProcedures], { prefix: '/orders' }));
+    });
+  },
+});
+```
+
+<Aside type="note">
+When modules share services through server decoration, both modules can access the service. For stricter encapsulation, keep services inside Fastify child scopes — only the module that registered in that scope can see them.
+</Aside>
+
+## Coming Soon: `defineModule()`
+
+<Aside type="tip" title="Planned API">
+The manual pattern above works today but involves repetitive wiring. A planned `defineModule()` API will automate the boilerplate while preserving full type safety.
+</Aside>
+
+The planned API compresses the entire manual pattern into a single declaration:
+
+```typescript
+import { defineModule } from '@veloxts/core';
+
+export const billingModule = defineModule('billing', {
+  // Services auto-injected into procedure context
+  services: {
+    stripe: {
+      factory: () => new StripeService(process.env.STRIPE_SECRET!),
+      close: (s) => s.disconnect(),
+    },
+  },
+
+  // Applied to all procedures in this module
+  middleware: [requireAuth, requireStripeCustomer],
+
+  // Procedure collection
+  procedures: billingProcedures,
+
+  // Lifecycle hooks
+  async boot(services) {
+    await services.stripe.warmCache();
+  },
+  async shutdown(services) {
+    await services.stripe.disconnect();
+  },
+});
+
+// Mount with one line
+app.module(billingModule);
+```
+
+**What `defineModule()` will automate:**
+
+- **Service lifecycle** — factory creation, context injection, and cleanup hooks
+- **Route prefix** — auto-derived from module name (opt-out with `prefix: false`)
+- **Module middleware** — applied to all procedures without a manual scoped builder
+- **Type-inferred context** — `ctx.stripe` typed as `StripeService` without declaration merging
+- **tRPC namespace** — optionally prefixed with module name (`trpcPrefix: true`)
+- **Inter-module DI** — typed `imports` / `exports` for service sharing between modules
+- **Encapsulation** — services private by default, explicitly exported for other modules
+
+```typescript
+// Inter-module DI (planned)
+export const orderModule = defineModule('orders', {
+  imports: [billingModule],
+
+  services: {
+    orderProcessor: {
+      // Fully typed: imported.billing.stripe is StripeService
+      factory: (imported) => new OrderProcessor(imported.billing.stripe),
+    },
+  },
+
+  procedures: orderProcedures,
+});
+```
+
+See the full design document at [`.plans/domain-modules-rfc.md`](https://github.com/veloxts/velox-ts-framework/blob/main/.plans/domain-modules-rfc.md).
+
+## When to Use Modules
+
+| Application size | Recommended pattern |
+|---|---|
+| 1–5 resources | Flat `procedures/*.ts` files |
+| 5–15 resources | [Split handlers or action pattern](/docs/advanced/architectural-patterns/#scaling-procedure-definitions) |
+| 15+ resources or distinct domains | Domain modules |
+| Publishable features | Domain modules (npm-ready) |
+
+Modules are **progressive** — you can extract a module from existing flat procedures without rewriting your app. Start simple, modularize when a domain boundary becomes clear.
+
+## Related Content
+
+- [Architectural Patterns & Scalability](/docs/advanced/architectural-patterns/) — the full scaling progression from flat files to modules
+- [Plugins](/docs/core/plugins/) — the underlying plugin system that modules compose
+- [Procedures](/docs/endpoints/procedures/) — the procedure API that modules wrap
+- [Middleware](/docs/router/middleware/) — request processing middleware patterns
+- [Guards](/docs/authentication/guards/) — route-level authorization
