@@ -3,28 +3,24 @@ title: Prisma 7 Setup
 description: Configure Prisma 7 with driver adapters for VeloxTS applications.
 ---
 
-import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+import { Aside, Steps } from '@astrojs/starlight/components';
 
-Velox TS uses Prisma 7, which introduces significant architectural changes from previous versions.
+Velox TS uses Prisma 7 with driver adapters. All scaffolded templates are pre-configured — this guide explains the setup if you need to understand or customize it.
 
-<Aside type="caution" title="Breaking Changes in Prisma 7">
-Prisma 7 removes `datasourceUrl` from PrismaClient and requires driver adapters. All Velox TS templates are pre-configured—this guide is for understanding or migrating existing projects.
+<Aside type="tip" title="Already scaffolded?">
+If you created your project with `create-velox-app`, Prisma 7 is already configured. You can skip to [Velox TS Integration](#velox-ts-integration) or [Common Errors](#common-errors) if you run into issues.
 </Aside>
 
-## What Changed in Prisma 7?
+## How Prisma 7 Works
 
-<Tabs>
-  <TabItem label="Prisma 7 (New)">
-```prisma
-// schema.prisma
-datasource db {
-  provider = "sqlite"
-  // NO url field - configured in prisma.config.ts
-}
-```
+Prisma 7 uses **driver adapters** to connect to databases at runtime. Three configuration files work together:
+
+- **`prisma.config.ts`** — Tells the Prisma CLI where to find the schema and database URL
+- **`prisma/schema.prisma`** — Defines your data model (no connection URL here)
+- **`src/config/database.ts`** — Creates the runtime client with a driver adapter
 
 ```typescript
-// prisma.config.ts (NEW - required)
+// prisma.config.ts — CLI configuration
 import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
 
@@ -36,38 +32,23 @@ export default defineConfig({
 });
 ```
 
+```prisma
+// schema.prisma — data model only
+datasource db {
+  provider = "sqlite"
+}
+```
+
 ```typescript
-// database.ts
+// database.ts — runtime client with adapter
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaClient } from '@prisma/client';
 
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! });
-export const db = new PrismaClient({ adapter });  // Adapter required
+export const db = new PrismaClient({ adapter });
 ```
-  </TabItem>
-  <TabItem label="Prisma 6 (Old)">
-    ```prisma
-    // schema.prisma
-    datasource db {
-    provider = "sqlite"
-    url      = env("DATABASE_URL")  // URL configured here
-  }
-    ```
 
-    ```typescript
-    // database.ts
-    import { PrismaClient } from '@prisma/client';
-    export const db = new PrismaClient();  // Just works
-    ```
-  </TabItem>
-</Tabs>
-
-### Why Driver Adapters?
-
-- **Separation of concerns**: CLI configuration (migrations) separate from runtime (client)
-- **Connection control**: Full control over pooling, timeouts, and behavior
-- **Edge support**: Enables serverless and edge deployments
-- **Type safety**: Type-safe adapter configuration
+This separation gives you full control over connection pooling, timeouts, and enables edge/serverless deployments.
 
 ## Quick Setup
 
@@ -87,7 +68,7 @@ export const db = new PrismaClient({ adapter });  // Adapter required
    });
    ```
 
-2. **Update `prisma/schema.prisma`** (remove url field):
+2. **Define your schema** in `prisma/schema.prisma`:
 
    ```prisma
    generator client {
@@ -97,7 +78,6 @@ export const db = new PrismaClient({ adapter });  // Adapter required
 
    datasource db {
      provider = "sqlite"
-     // NO url here - it's in prisma.config.ts
    }
 
    model User {
@@ -193,7 +173,6 @@ Best for production applications with high concurrency.
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
-// Pass connectionString directly (Prisma 7 pattern)
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
@@ -205,7 +184,7 @@ export const db = new PrismaClient({ adapter });
 DATABASE_URL="postgresql://user:password@localhost:5432/mydb?schema=public"
 ```
 
-## Velox TS Integration
+## Velox TS Integration
 
 Extend the context to include your Prisma client:
 
@@ -221,7 +200,7 @@ const adapter = new PrismaBetterSqlite3({
 
 export const db = new PrismaClient({ adapter });
 
-// Extend Velox TS context
+// Extend Velox TS context
 declare module '@veloxts/core' {
   interface BaseContext {
     db: PrismaClient;
@@ -250,28 +229,28 @@ export const userProcedures = procedures('users', {
 
 ### "Unknown property datasourceUrl"
 
-**Cause:** Prisma 7 removed `datasourceUrl` from PrismaClient constructor.
+**Cause:** `datasourceUrl` is not a valid PrismaClient option in Prisma 7.
 
-**Fix:** Use a driver adapter instead:
+**Fix:** Use a driver adapter:
 ```typescript
-// WRONG (Prisma 6 pattern)
+// WRONG
 const db = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
-// CORRECT (Prisma 7 pattern)
+// CORRECT
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! });
 const db = new PrismaClient({ adapter });
 ```
 
 ### "The datasource property 'url' is no longer supported"
 
-**Cause:** `url` field in `schema.prisma` datasource block.
+**Cause:** `url` field present in `schema.prisma` datasource block.
 
-**Fix:** Remove `url` from schema, configure in `prisma.config.ts`:
+**Fix:** Remove `url` from the schema — the database URL belongs in `prisma.config.ts`:
 ```prisma
 // WRONG
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")  // Remove this
+  url      = env("DATABASE_URL")
 }
 
 // CORRECT
@@ -315,7 +294,11 @@ DATABASE_URL="file:./dev.db"
 DATABASE_URL="file:../dev.db"
 ```
 
-## Migrating from Prisma 6
+## Migrating from Prisma 5/6
+
+<Aside type="note">
+This section is for developers bringing an existing Prisma project into Velox TS. If you started with `create-velox-app`, you can skip this.
+</Aside>
 
 <Steps>
 
@@ -348,7 +331,7 @@ DATABASE_URL="file:../dev.db"
 
 4. **Update database client**:
    ```typescript
-   // Before (Prisma 6)
+   // Before (Prisma 5/6)
    import { PrismaClient } from '@prisma/client';
    export const db = new PrismaClient();
 
