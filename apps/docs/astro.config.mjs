@@ -63,6 +63,7 @@ export default defineConfig({
             { slug: 'endpoints/procedures' },
             { slug: 'endpoints/resource-api' },
             { slug: 'endpoints/nested-relations' },
+            { slug: 'endpoints/domain-modules' },
             { slug: 'endpoints/services' },
           ],
         },
@@ -154,7 +155,6 @@ export default defineConfig({
           items: [
             { slug: 'advanced/type-safety' },
             { slug: 'advanced/architectural-patterns' },
-            { slug: 'advanced/domain-modules' },
             { slug: 'advanced/testing-patterns' },
             { slug: 'advanced/rsc-module-separation' },
           ],

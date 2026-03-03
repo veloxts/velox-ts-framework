@@ -3,7 +3,7 @@ title: Architectural Patterns & Scalability
 description: Scale your VeloxTS application from prototype to enterprise with progressive architectural patterns.
 ---
 
-When you start with Velox TS, the procedure pattern gets you running fast: type-safe endpoints, auto-generated REST routes, and integrated auth — all with minimal configuration.
+When you start with Velox TS, the procedure pattern gets you running fast: type-safe endpoints, auto-generated REST routes, and integrated auth — all with minimal configuration.
 
 But as your application grows, a natural question arises: **does the simple `procedure()` pattern scale to large, long-lived enterprise applications?**
 
@@ -11,7 +11,7 @@ Yes. Here's how.
 
 ## Levels of Architectural Complexity
 
-Traditional enterprise architectures enforce strict separation of concerns from day one — Controllers, DTOs, Services, Repositories — regardless of domain complexity. Velox TS takes a different approach: it compresses this entire flow into a single, type-inferred **Procedure Definition** to eliminate boilerplate without sacrificing compiler safety.
+Traditional enterprise architectures enforce strict separation of concerns from day one — Controllers, DTOs, Services, Repositories — regardless of domain complexity. Velox TS takes a different approach: it compresses this entire flow into a single, type-inferred **Procedure Definition** to eliminate boilerplate without sacrificing compiler safety.
 
 As complexity grows, you progressively extract layers only when needed.
 
@@ -95,55 +95,40 @@ export const userProcedures = procedures('users', {
 });
 ```
 
-### Pattern 3: Vertical Domain Slices (Enterprise)
+### Pattern 3: Domain Modules (Enterprise)
 
 *Best for: Large monoliths containing distinct bounded contexts (e.g., E-Commerce + Admin Panel + Billing).*
 
-Instead of grouping by horizontal technical layers (`schemas/`, `procedures/`, `policies/`), group by **vertical domains**. Each domain independently registers its own plugins, dependencies, and procedures.
-
-Because Velox TS relies on compiler-driven type inference rather than code generation, you can structure domain directories however you like without breaking client type safety.
+Instead of grouping by horizontal technical layers (`schemas/`, `procedures/`, `policies/`), group by **vertical domains**. Each domain bundles its own services, procedures, middleware, and lifecycle into a single mountable unit using `defineModule()`:
 
 ```typescript
-// features/billing/plugin.ts
-import { definePlugin } from '@veloxts/core';
+import { defineModule } from '@veloxts/core';
 import { rest } from '@veloxts/router';
-import { billingProcedures } from './procedures';
 import { StripeService } from './services/StripeService';
+import { billingProcedures } from './procedures';
 
-// The domain encapsulates its own dependencies and routes
-export const billingFeaturePlugin = definePlugin({
-  name: 'feature-billing',
-  version: '1.0.0',
-  async register(server) {
-    // 1. Register domain-specific services
-    server.decorate('stripe', new StripeService(process.env.STRIPE_SECRET));
-
-    // 2. Register domain-specific routes under a prefix
-    server.register(async (instance) => {
-      instance.routes(rest([billingProcedures], { prefix: '/billing' }));
-    });
+export const billingModule = defineModule('billing', {
+  services: {
+    stripe: {
+      factory: () => new StripeService(process.env.STRIPE_SECRET!),
+      close: (s) => s.disconnect(),
+    },
+  },
+  routes: rest([billingProcedures]),
+  async boot(services) {
+    await services.stripe.warmCache();
   },
 });
+
+// Mount with one line
+app.module(billingModule);
 ```
 
-```typescript
-// index.ts
-import { veloxApp } from '@veloxts/velox';
-import { billingFeaturePlugin } from './features/billing/plugin';
-import { inventoryFeaturePlugin } from './features/inventory/plugin';
-
-const app = await veloxApp({ port: 3030 });
-
-// Each domain is mounted as an independent vertical slice
-app.server.register(billingFeaturePlugin);
-app.server.register(inventoryFeaturePlugin);
-
-await app.start();
-```
+For the full module API, manual patterns, encapsulation, security layers, and inter-module communication, see **[Domain Modules](/docs/endpoints/domain-modules/)**.
 
 ## Plugin Isolation and Context Scoping
 
-Scaling effectively requires strict access control over shared dependencies and middleware. Velox TS provides two complementary isolation mechanisms.
+Scaling effectively requires strict access control over shared dependencies and middleware. Velox TS provides two complementary isolation mechanisms.
 
 ### 1. Collection-Level Context Scoping
 
@@ -158,7 +143,7 @@ import type { Middleware } from '@veloxts/router';
 // 1. Create a specialized middleware for the billing domain
 const requireStripeCustomer: Middleware = async ({ ctx, next }) => {
   if (!ctx.user) throw new Error('Unauthorized');
-  // Extend context directly — this is how Velox TS middleware works
+  // Extend context directly — this is how Velox TS middleware works
   ctx.stripeCustomerId = await ctx.db.getPaymentId(ctx.user.id);
   return next();
 };
@@ -219,6 +204,8 @@ export const userProcedures = procedures('users', {
 ## Related Content
 
 - [Procedures](/docs/endpoints/procedures/) - Core procedure API
+- [Domain Modules](/docs/endpoints/domain-modules/) - Vertical domain slices with services and lifecycle
+- [Service Layer](/docs/endpoints/services/) - Business logic extraction and external APIs
 - [Plugins](/docs/core/plugins/) - Plugin system and encapsulation
 - [Middleware](/docs/router/middleware/) - Request processing middleware
 - [Guards](/docs/authentication/guards/) - Route-level authorization
