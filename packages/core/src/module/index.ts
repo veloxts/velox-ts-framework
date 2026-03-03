@@ -8,7 +8,6 @@
  */
 
 export { defineModule, isVeloxModule } from './define-module.js';
-export { createModulePlugin } from './register.js';
 export type {
   InferModuleServices,
   InferServices,

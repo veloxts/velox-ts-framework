@@ -174,4 +174,4 @@ export type {
   ServiceDefinitions,
   VeloxModule,
 } from './module/index.js';
-export { createModulePlugin, defineModule, isVeloxModule, MODULE_BRAND } from './module/index.js';
+export { defineModule, isVeloxModule, MODULE_BRAND } from './module/index.js';
