@@ -85,7 +85,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 *.db-journal
 
 # Claude Code
-# .plans/ is tracked — contains RFCs and design documents
+.plans/
 .claude/
 !.claude/agents/
 # But include skill templates for create-velox-app
