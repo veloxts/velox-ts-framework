@@ -3,9 +3,10 @@
  * Tests defineModule() factory and isVeloxModule() type guard
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { defineModule, isVeloxModule } from '../module/index.js';
+import { type VeloxApp, veloxApp } from '../app.js';
+import { createModulePlugin, defineModule, isVeloxModule } from '../module/index.js';
 
 describe('defineModule()', () => {
   it('should create a module with name and empty config', () => {
@@ -102,5 +103,201 @@ describe('isVeloxModule()', () => {
   it('should return false for objects with wrong brand value', () => {
     const fake = { [Symbol.for('velox:module')]: 'not-true' };
     expect(isVeloxModule(fake)).toBe(false);
+  });
+});
+
+describe('createModulePlugin()', () => {
+  let app: VeloxApp | null = null;
+
+  afterEach(async () => {
+    if (app?.isRunning) {
+      await app.stop();
+    }
+    app = null;
+  });
+
+  it('should create a registrable Fastify plugin from a module', () => {
+    const mod = defineModule('billing', {});
+    const plugin = createModulePlugin(mod);
+    expect(typeof plugin).toBe('function');
+  });
+
+  it('should create services during registration', async () => {
+    const factoryFn = vi.fn(() => ({ value: 42 }));
+    const mod = defineModule('test', {
+      services: { counter: { factory: factoryFn } },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    const plugin = createModulePlugin(mod);
+    await app.server.register(plugin);
+    await app.start({ silent: true });
+
+    expect(factoryFn).toHaveBeenCalledOnce();
+  });
+
+  it('should inject services into request context', async () => {
+    const mod = defineModule('test', {
+      services: { greeting: { factory: () => 'hello from module' } },
+      prefix: false,
+      routes: async (server) => {
+        server.get('/test', async (request) => {
+          return { value: (request as unknown as Record<string, unknown>).greeting };
+        });
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    await app.server.register(createModulePlugin(mod));
+    await app.start({ silent: true });
+
+    const response = await app.server.inject({ method: 'GET', url: '/test' });
+    expect(response.json()).toEqual({ value: 'hello from module' });
+  });
+
+  it('should apply module middleware as onRequest hooks', async () => {
+    const middlewareCalled = vi.fn();
+    const mod = defineModule('test', {
+      middleware: [
+        async () => {
+          middlewareCalled();
+        },
+      ],
+      prefix: false,
+      routes: async (server) => {
+        server.get('/test', async () => ({ ok: true }));
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    await app.server.register(createModulePlugin(mod));
+    await app.start({ silent: true });
+
+    await app.server.inject({ method: 'GET', url: '/test' });
+    expect(middlewareCalled).toHaveBeenCalledOnce();
+  });
+
+  it('should register routes with auto-prefix from module name', async () => {
+    const mod = defineModule('billing', {
+      routes: async (server) => {
+        server.get('/invoices', async () => ({ invoices: [] }));
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    await app.server.register(createModulePlugin(mod));
+    await app.start({ silent: true });
+
+    const response = await app.server.inject({ method: 'GET', url: '/billing/invoices' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ invoices: [] });
+  });
+
+  it('should support custom prefix', async () => {
+    const mod = defineModule('billing', {
+      prefix: '/pay',
+      routes: async (server) => {
+        server.get('/invoices', async () => ({ ok: true }));
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    await app.server.register(createModulePlugin(mod));
+    await app.start({ silent: true });
+
+    const res = await app.server.inject({ method: 'GET', url: '/pay/invoices' });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('should support prefix: false for no prefix', async () => {
+    const mod = defineModule('billing', {
+      prefix: false,
+      routes: async (server) => {
+        server.get('/invoices', async () => ({ ok: true }));
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    await app.server.register(createModulePlugin(mod));
+    await app.start({ silent: true });
+
+    const res = await app.server.inject({ method: 'GET', url: '/invoices' });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('should call close() on services during server shutdown', async () => {
+    const closeFn = vi.fn();
+    const mod = defineModule('test', {
+      services: {
+        conn: {
+          factory: () => ({ connected: true }),
+          close: closeFn,
+        },
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    await app.server.register(createModulePlugin(mod));
+    await app.start({ silent: true });
+    await app.stop();
+
+    expect(closeFn).toHaveBeenCalledOnce();
+    expect(closeFn).toHaveBeenCalledWith({ connected: true });
+    app = null; // Already stopped
+  });
+
+  it('should handle async service factories', async () => {
+    const mod = defineModule('test', {
+      services: {
+        asyncService: {
+          factory: async () => ({ ready: true }),
+        },
+      },
+      prefix: false,
+      routes: async (server) => {
+        server.get('/test', async (request) => {
+          return { value: (request as unknown as Record<string, unknown>).asyncService };
+        });
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    await app.server.register(createModulePlugin(mod));
+    await app.start({ silent: true });
+
+    const response = await app.server.inject({ method: 'GET', url: '/test' });
+    expect(response.json()).toEqual({ value: { ready: true } });
+  });
+
+  it('should call onServicesResolved callback with resolved services', async () => {
+    const resolvedCallback = vi.fn();
+    const mod = defineModule('test', {
+      services: {
+        svc: { factory: () => ({ value: 42 }) },
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    await app.server.register(createModulePlugin(mod, resolvedCallback));
+    await app.start({ silent: true });
+
+    expect(resolvedCallback).toHaveBeenCalledOnce();
+    expect(resolvedCallback).toHaveBeenCalledWith({ svc: { value: 42 } });
+  });
+
+  it('should ensure prefix has leading slash', async () => {
+    const mod = defineModule('billing', {
+      prefix: 'pay', // no leading slash
+      routes: async (server) => {
+        server.get('/invoices', async () => ({ ok: true }));
+      },
+    });
+
+    app = await veloxApp({ port: 0, logger: false });
+    await app.server.register(createModulePlugin(mod));
+    await app.start({ silent: true });
+
+    const res = await app.server.inject({ method: 'GET', url: '/pay/invoices' });
+    expect(res.statusCode).toBe(200);
   });
 });

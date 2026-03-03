@@ -48,7 +48,7 @@ export type InferServices<T extends ServiceDefinitions> = {
  */
 export type ModuleMiddleware = (
   request: FastifyRequest,
-  reply: FastifyReply,
+  reply: FastifyReply
 ) => void | Promise<void>;
 
 /**
@@ -56,9 +56,7 @@ export type ModuleMiddleware = (
  *
  * @template TServices - The service definitions provided by this module
  */
-export interface ModuleConfig<
-  TServices extends ServiceDefinitions = ServiceDefinitions,
-> {
+export interface ModuleConfig<TServices extends ServiceDefinitions = ServiceDefinitions> {
   /** Services this module provides (created once, injected per-request) */
   services?: TServices;
 
@@ -122,6 +120,5 @@ export interface VeloxModule<
  * // { stripe: Stripe }
  * ```
  */
-export type InferModuleServices<M> = M extends VeloxModule<string, infer S>
-  ? InferServices<S>
-  : never;
+export type InferModuleServices<M> =
+  M extends VeloxModule<string, infer S> ? InferServices<S> : never;

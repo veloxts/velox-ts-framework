@@ -7,6 +7,8 @@
  * @module module
  */
 
+export { defineModule, isVeloxModule } from './define-module.js';
+export { createModulePlugin } from './register.js';
 export type {
   InferModuleServices,
   InferServices,
@@ -17,4 +19,3 @@ export type {
   VeloxModule,
 } from './types.js';
 export { MODULE_BRAND } from './types.js';
-export { defineModule, isVeloxModule } from './define-module.js';
