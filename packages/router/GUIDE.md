@@ -198,9 +198,9 @@ fs.writeFileSync('openapi.json', JSON.stringify(spec, null, 2));
 Serve interactive API documentation with Swagger UI:
 
 ```typescript
-import { swaggerUIPlugin } from '@veloxts/router';
+import { swaggerPlugin } from '@veloxts/router';
 
-app.server.register(swaggerUIPlugin, {
+app.server.register(swaggerPlugin, {
   routePrefix: '/docs',
   collections: [userProcedures, postProcedures],
   openapi: {
@@ -213,31 +213,6 @@ app.server.register(swaggerUIPlugin, {
 // Available at:
 // - /docs - Swagger UI interface
 // - /docs/openapi.json - Raw OpenAPI spec
-```
-
-### Factory Functions
-
-```typescript
-import { createSwaggerUI, getOpenApiSpec, registerDocs } from '@veloxts/router';
-
-// Create pre-configured plugin
-const docs = createSwaggerUI({
-  collections: [userProcedures],
-  openapi: { info: { title: 'My API', version: '1.0.0' } },
-});
-app.server.register(docs);
-
-// Get spec without registering routes
-const spec = getOpenApiSpec({
-  collections: [userProcedures],
-  openapi: { info: { title: 'My API', version: '1.0.0' } },
-});
-
-// Register docs with one call
-await registerDocs(app.server, {
-  collections: [userProcedures],
-  openapi: { info: { title: 'My API', version: '1.0.0' } },
-});
 ```
 
 ### CLI Commands

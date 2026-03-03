@@ -3,13 +3,13 @@ title: OpenAPI Documentation
 description: Generate OpenAPI/Swagger documentation from your procedures.
 ---
 
-Velox TS generates a complete OpenAPI 3.0.3 specification from your procedure definitions — including input/output schemas, HTTP methods, and Zod field descriptions — and serves interactive Swagger UI alongside your API.
+Velox TS generates a complete OpenAPI 3.0.3 specification from your procedure definitions — including input/output schemas, HTTP methods, and Zod field descriptions — and serves interactive Swagger UI alongside your API.
 
 ## Quick Setup
 
 ```typescript
 import { veloxApp, rest } from '@veloxts/velox';
-import { registerDocs } from '@veloxts/router';
+import { swaggerPlugin } from '@veloxts/router';
 import { userProcedures, postProcedures } from './procedures';
 
 const app = await veloxApp({ port: 3030 });
@@ -18,12 +18,15 @@ const app = await veloxApp({ port: 3030 });
 app.routes(rest([userProcedures, postProcedures], { prefix: '/api' }));
 
 // Enable OpenAPI docs
-await app.register(registerDocs, {
-  path: '/api/docs',
-  info: {
-    title: 'My API',
-    version: '1.0.0',
-    description: 'API documentation',
+await app.server.register(swaggerPlugin, {
+  routePrefix: '/api/docs',
+  collections: [userProcedures, postProcedures],
+  openapi: {
+    info: {
+      title: 'My API',
+      version: '1.0.0',
+      description: 'API documentation',
+    },
   },
 });
 
@@ -37,19 +40,22 @@ Visit `http://localhost:3030/api/docs` for Swagger UI.
 ### Basic Info
 
 ```typescript
-await app.register(registerDocs, {
-  path: '/api/docs',
-  info: {
-    title: 'My API',
-    version: '1.0.0',
-    description: 'My awesome API',
-    contact: {
-      name: 'API Support',
-      email: 'support@example.com',
-    },
-    license: {
-      name: 'MIT',
-      url: 'https://opensource.org/licenses/MIT',
+await app.server.register(swaggerPlugin, {
+  routePrefix: '/api/docs',
+  collections: [userProcedures],
+  openapi: {
+    info: {
+      title: 'My API',
+      version: '1.0.0',
+      description: 'My awesome API',
+      contact: {
+        name: 'API Support',
+        email: 'support@example.com',
+      },
+      license: {
+        name: 'MIT',
+        url: 'https://opensource.org/licenses/MIT',
+      },
     },
   },
 });
@@ -58,36 +64,62 @@ await app.register(registerDocs, {
 ### Servers
 
 ```typescript
-await app.register(registerDocs, {
-  path: '/api/docs',
-  info: { title: 'My API', version: '1.0.0' },
-  servers: [
-    { url: 'https://api.example.com', description: 'Production' },
-    { url: 'https://staging-api.example.com', description: 'Staging' },
-    { url: 'http://localhost:3030', description: 'Development' },
-  ],
+await app.server.register(swaggerPlugin, {
+  routePrefix: '/api/docs',
+  collections: [userProcedures],
+  openapi: {
+    info: { title: 'My API', version: '1.0.0' },
+    servers: [
+      { url: 'https://api.example.com', description: 'Production' },
+      { url: 'https://staging-api.example.com', description: 'Staging' },
+      { url: 'http://localhost:3030', description: 'Development' },
+    ],
+  },
 });
 ```
 
 ### Security Schemes
 
 ```typescript
-await app.register(registerDocs, {
-  path: '/api/docs',
-  info: { title: 'My API', version: '1.0.0' },
-  securitySchemes: {
-    bearerAuth: {
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
+await app.server.register(swaggerPlugin, {
+  routePrefix: '/api/docs',
+  collections: [userProcedures],
+  openapi: {
+    info: { title: 'My API', version: '1.0.0' },
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+      apiKey: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'X-API-Key',
+      },
     },
-    apiKey: {
-      type: 'apiKey',
-      in: 'header',
-      name: 'X-API-Key',
-    },
+    defaultSecurity: [{ bearerAuth: [] }],
   },
-  security: [{ bearerAuth: [] }], // Default security for all endpoints
+});
+```
+
+### Swagger UI Config
+
+```typescript
+await app.server.register(swaggerPlugin, {
+  routePrefix: '/api/docs',
+  collections: [userProcedures],
+  openapi: {
+    info: { title: 'My API', version: '1.0.0' },
+  },
+  title: 'API Documentation',
+  uiConfig: {
+    deepLinking: true,
+    docExpansion: 'list',
+    displayOperationId: false,
+    tryItOutEnabled: true,
+    persistAuthorization: false,
+  },
 });
 ```
 
@@ -152,12 +184,17 @@ Group endpoints by tags:
 // In procedure definition
 .meta({ tags: ['Users'] })
 
-// Or configure tag descriptions
-await app.register(registerDocs, {
-  tags: [
-    { name: 'Users', description: 'User management endpoints' },
-    { name: 'Auth', description: 'Authentication endpoints' },
-  ],
+// Or configure tag descriptions in the plugin
+await app.server.register(swaggerPlugin, {
+  routePrefix: '/api/docs',
+  collections: [userProcedures],
+  openapi: {
+    info: { title: 'My API', version: '1.0.0' },
+    tagDescriptions: {
+      users: 'User management endpoints',
+      auth: 'Authentication endpoints',
+    },
+  },
 });
 ```
 

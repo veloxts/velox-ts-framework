@@ -115,9 +115,9 @@ app.routes(rest([healthProcedures, userProcedures], {
 OpenAPI documentation is configured separately via the Swagger UI plugin:
 
 ```typescript
-import { swaggerUIPlugin } from '@veloxts/router';
+import { swaggerPlugin } from '@veloxts/router';
 
-app.register(swaggerUIPlugin, {
+app.register(swaggerPlugin, {
   routePrefix: '/docs',
   collections: [healthProcedures, userProcedures],
   openapi: {
