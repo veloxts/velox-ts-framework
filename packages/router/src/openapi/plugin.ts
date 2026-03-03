@@ -23,9 +23,9 @@ import type { OpenAPISpec, SwaggerUIPluginOptions } from './types.js';
  *
  * @example
  * ```typescript
- * import { swaggerUIPlugin } from '@veloxts/router';
+ * import { swaggerPlugin } from '@veloxts/router';
  *
- * app.register(swaggerUIPlugin, {
+ * app.register(swaggerPlugin, {
  *   routePrefix: '/docs',
  *   collections: [userProcedures, postProcedures],
  *   openapi: {
@@ -39,7 +39,7 @@ import type { OpenAPISpec, SwaggerUIPluginOptions } from './types.js';
  * });
  * ```
  */
-export const swaggerUIPlugin: FastifyPluginAsync<SwaggerUIPluginOptions> = async (
+export const swaggerPlugin: FastifyPluginAsync<SwaggerUIPluginOptions> = async (
   fastify,
   options
 ) => {
@@ -92,66 +92,6 @@ export const swaggerUIPlugin: FastifyPluginAsync<SwaggerUIPluginOptions> = async
 // ============================================================================
 // Utility Functions
 // ============================================================================
-
-/**
- * Creates a Swagger UI plugin with pre-configured options
- *
- * @param options - Plugin options
- * @returns Configured plugin
- *
- * @example
- * ```typescript
- * import { createSwaggerUI } from '@veloxts/router';
- *
- * const docs = createSwaggerUI({
- *   collections: [userProcedures],
- *   openapi: {
- *     info: { title: 'My API', version: '1.0.0' },
- *   },
- * });
- *
- * app.register(docs);
- * ```
- */
-export function createSwaggerUI(
-  options: SwaggerUIPluginOptions
-): FastifyPluginAsync<SwaggerUIPluginOptions> {
-  return async (fastify) => {
-    await swaggerUIPlugin(fastify, options);
-  };
-}
-
-/**
- * Registers multiple procedure collections with Swagger UI
- *
- * Convenience function that sets up both REST routes and documentation.
- *
- * @param fastify - Fastify instance
- * @param options - Documentation options
- *
- * @example
- * ```typescript
- * import { registerDocs } from '@veloxts/router';
- *
- * await registerDocs(app, {
- *   collections: [userProcedures, postProcedures],
- *   openapi: {
- *     info: { title: 'My API', version: '1.0.0' },
- *   },
- * });
- * ```
- */
-export async function registerDocs(
-  fastify: {
-    register: (
-      plugin: FastifyPluginAsync<SwaggerUIPluginOptions>,
-      options: SwaggerUIPluginOptions
-    ) => Promise<void>;
-  },
-  options: SwaggerUIPluginOptions
-): Promise<void> {
-  await fastify.register(swaggerUIPlugin, options);
-}
 
 /**
  * Gets the generated OpenAPI specification without registering routes

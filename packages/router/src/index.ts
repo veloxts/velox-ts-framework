@@ -238,7 +238,7 @@ export { serve } from './expose.js';
  *
  * @example
  * ```typescript
- * import { generateOpenApiSpec, swaggerUIPlugin } from '@veloxts/router';
+ * import { generateOpenApiSpec, swaggerPlugin } from '@veloxts/router';
  *
  * // Generate spec programmatically
  * const spec = generateOpenApiSpec([userProcedures], {
@@ -246,7 +246,7 @@ export { serve } from './expose.js';
  * });
  *
  * // Or serve Swagger UI
- * app.register(swaggerUIPlugin, {
+ * app.register(swaggerPlugin, {
  *   routePrefix: '/docs',
  *   collections: [userProcedures],
  *   openapi: { info: { title: 'My API', version: '1.0.0' } },
@@ -303,8 +303,6 @@ export {
   createSecurityRequirement,
   // Schema converter
   createStringSchema,
-  // Plugin
-  createSwaggerUI,
   DEFAULT_GUARD_MAPPINGS,
   DEFAULT_SECURITY_SCHEMES,
   DEFAULT_UI_CONFIG,
@@ -331,11 +329,11 @@ export {
   mergeSecuritySchemes,
   normalizePath,
   parsePathParameters,
-  registerDocs,
   removeSchemaProperties,
   SWAGGER_UI_CDN,
   schemaHasProperties,
-  swaggerUIPlugin,
+  // Plugin
+  swaggerPlugin,
   validateOpenApiSpec,
   zodSchemaToJsonSchema,
 } from './openapi/index.js';

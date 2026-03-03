@@ -9,8 +9,7 @@
  * ```typescript
  * import {
  *   generateOpenApiSpec,
- *   swaggerUIPlugin,
- *   createSwaggerUI,
+ *   swaggerPlugin,
  * } from '@veloxts/router';
  *
  * // Generate spec programmatically
@@ -20,7 +19,7 @@
  * });
  *
  * // Or register Swagger UI plugin
- * app.register(swaggerUIPlugin, {
+ * app.register(swaggerPlugin, {
  *   routePrefix: '/docs',
  *   collections: [userProcedures],
  *   openapi: {
@@ -45,10 +44,8 @@ export {
 // ============================================================================
 
 export {
-  createSwaggerUI,
   getOpenApiSpec,
-  registerDocs,
-  swaggerUIPlugin,
+  swaggerPlugin,
 } from './plugin.js';
 
 // ============================================================================

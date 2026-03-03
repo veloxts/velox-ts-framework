@@ -426,9 +426,9 @@ const spec = generateOpenApiSpec([userProcedures, postProcedures], {
 ### Swagger UI Plugin
 
 ```typescript
-import { swaggerUIPlugin } from '@veloxts/router';
+import { swaggerPlugin } from '@veloxts/router';
 
-app.server.register(swaggerUIPlugin, {
+app.server.register(swaggerPlugin, {
   routePrefix: '/docs',
   collections: [userProcedures],
   openapi: {
@@ -668,7 +668,7 @@ npm install
 1. **Explore packages:** Each package has a `GUIDE.md` with detailed documentation
 2. **Try templates:** Experiment with `--auth`, `--rsc`, and `--rsc-auth` templates
 3. **Generate code:** Use `velox make` to scaffold your API
-4. **Add documentation:** Set up OpenAPI with `swaggerUIPlugin`
+4. **Add documentation:** Set up OpenAPI with `swaggerPlugin`
 
 ## Resources
 

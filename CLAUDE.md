@@ -224,9 +224,9 @@ velox openapi serve --watch             # Auto-reload on file changes
 Serve interactive Swagger UI documentation alongside your API:
 
 ```typescript
-import { swaggerUIPlugin } from '@veloxts/router';
+import { swaggerPlugin } from '@veloxts/router';
 
-app.register(swaggerUIPlugin, {
+app.register(swaggerPlugin, {
   routePrefix: '/docs',
   collections: [userProcedures, postProcedures],
   openapi: {
@@ -282,31 +282,6 @@ if (warnings.length > 0) {
 // Write to file
 import fs from 'fs';
 fs.writeFileSync('openapi.json', JSON.stringify(spec, null, 2));
-```
-
-Factory functions for common use cases:
-
-```typescript
-import { createSwaggerUI, getOpenApiSpec, registerDocs } from '@veloxts/router';
-
-// Create pre-configured plugin
-const docs = createSwaggerUI({
-  collections: [userProcedures],
-  openapi: { info: { title: 'My API', version: '1.0.0' } },
-});
-app.register(docs);
-
-// Get spec without registering routes
-const spec = getOpenApiSpec({
-  collections: [userProcedures],
-  openapi: { info: { title: 'My API', version: '1.0.0' } },
-});
-
-// Register docs with one call
-await registerDocs(app.server, {
-  collections: [userProcedures],
-  openapi: { info: { title: 'My API', version: '1.0.0' } },
-});
 ```
 
 #### Procedure Annotations

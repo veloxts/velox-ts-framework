@@ -27,7 +27,7 @@ import {
   getRouteSummary,
   registerRestRoutes,
   registerTRPCPlugin,
-  swaggerUIPlugin,
+  swaggerPlugin,
 } from '@veloxts/router';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -319,7 +319,7 @@ async function createApp() {
   // Disabled in production to avoid exposing API details.
   // ============================================================================
   if (config.env !== 'production') {
-    await app.server.register(swaggerUIPlugin, {
+    await app.server.register(swaggerPlugin, {
       routePrefix: '/docs',
       collections,
       openapi: {

@@ -119,13 +119,13 @@ sendPasswordReset: procedure()
 Enable automatic Swagger UI:
 
 ```typescript
-import { registerDocs } from '@veloxts/router';
+import { swaggerPlugin } from '@veloxts/router';
 
-await app.register(registerDocs, {
-  path: '/api/docs',
-  info: {
-    title: 'My API',
-    version: '1.0.0',
+await app.server.register(swaggerPlugin, {
+  routePrefix: '/api/docs',
+  collections: [userProcedures, postProcedures],
+  openapi: {
+    info: { title: 'My API', version: '1.0.0' },
   },
 });
 ```
