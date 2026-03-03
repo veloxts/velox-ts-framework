@@ -22,7 +22,7 @@ describe('defineModule()', () => {
       },
     });
     expect(mod.config.services).toBeDefined();
-    expect(mod.config.services!.tracker.factory).toBe(factory);
+    expect(mod.config.services?.tracker.factory).toBe(factory);
   });
 
   it('should preserve middleware config', () => {
@@ -31,7 +31,7 @@ describe('defineModule()', () => {
       middleware: [middleware],
     });
     expect(mod.config.middleware).toHaveLength(1);
-    expect(mod.config.middleware![0]).toBe(middleware);
+    expect(mod.config.middleware?.[0]).toBe(middleware);
   });
 
   it('should preserve prefix config', () => {

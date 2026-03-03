@@ -44,16 +44,9 @@ import { MODULE_BRAND } from './types.js';
 export function defineModule<
   const TName extends string,
   TServices extends ServiceDefinitions = ServiceDefinitions,
->(
-  name: TName,
-  config: ModuleConfig<TServices>,
-): VeloxModule<TName, TServices> {
-  if (!name || typeof name !== 'string' || name.trim() === '') {
-    throw new VeloxError(
-      'Module must have a non-empty name',
-      500,
-      'INVALID_MODULE_NAME',
-    );
+>(name: TName, config: ModuleConfig<TServices>): VeloxModule<TName, TServices> {
+  if (name.trim() === '') {
+    throw new VeloxError('Module must have a non-empty name', 500, 'INVALID_MODULE_NAME');
   }
 
   return {
