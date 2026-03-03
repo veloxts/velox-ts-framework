@@ -9,9 +9,9 @@ As your application grows beyond a handful of resources, flat procedure files be
 
 Domain modules solve this by bundling everything a feature needs into a single mountable unit.
 
-## The Module Pattern Today
+## Manual Module Pattern
 
-You can build domain modules right now using existing Velox TS primitives. The pattern combines `definePlugin()` for lifecycle, `procedures()` for endpoints, and scoped procedure builders for domain middleware.
+Before `defineModule()`, you can build domain modules using existing VeloxTS primitives. The pattern combines `definePlugin()` for lifecycle, `procedures()` for endpoints, and scoped procedure builders for domain middleware. This approach gives you full control over every detail.
 
 ### Directory Structure
 
@@ -133,9 +133,7 @@ export const billingModule = definePlugin({
     });
 
     // 3. Register routes with domain prefix
-    server.register(async (scope) => {
-      scope.routes(rest([billingProcedures], { prefix: '/billing' }));
-    });
+    await server.register(rest([billingProcedures]), { prefix: '/billing' });
 
     // 4. Cleanup on shutdown
     server.addHook('onClose', async () => {
@@ -261,9 +259,7 @@ export const orderModule = definePlugin({
     // Access billing's stripe service (decorated on server by billing module)
     const stripe = server.stripe;
 
-    server.register(async (scope) => {
-      scope.routes(rest([orderProcedures], { prefix: '/orders' }));
-    });
+    await server.register(rest([orderProcedures]), { prefix: '/orders' });
   },
 });
 ```
@@ -272,19 +268,18 @@ export const orderModule = definePlugin({
 When modules share services through server decoration, both modules can access the service. For stricter encapsulation, keep services inside Fastify child scopes — only the module that registered in that scope can see them.
 </Aside>
 
-## Coming Soon: `defineModule()`
+## `defineModule()` API
 
-<Aside type="tip" title="Planned API">
-The manual pattern above works today but involves repetitive wiring. A planned `defineModule()` API will automate the boilerplate while preserving full type safety.
-</Aside>
-
-The planned API compresses the entire manual pattern into a single declaration:
+The manual pattern above works but involves repetitive wiring. The `defineModule()` API automates the boilerplate while preserving full type safety.
 
 ```typescript
 import { defineModule } from '@veloxts/core';
+import { rest } from '@veloxts/router';
+import { StripeService } from './services/StripeService';
+import { billingProcedures } from './procedures';
 
 export const billingModule = defineModule('billing', {
-  // Services auto-injected into procedure context
+  // Services auto-injected into request context
   services: {
     stripe: {
       factory: () => new StripeService(process.env.STRIPE_SECRET!),
@@ -292,18 +287,18 @@ export const billingModule = defineModule('billing', {
     },
   },
 
-  // Applied to all procedures in this module
+  // Applied to all routes in this module's scope
   middleware: [requireAuth, requireStripeCustomer],
 
-  // Procedure collection
-  procedures: billingProcedures,
+  // Routes — typically rest() from @veloxts/router
+  routes: rest([billingProcedures]),
 
   // Lifecycle hooks
   async boot(services) {
     await services.stripe.warmCache();
   },
   async shutdown(services) {
-    await services.stripe.disconnect();
+    await services.stripe.flushPendingCharges();
   },
 });
 
@@ -311,29 +306,62 @@ export const billingModule = defineModule('billing', {
 app.module(billingModule);
 ```
 
-**What `defineModule()` will automate:**
+### What `defineModule()` handles
 
-- **Service lifecycle** — factory creation, context injection, and cleanup hooks
-- **Route prefix** — auto-derived from module name (opt-out with `prefix: false`)
-- **Module middleware** — applied to all procedures without a manual scoped builder
-- **Type-inferred context** — `ctx.stripe` typed as `StripeService` without declaration merging
-- **tRPC namespace** — optionally prefixed with module name (`trpcPrefix: true`)
-- **Inter-module DI** — typed `imports` / `exports` for service sharing between modules
-- **Encapsulation** — services private by default, explicitly exported for other modules
+- **Service lifecycle** — factory creation, per-request context injection, and `onClose` cleanup
+- **Route prefix** — auto-derived from module name (`/billing`), custom string, or `prefix: false` to disable
+- **Module middleware** — applied as `onRequest` hooks to all routes in the module scope
+- **Boot hooks** — run between `server.ready()` and `server.listen()`, after all plugins load
+- **Shutdown hooks** — run during graceful shutdown via `beforeShutdown()`
+- **Duplicate detection** — registering the same module name twice throws `DUPLICATE_MODULE`
+
+### Configuration options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `services` | `Record<string, ServiceDefinition>` | Service factories and cleanup functions |
+| `middleware` | `ModuleMiddleware[]` | `onRequest` hooks applied to all module routes |
+| `routes` | `FastifyPluginAsync` | Route plugin, typically `rest([...])` from `@veloxts/router` |
+| `prefix` | `string \| false` | Route prefix (default: `/${name}`, `false` to disable) |
+| `boot` | `(services) => Promise<void>` | Called after all plugins load, before server listens |
+| `shutdown` | `(services) => Promise<void>` | Called during graceful shutdown |
+
+### Type utilities
+
+Use `InferModuleServices` to extract the resolved service types from a module, for example when extending the request context via declaration merging:
 
 ```typescript
-// Inter-module DI (planned)
+import type { InferModuleServices } from '@veloxts/core';
+
+type BillingServices = InferModuleServices<typeof billingModule>;
+// { stripe: StripeService }
+```
+
+<Aside type="note">
+Services are injected into the Fastify request at runtime. To get TypeScript typing on `ctx.stripe`, you still need declaration merging on `BaseContext` today. Automatic type inference without declaration merging is planned for a future release.
+</Aside>
+
+### Planned enhancements
+
+The following features are planned for a future release:
+
+- **Type-inferred context** — `ctx.stripe` typed as `StripeService` without declaration merging
+- **Inter-module DI** — typed `imports` / `exports` for service sharing between modules
+- **Service encapsulation** — services private by default, explicitly exported for other modules
+- **tRPC namespace** — optionally prefixed with module name
+
+```typescript
+// Inter-module DI (planned — not yet available)
 export const orderModule = defineModule('orders', {
   imports: [billingModule],
 
   services: {
     orderProcessor: {
-      // Fully typed: imported.billing.stripe is StripeService
       factory: (imported) => new OrderProcessor(imported.billing.stripe),
     },
   },
 
-  procedures: orderProcedures,
+  routes: rest([orderProcedures]),
 });
 ```
 
