@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.7.7
+
+### Patch Changes
+
+- refactor(router): rename swaggerUIPlugin → swaggerPlugin, remove redundant exports
+- Updated dependencies
+  - @veloxts/auth@0.7.7
+  - @veloxts/cache@0.7.7
+  - @veloxts/core@0.7.7
+  - @veloxts/events@0.7.7
+  - @veloxts/mail@0.7.7
+  - @veloxts/orm@0.7.7
+  - @veloxts/queue@0.7.7
+  - @veloxts/router@0.7.7
+  - @veloxts/scheduler@0.7.7
+  - @veloxts/storage@0.7.7
+  - @veloxts/validation@0.7.7
+
 ## 0.7.6
 
 ### Patch Changes

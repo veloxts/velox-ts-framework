@@ -1,5 +1,11 @@
 # @veloxts/tsconfig
 
+## 0.7.7
+
+### Patch Changes
+
+- refactor(router): rename swaggerUIPlugin → swaggerPlugin, remove redundant exports
+
 ## 0.7.6
 
 ### Patch Changes

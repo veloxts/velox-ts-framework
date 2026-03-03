@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/docs",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "description": "Documentation site for VeloxTS framework",
   "type": "module",
   "private": true,
