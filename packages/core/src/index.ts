@@ -160,3 +160,18 @@ export type { FireAndForgetOptions } from './utils/fire-and-forget.js';
 export { fireAndForget } from './utils/fire-and-forget.js';
 export type { RetryOptions } from './utils/retry.js';
 export { withRetry } from './utils/retry.js';
+
+// ============================================================================
+// Module System
+// ============================================================================
+
+export type {
+  InferModuleServices,
+  InferServices,
+  ModuleConfig,
+  ModuleMiddleware,
+  ServiceDefinition,
+  ServiceDefinitions,
+  VeloxModule,
+} from './module/index.js';
+export { createModulePlugin, defineModule, isVeloxModule, MODULE_BRAND } from './module/index.js';
