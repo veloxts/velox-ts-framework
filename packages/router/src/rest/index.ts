@@ -27,6 +27,13 @@ export {
   inferResourceName,
   parseNamingConvention,
 } from './naming.js';
+// Collection registry - for swagger auto-discovery
+export type { RegisteredCollection } from './registry.js';
+export {
+  clearCollectionRegistry,
+  getRegisteredCollections,
+  registerCollections,
+} from './registry.js';
 // Route extraction - for frontend client configuration
 export type { ExtractRoutesType, RouteEntry, RouteMap } from './routes.js';
 export { extractRoutes } from './routes.js';

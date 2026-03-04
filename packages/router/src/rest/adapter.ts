@@ -23,6 +23,7 @@ import {
   calculateNestingDepth,
   parseNamingConvention,
 } from './naming.js';
+import { registerCollections } from './registry.js';
 
 // ============================================================================
 // Types
@@ -504,6 +505,12 @@ export function registerRestRoutes(
       server.route({ method: route.method, url: fullPath, handler });
     }
   }
+
+  // Register collections in the shared registry for swagger auto-discovery.
+  // Plugin mode: server.prefix gives the accumulated Fastify prefix (e.g., '/loterie')
+  // Global mode: use the prefix option (e.g., '/api')
+  const effectivePrefix = _prefixHandledByFastify ? server.prefix : prefix;
+  registerCollections(collections, effectivePrefix);
 }
 
 /**

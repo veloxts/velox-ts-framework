@@ -35,6 +35,7 @@
 
 export {
   generateOpenApiSpec,
+  generateOpenApiSpecFromRegistry,
   getOpenApiRouteSummary,
   validateOpenApiSpec,
 } from './generator.js';
