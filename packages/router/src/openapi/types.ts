@@ -512,9 +512,12 @@ export interface SwaggerUIPluginOptions {
   openapi: OpenAPIGeneratorOptions;
 
   /**
-   * Procedure collections to document
+   * Procedure collections to document.
+   *
+   * When omitted, the plugin auto-discovers collections registered via `rest()`
+   * along with their effective prefixes.
    */
-  collections: ProcedureCollection[];
+  collections?: ProcedureCollection[];
 
   /**
    * Custom page title

@@ -147,6 +147,7 @@ export { analyzeNamingConvention, isDevelopment, normalizeWarningOption } from '
 export type {
   ExtractRoutesType,
   GenerateRestRoutesOptions,
+  RegisteredCollection,
   RestAdapterOptions,
   RestMapping,
   RestRoute,
@@ -157,9 +158,11 @@ export {
   buildNestedRestPath,
   buildRestPath,
   calculateNestingDepth,
+  clearCollectionRegistry,
   extractRoutes,
   followsNamingConvention,
   generateRestRoutes,
+  getRegisteredCollections,
   getRouteSummary,
   inferResourceName,
   parseNamingConvention,
@@ -316,6 +319,7 @@ export {
   filterUsedSecuritySchemes,
   // Generator
   generateOpenApiSpec,
+  generateOpenApiSpecFromRegistry,
   // HTML Generator
   generateSwaggerUIHtml,
   getOpenApiRouteSummary,

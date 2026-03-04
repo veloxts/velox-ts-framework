@@ -9,6 +9,7 @@
 import type { ZodType } from 'zod';
 
 import { generateRestRoutes, type RestRoute } from '../rest/adapter.js';
+import type { RegisteredCollection } from '../rest/registry.js';
 import type { GuardLike, HttpMethod, ProcedureCollection } from '../types.js';
 import { buildParameters, convertToOpenAPIPath, joinPaths } from './path-extractor.js';
 import {
@@ -41,6 +42,9 @@ import type {
 /**
  * Generates an OpenAPI 3.0.3 specification from procedure collections
  *
+ * All collections share the same prefix from `options.prefix` (default '/api').
+ * For collections with different prefixes, use `generateOpenApiSpecFromRegistry()`.
+ *
  * @param collections - Array of procedure collections to document
  * @param options - Generator options
  * @returns Complete OpenAPI specification
@@ -65,23 +69,62 @@ export function generateOpenApiSpec(
   options: OpenAPIGeneratorOptions
 ): OpenAPISpec {
   const prefix = options.prefix ?? '/api';
+
+  // Convert to RegisteredCollection entries with the shared prefix
+  const entries: RegisteredCollection[] = collections.map((collection) => ({
+    collection,
+    prefix,
+  }));
+
+  return generateOpenApiSpecFromRegistry(entries, options);
+}
+
+/**
+ * Generates an OpenAPI 3.0.3 specification from registered collections
+ *
+ * Each entry carries its own prefix, allowing collections registered under
+ * different Fastify prefixes (e.g., `/api` and `/loterie`) to produce
+ * correct paths in a single spec.
+ *
+ * @param entries - Registered collections with per-entry prefixes
+ * @param options - Generator options (prefix field is ignored — per-entry prefix is used)
+ * @returns Complete OpenAPI specification
+ *
+ * @example
+ * ```typescript
+ * import { generateOpenApiSpecFromRegistry, getRegisteredCollections } from '@veloxts/router';
+ *
+ * const spec = generateOpenApiSpecFromRegistry(getRegisteredCollections(), {
+ *   info: { title: 'My API', version: '1.0.0' },
+ * });
+ * ```
+ */
+export function generateOpenApiSpecFromRegistry(
+  entries: readonly RegisteredCollection[],
+  options: OpenAPIGeneratorOptions
+): OpenAPISpec {
   const paths: Record<string, OpenAPIPathItem> = {};
   const tags: OpenAPITag[] = [];
   const allGuards: Array<GuardLike<unknown>> = [];
+  const seenTagNames = new Set<string>();
 
-  // Process each collection
-  for (const collection of collections) {
+  // Process each registered entry
+  for (const entry of entries) {
+    const { collection, prefix } = entry;
     const routes = generateRestRoutes(collection);
 
-    // Add tag for this namespace
-    tags.push({
-      name: collection.namespace,
-      description: options.tagDescriptions?.[collection.namespace],
-    });
+    // Add tag for this namespace (deduplicate across entries)
+    if (!seenTagNames.has(collection.namespace)) {
+      seenTagNames.add(collection.namespace);
+      tags.push({
+        name: collection.namespace,
+        description: options.tagDescriptions?.[collection.namespace],
+      });
+    }
 
     // Process each route
     for (const route of routes) {
-      // Build full path with prefix
+      // Build full path with this entry's prefix
       const fullPath = joinPaths(prefix, route.path);
       const openApiPath = convertToOpenAPIPath(fullPath);
 

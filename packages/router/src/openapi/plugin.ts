@@ -8,9 +8,31 @@
 
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 
-import { generateOpenApiSpec } from './generator.js';
+import { getRegisteredCollections } from '../rest/registry.js';
+import { generateOpenApiSpec, generateOpenApiSpecFromRegistry } from './generator.js';
 import { generateSwaggerUIHtml } from './html-generator.js';
 import type { OpenAPISpec, SwaggerUIPluginOptions } from './types.js';
+
+// ============================================================================
+// Internal Helpers
+// ============================================================================
+
+/**
+ * Build an OpenAPI spec from plugin options.
+ *
+ * - Explicit `collections` → use `generateOpenApiSpec` (single global prefix)
+ * - No collections → auto-discover from the registry (per-entry prefix)
+ */
+function buildSpec(options: SwaggerUIPluginOptions): OpenAPISpec {
+  const { collections, openapi } = options;
+
+  if (collections && collections.length > 0) {
+    return generateOpenApiSpec(collections, openapi);
+  }
+
+  const registered = getRegisteredCollections();
+  return generateOpenApiSpecFromRegistry(registered, openapi);
+}
 
 // ============================================================================
 // Fastify Plugin
@@ -21,21 +43,26 @@ import type { OpenAPISpec, SwaggerUIPluginOptions } from './types.js';
  *
  * Registers routes for serving Swagger UI and the OpenAPI specification.
  *
+ * When `collections` is omitted, the plugin auto-discovers all collections
+ * previously registered via `rest()`, using each collection's effective prefix.
+ *
  * @example
  * ```typescript
  * import { swaggerPlugin } from '@veloxts/router';
  *
+ * // Explicit collections (backward compatible)
  * app.register(swaggerPlugin, {
  *   routePrefix: '/docs',
  *   collections: [userProcedures, postProcedures],
  *   openapi: {
- *     info: {
- *       title: 'My API',
- *       version: '1.0.0',
- *       description: 'A VeloxTS-powered API',
- *     },
+ *     info: { title: 'My API', version: '1.0.0' },
  *     servers: [{ url: 'http://localhost:3030' }],
  *   },
+ * });
+ *
+ * // Auto-discovery — no collections needed
+ * app.register(swaggerPlugin, {
+ *   openapi: { info: { title: 'My API', version: '1.0.0' } },
  * });
  * ```
  */
@@ -47,8 +74,6 @@ export const swaggerPlugin: FastifyPluginAsync<SwaggerUIPluginOptions> = async (
     routePrefix = '/docs',
     specRoute = `${routePrefix}/openapi.json`,
     uiConfig = {},
-    openapi,
-    collections,
     title = 'API Documentation',
     favicon,
   } = options;
@@ -56,7 +81,7 @@ export const swaggerPlugin: FastifyPluginAsync<SwaggerUIPluginOptions> = async (
   // Generate the OpenAPI specification
   let spec: OpenAPISpec;
   try {
-    spec = generateOpenApiSpec(collections, openapi);
+    spec = buildSpec(options);
   } catch (error) {
     fastify.log.error(error, '[VeloxTS] Failed to generate OpenAPI specification');
     throw error;
@@ -97,6 +122,7 @@ export const swaggerPlugin: FastifyPluginAsync<SwaggerUIPluginOptions> = async (
  * Gets the generated OpenAPI specification without registering routes
  *
  * Useful for testing or exporting the spec programmatically.
+ * Supports auto-discovery when `collections` is omitted.
  *
  * @param options - Plugin options
  * @returns Generated OpenAPI specification
@@ -117,5 +143,5 @@ export const swaggerPlugin: FastifyPluginAsync<SwaggerUIPluginOptions> = async (
  * ```
  */
 export function getOpenApiSpec(options: SwaggerUIPluginOptions): OpenAPISpec {
-  return generateOpenApiSpec(options.collections, options.openapi);
+  return buildSpec(options);
 }
