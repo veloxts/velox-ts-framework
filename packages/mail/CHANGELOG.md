@@ -1,5 +1,13 @@
 # @veloxts/mail
 
+## 0.7.9
+
+### Patch Changes
+
+- feat(router): swagger auto-discovery of module collections
+- Updated dependencies
+  - @veloxts/core@0.7.9
+
 ## 0.7.8
 
 ### Patch Changes

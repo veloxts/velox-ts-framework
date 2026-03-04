@@ -1,5 +1,17 @@
 # @veloxts/cli
 
+## 0.7.9
+
+### Patch Changes
+
+- feat(router): swagger auto-discovery of module collections
+- Updated dependencies
+  - @veloxts/auth@0.7.9
+  - @veloxts/core@0.7.9
+  - @veloxts/orm@0.7.9
+  - @veloxts/router@0.7.9
+  - @veloxts/validation@0.7.9
+
 ## 0.7.8
 
 ### Patch Changes

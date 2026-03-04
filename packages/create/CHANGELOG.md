@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.7.9
+
+### Patch Changes
+
+- feat(router): swagger auto-discovery of module collections
+
 ## 0.7.8
 
 ### Patch Changes
