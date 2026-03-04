@@ -54,94 +54,138 @@ export class StripeService {
 
 ### Domain Middleware
 
-Create a scoped procedure builder that applies domain-specific middleware to all procedures in the module:
+Create a factory that accepts the service instance and returns a scoped procedure builder. The `.use()` middleware injects the service into procedure context via `next({ ctx })` — only pass **new** properties to avoid conflicts with existing context fields like `db`:
 
 ```typescript
 // modules/billing/middleware.ts
 import { procedure } from '@veloxts/velox';
-import type { Middleware } from '@veloxts/router';
+import { authenticated } from '@veloxts/auth';
+import type { StripeService } from './services/StripeService';
 
-const requireStripeCustomer: Middleware = async ({ ctx, next }) => {
-  if (!ctx.user) throw new Error('Unauthorized');
-  const customerId = await ctx.db.user.findUnique({
-    where: { id: ctx.user.id },
-    select: { stripeCustomerId: true },
-  });
-  ctx.stripeCustomerId = customerId?.stripeCustomerId;
-  return next();
-};
-
-// Scoped builder — every procedure in this module inherits this middleware
-export const billingProcedure = procedure()
-  .guard(authenticated)
-  .use(requireStripeCustomer);
+// Factory — accepts the service, returns a scoped procedure builder
+export function createBillingProcedure(stripe: StripeService) {
+  return procedure()
+    .guard(authenticated)
+    .use(async ({ ctx, next }) => {
+      const customer = await ctx.db.user.findUnique({
+        where: { id: ctx.user.id },
+        select: { stripeCustomerId: true },
+      });
+      return next({
+        ctx: { stripe, stripeCustomerId: customer?.stripeCustomerId },
+      });
+    });
+}
 ```
 
 ### Procedures
 
-Use the scoped builder so every procedure in the module automatically gets the domain middleware:
+Use the factory so procedures receive the service through the middleware chain:
 
 ```typescript
 // modules/billing/procedures.ts
 import { procedures } from '@veloxts/velox';
 import { z } from 'zod';
-import { billingProcedure } from './middleware';
+import { createBillingProcedure } from './middleware';
+import type { StripeService } from './services/StripeService';
 import { InvoiceSchema, ChargeSchema } from './schemas';
 
-export const billingProcedures = procedures('billing', {
-  listInvoices: billingProcedure
-    .output(z.array(InvoiceSchema))
-    .query(async ({ ctx }) => {
-      return ctx.stripe.getInvoices(ctx.stripeCustomerId);
-    }),
+export function createBillingProcedures(stripe: StripeService) {
+  const billingProcedure = createBillingProcedure(stripe);
 
-  createCharge: billingProcedure
-    .input(ChargeSchema)
-    .mutation(async ({ input, ctx }) => {
-      return ctx.stripe.createCharge({
-        customer: ctx.stripeCustomerId,
-        ...input,
-      });
-    }),
-});
+  return procedures('billing', {
+    listInvoices: billingProcedure
+      .output(z.array(InvoiceSchema))
+      .query(async ({ ctx }) => {
+        return ctx.stripe.getInvoices(ctx.stripeCustomerId);
+      }),
+
+    createCharge: billingProcedure
+      .input(ChargeSchema)
+      .mutation(async ({ input, ctx }) => {
+        return ctx.stripe.createCharge({
+          customer: ctx.stripeCustomerId,
+          ...input,
+        });
+      }),
+  });
+}
 ```
 
 ### Module Plugin
 
-The plugin ties everything together — service creation, context injection, route registration, and cleanup:
+The plugin ties everything together — service creation, route registration, and cleanup. There are two patterns for making services available: **context injection** for procedure handlers, and **request decoration** for Fastify-level hooks.
+
+<Tabs>
+<TabItem label="Context injection">
+Service flows from module → factory → `.use()` middleware → `ctx.stripe`. No globals, no request decoration needed.
 
 ```typescript
 // modules/billing/index.ts
 import { definePlugin } from '@veloxts/core';
 import { rest } from '@veloxts/router';
 import { StripeService } from './services/StripeService';
-import { billingProcedures } from './procedures';
+import { createBillingProcedures } from './procedures';
 
-export { billingProcedures } from './procedures';
+interface BillingOptions {
+  apiPrefix: string;
+}
 
-export const billingModule = definePlugin({
+export const billingModule = definePlugin<BillingOptions>({
   name: 'module-billing',
   version: '1.0.0',
-  async register(server) {
-    // 1. Create domain service
+  async register(server, options) {
     const stripe = new StripeService(process.env.STRIPE_SECRET!);
+    const billingProcedures = createBillingProcedures(stripe);
 
-    // 2. Inject into request context
-    server.decorateRequest('stripe', undefined);
-    server.addHook('onRequest', async (request) => {
-      (request as Record<string, unknown>).stripe = stripe;
+    await server.register(rest([billingProcedures]), {
+      prefix: `${options.apiPrefix}/billing`,
     });
 
-    // 3. Register routes with domain prefix
-    await server.register(rest([billingProcedures]), { prefix: '/billing' });
-
-    // 4. Cleanup on shutdown
     server.addHook('onClose', async () => {
       await stripe.disconnect();
     });
   },
 });
 ```
+</TabItem>
+<TabItem label="Request decoration">
+`decorateRequest` puts the service on the **Fastify request**, not on procedure `ctx`. Use this for cross-cutting concerns (analytics, metrics, tracing) that hook into Fastify's request lifecycle on all routes — not just procedure handlers.
+
+```typescript
+// modules/analytics/index.ts
+import { definePlugin } from '@veloxts/core';
+import { AnalyticsTracker } from './services/AnalyticsTracker';
+
+export const analyticsModule = definePlugin({
+  name: 'module-analytics',
+  version: '1.0.0',
+  async register(server) {
+    const tracker = new AnalyticsTracker(process.env.ANALYTICS_KEY!);
+
+    server.decorateRequest('analytics', undefined);
+    server.addHook('onRequest', async (request) => {
+      (request as Record<string, unknown>).analytics = tracker.startSpan(request.url);
+    });
+
+    server.addHook('onResponse', async (request, reply) => {
+      (request as Record<string, unknown>).analytics?.end(reply.statusCode);
+    });
+
+    server.addHook('onClose', async () => {
+      await tracker.flush();
+    });
+  },
+});
+```
+</TabItem>
+</Tabs>
+
+<Aside type="tip">
+**Context injection** → `ctx.serviceName` in procedure handlers. Use `.use()` middleware with `next({ ctx })`.
+
+**Request decoration** → `request.serviceName` in Fastify hooks. Use `decorateRequest`. **Not** accessible via `ctx` in procedures.
+</Aside>
 
 ### Mounting the Module
 
@@ -149,12 +193,14 @@ export const billingModule = definePlugin({
 // index.ts
 import { veloxApp } from '@veloxts/velox';
 import { billingModule } from './modules/billing';
+import { analyticsModule } from './modules/analytics';
 import { inventoryModule } from './modules/inventory';
 
 const app = await veloxApp({ port: 3030 });
 
 // Each module is self-contained
-app.register(billingModule);
+app.register(billingModule, { apiPrefix: config.apiPrefix });
+app.register(analyticsModule);
 app.register(inventoryModule);
 
 await app.start();
@@ -171,7 +217,7 @@ Following consistent conventions makes modules predictable across teams and proj
 | REST prefix | `/billing` (matches module name) |
 | Procedure namespace | `billing` (from `procedures('billing', ...)`) |
 | Service lifetime | Created in `register()`, destroyed in `onClose` |
-| Scoped builder | `billingProcedure` (shared by all procedures in module) |
+| Scoped builder | `createBillingProcedure(stripe)` factory (shared by all procedures in module) |
 
 ## Module Encapsulation & Security
 
