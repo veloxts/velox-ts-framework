@@ -7,7 +7,7 @@ import 'dotenv/config';
 // Side-effect import for declaration merging (extends ctx.db type)
 import './types.js';
 
-import { databasePlugin, rest, veloxApp } from '@veloxts/velox';
+import { databasePlugin, rest, swaggerPlugin, veloxApp } from '@veloxts/velox';
 
 import { config } from './config/app.js';
 import { db } from './config/database.js';
@@ -32,6 +32,12 @@ app.routes(
     prefix: config.apiPrefix,
   })
 );
+
+await app.register(swaggerPlugin, {
+  openapi: {
+    info: { title: '__PROJECT_NAME__', version: '0.0.1' },
+  },
+});
 
 await app.start();
 

@@ -12,7 +12,7 @@
 
 import { veloxApp } from '@veloxts/core';
 import { databasePlugin } from '@veloxts/orm';
-import { rest } from '@veloxts/router';
+import { rest, swaggerPlugin } from '@veloxts/router';
 import { createH3ApiHandler } from '@veloxts/web/adapters';
 
 import { db } from './database.js';
@@ -44,6 +44,12 @@ export default createH3ApiHandler({
         prefix: '', // No prefix - Vinxi handles /api/*
       })
     );
+
+    await app.register(swaggerPlugin, {
+      openapi: {
+        info: { title: '__PROJECT_NAME__', version: '0.0.1' },
+      },
+    });
 
     // Return the underlying Fastify instance for the h3 adapter
     // The adapter will call ready() on it
