@@ -143,10 +143,8 @@ export interface TaggedContext<TTag extends ContextTag = typeof PUBLIC> {
    * This field IS present at runtime (unlike __tag) and is used for
    * automatic resource projection when using `.output()` in procedures.
    *
-   * Set automatically by:
-   * - `authenticatedNarrow` → 'authenticated'
-   * - `adminNarrow` → 'admin'
-   * - No guard → 'public' (default)
+   * Set automatically by guards with `accessLevel` property,
+   * or derived from tagged resource view level in `.output()`.
    */
   __accessLevel?: string;
 }
