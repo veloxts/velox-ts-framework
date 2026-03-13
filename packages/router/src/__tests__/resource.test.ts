@@ -11,6 +11,7 @@ import {
   type AdminOutput,
   type AUTHENTICATED,
   type AuthenticatedOutput,
+  defineAccessLevels,
   getAccessibleLevels,
   isResourceSchema,
   isVisibleAtLevel,
@@ -637,5 +638,83 @@ describe('Auto-Projection with .output() in Procedure Builder', () => {
     const authResult = new Resource(partialData, schema).forAuthenticated();
     expect(authResult).toEqual({ id: '123', name: 'John' });
     expect('email' in authResult).toBe(false);
+  });
+});
+
+// ============================================================================
+// Handler Map Keys
+// ============================================================================
+
+describe('Handler Map Keys', () => {
+  describe('default 3-level schema', () => {
+    const Schema = resourceSchema()
+      .public('id', z.string())
+      .authenticated('email', z.string())
+      .admin('secret', z.string())
+      .build();
+
+    it('each tagged view has a .key', () => {
+      expect(Schema.public.key).toBeDefined();
+      expect(Schema.authenticated.key).toBeDefined();
+      expect(Schema.admin.key).toBeDefined();
+    });
+
+    it('keys follow __velox_level_ prefix convention', () => {
+      expect(Schema.public.key).toBe('__velox_level_public');
+      expect(Schema.authenticated.key).toBe('__velox_level_authenticated');
+      expect(Schema.admin.key).toBe('__velox_level_admin');
+    });
+
+    it('keys are unique per level', () => {
+      expect(Schema.public.key).not.toBe(Schema.authenticated.key);
+      expect(Schema.authenticated.key).not.toBe(Schema.admin.key);
+      expect(Schema.public.key).not.toBe(Schema.admin.key);
+    });
+
+    it('keys can be used as computed property keys', () => {
+      const map = {
+        [Schema.admin.key]: 'admin-handler',
+        [Schema.public.key]: 'public-handler',
+      };
+      expect(map[Schema.admin.key]).toBe('admin-handler');
+      expect(map[Schema.public.key]).toBe('public-handler');
+    });
+  });
+
+  describe('custom level schema', () => {
+    const access = defineAccessLevels(['public', 'reviewer', 'editor', 'admin'], {
+      groups: { staff: ['editor', 'admin'] },
+    });
+
+    const ArticleSchema = resourceSchema(access)
+      .public('title', z.string())
+      .reviewer('notes', z.string())
+      .editor('draft', z.string())
+      .admin('auditLog', z.string())
+      .build();
+
+    it('each custom level has a .key', () => {
+      expect(ArticleSchema.public.key).toBeDefined();
+      expect(ArticleSchema.reviewer.key).toBeDefined();
+      expect(ArticleSchema.editor.key).toBeDefined();
+      expect(ArticleSchema.admin.key).toBeDefined();
+    });
+
+    it('keys follow __velox_level_ prefix convention', () => {
+      expect(ArticleSchema.public.key).toBe('__velox_level_public');
+      expect(ArticleSchema.reviewer.key).toBe('__velox_level_reviewer');
+      expect(ArticleSchema.editor.key).toBe('__velox_level_editor');
+      expect(ArticleSchema.admin.key).toBe('__velox_level_admin');
+    });
+
+    it('keys are unique per custom level', () => {
+      const keys = new Set([
+        ArticleSchema.public.key,
+        ArticleSchema.reviewer.key,
+        ArticleSchema.editor.key,
+        ArticleSchema.admin.key,
+      ]);
+      expect(keys.size).toBe(4);
+    });
   });
 });
