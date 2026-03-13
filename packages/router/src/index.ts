@@ -429,6 +429,7 @@ export type {
  */
 export {
   // Access level configuration
+  defaultAccess,
   defineAccessLevels,
   getAccessibleLevels,
   getVisibilityForTag,

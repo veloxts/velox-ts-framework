@@ -275,6 +275,70 @@ export const DEFAULT_ACCESS_LEVELS: AccessLevelConfig<
 > = defineAccessLevels(DEFAULT_LEVELS);
 
 // ============================================================================
+// Default Access with Guards
+// ============================================================================
+
+/**
+ * Narrowed context type for authenticated users.
+ * Used as phantom type on the authenticated guard.
+ */
+export interface DefaultAuthenticatedContext {
+  user: { id: string; email: string };
+}
+
+/**
+ * Narrowed context type for admin users.
+ * Used as phantom type on the admin guard.
+ */
+export interface DefaultAdminContext {
+  user: { id: string; email: string; role: string };
+}
+
+/**
+ * Pre-built access level config with standard guards for the
+ * common public/authenticated/admin hierarchy.
+ *
+ * Most apps can use this directly instead of calling `defineAccessLevels()`:
+ *
+ * ```typescript
+ * import { defaultAccess, resourceSchema } from '@veloxts/router';
+ *
+ * const UserSchema = resourceSchema(defaultAccess)
+ *   .public('id', z.string())
+ *   .authenticated('email', z.string())
+ *   .admin('internalNotes', z.string())
+ *   .build();
+ * ```
+ *
+ * Guards:
+ * - `authenticated`: `(ctx) => !!ctx.user` — requires user on context
+ * - `admin`: `(ctx) => ctx.user?.role === 'admin'` — requires admin role
+ * - `public`: no guard — implicit fallback
+ */
+export const defaultAccess = defineAccessLevels(
+  ['public', 'authenticated', 'admin'] as const,
+  {
+    guards: {
+      authenticated: Object.assign(
+        (ctx: unknown) => {
+          const record = ctx as Record<string, unknown>;
+          return !!record.user;
+        },
+        { _narrows: undefined as unknown as DefaultAuthenticatedContext },
+      ),
+      admin: Object.assign(
+        (ctx: unknown) => {
+          const record = ctx as Record<string, unknown>;
+          const user = record.user as Record<string, unknown> | undefined;
+          return user?.role === 'admin';
+        },
+        { _narrows: undefined as unknown as DefaultAdminContext },
+      ),
+    },
+  },
+);
+
+// ============================================================================
 // Runtime Helpers
 // ============================================================================
 

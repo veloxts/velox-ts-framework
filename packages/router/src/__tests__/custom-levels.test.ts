@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import {
+  defaultAccess,
   defineAccessLevels,
   Resource,
   ResourceCollection,
@@ -208,6 +209,67 @@ describe('defineAccessLevels with guards', () => {
       },
     });
     expect(access.resolve('staff')).toEqual(new Set(['authenticated', 'admin']));
+  });
+});
+
+// ============================================================================
+// defaultAccess
+// ============================================================================
+
+describe('defaultAccess', () => {
+  it('provides built-in public/authenticated/admin levels', () => {
+    expect(defaultAccess.levels).toEqual(['public', 'authenticated', 'admin']);
+  });
+
+  it('provides guards for authenticated and admin', () => {
+    expect(defaultAccess.guards.authenticated).toBeTypeOf('function');
+    expect(defaultAccess.guards.admin).toBeTypeOf('function');
+  });
+
+  it('does not have a guard for public', () => {
+    expect(defaultAccess.guards.public).toBeUndefined();
+  });
+
+  it('authenticated guard checks for ctx.user existence', () => {
+    const guard = defaultAccess.guards.authenticated;
+    expect(guard?.({ user: { id: '1', email: 'a@b.com' } })).toBe(true);
+    expect(guard?.({})).toBe(false);
+    expect(guard?.({ user: undefined })).toBe(false);
+  });
+
+  it('admin guard checks ctx.user.role === admin', () => {
+    const guard = defaultAccess.guards.admin;
+    expect(guard?.({ user: { id: '1', email: 'a@b.com', role: 'admin' } })).toBe(true);
+    expect(guard?.({ user: { id: '1', email: 'a@b.com', role: 'user' } })).toBe(false);
+    expect(guard?.({})).toBe(false);
+  });
+
+  it('authenticated guard carries _narrows phantom type', () => {
+    const guard = defaultAccess.guards.authenticated;
+    expect(guard).toHaveProperty('_narrows');
+  });
+
+  it('admin guard carries _narrows phantom type', () => {
+    const guard = defaultAccess.guards.admin;
+    expect(guard).toHaveProperty('_narrows');
+  });
+
+  it('works with resourceSchema() for field visibility', () => {
+    // defaultAccess is a custom level config, so level methods use
+    // single-level sets (non-hierarchical). Use groups for hierarchy.
+    const UserSchema = resourceSchema(defaultAccess)
+      .public('id', z.string())
+      .authenticated('email', z.string())
+      .admin('secret', z.string())
+      .build();
+
+    const data = { id: '1', email: 'a@b.com', secret: 'x' };
+
+    // Custom levels: each level method assigns single-level visibility
+    // public sees only public fields, authenticated sees only authenticated, etc.
+    expect(resource(data, UserSchema.public)).toEqual({ id: '1' });
+    expect(resource(data, UserSchema.authenticated)).toEqual({ email: 'a@b.com' });
+    expect(resource(data, UserSchema.admin)).toEqual({ secret: 'x' });
   });
 });
 

@@ -67,8 +67,8 @@
 // Resource instances
 export { Resource, ResourceCollection, resource, resourceCollection } from './instance.js';
 // Access level configuration
-export type { AccessLevelConfig } from './levels.js';
-export { defineAccessLevels } from './levels.js';
+export type { AccessLevelConfig, AccessLevelGuard, AccessLevelGuards } from './levels.js';
+export { defaultAccess, defineAccessLevels } from './levels.js';
 export type {
   AdminOutput,
   AnonymousOutput,
