@@ -28,11 +28,9 @@ export const userProcedures = procedures('users', {
 ## Procedure API
 
 - `.input(schema)` - Validate input with Zod
-- `.output(schema)` - Validate output with Zod
-- `.expose(schema)` - Context-dependent output with resource schema
+- `.output(schema)` - Validate output with Zod schema or tagged resource view
 - `.use(middleware)` - Add middleware
 - `.guard(guard)` - Add authorization guard
-- `.guardNarrow(guard)` - Add guard with TypeScript type narrowing
 - `.rest({ method, path })` - Override REST path
 - `.query(handler)` - Finalize as read operation
 - `.mutation(handler)` - Finalize as write operation
@@ -405,7 +403,7 @@ console.table(routes);
 
 ## Resource API (Context-Dependent Outputs)
 
-The Resource API provides context-dependent output types using phantom types. Pass a resource schema to `.output()` instead of a Zod schema to define field visibility per access level.
+The Resource API provides context-dependent output types using phantom types. Pass a tagged resource view to `.output()` instead of a plain Zod schema to define field visibility per access level.
 
 ### Defining a Resource Schema
 
@@ -423,28 +421,27 @@ const UserSchema = resourceSchema()
   .build();
 ```
 
-### Automatic Projection (Simple Cases)
+### Automatic Projection with `.output()` and Guards
 
-The most elegant approach is to chain `.expose()` with a narrowing guard. The procedure executor automatically projects fields based on the guard's access level:
+The most elegant approach is to chain `.guard()` with `.output()` using a tagged resource view. The procedure builder uses the guard's access level to determine which fields to include:
 
 ```typescript
-import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
+import { authenticated, hasRole } from '@veloxts/auth';
 
 export const userProcedures = procedures('users', {
-  // Authenticated endpoint - auto-projects { id, name, email, createdAt }
+  // Authenticated endpoint - projects { id, name, email, createdAt }
   getProfile: procedure()
-    .guardNarrow(authenticatedNarrow)
-    .expose(UserSchema)
+    .guard(authenticated)
+    .output(UserSchema.authenticated)
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      // Just return the full data - projection is automatic!
       return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
     }),
 
-  // Admin endpoint - auto-projects all fields
+  // Admin endpoint - projects all fields
   getFullProfile: procedure()
-    .guardNarrow(adminNarrow)
-    .expose(UserSchema)
+    .guard(hasRole('admin'))
+    .output(UserSchema.admin)
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
@@ -454,14 +451,13 @@ export const userProcedures = procedures('users', {
 
 **How it works:**
 
-1. The `guardNarrow()` method accepts guards with an `accessLevel` property (`'public'`, `'authenticated'`, or `'admin'`)
-2. After the guard passes, the procedure executor tracks the highest access level
-3. When the handler returns, the executor automatically projects the result using the resource schema
-4. No manual `.forX()` calls needed - the output type is inferred at compile time
+1. The `.output()` method accepts both plain Zod schemas and tagged resource views (e.g., `UserSchema.authenticated`)
+2. When a tagged view is passed, the procedure executor automatically projects the handler's return value
+3. The output type is inferred at compile time from the tagged view
 
 **Benefits:**
 - Clean, declarative code - no projection logic in handlers
-- Type-safe - return types are inferred from guard + schema
+- Type-safe - return types are inferred from the tagged view
 - Less boilerplate - handlers just return data
 - Consistent - impossible to forget projection
 
@@ -516,10 +512,10 @@ export const userProcedures = procedures('users', {
 For arrays of items, use `resourceCollection()`:
 
 ```typescript
-// Automatic projection (simple cases)
+// Automatic projection with .output()
 const listUsers = procedure()
-  .guardNarrow(authenticatedNarrow)
-  .expose(UserSchema)
+  .guard(authenticated)
+  .output(UserSchema.authenticated)
   .query(async ({ ctx }) => {
     return ctx.db.user.findMany({ take: 50 });
   });
@@ -539,7 +535,7 @@ For manual projection with dynamic access level, use `.for(ctx)`:
 
 ```typescript
 const getUser = procedure()
-  .guardNarrow(authenticatedNarrow)
+  .guard(authenticated)
   .input(z.object({ id: z.string().uuid() }))
   .query(async ({ input, ctx }) => {
     const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
@@ -562,10 +558,10 @@ const getUser = procedure()
 The Resource API provides compile-time type safety:
 
 ```typescript
-// Automatic projection - type inferred from guard
+// Automatic projection - type inferred from tagged view
 const getProfile = procedure()
-  .guardNarrow(authenticatedNarrow)
-  .expose(UserSchema)
+  .guard(authenticated)
+  .output(UserSchema.authenticated)
   .query(async ({ ctx }) => {
     return ctx.db.user.findFirst();
   });
@@ -586,7 +582,7 @@ const adminResult = resource(user, UserSchema.admin);
 
 | Scenario | Approach |
 |----------|----------|
-| Guard determines access level | **Automatic** (`.guardNarrow().output()`) |
+| Guard determines access level | **Automatic** (`.guard().output(Schema.level)`) |
 | Public endpoints (no guard) | Tagged view (`UserSchema.public`) |
 | Conditional/dynamic projection | Tagged view or `.for(ctx)` in handler |
 | Simple, declarative code | **Automatic** |
@@ -603,40 +599,26 @@ const getUser = procedure()
   .query(handler);
 ```
 
-## Guard Type Narrowing (Experimental)
+## Guard Type Narrowing
 
-When using guards like `authenticated`, TypeScript doesn't know that `ctx.user` is guaranteed non-null after the guard passes. Use `guardNarrow()` to narrow the context type:
+Guards like `authenticated` and `hasRole()` both enforce authorization and narrow the context type. After a guard passes, TypeScript knows `ctx.user` is non-null:
 
 ```typescript
-import { authenticatedNarrow, hasRoleNarrow } from '@veloxts/auth';
+import { authenticated, hasRole } from '@veloxts/auth';
 
 // ctx.user is guaranteed non-null after guard passes
 const getProfile = procedure()
-  .guardNarrow(authenticatedNarrow)
+  .guard(authenticated)
   .query(({ ctx }) => {
     return { email: ctx.user.email }; // No null check needed!
   });
 
-// Chain multiple narrowing guards
+// Chain multiple guards
 const adminAction = procedure()
-  .guardNarrow(authenticatedNarrow)
-  .guardNarrow(hasRoleNarrow('admin'))
+  .guard(authenticated)
+  .guard(hasRole('admin'))
   .mutation(({ ctx }) => {
     // ctx.user is non-null with roles
-  });
-```
-
-**Note**: This API is experimental. The current stable alternative is to use middleware for context extension:
-
-```typescript
-const getProfile = procedure()
-  .guard(authenticated)
-  .use(async ({ ctx, next }) => {
-    if (!ctx.user) throw new Error('Unreachable');
-    return next({ ctx: { user: ctx.user } });
-  })
-  .query(({ ctx }) => {
-    // ctx.user is non-null via middleware
   });
 ```
 

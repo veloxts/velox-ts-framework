@@ -73,7 +73,7 @@ Velox TS is built on four core principles:
 | JWT Auth | Access + refresh tokens with token store |
 | Session Auth | HMAC-signed cookies, sliding expiration |
 | Guards | `authenticated`, `hasRole()`, `hasPermission()`, combinators (`allOf`, `anyOf`, `not`) |
-| Narrowing Guards | `authenticatedNarrow` — auto-projects resource fields by access level |
+| Tagged Resource Views | `.output(Schema.authenticated)` — auto-projects resource fields by access level |
 | Policies | `definePolicy()` with fluent builder, `can()` / `authorize()` |
 | CSRF | `csrfManager()` with timing-safe comparison |
 | Password Policy | `passwordPolicy()` with HIBP breach checking |

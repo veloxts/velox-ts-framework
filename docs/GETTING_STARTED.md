@@ -356,12 +356,12 @@ export const userProcedures = procedures('users', {
 });
 ```
 
-**When to use `.output()` vs `.expose()`:**
+**`.output()` accepts two schema types:**
 
-| Scenario | Method |
-|----------|--------|
+| Scenario | Usage |
+|----------|-------|
 | Same fields for all users | `.output(zodSchema)` |
-| Different fields per role | `.expose(resourceSchema)` |
+| Different fields per role | `.output(UserSchema.authenticated)` |
 
 ## CLI Generators
 
