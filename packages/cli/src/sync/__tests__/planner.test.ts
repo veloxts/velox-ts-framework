@@ -159,7 +159,7 @@ describe('buildPlan', () => {
   });
 
   // --------------------------------------------------------------------------
-  // 3. Generate with .expose() strategy and field visibility
+  // 3. Generate with .output(Schema.level) strategy and field visibility
   // --------------------------------------------------------------------------
   it('produces plans with resource strategy and field visibility', () => {
     const visibility = new Map<string, 'public' | 'authenticated' | 'admin'>([
