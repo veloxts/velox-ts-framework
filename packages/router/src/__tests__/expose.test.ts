@@ -70,6 +70,97 @@ describe('.output() with Zod schema', () => {
 });
 
 // ============================================================================
+// .output() with tagged resource views (Level 2)
+// ============================================================================
+
+describe('.output() with tagged resource views (Level 2)', () => {
+  it('accepts a tagged resource view and sets _resourceSchema + _resourceLevel', () => {
+    const proc = procedure()
+      .output(ResourceUserSchema.authenticated)
+      .query(async () => ({
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'John',
+        email: 'john@example.com',
+        internalNotes: null,
+      }));
+
+    expect(proc._resourceSchema).toBeDefined();
+    expect(proc._resourceLevel).toBe('authenticated');
+    expect(proc.outputSchema).toBeUndefined();
+  });
+
+  it('auto-projects handler result through tagged level', async () => {
+    const proc = procedure()
+      .output(ResourceUserSchema.authenticated)
+      .query(async () => ({
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'John',
+        email: 'john@example.com',
+        internalNotes: 'VIP',
+      }));
+
+    const ctx: BaseContext = {} as BaseContext;
+    const result = await executeProcedure(proc, undefined, ctx);
+
+    expect(result).toEqual({
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: 'John',
+      email: 'john@example.com',
+    });
+    expect(result).not.toHaveProperty('internalNotes');
+  });
+
+  it('projects all fields at admin level', async () => {
+    const proc = procedure()
+      .output(ResourceUserSchema.admin)
+      .query(async () => ({
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'John',
+        email: 'john@example.com',
+        internalNotes: 'VIP',
+      }));
+
+    const ctx: BaseContext = {} as BaseContext;
+    const result = await executeProcedure(proc, undefined, ctx);
+
+    expect(result).toEqual({
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: 'John',
+      email: 'john@example.com',
+      internalNotes: 'VIP',
+    });
+  });
+
+  it('projects only public fields at public level', async () => {
+    const proc = procedure()
+      .output(ResourceUserSchema.public)
+      .query(async () => ({
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'John',
+        email: 'john@example.com',
+        internalNotes: 'VIP',
+      }));
+
+    const ctx: BaseContext = {} as BaseContext;
+    const result = await executeProcedure(proc, undefined, ctx);
+
+    expect(result).toEqual({
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: 'John',
+    });
+  });
+
+  it('still accepts plain Zod schemas (Level 1 unchanged)', () => {
+    const proc = procedure()
+      .output(z.object({ id: z.string() }))
+      .query(async () => ({ id: '1' }));
+
+    expect(proc._resourceSchema).toBeUndefined();
+    expect(proc.outputSchema).toBeDefined();
+  });
+});
+
+// ============================================================================
 // .expose() — Resource schemas
 // ============================================================================
 

@@ -130,14 +130,31 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
-     * Sets the output validation schema (Zod-only)
+     * Sets the output schema.
+     *
+     * Accepts either:
+     * - A Zod schema (Level 1) — validates output after handler
+     * - A tagged resource view (Level 2) — auto-projects handler result
+     *   through the tagged level's field visibility
      */
     output<TSchema extends ValidSchema>(
       schema: TSchema
     ): ProcedureBuilder<TInput, InferSchemaOutput<TSchema>, TContext> {
+      // Level 2: tagged resource view — set up auto-projection
+      if (isTaggedResourceSchema(schema)) {
+        return createBuilder<TInput, InferSchemaOutput<TSchema>, TContext>({
+          ...state,
+          resourceSchema: schema,
+          resourceLevel: schema._level,
+          outputSchema: undefined,
+        });
+      }
+      // Level 1: plain Zod schema — validate output
       return createBuilder<TInput, InferSchemaOutput<TSchema>, TContext>({
         ...state,
         outputSchema: schema,
+        resourceSchema: undefined,
+        resourceLevel: undefined,
       });
     },
 
