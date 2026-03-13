@@ -137,7 +137,7 @@ describe('defineAccessLevels with guards', () => {
           admin: () => false,
           nonexistent: () => false,
         },
-      }),
+      })
     ).toThrow('unknown level');
   });
 
@@ -149,7 +149,7 @@ describe('defineAccessLevels with guards', () => {
           authenticated: () => true,
           admin: () => false,
         },
-      }),
+      })
     ).toThrow('first level');
   });
 
@@ -176,10 +176,9 @@ describe('defineAccessLevels with guards', () => {
 
     const access = defineAccessLevels(['public', 'authenticated', 'admin'], {
       guards: {
-        authenticated: Object.assign(
-          (ctx: Record<string, unknown>) => !!ctx.user,
-          { _narrows: undefined as unknown as AuthenticatedNarrow },
-        ),
+        authenticated: Object.assign((ctx: Record<string, unknown>) => !!ctx.user, {
+          _narrows: undefined as unknown as AuthenticatedNarrow,
+        }),
         admin: () => false,
       },
     });

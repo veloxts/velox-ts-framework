@@ -62,7 +62,7 @@ type HandlerMap<TSchema, TInput> = {
 // Accept function
 declare function query<TInput>(
   schema: ArticleSchemaType,
-  handlers: HandlerMap<ArticleSchemaType, TInput>,
+  handlers: HandlerMap<ArticleSchemaType, TInput>
 ): void;
 
 // ============================================================================

@@ -161,20 +161,23 @@ describe('.output() with tagged resource views (Level 2)', () => {
   it('auto-projects each item in an array result', async () => {
     const proc = procedure()
       .output(ResourceUserSchema.public)
-      .query(async () => [
-        {
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          name: 'John',
-          email: 'john@example.com',
-          internalNotes: 'VIP',
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440001',
-          name: 'Jane',
-          email: 'jane@example.com',
-          internalNotes: null,
-        },
-      ] as unknown as { id: string; name: string });
+      .query(
+        async () =>
+          [
+            {
+              id: '550e8400-e29b-41d4-a716-446655440000',
+              name: 'John',
+              email: 'john@example.com',
+              internalNotes: 'VIP',
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440001',
+              name: 'Jane',
+              email: 'jane@example.com',
+              internalNotes: null,
+            },
+          ] as unknown as { id: string; name: string }
+      );
 
     const ctx: BaseContext = {} as BaseContext;
     const result = await executeProcedure(proc, undefined, ctx);

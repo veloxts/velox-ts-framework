@@ -420,7 +420,6 @@ export interface ProcedureBuilder<
   mutation(
     handler: ProcedureHandler<TInput, TOutput, TContext>
   ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
-
 }
 
 // ============================================================================

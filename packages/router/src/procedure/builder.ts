@@ -282,7 +282,6 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'> {
       return compileProcedure('mutation', handler, state);
     },
-
   };
 }
 

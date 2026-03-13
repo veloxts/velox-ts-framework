@@ -120,7 +120,7 @@ export interface AccessLevelOptions<
  * ```
  */
 export function defineAccessLevels<const TLevels extends readonly [string, ...string[]]>(
-  levels: TLevels,
+  levels: TLevels
 ): AccessLevelConfig<TLevels, Record<string, never>>;
 
 export function defineAccessLevels<
@@ -128,7 +128,7 @@ export function defineAccessLevels<
   const TGroups extends Record<string, '*' | readonly NoInfer<TLevels[number]>[]>,
 >(
   levels: TLevels,
-  options: AccessLevelOptions<TLevels, TGroups>,
+  options: AccessLevelOptions<TLevels, TGroups>
 ): AccessLevelConfig<TLevels, TGroups>;
 
 // Legacy overload: groups as direct second arg (backward compat with existing tests)
@@ -142,7 +142,7 @@ export function defineAccessLevels<
   const TGroups extends Record<string, '*' | readonly string[]>,
 >(
   levels: TLevels,
-  optionsOrGroups?: AccessLevelOptions<TLevels, TGroups> | TGroups,
+  optionsOrGroups?: AccessLevelOptions<TLevels, TGroups> | TGroups
 ): AccessLevelConfig<TLevels, TGroups> {
   // Validation: at least 2 levels
   if (levels.length < 2) {
@@ -180,13 +180,12 @@ export function defineAccessLevels<
     if (guardKey === firstLevel) {
       throw new Error(
         `Cannot define a guard for the first level "${firstLevel}". ` +
-          'The first level is the implicit fallback and cannot have a guard.',
+          'The first level is the implicit fallback and cannot have a guard.'
       );
     }
     if (!levelSet.has(guardKey)) {
       throw new Error(
-        `Guard key "${guardKey}" references unknown level. ` +
-          `Valid levels: ${levels.join(', ')}`,
+        `Guard key "${guardKey}" references unknown level. ` + `Valid levels: ${levels.join(', ')}`
       );
     }
   }
@@ -201,7 +200,7 @@ export function defineAccessLevels<
       if (levelSet.has(name)) {
         throw new Error(
           `Group name "${name}" collides with a level name. ` +
-            'Group names and level names must be distinct.',
+            'Group names and level names must be distinct.'
         );
       }
 
@@ -213,7 +212,7 @@ export function defineAccessLevels<
           if (!levelSet.has(member)) {
             throw new Error(
               `Group "${name}" references unknown level "${member}". ` +
-                `Valid levels: ${levels.join(', ')}`,
+                `Valid levels: ${levels.join(', ')}`
             );
           }
         }
@@ -250,9 +249,7 @@ export function defineAccessLevels<
  * Direct group objects have keys that are group names (e.g., 'staff', 'everyone')
  * with values that are arrays or '*'.
  */
-function isAccessLevelOptions(
-  value: unknown,
-): value is AccessLevelOptions<readonly string[]> {
+function isAccessLevelOptions(value: unknown): value is AccessLevelOptions<readonly string[]> {
   if (typeof value !== 'object' || value === null) return false;
   const keys = Object.keys(value);
   return keys.includes('guards') || keys.includes('groups');
@@ -315,28 +312,25 @@ export interface DefaultAdminContext {
  * - `admin`: `(ctx) => ctx.user?.role === 'admin'` — requires admin role
  * - `public`: no guard — implicit fallback
  */
-export const defaultAccess = defineAccessLevels(
-  ['public', 'authenticated', 'admin'] as const,
-  {
-    guards: {
-      authenticated: Object.assign(
-        (ctx: unknown) => {
-          const record = ctx as Record<string, unknown>;
-          return !!record.user;
-        },
-        { _narrows: undefined as unknown as DefaultAuthenticatedContext },
-      ),
-      admin: Object.assign(
-        (ctx: unknown) => {
-          const record = ctx as Record<string, unknown>;
-          const user = record.user as Record<string, unknown> | undefined;
-          return user?.role === 'admin';
-        },
-        { _narrows: undefined as unknown as DefaultAdminContext },
-      ),
-    },
+export const defaultAccess = defineAccessLevels(['public', 'authenticated', 'admin'] as const, {
+  guards: {
+    authenticated: Object.assign(
+      (ctx: unknown) => {
+        const record = ctx as Record<string, unknown>;
+        return !!record.user;
+      },
+      { _narrows: undefined as unknown as DefaultAuthenticatedContext }
+    ),
+    admin: Object.assign(
+      (ctx: unknown) => {
+        const record = ctx as Record<string, unknown>;
+        const user = record.user as Record<string, unknown> | undefined;
+        return user?.role === 'admin';
+      },
+      { _narrows: undefined as unknown as DefaultAdminContext }
+    ),
   },
-);
+});
 
 // ============================================================================
 // Runtime Helpers

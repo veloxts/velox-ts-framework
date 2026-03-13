@@ -12,8 +12,8 @@ import { expectTypeOf } from 'expect-type';
 import type {
   AdminCtx,
   AdminKey,
-  AuthKey,
   AuthenticatedCtx,
+  AuthKey,
   BaseCtx,
   BrandedTestSchema,
   PublicKey,
@@ -25,11 +25,11 @@ import type {
 import {
   ADMIN_KEY,
   AUTH_KEY,
-  PUBLIC_KEY,
   adminBrandedKey,
   authBrandedKey,
   defineHandlers,
   defineHandlersBranded,
+  PUBLIC_KEY,
   publicBrandedKey,
 } from './handler-map-keys.js';
 

@@ -8,15 +8,13 @@
 import { expectTypeOf } from 'expect-type';
 
 import type {
-  SymbolHandlerMap,
-  StringHandlerMap,
-  TestSchema,
-  BrandedTestSchema,
-} from './handler-map-keys.js';
-import {
   ADMIN_KEY,
   AUTH_KEY,
+  BrandedTestSchema,
   PUBLIC_KEY,
+  StringHandlerMap,
+  SymbolHandlerMap,
+  TestSchema,
 } from './handler-map-keys.js';
 
 // ============================================================================

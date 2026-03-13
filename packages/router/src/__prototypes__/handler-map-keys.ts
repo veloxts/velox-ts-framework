@@ -45,11 +45,7 @@ interface AdminCtx extends BaseCtx {
 /**
  * Simulated schema view produced by .build()
  */
-interface SchemaView<
-  TLevel extends string,
-  TKey extends symbol,
-  TNarrows = unknown,
-> {
+interface SchemaView<TLevel extends string, TKey extends symbol, TNarrows = unknown> {
   readonly _level: TLevel;
   readonly key: TKey;
   readonly _narrows?: TNarrows;
@@ -99,7 +95,7 @@ type ValidHandlerMap<TSchema, TInput> = SymbolHandlerMap<TSchema, TInput>;
 
 declare function defineHandlers<TInput>(
   schema: TestSchema,
-  handlers: ValidHandlerMap<TestSchema, TInput>,
+  handlers: ValidHandlerMap<TestSchema, TInput>
 ): void;
 
 // ============================================================================
@@ -137,7 +133,7 @@ type StringHandlerMap<TSchema, TInput> = {
 
 declare function defineHandlersBranded<TInput>(
   schema: BrandedTestSchema,
-  handlers: StringHandlerMap<BrandedTestSchema, TInput>,
+  handlers: StringHandlerMap<BrandedTestSchema, TInput>
 ): void;
 
 // ============================================================================
