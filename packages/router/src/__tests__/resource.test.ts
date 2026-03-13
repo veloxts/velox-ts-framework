@@ -580,7 +580,7 @@ describe('Security - Prototype Pollution Prevention', () => {
 // Auto-Projection with executeProcedure Tests
 // ============================================================================
 
-describe('Auto-Projection with .expose() in Procedure Builder', () => {
+describe('Auto-Projection with .output() in Procedure Builder', () => {
   // Note: Full integration tests with executeProcedure require mocking
   // Fastify request/reply. These tests verify the Resource class behavior
   // that underlies auto-projection.

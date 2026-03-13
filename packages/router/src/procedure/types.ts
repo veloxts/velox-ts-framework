@@ -13,13 +13,7 @@
 import type { BaseContext } from '@veloxts/core';
 import type { ZodType } from 'zod';
 
-import type {
-  FilterFieldsByLevel,
-  OutputForTag,
-  ResourceSchema,
-  TaggedResourceSchema,
-} from '../resource/index.js';
-import type { ContextTag, ExtractTag, LevelToTag, TaggedContext } from '../resource/tags.js';
+import type { ResourceSchema } from '../resource/index.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -133,71 +127,33 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext>;
 
   /**
-   * Defines the output validation schema (Zod)
+   * Defines the output schema for the procedure
    *
-   * Sets a Zod schema that validates the handler's return value.
-   * All callers receive the same fields.
+   * Accepts two schema variants:
+   * 1. **Zod schema** — validates handler return value, all callers see same fields
+   * 2. **Tagged resource view** (e.g., `UserSchema.authenticated`) — auto-projects fields by access level
    *
-   * For field-level visibility (different fields per access level),
-   * use `.expose()` with a resource schema instead.
-   *
-   * @template TSchema - The Zod schema type
-   * @param schema - Zod schema for output validation
+   * @template TSchema - The Zod or tagged resource schema type
+   * @param schema - Zod schema or tagged resource view
    * @returns New builder with updated output type
    *
-   * @example
+   * @example Zod schema
    * ```typescript
    * procedure()
    *   .output(z.object({ id: z.string(), name: z.string() }))
    *   .query(handler) // handler must return { id: string; name: string }
    * ```
+   *
+   * @example Tagged resource view
+   * ```typescript
+   * procedure()
+   *   .output(UserSchema.authenticated) // auto-projects to { id, name, email }
+   *   .query(handler)
+   * ```
    */
   output<TSchema extends ValidSchema>(
     schema: TSchema
   ): ProcedureBuilder<TInput, InferSchemaOutput<TSchema>, TContext>;
-
-  /**
-   * Sets field-level visibility via a resource schema
-   *
-   * Accepts two resource schema variants:
-   * 1. **Tagged resource schema** (e.g., `UserSchema.authenticated`) — explicit field projection by access level
-   * 2. **Plain resource schema** (e.g., `UserSchema`) — context-derived field projection from `guardNarrow`
-   *
-   * @template TSchema - The resource schema type
-   * @param schema - Resource schema for field projection
-   * @returns New builder with updated output type
-   *
-   * @example Tagged resource schema — explicit projection level
-   * ```typescript
-   * procedure()
-   *   .guard(authenticated)
-   *   .expose(UserSchema.authenticated) // returns { id, name, email }
-   *   .query(handler)
-   * ```
-   *
-   * @example Plain resource schema — derives level from guardNarrow
-   * ```typescript
-   * procedure()
-   *   .guardNarrow(authenticatedNarrow)
-   *   .expose(UserSchema) // auto-projects based on guard's accessLevel
-   *   .query(handler)
-   * ```
-   */
-  expose<TSchema extends ResourceSchema>(
-    schema: TSchema
-  ): ProcedureBuilder<
-    TInput,
-    TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
-      ? TLevel extends 'admin' | 'authenticated' | 'public'
-        ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
-        : FilterFieldsByLevel<TFields, TLevel>
-      : TContext extends TaggedContext<infer TTag>
-        ? TTag extends ContextTag
-          ? OutputForTag<TSchema, TTag>
-          : OutputForTag<TSchema, ExtractTag<TContext>>
-        : OutputForTag<TSchema, ExtractTag<TContext>>,
-    TContext
-  >;
 
   /**
    * Adds middleware to the procedure chain
@@ -267,42 +223,6 @@ export interface ProcedureBuilder<
   guard<TGuardContext extends Partial<TContext>>(
     guard: GuardLike<TGuardContext>
   ): ProcedureBuilder<TInput, TOutput, TContext>;
-
-  /**
-   * Adds an authorization guard with type narrowing (EXPERIMENTAL)
-   *
-   * Unlike `.guard()`, this method narrows the context type based on
-   * what the guard guarantees. For example, `authenticatedNarrow` narrows
-   * `ctx.user` from `User | undefined` to `User`.
-   *
-   * **EXPERIMENTAL**: This API may change. Consider using middleware
-   * for context type extension as the current stable alternative.
-   *
-   * @template TNarrowedContext - The context type guaranteed by the guard
-   * @param guard - Narrowing guard definition with `_narrows` type
-   * @returns New builder with narrowed context type
-   *
-   * @example
-   * ```typescript
-   * import { authenticatedNarrow, hasRoleNarrow } from '@veloxts/auth';
-   *
-   * // ctx.user is guaranteed non-null after guard passes
-   * procedure()
-   *   .guardNarrow(authenticatedNarrow)
-   *   .query(({ ctx }) => {
-   *     return { email: ctx.user.email }; // No null check needed!
-   *   });
-   *
-   * // Chain multiple narrowing guards
-   * procedure()
-   *   .guardNarrow(authenticatedNarrow)
-   *   .guardNarrow(hasRoleNarrow('admin'))
-   *   .mutation(({ ctx }) => { ... });
-   * ```
-   */
-  guardNarrow<TNarrowedContext>(
-    guard: GuardLike<Partial<TContext>> & { readonly _narrows: TNarrowedContext }
-  ): ProcedureBuilder<TInput, TOutput, TContext & TNarrowedContext>;
 
   /**
    * Adds multiple authorization guards at once
@@ -501,33 +421,6 @@ export interface ProcedureBuilder<
     handler: ProcedureHandler<TInput, TOutput, TContext>
   ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
 
-  /**
-   * @deprecated Use `.expose()` instead. `.resource()` will be removed in v1.0.
-   *
-   * Sets field-level visibility via a resource schema.
-   *
-   * @example Migration
-   * ```typescript
-   * // Before
-   * procedure().resource(UserSchema.authenticated).query(handler)
-   *
-   * // After
-   * procedure().expose(UserSchema.authenticated).query(handler)
-   * ```
-   */
-  resource<TSchema extends ResourceSchema>(
-    schema: TSchema
-  ): ProcedureBuilder<
-    TInput,
-    TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
-      ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
-      : TContext extends TaggedContext<infer TTag>
-        ? TTag extends ContextTag
-          ? OutputForTag<TSchema, TTag>
-          : OutputForTag<TSchema, ExtractTag<TContext>>
-        : OutputForTag<TSchema, ExtractTag<TContext>>,
-    TContext
-  >;
 }
 
 // ============================================================================

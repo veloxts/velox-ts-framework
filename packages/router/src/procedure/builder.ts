@@ -12,15 +12,7 @@ import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core'
 
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
-import {
-  type FilterFieldsByLevel,
-  isTaggedResourceSchema,
-  type OutputForTag,
-  Resource,
-  type ResourceSchema,
-  type TaggedResourceSchema,
-} from '../resource/index.js';
-import type { ContextTag, ExtractTag, LevelToTag, TaggedContext } from '../resource/tags.js';
+import { isTaggedResourceSchema, Resource, type ResourceSchema } from '../resource/index.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -159,31 +151,6 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     },
 
     /**
-     * Sets field-level visibility via a resource schema
-     */
-    expose<TSchema extends ResourceSchema>(schema: TSchema) {
-      const level = isTaggedResourceSchema(schema) ? schema._level : undefined;
-      return createBuilder<
-        TInput,
-        TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
-          ? TLevel extends 'admin' | 'authenticated' | 'public'
-            ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
-            : FilterFieldsByLevel<TFields, TLevel>
-          : TContext extends TaggedContext<infer TTag>
-            ? TTag extends ContextTag
-              ? OutputForTag<TSchema, TTag>
-              : OutputForTag<TSchema, ExtractTag<TContext>>
-            : OutputForTag<TSchema, ExtractTag<TContext>>,
-        TContext
-      >({
-        ...state,
-        resourceSchema: schema,
-        resourceLevel: level,
-        outputSchema: undefined,
-      });
-    },
-
-    /**
      * Adds middleware to the chain
      */
     use<TNewContext extends BaseContext = TContext>(
@@ -214,21 +181,6 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       guardDef: GuardLike<TGuardContext>
     ): ProcedureBuilder<TInput, TOutput, TContext> {
       return createBuilder<TInput, TOutput, TContext>({
-        ...state,
-        guards: [...state.guards, guardDef as GuardLike<unknown>],
-      });
-    },
-
-    /**
-     * Adds an authorization guard with type narrowing (EXPERIMENTAL)
-     *
-     * Unlike `guard()`, this method narrows the context type based on
-     * what the guard guarantees after it passes.
-     */
-    guardNarrow<TNarrowedContext>(
-      guardDef: GuardLike<Partial<TContext>> & { readonly _narrows: TNarrowedContext }
-    ): ProcedureBuilder<TInput, TOutput, TContext & TNarrowedContext> {
-      return createBuilder<TInput, TOutput, TContext & TNarrowedContext>({
         ...state,
         guards: [...state.guards, guardDef as GuardLike<unknown>],
       });
@@ -331,28 +283,6 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       return compileProcedure('mutation', handler, state);
     },
 
-    /**
-     * @deprecated Use `.expose()` instead. `.resource()` will be removed in v1.0.
-     */
-    resource<TSchema extends ResourceSchema>(schema: TSchema) {
-      const level = isTaggedResourceSchema(schema) ? schema._level : undefined;
-      return createBuilder<
-        TInput,
-        TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
-          ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
-          : TContext extends TaggedContext<infer TTag>
-            ? TTag extends ContextTag
-              ? OutputForTag<TSchema, TTag>
-              : OutputForTag<TSchema, ExtractTag<TContext>>
-            : OutputForTag<TSchema, ExtractTag<TContext>>,
-        TContext
-      >({
-        ...state,
-        resourceSchema: schema,
-        resourceLevel: level,
-        outputSchema: undefined,
-      });
-    },
   };
 }
 
@@ -640,7 +570,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
       // IMPORTANT: last guard's accessLevel wins. With custom levels that
       // have no inherent hierarchy, ordering of guards matters.
       // Guards without accessLevel (e.g. plain `authenticated`) do NOT
-      // update the level — it stays at 'public' for .expose() projection.
+      // update the level — it stays at 'public' for .output() projection.
       const guardWithLevel = guard as { accessLevel?: string };
       if (guardWithLevel.accessLevel) {
         accessLevel = guardWithLevel.accessLevel;
