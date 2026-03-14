@@ -118,6 +118,13 @@ export {
 } from './procedure/builder.js';
 
 // ============================================================================
+// Pipeline Primitives
+// ============================================================================
+
+export type { PipelineStep, RevertAction, StepOptions } from './procedure/pipeline.js';
+export { defineRevert, defineStep } from './procedure/pipeline.js';
+
+// ============================================================================
 // Router Utilities
 // ============================================================================
 
