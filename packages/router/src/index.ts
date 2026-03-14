@@ -74,6 +74,8 @@ export type {
   // Nested routes
   ParentResourceChain,
   ParentResourceConfig,
+  // Policy types (for declarative authorization)
+  PolicyActionLike,
   // Collection types
   ProcedureCollection,
   ProcedureHandler,

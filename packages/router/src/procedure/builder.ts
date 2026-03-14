@@ -8,12 +8,10 @@
  * @module procedure/builder
  */
 
-import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core';
+import { type BaseContext, ConfigurationError, ForbiddenError, logWarning } from '@veloxts/core';
 
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
-import type { PipelineStep } from './pipeline.js';
-import { executePipeline } from './pipeline-executor.js';
 import type { AccessLevelConfig } from '../resource/index.js';
 import {
   isResourceSchema,
@@ -26,6 +24,7 @@ import type {
   GuardLike,
   MiddlewareFunction,
   ParentResourceConfig,
+  PolicyActionLike,
   ProcedureCollection,
   ProcedureHandler,
   RestRouteOverride,
@@ -38,6 +37,8 @@ import {
   normalizeWarningOption,
   type WarningOption,
 } from '../warnings.js';
+import type { PipelineStep } from './pipeline.js';
+import { executePipeline } from './pipeline-executor.js';
 import type {
   BuilderRuntimeState,
   InferOutputSchema,
@@ -226,6 +227,16 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
     },
 
     /**
+     * Adds a policy action check to the procedure
+     */
+    policy(action: PolicyActionLike): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        policyAction: action,
+      });
+    },
+
+    /**
      * Declares domain error classes this procedure may throw
      */
     throws(
@@ -305,13 +316,19 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
      * Declares a domain event to emit after successful handler execution
      */
     emits<TEventData extends Record<string, unknown>>(
-      eventClass: { new (data: TEventData, options?: { correlationId?: string }): unknown; readonly eventName: string },
-      mapper?: (result: TOutput) => TEventData,
+      eventClass: {
+        new (data: TEventData, options?: { correlationId?: string }): unknown;
+        readonly eventName: string;
+      },
+      mapper?: (result: TOutput) => TEventData
     ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
       // Cast is safe: the typed TEventData and TOutput are erased at runtime.
       // BuilderRuntimeState stores the widened types for uniform handling.
       const entry = { eventClass, mapper } as {
-        eventClass: { new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown; readonly eventName: string };
+        eventClass: {
+          new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown;
+          readonly eventName: string;
+        };
         mapper?: (result: unknown) => Record<string, unknown>;
       };
       return createBuilder<TInput, TOutput, TContext, TErrors>({
@@ -336,9 +353,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
     /**
      * Adds pipeline steps that execute before the handler
      */
-    through(
-      ...steps: PipelineStep[]
-    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+    through(...steps: PipelineStep[]): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
       return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         pipelineSteps: [...(state.pipelineSteps ?? []), ...steps],
@@ -495,6 +510,8 @@ function compileProcedure<
     emittedEvents: state.emittedEvents,
     // Store pipeline steps declared via .through()
     pipelineSteps: state.pipelineSteps,
+    // Store policy action declared via .policy()
+    policyAction: state.policyAction,
   };
 }
 
@@ -546,6 +563,8 @@ function compileProcedureWithHandlerMap<
     transactionalOptions: state.transactionalOptions,
     // Store pipeline steps declared via .through()
     pipelineSteps: state.pipelineSteps,
+    // Store policy action declared via .policy()
+    policyAction: state.policyAction,
   };
 }
 
@@ -799,6 +818,20 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     ? procedure.inputSchema.parse(rawInput)
     : (rawInput as TInput);
 
+  // Step 2.3: Policy check — if .policy() was used
+  if (procedure.policyAction) {
+    const ctxRecord = ctxWithLevel as Record<string, unknown>;
+    const user = ctxRecord.user;
+    const resourceName = procedure.policyAction.resourceName.toLowerCase();
+    const policyResource = ctxRecord[resourceName];
+    const allowed = await procedure.policyAction.check(user, policyResource);
+    if (!allowed) {
+      throw new ForbiddenError(
+        `Policy check failed: cannot ${procedure.policyAction.actionName} ${procedure.policyAction.resourceName}`
+      );
+    }
+  }
+
   // Step 2.5: Level 3 branch selection — if handler map is present
   if (procedure._handlerMap) {
     return executeBranchedProcedure(procedure, input, ctxWithLevel as TContext);
@@ -806,8 +839,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
 
   // Step 2.7: Execute pipeline steps if .through() was used
   // Pipeline transforms input before the handler. Runs inside transaction when applicable.
-  const hasPipeline =
-    procedure.pipelineSteps !== undefined && procedure.pipelineSteps.length > 0;
+  const hasPipeline = procedure.pipelineSteps !== undefined && procedure.pipelineSteps.length > 0;
 
   // Step 3: Execute handler (with or without middleware)
   // Helper that runs the pipeline + middleware chain + handler with a given context
@@ -857,7 +889,8 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
 
   // Step 4: Emit domain events if .emits() was used
   if (procedure.emittedEvents) {
-    const ctxEvents = (ctxRecord as { events?: { emit?: (event: unknown) => Promise<void> } }).events;
+    const ctxEvents = (ctxRecord as { events?: { emit?: (event: unknown) => Promise<void> } })
+      .events;
     if (ctxEvents?.emit) {
       for (const { eventClass, mapper } of procedure.emittedEvents) {
         try {

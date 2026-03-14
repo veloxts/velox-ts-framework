@@ -13,17 +13,18 @@
 import type { BaseContext, DomainError } from '@veloxts/core';
 import type { ZodType } from 'zod';
 
-import type { PipelineStep } from './pipeline.js';
 import type { OutputForLevel, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
 import type {
   CompiledProcedure,
   GuardLike,
   MiddlewareFunction,
   ParentResourceConfig,
+  PolicyActionLike,
   ProcedureHandler,
   RestRouteOverride,
   TransactionalOptions,
 } from '../types.js';
+import type { PipelineStep } from './pipeline.js';
 
 // ============================================================================
 // Builder State Type
@@ -280,6 +281,30 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
+   * Adds a policy action check to the procedure
+   *
+   * Policy actions are checked during execution after guards but before
+   * the pipeline and handler. The policy looks up the resource on the
+   * context by lowercase resource name (e.g., `PostPolicy` → `ctx.post`).
+   *
+   * If the policy check fails, a ForbiddenError is thrown.
+   *
+   * @param action - Policy action reference (from definePolicy)
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * import { PostPolicy } from './policies';
+   *
+   * procedure()
+   *   .guard(authenticated)
+   *   .policy(PostPolicy.update)
+   *   .mutation(async ({ input, ctx }) => { ... });
+   * ```
+   */
+  policy(action: PolicyActionLike): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
    * Declares domain error classes that this procedure may throw
    *
    * Stores error class references on the compiled procedure for:
@@ -459,8 +484,11 @@ export interface ProcedureBuilder<
    * ```
    */
   emits<TEventData extends Record<string, unknown>>(
-    eventClass: { new (data: TEventData, options?: { correlationId?: string }): unknown; readonly eventName: string },
-    mapper?: (result: TOutput) => TEventData,
+    eventClass: {
+      new (data: TEventData, options?: { correlationId?: string }): unknown;
+      readonly eventName: string;
+    },
+    mapper?: (result: TOutput) => TEventData
   ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
@@ -517,9 +545,7 @@ export interface ProcedureBuilder<
    *   })
    * ```
    */
-  through(
-    ...steps: PipelineStep[]
-  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+  through(...steps: PipelineStep[]): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Finalizes the procedure as a query (read-only operation)
@@ -618,11 +644,16 @@ export interface BuilderRuntimeState {
   transactionalOptions?: TransactionalOptions;
   /** Domain events to emit after successful handler execution */
   emittedEvents?: Array<{
-    eventClass: { new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown; readonly eventName: string };
+    eventClass: {
+      new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown;
+      readonly eventName: string;
+    };
     mapper?: (result: unknown) => Record<string, unknown>;
   }>;
   /** Pipeline steps declared via .through() */
   pipelineSteps?: PipelineStep[];
+  /** Policy action reference for declarative authorization */
+  policyAction?: PolicyActionLike;
 }
 
 // ============================================================================

@@ -146,6 +146,29 @@ export interface GuardLike<TContext = unknown> {
 }
 
 // ============================================================================
+// Policy Types
+// ============================================================================
+
+/**
+ * Policy action reference interface for declarative authorization
+ *
+ * This interface is compatible with @veloxts/auth's PolicyActionRef but doesn't
+ * create a hard dependency. Any object matching this shape can be used as a policy
+ * action in the procedure builder.
+ *
+ * @template TUser - The user type the policy operates on
+ * @template TResource - The resource type the policy checks against
+ */
+export interface PolicyActionLike<TUser = unknown, TResource = unknown> {
+  /** The name of the action (e.g., 'update', 'delete') */
+  readonly actionName: string;
+  /** The name of the resource this policy applies to (e.g., 'Post') */
+  readonly resourceName: string;
+  /** Execute the policy check for this action */
+  readonly check: (user: TUser, resource?: TResource) => boolean | Promise<boolean>;
+}
+
+// ============================================================================
 // Middleware Types
 // ============================================================================
 
@@ -539,6 +562,26 @@ export interface CompiledProcedure<
    * reverse order (compensation pattern).
    */
   readonly pipelineSteps?: ReadonlyArray<PipelineStep>;
+
+  /**
+   * Policy action reference for declarative authorization
+   *
+   * When set via `.policy()`, the procedure executor checks the policy
+   * action against the current user and (optionally) a resource from
+   * the context. The resource is looked up by lowercase resource name
+   * (e.g., `PostPolicy` → `ctx.post`).
+   *
+   * If the check fails, a ForbiddenError is thrown.
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .guard(authenticated)
+   *   .policy(PostPolicy.update)
+   *   .mutation(handler)
+   * ```
+   */
+  readonly policyAction?: PolicyActionLike;
 
   /**
    * Phantom type holder for error types — not used at runtime
