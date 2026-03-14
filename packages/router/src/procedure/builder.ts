@@ -8,7 +8,13 @@
  * @module procedure/builder
  */
 
-import { type BaseContext, ConfigurationError, createLogger, ForbiddenError, logWarning } from '@veloxts/core';
+import {
+  type BaseContext,
+  ConfigurationError,
+  createLogger,
+  ForbiddenError,
+  logWarning,
+} from '@veloxts/core';
 
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
@@ -322,7 +328,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
     emits<TEventData extends Record<string, unknown>>(
       eventClass: {
         new (data: TEventData, options?: { correlationId?: string }): unknown;
-        readonly eventName: string;
+        readonly name: string;
       },
       mapper?: (result: TOutput) => TEventData
     ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
@@ -331,7 +337,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
       const entry = { eventClass, mapper } as {
         eventClass: {
           new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown;
-          readonly eventName: string;
+          readonly name: string;
         };
         mapper?: (result: unknown) => Record<string, unknown>;
       };
@@ -872,8 +878,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
       throw new ForbiddenError('Policy check failed: no authenticated user');
     }
     const resourceNameRaw = procedure.policyAction.resourceName;
-    const resourceName =
-      resourceNameRaw.charAt(0).toLowerCase() + resourceNameRaw.slice(1);
+    const resourceName = resourceNameRaw.charAt(0).toLowerCase() + resourceNameRaw.slice(1);
     const policyResource = ctxRecord[resourceName];
     const allowed = await procedure.policyAction.check(user, policyResource);
     if (!allowed) {

@@ -7,11 +7,7 @@
 
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import {
-  isDomainErrorResponse,
-  parseErrorResponse,
-  VeloxClientError,
-} from '../errors.js';
+import { isDomainErrorResponse, parseErrorResponse, VeloxClientError } from '../errors.js';
 import type { InferProcedureErrors } from '../types.js';
 
 // ============================================================================
@@ -36,7 +32,13 @@ describe('VeloxClientError data property', () => {
     const error = new VeloxClientError('Insufficient funds', {
       statusCode: 422,
       code: 'INSUFFICIENT_FUNDS',
-      body: { error: 'DomainError', message: 'Insufficient funds', statusCode: 422, code: 'INSUFFICIENT_FUNDS', data: payload },
+      body: {
+        error: 'DomainError',
+        message: 'Insufficient funds',
+        statusCode: 422,
+        code: 'INSUFFICIENT_FUNDS',
+        data: payload,
+      },
       data: payload,
       url: '/api/payments',
       method: 'POST',
@@ -59,7 +61,13 @@ describe('VeloxClientError data property', () => {
 
   it('data is distinct from body', () => {
     const domainData = { reason: 'banned' };
-    const fullBody = { error: 'DomainError', message: 'User banned', statusCode: 403, code: 'USER_BANNED', data: domainData };
+    const fullBody = {
+      error: 'DomainError',
+      message: 'User banned',
+      statusCode: 403,
+      code: 'USER_BANNED',
+      data: domainData,
+    };
     const error = new VeloxClientError('User banned', {
       statusCode: 403,
       code: 'USER_BANNED',
@@ -123,7 +131,9 @@ describe('isDomainErrorResponse', () => {
     };
 
     // Cast to match the union type — code is optional in GenericErrorResponse
-    expect(isDomainErrorResponse(response as Parameters<typeof isDomainErrorResponse>[0])).toBe(false);
+    expect(isDomainErrorResponse(response as Parameters<typeof isDomainErrorResponse>[0])).toBe(
+      false
+    );
   });
 });
 
@@ -236,11 +246,13 @@ describe('parseErrorResponse — domain errors', () => {
 describe('InferProcedureErrors type utility', () => {
   it('should extract error union from a procedure with errorClasses', () => {
     // Simulated error classes as the server would define them
+    // biome-ignore lint/correctness/noUnusedVariables: used in MockProcedure type
     class InsufficientFundsError {
       readonly code = 'INSUFFICIENT_FUNDS' as const;
       constructor(public readonly data: { amount: number; currency: string }) {}
     }
 
+    // biome-ignore lint/correctness/noUnusedVariables: used in MockProcedure type
     class UserBannedError {
       readonly code = 'USER_BANNED' as const;
       constructor(public readonly data: { reason: string }) {}
@@ -249,15 +261,16 @@ describe('InferProcedureErrors type utility', () => {
     // Simulated compiled procedure shape (matches what @veloxts/router produces)
     type MockProcedure = {
       readonly type: 'mutation';
-      readonly errorClasses?: ReadonlyArray<
-        typeof InsufficientFundsError | typeof UserBannedError
-      >;
+      readonly errorClasses?: ReadonlyArray<typeof InsufficientFundsError | typeof UserBannedError>;
     };
 
     type Errors = InferProcedureErrors<MockProcedure>;
 
     // Type-level check: Errors should be a union of the two error shapes
-    expectTypeOf<{ code: 'INSUFFICIENT_FUNDS'; data: { amount: number; currency: string } }>().toMatchTypeOf<Errors>();
+    expectTypeOf<{
+      code: 'INSUFFICIENT_FUNDS';
+      data: { amount: number; currency: string };
+    }>().toMatchTypeOf<Errors>();
     expectTypeOf<{ code: 'USER_BANNED'; data: { reason: string } }>().toMatchTypeOf<Errors>();
   });
 

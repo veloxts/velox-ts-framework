@@ -171,10 +171,7 @@ async function runReverts(
     try {
       await step.revertAction.handler({ input: output, ctx });
     } catch (revertError) {
-      log.error(
-        `Revert "${step.revertAction.name}" for step "${step.name}" failed:`,
-        revertError
-      );
+      log.error(`Revert "${step.revertAction.name}" for step "${step.name}" failed:`, revertError);
     }
   }
 }

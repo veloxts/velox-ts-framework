@@ -22,8 +22,8 @@ describe('.through()', () => {
 
       expect(proc.pipelineSteps).toBeDefined();
       expect(proc.pipelineSteps).toHaveLength(2);
-      expect(proc.pipelineSteps![0].name).toBe('validate');
-      expect(proc.pipelineSteps![1].name).toBe('enrich');
+      expect(proc.pipelineSteps?.[0].name).toBe('validate');
+      expect(proc.pipelineSteps?.[1].name).toBe('enrich');
     });
 
     it('works with single step', () => {
@@ -34,7 +34,7 @@ describe('.through()', () => {
         .mutation(async ({ input }) => input as { ok: boolean });
 
       expect(proc.pipelineSteps).toHaveLength(1);
-      expect(proc.pipelineSteps![0].name).toBe('single');
+      expect(proc.pipelineSteps?.[0].name).toBe('single');
     });
 
     it('accumulates steps from multiple .through() calls', () => {
@@ -48,9 +48,9 @@ describe('.through()', () => {
         .mutation(async ({ input }) => input as { ok: boolean });
 
       expect(proc.pipelineSteps).toHaveLength(3);
-      expect(proc.pipelineSteps![0].name).toBe('a');
-      expect(proc.pipelineSteps![1].name).toBe('b');
-      expect(proc.pipelineSteps![2].name).toBe('c');
+      expect(proc.pipelineSteps?.[0].name).toBe('a');
+      expect(proc.pipelineSteps?.[1].name).toBe('b');
+      expect(proc.pipelineSteps?.[2].name).toBe('c');
     });
 
     it('works in full builder chain', () => {

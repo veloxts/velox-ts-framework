@@ -463,7 +463,9 @@ export interface ClientError extends Error {
 export type InferProcedureErrors<T> = T extends {
   readonly errorClasses?: ReadonlyArray<infer E>;
 }
-  ? E extends new (data: infer D) => { code: infer C }
+  ? E extends new (
+      data: infer D
+    ) => { code: infer C }
     ? { code: C; data: D }
     : never
   : never;

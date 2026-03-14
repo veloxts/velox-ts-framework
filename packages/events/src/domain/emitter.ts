@@ -74,7 +74,7 @@ interface ListenerEntry<TData extends Record<string, unknown>> {
  */
 export class DomainEventEmitter {
   /**
-   * Registry keyed by `eventName`. Each value is an array of listener entries
+   * Registry keyed by `name`. Each value is an array of listener entries
    * typed as `ListenerEntry<Record<string, unknown>>` so they can be stored
    * together in one map — we narrow the type at registration/retrieval time.
    */
@@ -90,7 +90,7 @@ export class DomainEventEmitter {
    * The handler receives `event.data` — the typed payload — not the event
    * instance itself.
    *
-   * @param eventClass  - The domain event class (used as the key via `.eventName`).
+   * @param eventClass  - The domain event class (used as the key via `.name`).
    * @param handler     - Called with the event's `data` payload on each emit.
    * @param options     - `{ sequential?, retryable? }`
    */
@@ -100,7 +100,7 @@ export class DomainEventEmitter {
     options: ListenerOptions = {}
   ): void {
     const { sequential = false, retryable = false } = options;
-    const key = eventClass.eventName;
+    const key = eventClass.name;
 
     if (!this._listeners.has(key)) {
       this._listeners.set(key, []);
@@ -131,7 +131,7 @@ export class DomainEventEmitter {
     eventClass: DomainEventClass<TData>,
     handler: (data: TData) => void | Promise<void>
   ): void {
-    const key = eventClass.eventName;
+    const key = eventClass.name;
     const entries = this._listeners.get(key);
 
     if (!entries) return;
@@ -165,7 +165,7 @@ export class DomainEventEmitter {
    * @param event - The domain event instance to dispatch.
    */
   async emit<TData extends Record<string, unknown>>(event: DomainEvent<TData>): Promise<void> {
-    const key = (event.constructor as unknown as { eventName: string }).eventName;
+    const key = (event.constructor as unknown as { name: string }).name;
     const entries = this._listeners.get(key);
 
     if (!entries || entries.length === 0) return;
@@ -192,10 +192,7 @@ export class DomainEventEmitter {
 
       for (const result of results) {
         if (result.status === 'rejected') {
-          log.error(
-            `Concurrent listener for "${key}" threw an error:`,
-            result.reason
-          );
+          log.error(`Concurrent listener for "${key}" threw an error:`, result.reason);
         }
       }
     }

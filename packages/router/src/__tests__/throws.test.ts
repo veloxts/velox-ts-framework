@@ -44,7 +44,7 @@ describe('.throws()', () => {
 
     expect(proc.errorClasses).toBeDefined();
     expect(proc.errorClasses).toHaveLength(1);
-    expect(proc.errorClasses![0]).toBe(InsufficientStock);
+    expect(proc.errorClasses?.[0]).toBe(InsufficientStock);
   });
 
   it('should store multiple error classes from a single .throws() call', () => {
@@ -54,8 +54,8 @@ describe('.throws()', () => {
 
     expect(proc.errorClasses).toBeDefined();
     expect(proc.errorClasses).toHaveLength(2);
-    expect(proc.errorClasses![0]).toBe(InsufficientStock);
-    expect(proc.errorClasses![1]).toBe(PaymentFailed);
+    expect(proc.errorClasses?.[0]).toBe(InsufficientStock);
+    expect(proc.errorClasses?.[1]).toBe(PaymentFailed);
   });
 
   it('should accumulate error classes from chained .throws() calls', () => {
@@ -67,9 +67,9 @@ describe('.throws()', () => {
 
     expect(proc.errorClasses).toBeDefined();
     expect(proc.errorClasses).toHaveLength(3);
-    expect(proc.errorClasses![0]).toBe(InsufficientStock);
-    expect(proc.errorClasses![1]).toBe(PaymentFailed);
-    expect(proc.errorClasses![2]).toBe(ItemNotFound);
+    expect(proc.errorClasses?.[0]).toBe(InsufficientStock);
+    expect(proc.errorClasses?.[1]).toBe(PaymentFailed);
+    expect(proc.errorClasses?.[2]).toBe(ItemNotFound);
   });
 
   it('should preserve existing builder state (inputSchema, type, etc.)', () => {
@@ -93,8 +93,8 @@ describe('.throws()', () => {
 
     // Error classes stored
     expect(proc.errorClasses).toHaveLength(2);
-    expect(proc.errorClasses![0]).toBe(InsufficientStock);
-    expect(proc.errorClasses![1]).toBe(PaymentFailed);
+    expect(proc.errorClasses?.[0]).toBe(InsufficientStock);
+    expect(proc.errorClasses?.[1]).toBe(PaymentFailed);
   });
 
   it('should be chainable with other builder methods', () => {
@@ -107,8 +107,8 @@ describe('.throws()', () => {
       .mutation(async () => ({ done: true }));
 
     expect(proc.errorClasses).toHaveLength(2);
-    expect(proc.errorClasses![0]).toBe(InsufficientStock);
-    expect(proc.errorClasses![1]).toBe(PaymentFailed);
+    expect(proc.errorClasses?.[0]).toBe(InsufficientStock);
+    expect(proc.errorClasses?.[1]).toBe(PaymentFailed);
     expect(proc.restOverride).toEqual({ method: 'POST', path: '/custom' });
     expect(proc.deprecated).toBe(true);
     expect(proc.deprecationMessage).toBe('Use v2 endpoint');
@@ -131,7 +131,7 @@ describe('.throws()', () => {
 
     expect(proc.type).toBe('mutation');
     expect(proc.errorClasses).toHaveLength(2);
-    expect(proc.errorClasses![0]).toBe(PaymentFailed);
-    expect(proc.errorClasses![1]).toBe(ItemNotFound);
+    expect(proc.errorClasses?.[0]).toBe(PaymentFailed);
+    expect(proc.errorClasses?.[1]).toBe(ItemNotFound);
   });
 });

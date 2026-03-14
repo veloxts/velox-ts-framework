@@ -27,10 +27,6 @@ abstract class DomainEvent<TData extends Record<string, unknown> = Record<string
     this.timestamp = new Date();
     this.correlationId = options?.correlationId;
   }
-
-  static get eventName(): string {
-    return this.name;
-  }
 }
 
 // Concrete event classes for testing
@@ -51,8 +47,8 @@ describe('.emits()', () => {
 
       expect(proc.emittedEvents).toBeDefined();
       expect(proc.emittedEvents).toHaveLength(1);
-      expect(proc.emittedEvents![0].eventClass).toBe(OrderCreated);
-      expect(proc.emittedEvents![0].mapper).toBeUndefined();
+      expect(proc.emittedEvents?.[0].eventClass).toBe(OrderCreated);
+      expect(proc.emittedEvents?.[0].mapper).toBeUndefined();
     });
 
     it('should store event with mapper', () => {
@@ -67,8 +63,8 @@ describe('.emits()', () => {
 
       expect(proc.emittedEvents).toBeDefined();
       expect(proc.emittedEvents).toHaveLength(1);
-      expect(proc.emittedEvents![0].eventClass).toBe(OrderCreated);
-      expect(proc.emittedEvents![0].mapper).toBe(mapper);
+      expect(proc.emittedEvents?.[0].eventClass).toBe(OrderCreated);
+      expect(proc.emittedEvents?.[0].mapper).toBe(mapper);
     });
 
     it('should accumulate multiple .emits() calls', () => {
@@ -80,9 +76,9 @@ describe('.emits()', () => {
 
       expect(proc.emittedEvents).toBeDefined();
       expect(proc.emittedEvents).toHaveLength(3);
-      expect(proc.emittedEvents![0].eventClass).toBe(OrderCreated);
-      expect(proc.emittedEvents![1].eventClass).toBe(InventoryReserved);
-      expect(proc.emittedEvents![2].eventClass).toBe(AuditLogWritten);
+      expect(proc.emittedEvents?.[0].eventClass).toBe(OrderCreated);
+      expect(proc.emittedEvents?.[1].eventClass).toBe(InventoryReserved);
+      expect(proc.emittedEvents?.[2].eventClass).toBe(AuditLogWritten);
     });
 
     it('should have undefined emittedEvents when .emits() is not used', () => {
@@ -102,7 +98,7 @@ describe('.emits()', () => {
         .mutation(async () => ({ orderId: 'o1', total: 50 }));
 
       expect(proc.emittedEvents).toHaveLength(1);
-      expect(proc.emittedEvents![0].eventClass).toBe(OrderCreated);
+      expect(proc.emittedEvents?.[0].eventClass).toBe(OrderCreated);
       expect(proc.inputSchema).toBeDefined();
       expect(proc.outputSchema).toBeDefined();
       expect(proc.restOverride).toEqual({ method: 'POST', path: '/custom' });

@@ -271,9 +271,6 @@ describe('.useAfter()', () => {
         constructor(data: TData) {
           this.data = data;
         }
-        static get eventName(): string {
-          return DomainEvent.name;
-        }
       }
 
       class ItemCreated extends DomainEvent<{ itemId: string }> {}

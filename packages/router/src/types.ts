@@ -547,7 +547,10 @@ export interface CompiledProcedure<
    * Emission errors are caught and logged — they never fail the request.
    */
   readonly emittedEvents?: ReadonlyArray<{
-    eventClass: { new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown; readonly eventName: string };
+    eventClass: {
+      new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown;
+      readonly name: string;
+    };
     mapper?: (result: unknown) => Record<string, unknown>;
   }>;
 

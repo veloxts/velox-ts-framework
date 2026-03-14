@@ -273,15 +273,14 @@ describe('DomainEventEmitter', () => {
     });
   });
 
-  describe('eventName static getter override', () => {
-    it('should use eventName static getter for dispatch, not constructor.name', async () => {
-      class CustomNameEvent extends DomainEvent<{ id: string }> {
-        static override get eventName() { return 'custom.event'; }
-      }
+  describe('dispatch keyed by Function.name', () => {
+    it('uses the class constructor name for dispatch', async () => {
+      class MyCustomEvent extends DomainEvent<{ id: string }> {}
+
       const emitter = new DomainEventEmitter();
       const handler = vi.fn();
-      emitter.on(CustomNameEvent, handler);
-      await emitter.emit(new CustomNameEvent({ id: '1' }));
+      emitter.on(MyCustomEvent, handler);
+      await emitter.emit(new MyCustomEvent({ id: '1' }));
       expect(handler).toHaveBeenCalledWith({ id: '1' });
     });
   });

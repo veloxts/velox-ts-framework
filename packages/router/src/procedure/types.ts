@@ -487,7 +487,7 @@ export interface ProcedureBuilder<
   emits<TEventData extends Record<string, unknown>>(
     eventClass: {
       new (data: TEventData, options?: { correlationId?: string }): unknown;
-      readonly eventName: string;
+      readonly name: string;
     },
     mapper?: (result: TOutput) => TEventData
   ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
@@ -705,7 +705,7 @@ export interface BuilderRuntimeState {
   emittedEvents?: Array<{
     eventClass: {
       new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown;
-      readonly eventName: string;
+      readonly name: string;
     };
     mapper?: (result: unknown) => Record<string, unknown>;
   }>;

@@ -46,10 +46,6 @@ abstract class DomainEvent<TData extends Record<string, unknown> = Record<string
     this.timestamp = new Date();
     this.correlationId = options?.correlationId;
   }
-
-  static get eventName(): string {
-    return DomainEvent.name;
-  }
 }
 
 class OrderCreated extends DomainEvent<{ orderId: string; total: number }> {}

@@ -315,9 +315,7 @@ export function isNotFoundErrorResponse(
  * error codes (VALIDATION_ERROR, NOT_FOUND). The server-side DomainError
  * serializes as: { error, message, statusCode, code, data }.
  */
-export function isDomainErrorResponse(
-  response: ErrorResponse
-): response is DomainErrorResponse {
+export function isDomainErrorResponse(response: ErrorResponse): response is DomainErrorResponse {
   return (
     typeof response.code === 'string' &&
     response.code !== 'VALIDATION_ERROR' &&

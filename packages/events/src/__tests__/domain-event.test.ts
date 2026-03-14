@@ -7,8 +7,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DomainEvent } from '../domain/event.js';
 import type { DomainEventClass } from '../domain/event.js';
+import { DomainEvent } from '../domain/event.js';
 
 // =============================================================================
 // Concrete event classes for testing
@@ -118,17 +118,17 @@ describe('DomainEvent', () => {
     });
   });
 
-  describe('static eventName', () => {
+  describe('static name (Function.name)', () => {
     it('returns the class name for concrete event subclasses', () => {
-      expect(OrderCreatedEvent.eventName).toBe('OrderCreatedEvent');
+      expect(OrderCreatedEvent.name).toBe('OrderCreatedEvent');
     });
 
     it('returns a different name for a different event class', () => {
-      expect(UserRegisteredEvent.eventName).toBe('UserRegisteredEvent');
+      expect(UserRegisteredEvent.name).toBe('UserRegisteredEvent');
     });
 
-    it('each class has its own independent eventName', () => {
-      expect(OrderCreatedEvent.eventName).not.toBe(UserRegisteredEvent.eventName);
+    it('each class has its own independent name', () => {
+      expect(OrderCreatedEvent.name).not.toBe(UserRegisteredEvent.name);
     });
   });
 
@@ -171,6 +171,6 @@ describe('DomainEventClass type', () => {
 
     expect(instance.data.orderId).toBe('order-type-test');
     expect(instance.correlationId).toBe('type-corr');
-    expect(EventCtor.eventName).toBe('OrderCreatedEvent');
+    expect(EventCtor.name).toBe('OrderCreatedEvent');
   });
 });

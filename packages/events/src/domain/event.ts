@@ -32,12 +32,10 @@
  *   { correlationId: 'req-abc' }
  * );
  *
- * console.log(OrderCreatedEvent.eventName); // 'OrderCreatedEvent'
+ * console.log(OrderCreatedEvent.name); // 'OrderCreatedEvent'
  * ```
  */
-export abstract class DomainEvent<
-  TData extends Record<string, unknown> = Record<string, unknown>,
-> {
+export abstract class DomainEvent<TData extends Record<string, unknown> = Record<string, unknown>> {
   /** The typed payload carried by this event. */
   readonly data: TData;
 
@@ -51,16 +49,6 @@ export abstract class DomainEvent<
     this.data = data;
     this.timestamp = new Date();
     this.correlationId = options?.correlationId;
-  }
-
-  /**
-   * Returns the name of the concrete event class.
-   *
-   * Implemented as a static getter so each subclass automatically
-   * inherits the correct class name without requiring manual overrides.
-   */
-  static get eventName(): string {
-    return this.name;
   }
 }
 
@@ -80,13 +68,11 @@ export abstract class DomainEvent<
  *   EventClass: DomainEventClass<TData>,
  *   handler: (event: DomainEvent<TData>) => void,
  * ): void {
- *   // register handler keyed by EventClass.eventName
+ *   // register handler keyed by EventClass.name
  * }
  * ```
  */
-export type DomainEventClass<
-  TData extends Record<string, unknown> = Record<string, unknown>,
-> = {
+export type DomainEventClass<TData extends Record<string, unknown> = Record<string, unknown>> = {
   new (data: TData, options?: { correlationId?: string }): DomainEvent<TData>;
-  readonly eventName: string;
+  readonly name: string;
 };
