@@ -8,7 +8,7 @@
  * @module procedure/builder
  */
 
-import { type BaseContext, ConfigurationError, ForbiddenError, logWarning } from '@veloxts/core';
+import { type BaseContext, ConfigurationError, createLogger, ForbiddenError, logWarning } from '@veloxts/core';
 
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
@@ -51,6 +51,8 @@ import type {
   ValidOutputSchema,
   ValidSchema,
 } from './types.js';
+
+const log = createLogger('router');
 
 // ============================================================================
 // Builder Factory
@@ -975,7 +977,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
             : (result as Record<string, unknown>);
           await ctxEvents.emit(new eventClass(eventData));
         } catch (error) {
-          console.error('[velox:router] Event emission error:', error);
+          log.error('Event emission error:', error);
         }
       }
     }
