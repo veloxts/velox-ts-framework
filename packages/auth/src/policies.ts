@@ -3,7 +3,7 @@
  * @module auth/policies
  */
 
-import { createLogger } from '@veloxts/core';
+import { createLogger, ForbiddenError } from '@veloxts/core';
 
 import type {
   PolicyAction,
@@ -104,10 +104,14 @@ export function clearPolicies(): void {
  * registerPolicy(PostPolicy);
  * ```
  */
-export function definePolicy<TUser = User, TResource = unknown>(
-  resourceName: string,
+export function definePolicy<
+  TUser = User,
+  TResource = unknown,
+  const TResourceName extends string = string,
+>(
+  resourceName: TResourceName,
   actions: PolicyDefinition<TUser, TResource>
-): PolicyObject<TUser, TResource> {
+): PolicyObject<TUser, TResource, TResourceName> {
   const result: Record<string, unknown> = {
     resourceName,
   };
@@ -115,7 +119,7 @@ export function definePolicy<TUser = User, TResource = unknown>(
   for (const [actionName, handler] of Object.entries(actions)) {
     if (handler) {
       const actionHandler = handler;
-      const ref: PolicyActionRef<TUser, TResource> = {
+      const ref: PolicyActionRef<TUser, TResource, TResourceName> = {
         actionName,
         resourceName,
         check: (user: TUser, resource?: TResource) => {
@@ -126,7 +130,7 @@ export function definePolicy<TUser = User, TResource = unknown>(
     }
   }
 
-  return result as PolicyObject<TUser, TResource>;
+  return result as PolicyObject<TUser, TResource, TResourceName>;
 }
 
 // ============================================================================
@@ -201,11 +205,9 @@ export async function authorize<TResource = unknown>(
 ): Promise<void> {
   const allowed = await can(user, action, resourceName, resource);
   if (!allowed) {
-    const error = new Error(
+    throw new ForbiddenError(
       `Unauthorized: cannot ${action} ${resourceName}${resource ? ` (id: ${(resource as { id?: string }).id ?? 'unknown'})` : ''}`
     );
-    (error as Error & { statusCode: number }).statusCode = 403;
-    throw error;
   }
 }
 

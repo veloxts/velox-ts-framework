@@ -8,7 +8,12 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { isDomainErrorResponse, parseErrorResponse, VeloxClientError } from '../errors.js';
-import type { InferProcedureErrors } from '../types.js';
+import type {
+  ClientCallable,
+  ClientFromCollection,
+  InferProcedureErrors,
+  ProcedureCollection,
+} from '../types.js';
 
 // ============================================================================
 // Helpers
@@ -288,5 +293,91 @@ describe('InferProcedureErrors type utility', () => {
     type Errors = InferProcedureErrors<string>;
 
     expectTypeOf<Errors>().toBeNever();
+  });
+
+  it('should extract errors from _errors phantom (primary path)', () => {
+    class InsufficientStock {
+      readonly code = 'INSUFFICIENT_STOCK' as const;
+      readonly data: { sku: string; available: number };
+      constructor(data: { sku: string; available: number }) {
+        this.data = data;
+      }
+    }
+
+    class PaymentFailed {
+      readonly code = 'PAYMENT_FAILED' as const;
+      readonly data: { reason: string };
+      constructor(data: { reason: string }) {
+        this.data = data;
+      }
+    }
+
+    // Procedure with _errors phantom (as CompiledProcedure produces)
+    type MockProcedure = {
+      readonly type: 'mutation';
+      readonly _errors?: InsufficientStock | PaymentFailed;
+    };
+
+    type Errors = InferProcedureErrors<MockProcedure>;
+
+    expectTypeOf<{
+      code: 'INSUFFICIENT_STOCK';
+      data: { sku: string; available: number };
+    }>().toMatchTypeOf<Errors>();
+    expectTypeOf<{ code: 'PAYMENT_FAILED'; data: { reason: string } }>().toMatchTypeOf<Errors>();
+  });
+
+  it('should extract errors from ClientCallable _errors phantom', () => {
+    class OrderNotFound {
+      readonly code = 'ORDER_NOT_FOUND' as const;
+      readonly data: { orderId: string };
+      constructor(data: { orderId: string }) {
+        this.data = data;
+      }
+    }
+
+    type Callable = ClientCallable<{ id: string }, { name: string }, OrderNotFound>;
+    type Errors = InferProcedureErrors<Callable>;
+
+    expectTypeOf<{ code: 'ORDER_NOT_FOUND'; data: { orderId: string } }>().toMatchTypeOf<Errors>();
+  });
+
+  it('should resolve to never for ClientCallable without errors', () => {
+    type Callable = ClientCallable<{ id: string }, { name: string }>;
+    type Errors = InferProcedureErrors<Callable>;
+
+    expectTypeOf<Errors>().toBeNever();
+  });
+
+  it('should thread errors through ClientFromCollection', () => {
+    class InsufficientFunds {
+      readonly code = 'INSUFFICIENT_FUNDS' as const;
+      readonly data: { amount: number };
+      constructor(data: { amount: number }) {
+        this.data = data;
+      }
+    }
+
+    // Simulated CompiledProcedure with _errors phantom
+    type MockProc = {
+      readonly type: 'mutation';
+      // biome-ignore lint/suspicious/noExplicitAny: test mock
+      readonly handler: (args: { input: { amount: number }; ctx: any }) => Promise<{ ok: boolean }>;
+      readonly inputSchema: { parse: (input: unknown) => { amount: number } };
+      readonly outputSchema: { parse: (output: unknown) => { ok: boolean } };
+      readonly middlewares: readonly [];
+      readonly guards: readonly [];
+      readonly _errors?: InsufficientFunds;
+    };
+
+    type Collection = ProcedureCollection<'payments', { charge: MockProc }>;
+    type Client = ClientFromCollection<Collection>;
+
+    // The callable should carry the error type
+    type ChargeErrors = InferProcedureErrors<Client['charge']>;
+    expectTypeOf<{
+      code: 'INSUFFICIENT_FUNDS';
+      data: { amount: number };
+    }>().toMatchTypeOf<ChargeErrors>();
   });
 });

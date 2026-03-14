@@ -13,6 +13,7 @@
  * @module procedure/pipeline-executor
  */
 
+import type { BaseContext } from '@veloxts/core';
 import { ConfigurationError, createLogger } from '@veloxts/core';
 
 import type { PipelineStep } from './pipeline.js';
@@ -93,7 +94,7 @@ export function splitPipelineSteps(steps: ReadonlyArray<PipelineStep>): SplitPip
 export async function executePipeline(
   steps: ReadonlyArray<PipelineStep>,
   input: unknown,
-  ctx: unknown
+  ctx: BaseContext
 ): Promise<unknown> {
   const completedSteps: CompletedStep[] = [];
   let currentInput = input;
@@ -128,7 +129,7 @@ export async function executePipeline(
 export async function executeExternalSteps(
   steps: ReadonlyArray<PipelineStep>,
   input: unknown,
-  ctx: unknown
+  ctx: BaseContext
 ): Promise<void> {
   const completedSteps: CompletedStep[] = [];
   let currentInput = input;
@@ -158,7 +159,7 @@ export async function executeExternalSteps(
  */
 async function runReverts(
   completedSteps: ReadonlyArray<CompletedStep>,
-  ctx: unknown
+  ctx: BaseContext
 ): Promise<void> {
   // Process in reverse order
   for (let i = completedSteps.length - 1; i >= 0; i--) {

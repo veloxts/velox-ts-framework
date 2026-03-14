@@ -685,7 +685,7 @@ Methods must appear in this order on the procedure builder. All are optional exc
 .use()            — optional, repeatable
 .throws()         — optional, at most once
 .transactional()  — optional, at most once
-.through()        — optional, at most once
+.through()        — optional, repeatable (steps accumulate)
 .emits()          — optional, repeatable
 .rest()           — optional, at most once
 .query()/.mutation()  — required, exactly once (terminal)

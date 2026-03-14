@@ -9,6 +9,8 @@
  * @module procedure/pipeline
  */
 
+import type { BaseContext } from '@veloxts/core';
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -31,7 +33,7 @@ export interface StepOptions {
  */
 export interface RevertAction<TInput = unknown> {
   readonly name: string;
-  readonly handler: (params: { input: TInput; ctx: unknown }) => void | Promise<void>;
+  readonly handler: (params: { input: TInput; ctx: BaseContext }) => void | Promise<void>;
 }
 
 /**
@@ -44,7 +46,7 @@ export interface RevertAction<TInput = unknown> {
 export interface PipelineStep<TInput = unknown, TOutput = unknown> {
   readonly name: string;
   readonly external: boolean;
-  readonly handler: (params: { input: TInput; ctx: unknown }) => TOutput | Promise<TOutput>;
+  readonly handler: (params: { input: TInput; ctx: BaseContext }) => TOutput | Promise<TOutput>;
   readonly revertAction?: RevertAction;
   /** Attach a revert action to this step, returning a new step (immutable) */
   onRevert(revert: RevertAction): PipelineStep<TInput, TOutput>;
@@ -57,7 +59,7 @@ export interface PipelineStep<TInput = unknown, TOutput = unknown> {
 /** Handler function signature for pipeline steps */
 type StepHandler<TInput, TOutput> = (params: {
   input: TInput;
-  ctx: unknown;
+  ctx: BaseContext;
 }) => TOutput | Promise<TOutput>;
 
 // ============================================================================
@@ -128,7 +130,7 @@ export function defineStep<TInput = unknown, TOutput = unknown>(
  */
 export function defineRevert<TInput = unknown>(
   name: string,
-  handler: (params: { input: TInput; ctx: unknown }) => void | Promise<void>
+  handler: (params: { input: TInput; ctx: BaseContext }) => void | Promise<void>
 ): RevertAction<TInput> {
   return { name, handler };
 }

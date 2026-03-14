@@ -290,6 +290,11 @@ export interface ProcedureBuilder<
    *
    * If the policy check fails, a ForbiddenError is thrown.
    *
+   * **Compile-time safety:** When the resource name is a string literal
+   * (e.g., from `definePolicy('Post', ...)`), TypeScript enforces that the
+   * context contains the resource key. Forgetting `.use(loadPost)` before
+   * `.policy(PostPolicy.update)` produces a type error.
+   *
    * @param action - Policy action reference (from definePolicy)
    * @returns Same builder (no type changes)
    *
@@ -299,11 +304,20 @@ export interface ProcedureBuilder<
    *
    * procedure()
    *   .guard(authenticated)
-   *   .policy(PostPolicy.update)
+   *   .use(loadPost) // adds { post: Post } to context
+   *   .policy(PostPolicy.update) // ✓ context has 'post'
    *   .mutation(async ({ input, ctx }) => { ... });
    * ```
    */
-  policy(action: PolicyActionLike): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+  policy<TResourceName extends string>(
+    action: string extends TResourceName
+      ? PolicyActionLike<unknown, unknown, TResourceName>
+      : Uncapitalize<TResourceName> extends keyof TContext
+        ? PolicyActionLike<unknown, unknown, TResourceName>
+        : PolicyActionLike<unknown, unknown, TResourceName> & {
+            _contextMissing: `Add .use() middleware to provide '${Uncapitalize<TResourceName>}' in context before .policy()`;
+          }
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Declares domain error classes that this procedure may throw

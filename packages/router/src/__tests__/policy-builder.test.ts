@@ -5,11 +5,12 @@
 
 import type { BaseContext } from '@veloxts/core';
 import { ForbiddenError } from '@veloxts/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { executeProcedure, procedure } from '../procedure/builder.js';
 import { defineStep } from '../procedure/pipeline.js';
+import type { ProcedureBuilder } from '../procedure/types.js';
 import type { PolicyActionLike } from '../types.js';
 
 // ============================================================================
@@ -336,6 +337,61 @@ describe('.policy()', () => {
 
       const result = await executeProcedure(proc, {}, ctx);
       expect(result).toEqual({ title: 'My Post' });
+    });
+  });
+
+  describe('compile-time context enforcement', () => {
+    it('should accept policy when context has the resource (literal resource name)', () => {
+      // PolicyActionLike with literal TResourceName
+      const action: PolicyActionLike<unknown, unknown, 'Post'> = {
+        actionName: 'update',
+        resourceName: 'Post',
+        check: () => true,
+      };
+
+      // Builder with context that has 'post' key
+      type CtxWithPost = BaseContext & { post: { id: string } };
+
+      // This should compile — context has 'post'
+      type Builder = ProcedureBuilder<unknown, unknown, CtxWithPost>;
+      type PolicyResult = ReturnType<Builder['policy']>;
+      expectTypeOf<PolicyResult>().not.toBeNever();
+
+      // Runtime: also works
+      const proc = procedure()
+        .use(async ({ next }) => next({ ctx: { post: { id: 'p1' } } }))
+        .policy(action)
+        .mutation(async () => ({ ok: true }));
+
+      expect(proc.policyAction?.resourceName).toBe('Post');
+    });
+
+    it('should accept policy with wide string resourceName (graceful degradation)', () => {
+      // When TResourceName is 'string' (from definePolicy<User, Post>(...)),
+      // the check is skipped — no compile-time enforcement
+      const action: PolicyActionLike = {
+        actionName: 'update',
+        resourceName: 'Post',
+        check: () => true,
+      };
+
+      // This should compile even without 'post' on context
+      const proc = procedure()
+        .policy(action)
+        .mutation(async () => ({ ok: true }));
+
+      expect(proc.policyAction?.resourceName).toBe('Post');
+    });
+
+    it('should carry literal resourceName through PolicyActionLike', () => {
+      const action: PolicyActionLike<unknown, unknown, 'OrderItem'> = {
+        actionName: 'update',
+        resourceName: 'OrderItem',
+        check: () => true,
+      };
+
+      // Verify the literal is preserved
+      expectTypeOf(action.resourceName).toEqualTypeOf<'OrderItem'>();
     });
   });
 });

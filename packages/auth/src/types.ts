@@ -371,11 +371,15 @@ export interface PolicyDefinition<TUser = User, TResource = unknown> {
  * Returned as a property on a PolicyObject for each defined action.
  * Can be used for introspection or passed to authorization helpers.
  */
-export interface PolicyActionRef<TUser = unknown, TResource = unknown> {
+export interface PolicyActionRef<
+  TUser = unknown,
+  TResource = unknown,
+  TResourceName extends string = string,
+> {
   /** The name of the action (e.g., 'update', 'delete') */
   readonly actionName: string;
   /** The name of the resource this policy applies to (e.g., 'Post') */
-  readonly resourceName: string;
+  readonly resourceName: TResourceName;
   /** Execute the policy check for this action */
   readonly check: (user: TUser, resource?: TResource) => boolean | Promise<boolean>;
 }
@@ -385,11 +389,16 @@ export interface PolicyActionRef<TUser = unknown, TResource = unknown> {
  *
  * Contains the resource name and each action as a PolicyActionRef.
  */
-export type PolicyObject<TUser = User, TResource = unknown, TActions extends string = string> = {
+export type PolicyObject<
+  TUser = User,
+  TResource = unknown,
+  TResourceName extends string = string,
+  TActions extends string = string,
+> = {
   /** The resource name this policy applies to */
-  readonly resourceName: string;
+  readonly resourceName: TResourceName;
 } & {
-  readonly [K in TActions]: PolicyActionRef<TUser, TResource>;
+  readonly [K in TActions]: PolicyActionRef<TUser, TResource, TResourceName>;
 };
 
 // ============================================================================

@@ -239,7 +239,9 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
     /**
      * Adds a policy action check to the procedure
      */
-    policy(action: PolicyActionLike): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+    policy<TResourceName extends string>(
+      action: PolicyActionLike<unknown, unknown, TResourceName>
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
       return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         policyAction: action,

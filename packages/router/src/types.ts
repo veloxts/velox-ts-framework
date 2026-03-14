@@ -159,11 +159,15 @@ export interface GuardLike<TContext = unknown> {
  * @template TUser - The user type the policy operates on
  * @template TResource - The resource type the policy checks against
  */
-export interface PolicyActionLike<TUser = unknown, TResource = unknown> {
+export interface PolicyActionLike<
+  TUser = unknown,
+  TResource = unknown,
+  TResourceName extends string = string,
+> {
   /** The name of the action (e.g., 'update', 'delete') */
   readonly actionName: string;
   /** The name of the resource this policy applies to (e.g., 'Post') */
-  readonly resourceName: string;
+  readonly resourceName: TResourceName;
   /** Execute the policy check for this action */
   readonly check: (user: TUser, resource?: TResource) => boolean | Promise<boolean>;
 }
