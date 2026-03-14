@@ -5,8 +5,15 @@
  * the next step's input. On failure, runs revert actions for completed
  * steps in reverse order (compensation pattern).
  *
+ * When `.transactional()` is combined with `.through()`, the executor
+ * implements a two-phase model:
+ * - Phase A: DB steps (non-external) run inside the transaction
+ * - Phase B: External steps run after the transaction commits
+ *
  * @module procedure/pipeline-executor
  */
+
+import { ConfigurationError } from '@veloxts/core';
 
 import type { PipelineStep } from './pipeline.js';
 
@@ -16,6 +23,51 @@ import type { PipelineStep } from './pipeline.js';
 interface CompletedStep {
   readonly step: PipelineStep;
   readonly output: unknown;
+}
+
+/**
+ * Result of splitting pipeline steps into DB and external phases
+ */
+export interface SplitPipelineSteps {
+  /** Steps that run inside the DB transaction (external === false) */
+  readonly dbSteps: ReadonlyArray<PipelineStep>;
+  /** Steps that run after transaction commit (external === true) */
+  readonly externalSteps: ReadonlyArray<PipelineStep>;
+}
+
+/**
+ * Splits pipeline steps into DB (non-external) and external phases
+ *
+ * Validates the ordering constraint: when transactional, all external steps
+ * must come AFTER all DB steps. If an external step appears before a DB step,
+ * a ConfigurationError is thrown.
+ *
+ * @param steps - Pipeline steps to split
+ * @returns Object with `dbSteps` and `externalSteps` arrays
+ * @throws ConfigurationError if an external step precedes a DB step
+ */
+export function splitPipelineSteps(steps: ReadonlyArray<PipelineStep>): SplitPipelineSteps {
+  const dbSteps: PipelineStep[] = [];
+  const externalSteps: PipelineStep[] = [];
+
+  let seenExternal = false;
+
+  for (const step of steps) {
+    if (step.external) {
+      seenExternal = true;
+      externalSteps.push(step);
+    } else {
+      if (seenExternal) {
+        throw new ConfigurationError(
+          `Pipeline step "${step.name}" (DB) is declared after external step "${externalSteps[externalSteps.length - 1].name}". ` +
+            'When using .transactional(), all external steps must come after all DB steps in the .through() declaration.'
+        );
+      }
+      dbSteps.push(step);
+    }
+  }
+
+  return { dbSteps, externalSteps };
 }
 
 /**
@@ -39,7 +91,7 @@ interface CompletedStep {
 export async function executePipeline(
   steps: ReadonlyArray<PipelineStep>,
   input: unknown,
-  ctx: unknown,
+  ctx: unknown
 ): Promise<unknown> {
   const completedSteps: CompletedStep[] = [];
   let currentInput = input;
@@ -60,6 +112,39 @@ export async function executePipeline(
 }
 
 /**
+ * Executes external pipeline steps after a transaction has committed
+ *
+ * External steps run in declaration order. If a step fails, revert actions
+ * are run for all previously completed EXTERNAL steps in reverse order.
+ * The DB transaction is already committed — DB changes persist.
+ *
+ * @param steps - External pipeline steps to execute in order
+ * @param input - Input for the first external step (output of last DB step, or original input)
+ * @param ctx - Request context (with the ORIGINAL db, not the transactional client)
+ * @returns The output of the last external step (ignored by the caller, since handler already ran)
+ */
+export async function executeExternalSteps(
+  steps: ReadonlyArray<PipelineStep>,
+  input: unknown,
+  ctx: unknown
+): Promise<void> {
+  const completedSteps: CompletedStep[] = [];
+  let currentInput = input;
+
+  for (const step of steps) {
+    try {
+      const output = await step.handler({ input: currentInput, ctx });
+      completedSteps.push({ step, output });
+      currentInput = output;
+    } catch (error) {
+      // External step failed — revert only completed external steps
+      await runReverts(completedSteps, ctx);
+      throw error;
+    }
+  }
+}
+
+/**
  * Runs revert actions for completed steps in reverse order
  *
  * Each revert receives the output of the step it is reverting.
@@ -71,7 +156,7 @@ export async function executePipeline(
  */
 async function runReverts(
   completedSteps: ReadonlyArray<CompletedStep>,
-  ctx: unknown,
+  ctx: unknown
 ): Promise<void> {
   // Process in reverse order
   for (let i = completedSteps.length - 1; i >= 0; i--) {
@@ -86,7 +171,7 @@ async function runReverts(
     } catch (revertError) {
       console.error(
         `[velox:router] Revert "${step.revertAction.name}" for step "${step.name}" failed:`,
-        revertError,
+        revertError
       );
     }
   }

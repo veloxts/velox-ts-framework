@@ -39,7 +39,7 @@ import {
   type WarningOption,
 } from '../warnings.js';
 import type { PipelineStep } from './pipeline.js';
-import { executePipeline } from './pipeline-executor.js';
+import { executeExternalSteps, executePipeline, splitPipelineSteps } from './pipeline-executor.js';
 import type {
   BuilderRuntimeState,
   InferOutputSchema,
@@ -883,14 +883,20 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
 
   // Step 2.7: Execute pipeline steps if .through() was used
   // Pipeline transforms input before the handler. Runs inside transaction when applicable.
-  const hasPipeline = procedure.pipelineSteps !== undefined && procedure.pipelineSteps.length > 0;
+  const pipelineSteps = procedure.pipelineSteps;
+  const hasPipeline = pipelineSteps !== undefined && pipelineSteps.length > 0;
 
   // Step 3: Execute handler (with or without middleware)
-  // Helper that runs the pipeline + middleware chain + handler with a given context
-  const executeWithContext = async (execCtx: TContext): Promise<TOutput> => {
+  // Helper that runs a given set of pipeline steps + middleware chain + handler
+  const executeWithSteps = async (
+    steps: ReadonlyArray<PipelineStep> | undefined,
+    execCtx: TContext
+  ): Promise<TOutput> => {
+    const hasSteps = steps !== undefined && steps.length > 0;
+
     // Run pipeline to transform input before handler
-    const handlerInput = hasPipeline
-      ? ((await executePipeline(procedure.pipelineSteps!, input, execCtx)) as TInput)
+    const handlerInput = hasSteps
+      ? ((await executePipeline(steps, input, execCtx)) as TInput)
       : input;
 
     if (procedure._precompiledExecutor) {
@@ -915,20 +921,41 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   // Wrap in transaction if .transactional() was called and ctx.db.$transaction exists
   const ctxRecord = ctxWithLevel as Record<string, unknown>;
   const db = ctxRecord.db as Record<string, unknown> | undefined;
+  const isTransactional = procedure.transactional && db && typeof db.$transaction === 'function';
 
-  if (procedure.transactional && db && typeof db.$transaction === 'function') {
+  if (isTransactional) {
     const $transaction = db.$transaction as (
       callback: (tx: unknown) => Promise<TOutput>,
       options?: unknown
     ) => Promise<TOutput>;
 
-    result = await $transaction(async (tx) => {
-      // Replace ctx.db with the transactional client
-      const txCtx = { ...ctxWithLevel, db: tx } as TContext;
-      return executeWithContext(txCtx);
-    }, procedure.transactionalOptions);
+    if (hasPipeline) {
+      // Two-phase model: split steps into DB (inside tx) and external (after commit)
+      const { dbSteps, externalSteps } = splitPipelineSteps(pipelineSteps);
+
+      // Phase A: Run DB steps + handler inside transaction
+      result = await $transaction(async (tx) => {
+        const txCtx = { ...ctxWithLevel, db: tx } as TContext;
+        return executeWithSteps(dbSteps.length > 0 ? dbSteps : undefined, txCtx);
+      }, procedure.transactionalOptions);
+
+      // Phase B: Run external steps after commit (outside transaction)
+      if (externalSteps.length > 0) {
+        await executeExternalSteps(externalSteps, input, ctxWithLevel as TContext);
+      }
+    } else {
+      // Transactional, no pipeline — wrap handler in $transaction (current behavior)
+      result = await $transaction(async (tx) => {
+        const txCtx = { ...ctxWithLevel, db: tx } as TContext;
+        return executeWithSteps(undefined, txCtx);
+      }, procedure.transactionalOptions);
+    }
   } else {
-    result = await executeWithContext(ctxWithLevel as TContext);
+    // Not transactional — run all steps in declaration order (regardless of external flag)
+    result = await executeWithSteps(
+      hasPipeline ? pipelineSteps : undefined,
+      ctxWithLevel as TContext
+    );
   }
 
   // Step 4: Emit domain events if .emits() was used

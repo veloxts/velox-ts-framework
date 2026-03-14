@@ -252,10 +252,9 @@ describe('.through()', () => {
     });
 
     it('works without .through() (backward compatible)', async () => {
-      const proc = procedure()
-        .mutation(async ({ input }) => {
-          return { received: input };
-        });
+      const proc = procedure().mutation(async ({ input }) => {
+        return { received: input };
+      });
 
       const ctx = {} as BaseContext;
       const result = await executeProcedure(proc, { data: 'test' }, ctx);
@@ -347,6 +346,237 @@ describe('.through()', () => {
       await executeProcedure(proc, { id: '1' }, ctx);
 
       expect(handlerInput).toEqual({ id: '1', meta: true });
+    });
+  });
+
+  describe('.through() + .transactional() two-phase model', () => {
+    it('should run DB steps inside transaction, external steps after commit', async () => {
+      const order: string[] = [];
+      const txClient = { _isTx: true };
+      const mockDb = {
+        $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
+          order.push('tx-start');
+          const result = await callback(txClient);
+          order.push('tx-commit');
+          return result;
+        }),
+      };
+
+      const dbStep = defineStep('dbStep', async ({ input }) => {
+        order.push('db-step');
+        return input;
+      });
+
+      const externalStep = defineStep(
+        { name: 'externalStep', external: true },
+        async ({ input }) => {
+          order.push('external-step');
+          return input;
+        }
+      );
+
+      const proc = procedure()
+        .through(dbStep, externalStep)
+        .transactional()
+        .mutation(async ({ input }) => {
+          order.push('handler');
+          return input as { ok: boolean };
+        });
+
+      const ctx = { db: mockDb } as unknown as BaseContext;
+      await executeProcedure(proc, { ok: true }, ctx);
+
+      // DB step and handler run inside transaction, external step runs after commit
+      expect(order).toEqual(['tx-start', 'db-step', 'handler', 'tx-commit', 'external-step']);
+    });
+
+    it('should run mutation handler inside the same transaction as DB steps', async () => {
+      let handlerDb: unknown;
+      let stepDb: unknown;
+      const txClient = { _isTx: true };
+      const mockDb = {
+        _isTx: false,
+        $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
+          return callback(txClient);
+        }),
+      };
+
+      const dbStep = defineStep('checkDb', async ({ input, ctx }) => {
+        stepDb = (ctx as Record<string, unknown>).db;
+        return input;
+      });
+
+      const proc = procedure()
+        .through(dbStep)
+        .transactional()
+        .mutation(async ({ input, ctx }) => {
+          handlerDb = (ctx as Record<string, unknown>).db;
+          return input as { ok: boolean };
+        });
+
+      const ctx = { db: mockDb } as unknown as BaseContext;
+      await executeProcedure(proc, { ok: true }, ctx);
+
+      // Both DB step and handler should see the transactional client
+      expect(stepDb).toBe(txClient);
+      expect(handlerDb).toBe(txClient);
+    });
+
+    it('should run external steps AFTER transaction commits', async () => {
+      let transactionCommitted = false;
+      let externalRanAfterCommit = false;
+      const txClient = {};
+      const mockDb = {
+        $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
+          const result = await callback(txClient);
+          transactionCommitted = true;
+          return result;
+        }),
+      };
+
+      const externalStep = defineStep(
+        { name: 'afterCommit', external: true },
+        async ({ input }) => {
+          externalRanAfterCommit = transactionCommitted;
+          return input;
+        }
+      );
+
+      const proc = procedure()
+        .through(externalStep)
+        .transactional()
+        .mutation(async ({ input }) => {
+          return input as { ok: boolean };
+        });
+
+      const ctx = { db: mockDb } as unknown as BaseContext;
+      await executeProcedure(proc, { ok: true }, ctx);
+
+      expect(externalRanAfterCommit).toBe(true);
+    });
+
+    it('should revert only external steps when an external step fails (DB already committed)', async () => {
+      const order: string[] = [];
+      let transactionCommitted = false;
+      const txClient = {};
+      const mockDb = {
+        $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
+          const result = await callback(txClient);
+          transactionCommitted = true;
+          return result;
+        }),
+      };
+
+      const dbRevert = defineRevert('undoDb', async () => {
+        order.push('db-revert');
+      });
+
+      const externalRevert1 = defineRevert('undoExternal1', async () => {
+        order.push('external-revert-1');
+      });
+
+      const dbStep = defineStep('dbStep', async ({ input }) => {
+        order.push('db-step');
+        return input;
+      }).onRevert(dbRevert);
+
+      const externalStep1 = defineStep({ name: 'ext1', external: true }, async ({ input }) => {
+        order.push('external-1');
+        return input;
+      }).onRevert(externalRevert1);
+
+      const externalStep2 = defineStep({ name: 'ext2', external: true }, async () => {
+        order.push('external-2-fail');
+        throw new Error('External step 2 failed');
+      });
+
+      const proc = procedure()
+        .through(dbStep, externalStep1, externalStep2)
+        .transactional()
+        .mutation(async ({ input }) => {
+          order.push('handler');
+          return input as { ok: boolean };
+        });
+
+      const ctx = { db: mockDb } as unknown as BaseContext;
+      await expect(executeProcedure(proc, { ok: true }, ctx)).rejects.toThrow(
+        'External step 2 failed'
+      );
+
+      // Transaction should have committed before external steps ran
+      expect(transactionCommitted).toBe(true);
+
+      // DB revert should NOT run (transaction already committed)
+      expect(order).not.toContain('db-revert');
+
+      // Only external-1's revert should run (external-2 failed, so only earlier external steps revert)
+      expect(order).toContain('external-revert-1');
+
+      // Execution order: db-step, handler inside tx, then external-1, external-2 fails, revert external-1
+      expect(order).toEqual([
+        'db-step',
+        'handler',
+        'external-1',
+        'external-2-fail',
+        'external-revert-1',
+      ]);
+    });
+
+    it('should throw error if external step declared before a DB step under .transactional()', async () => {
+      const externalStep = defineStep(
+        { name: 'externalFirst', external: true },
+        async ({ input }) => input
+      );
+
+      const dbStep = defineStep('dbAfter', async ({ input }) => input);
+
+      const proc = procedure()
+        .through(externalStep, dbStep)
+        .transactional()
+        .mutation(async ({ input }) => input as { ok: boolean });
+
+      const mockDb = {
+        $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
+          return callback({});
+        }),
+      };
+
+      const ctx = { db: mockDb } as unknown as BaseContext;
+
+      await expect(executeProcedure(proc, { ok: true }, ctx)).rejects.toThrow(
+        /external steps must come after all DB steps/
+      );
+    });
+
+    it('should run all steps in order when NOT transactional (regardless of external flag)', async () => {
+      const order: string[] = [];
+
+      const externalStep = defineStep(
+        { name: 'externalStep', external: true },
+        async ({ input }) => {
+          order.push('external');
+          return input;
+        }
+      );
+
+      const dbStep = defineStep('dbStep', async ({ input }) => {
+        order.push('db');
+        return input;
+      });
+
+      // Note: external step is BEFORE db step — this is fine without .transactional()
+      const proc = procedure()
+        .through(externalStep, dbStep)
+        .mutation(async ({ input }) => {
+          order.push('handler');
+          return input as { ok: boolean };
+        });
+
+      const ctx = {} as BaseContext;
+      await executeProcedure(proc, { ok: true }, ctx);
+
+      // Without transactional, all steps run in declaration order regardless of external flag
+      expect(order).toEqual(['external', 'db', 'handler']);
     });
   });
 });
