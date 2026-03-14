@@ -102,7 +102,8 @@ describe('.useAfter()', () => {
 
       expect(result).toEqual({ id: '1' });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[velox:router] useAfter hook error:',
+        '[@veloxts/router]',
+        'useAfter hook error:',
         expect.objectContaining({ message: 'Hook exploded' })
       );
 
@@ -123,7 +124,8 @@ describe('.useAfter()', () => {
 
       expect(result).toEqual({ saved: true });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[velox:router] useAfter hook error:',
+        '[@veloxts/router]',
+        'useAfter hook error:',
         expect.objectContaining({ message: 'Async hook failed' })
       );
 

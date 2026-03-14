@@ -188,7 +188,8 @@ describe('.emits()', () => {
       expect(result).toEqual({ orderId: 'o1', total: 10 });
       expect(emitSpy).toHaveBeenCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[velox:router] Event emission error:',
+        '[@veloxts/router]',
+        'Event emission error:',
         expect.objectContaining({ message: 'Emit failed' })
       );
 

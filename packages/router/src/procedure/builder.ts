@@ -866,7 +866,12 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   if (procedure.policyAction) {
     const ctxRecord = ctxWithLevel as Record<string, unknown>;
     const user = ctxRecord.user;
-    const resourceName = procedure.policyAction.resourceName.toLowerCase();
+    if (user == null) {
+      throw new ForbiddenError('Policy check failed: no authenticated user');
+    }
+    const resourceNameRaw = procedure.policyAction.resourceName;
+    const resourceName =
+      resourceNameRaw.charAt(0).toLowerCase() + resourceNameRaw.slice(1);
     const policyResource = ctxRecord[resourceName];
     const allowed = await procedure.policyAction.check(user, policyResource);
     if (!allowed) {
@@ -1004,7 +1009,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
       try {
         await afterHandler({ input, result, ctx: ctxWithLevel });
       } catch (error) {
-        console.error('[velox:router] useAfter hook error:', error);
+        log.error('useAfter hook error:', error);
       }
     }
   }

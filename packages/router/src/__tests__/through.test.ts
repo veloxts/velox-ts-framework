@@ -244,7 +244,8 @@ describe('.through()', () => {
 
       // Revert error should be logged
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[velox:router] Revert'),
+        expect.stringContaining('[@veloxts/router]'),
+        expect.stringContaining('Revert'),
         expect.anything()
       );
 

@@ -13,9 +13,11 @@
  * @module procedure/pipeline-executor
  */
 
-import { ConfigurationError } from '@veloxts/core';
+import { ConfigurationError, createLogger } from '@veloxts/core';
 
 import type { PipelineStep } from './pipeline.js';
+
+const log = createLogger('router');
 
 /**
  * Tracks a completed pipeline step and its output for potential revert
@@ -169,8 +171,8 @@ async function runReverts(
     try {
       await step.revertAction.handler({ input: output, ctx });
     } catch (revertError) {
-      console.error(
-        `[velox:router] Revert "${step.revertAction.name}" for step "${step.name}" failed:`,
+      log.error(
+        `Revert "${step.revertAction.name}" for step "${step.name}" failed:`,
         revertError
       );
     }

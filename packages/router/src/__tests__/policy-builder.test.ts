@@ -291,6 +291,37 @@ describe('.policy()', () => {
       expect(checkFn).toHaveBeenCalledWith({ id: 'u1' }, { id: 'c1', authorId: 'u1' });
     });
 
+    it('should throw ForbiddenError when ctx.user is undefined', async () => {
+      const policyAction = createPolicyAction('create', 'Post', () => true);
+
+      const proc = procedure()
+        .policy(policyAction)
+        .mutation(async () => ({}));
+
+      const ctx = { request: {}, reply: {} } as unknown as BaseContext;
+
+      await expect(executeProcedure(proc, {}, ctx)).rejects.toThrow(ForbiddenError);
+      await expect(executeProcedure(proc, {}, ctx)).rejects.toThrow('no authenticated user');
+    });
+
+    it('should lookup multi-word resource name with camelCase', async () => {
+      const checkFn = vi.fn().mockReturnValue(true);
+      const policyAction = createPolicyAction('update', 'OrderItem', checkFn);
+
+      const proc = procedure()
+        .policy(policyAction)
+        .mutation(async () => ({}));
+
+      const ctx = {
+        user: { id: '1' },
+        orderItem: { id: 'oi-1' },
+      } as unknown as BaseContext;
+
+      await executeProcedure(proc, {}, ctx);
+
+      expect(checkFn).toHaveBeenCalledWith({ id: '1' }, { id: 'oi-1' });
+    });
+
     it('works with query procedures', async () => {
       const policyAction = createPolicyAction('view', 'Post', () => true);
 

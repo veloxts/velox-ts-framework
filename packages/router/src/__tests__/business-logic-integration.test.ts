@@ -222,7 +222,7 @@ describe('Business Logic Integration — Full Tier 3 Chain', () => {
       await expect(
         executeProcedure(proc, { sku: 'SKU-1', quantity: 1 }, ctx)
       ).rejects.toMatchObject({
-        message: expect.stringContaining('Policy check failed: cannot create Order'),
+        message: expect.stringContaining('Policy check failed: no authenticated user'),
       });
     });
 
