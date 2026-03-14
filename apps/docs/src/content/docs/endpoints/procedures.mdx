@@ -131,27 +131,24 @@ Override REST endpoint generation:
 
 See [REST Overrides](/docs/router/rest-overrides/) for full options.
 
-## Method Chain Order
+## Chain Overview
 
-<Aside type="caution" title="Builder Chain Order Matters">
-Methods must be called in this order:
+Every builder method in declaration order:
 
-```typescript
-procedure()
-  .input(schema)       // 1. Input validation (optional)
-  .guard(guardFn)      // 2. Authorization (optional, can have multiple)
-  .output(schema)      // 3. Zod schema or tagged resource view (optional)
-  .use(middleware)     // 4. Middleware (optional, can have multiple)
-  .rest(options)       // 5. REST override (optional) - BEFORE handler
-  .query(handler)      // 6. Handler - MUST be last
-```
-
-**Wrong:**
-```typescript
-// ERROR: .rest() after .query() won't work
-procedure().query(handler).rest(options)
-```
-</Aside>
+| Method | Purpose | Guide |
+|--------|---------|-------|
+| `.input(schema)` | Input validation | [above](#inputschema) |
+| `.output(schema)` | Output schema or resource view | [above](#outputschema-with-resource-schemas), [Resource API](/docs/endpoints/resource-api/) |
+| `.guard(guard)` | Request-level authorization | [Guards](/docs/authentication/guards/) |
+| `.policy(action)` | Resource-level authorization | [Policies](/docs/authentication/policies/) |
+| `.use(middleware)` | Pre-handler middleware | [Middleware](/docs/router/middleware/) |
+| `.throws(...errors)` | Declare domain errors | [Business Logic](/docs/endpoints/business-logic/) |
+| `.transactional(opts?)` | Wrap handler in DB transaction | [Business Logic](/docs/endpoints/business-logic/) |
+| `.through(...steps)` | Pre-handler pipeline | [Business Logic](/docs/endpoints/business-logic/) |
+| `.emits(Event, mapper?)` | Emit domain event on success | [Business Logic](/docs/endpoints/business-logic/) |
+| `.rest(config)` | Override REST route | [REST Overrides](/docs/router/rest-overrides/) |
+| `.query(handler)` / `.mutation(handler)` | Terminal handler | [above](#queryhandler--mutationhandler) |
+| `.useAfter(hook)` | Post-handler hook | [Middleware](/docs/router/middleware/) |
 
 ## Handler Context
 
@@ -224,6 +221,7 @@ app.routes(rest([...collections], { prefix: '/api' }));
 
 ## Related Content
 
+- [Business Logic](/docs/endpoints/business-logic/) - Transactions, domain errors, events, pipelines
 - [Resource API](/docs/endpoints/resource-api/) - Field-level visibility and projection
 - [REST Conventions](/docs/router/rest-conventions/) - How names map to HTTP
 - [Guards](/docs/authentication/guards/) - Authorization
