@@ -292,5 +292,5 @@ if (isMain) {
     });
 }
 
-export { runMemoryBenchmark, main as runMemoryBenchmarkStandalone };
 export type { MemoryBenchmarkResult };
+export { main as runMemoryBenchmarkStandalone, runMemoryBenchmark };

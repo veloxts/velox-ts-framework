@@ -25,8 +25,6 @@ import {
 // Re-exports
 // ============================================================================
 
-export { VELOXTS_VERSION };
-
 export type {
   DatabaseMetadata,
   DatabaseType,
@@ -43,6 +41,7 @@ export {
   isValidDatabase,
   isValidTemplate,
   TEMPLATE_METADATA,
+  VELOXTS_VERSION,
 };
 
 // ============================================================================

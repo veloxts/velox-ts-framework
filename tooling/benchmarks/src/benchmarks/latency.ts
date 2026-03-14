@@ -256,5 +256,5 @@ if (isMain) {
     });
 }
 
-export { runLatencyBenchmark, main as runLatencyBenchmarkStandalone };
 export type { LatencyResult };
+export { main as runLatencyBenchmarkStandalone, runLatencyBenchmark };

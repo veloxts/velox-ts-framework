@@ -827,7 +827,6 @@ const action: Action = Object.assign(
 // Exports
 // ============================================================================
 
-export { action };
 export type {
   Action,
   ActionBuilder,
@@ -837,3 +836,4 @@ export type {
   FromProcedureOptions,
   ValidatedAction,
 };
+export { action };

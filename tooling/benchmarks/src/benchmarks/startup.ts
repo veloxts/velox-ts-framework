@@ -204,5 +204,5 @@ if (isMain) {
     });
 }
 
-export { runStartupBenchmark, main as runStartupBenchmarkStandalone };
 export type { StartupBenchmarkResult };
+export { main as runStartupBenchmarkStandalone, runStartupBenchmark };
