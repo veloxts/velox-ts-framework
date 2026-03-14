@@ -344,6 +344,25 @@ export interface ParentResourceChain {
 }
 
 /**
+ * Options for database transaction wrapping
+ *
+ * Controls isolation level and timeout when `.transactional()` is used
+ * on a procedure. These options are forwarded directly to Prisma's
+ * `$transaction()` method.
+ */
+export interface TransactionalOptions {
+  /** Transaction isolation level (forwarded to Prisma) */
+  isolationLevel?:
+    | 'ReadUncommitted'
+    | 'ReadCommitted'
+    | 'RepeatableRead'
+    | 'Serializable'
+    | 'Snapshot';
+  /** Transaction timeout in milliseconds */
+  timeout?: number;
+}
+
+/**
  * Compiled procedure with all metadata and handlers
  *
  * This is the final output of the procedure builder, ready for registration
@@ -477,6 +496,21 @@ export interface CompiledProcedure<
    * @internal
    */
   readonly errorClasses?: ReadonlyArray<new (data: Record<string, unknown>) => unknown>;
+
+  /**
+   * Whether the handler should be wrapped in a database transaction
+   *
+   * Set by `.transactional()` on the procedure builder. When true,
+   * `executeProcedure` wraps the handler in `ctx.db.$transaction()`.
+   */
+  readonly transactional?: boolean;
+
+  /**
+   * Options for the database transaction (isolation level, timeout)
+   *
+   * Forwarded to `ctx.db.$transaction()` as the second argument.
+   */
+  readonly transactionalOptions?: TransactionalOptions;
 
   /**
    * Phantom type holder for error types — not used at runtime

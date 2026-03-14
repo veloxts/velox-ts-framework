@@ -21,6 +21,7 @@ import type {
   ParentResourceConfig,
   ProcedureHandler,
   RestRouteOverride,
+  TransactionalOptions,
 } from '../types.js';
 
 // ============================================================================
@@ -428,6 +429,36 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
+   * Wraps the handler in a database transaction via `ctx.db.$transaction()`
+   *
+   * When set, `executeProcedure` replaces `ctx.db` with the transactional
+   * client inside the handler. On throw the transaction auto-rollbacks;
+   * on return it auto-commits.
+   *
+   * Gracefully degrades: if `ctx.db` or `ctx.db.$transaction` is missing,
+   * the handler runs without transaction wrapping.
+   *
+   * @param options - Optional isolation level and timeout
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .input(CreateOrderSchema)
+   *   .transactional({ isolationLevel: 'Serializable', timeout: 10000 })
+   *   .mutation(async ({ input, ctx }) => {
+   *     // ctx.db is the transactional client — all queries share the same tx
+   *     const order = await ctx.db.order.create({ data: input });
+   *     await ctx.db.inventory.update({ ... });
+   *     return order; // auto-commit on success
+   *   })
+   * ```
+   */
+  transactional(
+    options?: TransactionalOptions
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
    * Finalizes the procedure as a query (read-only operation)
    *
    * Queries map to GET requests in REST and should not modify data.
@@ -518,6 +549,10 @@ export interface BuilderRuntimeState {
   branchingMode?: boolean;
   /** Error classes declared via .throws() */
   errorClasses?: Array<new (data: Record<string, unknown>) => unknown>;
+  /** Whether the handler should be wrapped in a database transaction */
+  transactional?: boolean;
+  /** Options for the database transaction (isolation level, timeout) */
+  transactionalOptions?: TransactionalOptions;
 }
 
 // ============================================================================

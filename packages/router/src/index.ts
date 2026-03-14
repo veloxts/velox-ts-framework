@@ -81,6 +81,7 @@ export type {
   ProcedureRecord,
   ProcedureType,
   RestRouteOverride,
+  TransactionalOptions,
 } from './types.js';
 export {
   // Constants

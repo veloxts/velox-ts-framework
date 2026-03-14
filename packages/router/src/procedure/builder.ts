@@ -27,6 +27,7 @@ import type {
   ProcedureCollection,
   ProcedureHandler,
   RestRouteOverride,
+  TransactionalOptions,
 } from '../types.js';
 import { deriveParentParamName } from '../utils/pluralization.js';
 import {
@@ -299,6 +300,19 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
     },
 
     /**
+     * Wraps the handler in a database transaction
+     */
+    transactional(
+      options?: TransactionalOptions
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        transactional: true,
+        transactionalOptions: options,
+      });
+    },
+
+    /**
      * Finalizes as a query procedure
      *
      * In branching mode (Level 3), accepts a handler map keyed by schema level keys.
@@ -441,6 +455,9 @@ function compileProcedure<
     _resourceLevel: state.resourceLevel,
     // Store error classes declared via .throws()
     errorClasses: state.errorClasses,
+    // Store transactional configuration
+    transactional: state.transactional,
+    transactionalOptions: state.transactionalOptions,
   };
 }
 
@@ -487,6 +504,9 @@ function compileProcedureWithHandlerMap<
     _handlerMap: handlerMap,
     // Store error classes declared via .throws()
     errorClasses: state.errorClasses,
+    // Store transactional configuration
+    transactional: state.transactional,
+    transactionalOptions: state.transactionalOptions,
   };
 }
 
@@ -746,22 +766,44 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   }
 
   // Step 3: Execute handler (with or without middleware)
-  let result: TOutput;
-
-  if (procedure._precompiledExecutor) {
-    // PERFORMANCE: Use pre-compiled middleware chain executor
-    result = await procedure._precompiledExecutor(input, ctxWithLevel as TContext);
-  } else if (procedure.middlewares.length === 0) {
-    // No middleware - execute handler directly
-    result = await procedure.handler({ input, ctx: ctxWithLevel as TContext });
-  } else {
+  // Helper that runs the middleware chain + handler with a given context
+  const executeWithContext = async (execCtx: TContext): Promise<TOutput> => {
+    if (procedure._precompiledExecutor) {
+      // PERFORMANCE: Use pre-compiled middleware chain executor
+      return procedure._precompiledExecutor(input, execCtx);
+    }
+    if (procedure.middlewares.length === 0) {
+      // No middleware - execute handler directly
+      return procedure.handler({ input, ctx: execCtx });
+    }
     // Fallback: Build middleware chain dynamically (should not normally happen)
-    result = await executeMiddlewareChain(
+    return executeMiddlewareChain(
       procedure.middlewares as MiddlewareFunction<TInput, TContext, TContext, TOutput>[],
       input,
-      ctxWithLevel as TContext,
-      async () => procedure.handler({ input, ctx: ctxWithLevel as TContext })
+      execCtx,
+      async () => procedure.handler({ input, ctx: execCtx })
     );
+  };
+
+  let result: TOutput;
+
+  // Wrap in transaction if .transactional() was called and ctx.db.$transaction exists
+  const ctxRecord = ctxWithLevel as Record<string, unknown>;
+  const db = ctxRecord.db as Record<string, unknown> | undefined;
+
+  if (procedure.transactional && db && typeof db.$transaction === 'function') {
+    const $transaction = db.$transaction as (
+      callback: (tx: unknown) => Promise<TOutput>,
+      options?: unknown
+    ) => Promise<TOutput>;
+
+    result = await $transaction(async (tx) => {
+      // Replace ctx.db with the transactional client
+      const txCtx = { ...ctxWithLevel, db: tx } as TContext;
+      return executeWithContext(txCtx);
+    }, procedure.transactionalOptions);
+  } else {
+    result = await executeWithContext(ctxWithLevel as TContext);
   }
 
   // Step 4: Auto-project if resource schema is set
