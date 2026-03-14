@@ -513,6 +513,21 @@ export interface CompiledProcedure<
   readonly transactionalOptions?: TransactionalOptions;
 
   /**
+   * Domain events to emit after successful handler execution
+   *
+   * Populated by `.emits()` on the procedure builder. Each entry holds
+   * the event class constructor and an optional mapper that transforms
+   * the handler result into the event's data payload.
+   *
+   * Events fire AFTER the handler returns (post-commit when transactional).
+   * Emission errors are caught and logged — they never fail the request.
+   */
+  readonly emittedEvents?: ReadonlyArray<{
+    eventClass: { new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown; readonly eventName: string };
+    mapper?: (result: unknown) => Record<string, unknown>;
+  }>;
+
+  /**
    * Phantom type holder for error types — not used at runtime
    *
    * Preserves the TErrors union through the type system so that

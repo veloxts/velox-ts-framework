@@ -300,6 +300,25 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
     },
 
     /**
+     * Declares a domain event to emit after successful handler execution
+     */
+    emits<TEventData extends Record<string, unknown>>(
+      eventClass: { new (data: TEventData, options?: { correlationId?: string }): unknown; readonly eventName: string },
+      mapper?: (result: TOutput) => TEventData,
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      // Cast is safe: the typed TEventData and TOutput are erased at runtime.
+      // BuilderRuntimeState stores the widened types for uniform handling.
+      const entry = { eventClass, mapper } as {
+        eventClass: { new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown; readonly eventName: string };
+        mapper?: (result: unknown) => Record<string, unknown>;
+      };
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        emittedEvents: [...(state.emittedEvents ?? []), entry],
+      });
+    },
+
+    /**
      * Wraps the handler in a database transaction
      */
     transactional(
@@ -458,6 +477,8 @@ function compileProcedure<
     // Store transactional configuration
     transactional: state.transactional,
     transactionalOptions: state.transactionalOptions,
+    // Store emitted events declared via .emits()
+    emittedEvents: state.emittedEvents,
   };
 }
 
@@ -806,7 +827,24 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     result = await executeWithContext(ctxWithLevel as TContext);
   }
 
-  // Step 4: Auto-project if resource schema is set
+  // Step 4: Emit domain events if .emits() was used
+  if (procedure.emittedEvents) {
+    const ctxEvents = (ctxRecord as { events?: { emit?: (event: unknown) => Promise<void> } }).events;
+    if (ctxEvents?.emit) {
+      for (const { eventClass, mapper } of procedure.emittedEvents) {
+        try {
+          const eventData = mapper
+            ? mapper(result as Record<string, unknown>)
+            : (result as Record<string, unknown>);
+          await ctxEvents.emit(new eventClass(eventData));
+        } catch (error) {
+          console.error('[velox:router] Event emission error:', error);
+        }
+      }
+    }
+  }
+
+  // Step 5: Auto-project if resource schema is set
   if (procedure._resourceSchema) {
     const schema = procedure._resourceSchema as ResourceSchema;
     // Prefer explicit level from tagged schema over guard-derived level
@@ -823,7 +861,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     }
   }
 
-  // Step 5: Validate output if schema provided
+  // Step 6: Validate output if schema provided
   if (procedure.outputSchema) {
     return procedure.outputSchema.parse(result);
   }

@@ -429,6 +429,40 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
+   * Declares a domain event to emit after successful handler execution
+   *
+   * Events fire AFTER the handler returns its result (and AFTER transaction
+   * commit when `.transactional()` is used). Multiple `.emits()` calls
+   * accumulate — all declared events are emitted in order.
+   *
+   * Emission errors are caught and logged; they never fail the request.
+   *
+   * @template TEventData - The event's data payload type
+   * @param eventClass - Domain event class constructor
+   * @param mapper - Optional function to transform the handler result into event data.
+   *   When omitted, the handler result is used directly as event data.
+   * @returns Same builder (no type changes)
+   *
+   * @example With mapper (recommended)
+   * ```typescript
+   * procedure()
+   *   .emits(OrderCreated, (result) => ({ orderId: result.id, total: result.total }))
+   *   .mutation(handler)
+   * ```
+   *
+   * @example Without mapper (result type must match event data type)
+   * ```typescript
+   * procedure()
+   *   .emits(OrderCreated)
+   *   .mutation(handler)
+   * ```
+   */
+  emits<TEventData extends Record<string, unknown>>(
+    eventClass: { new (data: TEventData, options?: { correlationId?: string }): unknown; readonly eventName: string },
+    mapper?: (result: TOutput) => TEventData,
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
    * Wraps the handler in a database transaction via `ctx.db.$transaction()`
    *
    * When set, `executeProcedure` replaces `ctx.db` with the transactional
@@ -553,6 +587,11 @@ export interface BuilderRuntimeState {
   transactional?: boolean;
   /** Options for the database transaction (isolation level, timeout) */
   transactionalOptions?: TransactionalOptions;
+  /** Domain events to emit after successful handler execution */
+  emittedEvents?: Array<{
+    eventClass: { new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown; readonly eventName: string };
+    mapper?: (result: unknown) => Record<string, unknown>;
+  }>;
 }
 
 // ============================================================================
