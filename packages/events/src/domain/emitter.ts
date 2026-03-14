@@ -11,7 +11,11 @@
  * — they must never propagate to the caller, since the mutation already succeeded.
  */
 
+import { createLogger } from '@veloxts/core';
+
 import type { DomainEvent, DomainEventClass } from './event.js';
+
+const log = createLogger('events');
 
 // =============================================================================
 // Listener options
@@ -161,7 +165,7 @@ export class DomainEventEmitter {
    * @param event - The domain event instance to dispatch.
    */
   async emit<TData extends Record<string, unknown>>(event: DomainEvent<TData>): Promise<void> {
-    const key = event.constructor.name;
+    const key = (event.constructor as unknown as { eventName: string }).eventName;
     const entries = this._listeners.get(key);
 
     if (!entries || entries.length === 0) return;
@@ -176,7 +180,7 @@ export class DomainEventEmitter {
       } catch (err) {
         // Listener errors must never propagate — the mutation already succeeded.
         // Log the error and continue to the next listener.
-        console.error(`[DomainEventEmitter] Sequential listener for "${key}" threw an error:`, err);
+        log.error(`Sequential listener for "${key}" threw an error:`, err);
       }
     }
 
@@ -188,8 +192,8 @@ export class DomainEventEmitter {
 
       for (const result of results) {
         if (result.status === 'rejected') {
-          console.error(
-            `[DomainEventEmitter] Concurrent listener for "${key}" threw an error:`,
+          log.error(
+            `Concurrent listener for "${key}" threw an error:`,
             result.reason
           );
         }
