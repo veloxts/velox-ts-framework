@@ -12,7 +12,13 @@ import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core'
 
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
-import { isTaggedResourceSchema, Resource, type ResourceSchema } from '../resource/index.js';
+import type { AccessLevelConfig } from '../resource/index.js';
+import {
+  isResourceSchema,
+  isTaggedResourceSchema,
+  Resource,
+  type ResourceSchema,
+} from '../resource/index.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -139,6 +145,17 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
           resourceSchema: schema,
           resourceLevel: schema._level,
           outputSchema: undefined,
+          branchingMode: undefined,
+        });
+      }
+      // Level 3: untagged resource schema — enables branching mode
+      if (isResourceSchema(schema)) {
+        return createBuilder<TInput, InferSchemaOutput<TSchema>, TContext>({
+          ...state,
+          resourceSchema: schema as unknown as ResourceSchema,
+          resourceLevel: undefined,
+          outputSchema: undefined,
+          branchingMode: true,
         });
       }
       // Level 1: plain Zod schema — validate output
@@ -147,6 +164,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
         outputSchema: schema,
         resourceSchema: undefined,
         resourceLevel: undefined,
+        branchingMode: undefined,
       });
     },
 
@@ -267,22 +285,88 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
 
     /**
      * Finalizes as a query procedure
+     *
+     * In branching mode (Level 3), accepts a handler map keyed by schema level keys.
      */
     query(
-      handler: ProcedureHandler<TInput, TOutput, TContext>
+      handlerOrMap:
+        | ProcedureHandler<TInput, TOutput, TContext>
+        | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
     ): CompiledProcedure<TInput, TOutput, TContext, 'query'> {
-      return compileProcedure('query', handler, state);
+      return compileProcedureOrBranching('query', handlerOrMap, state);
     },
 
     /**
      * Finalizes as a mutation procedure
+     *
+     * In branching mode (Level 3), accepts a handler map keyed by schema level keys.
      */
     mutation(
-      handler: ProcedureHandler<TInput, TOutput, TContext>
+      handlerOrMap:
+        | ProcedureHandler<TInput, TOutput, TContext>
+        | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
     ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'> {
-      return compileProcedure('mutation', handler, state);
+      return compileProcedureOrBranching('mutation', handlerOrMap, state);
     },
   };
+}
+
+/**
+ * Routes to the correct compile strategy based on branching mode
+ *
+ * In branching mode (Level 3), validates the handler map and synthesizes
+ * a dispatch handler. In normal mode, delegates to compileProcedure.
+ *
+ * @internal
+ */
+function compileProcedureOrBranching<
+  TInput,
+  TOutput,
+  TContext extends BaseContext,
+  TType extends 'query' | 'mutation',
+>(
+  type: TType,
+  handlerOrMap:
+    | ProcedureHandler<TInput, TOutput, TContext>
+    | Record<string, ProcedureHandler<TInput, TOutput, TContext>>,
+  state: BuilderRuntimeState
+): CompiledProcedure<TInput, TOutput, TContext, TType> {
+  if (state.branchingMode) {
+    // Level 3: handler map required
+    if (typeof handlerOrMap === 'function') {
+      throw new ConfigurationError(
+        'Handler map required when .output() receives a resource schema. ' +
+          'Use { [Schema.level.key]: handler } syntax.'
+      );
+    }
+
+    if (state.guards.length > 0) {
+      throw new ConfigurationError(
+        'Cannot use handler map with .guard(). ' +
+          'Guards come from defineAccessLevels() in Level 3 branching mode.'
+      );
+    }
+
+    // Synthesize a dispatch handler so CompiledProcedure.handler is always defined.
+    // The real branch selection happens in executeProcedure.
+    const dispatchHandler: ProcedureHandler<TInput, TOutput, TContext> = async () => {
+      throw new ConfigurationError(
+        'Level 3 branched procedures must be executed via executeProcedure(). ' +
+          'Direct handler invocation is not supported.'
+      );
+    };
+
+    return compileProcedureWithHandlerMap(type, dispatchHandler, handlerOrMap, state);
+  }
+
+  // Not in branching mode: handler map is not allowed
+  if (typeof handlerOrMap !== 'function') {
+    throw new ConfigurationError(
+      'Handler map can only be used when .output() receives an untagged resource schema.'
+    );
+  }
+
+  return compileProcedure(type, handlerOrMap, state);
 }
 
 /**
@@ -333,6 +417,49 @@ function compileProcedure<
     _resourceSchema: state.resourceSchema,
     // Store explicit resource level from tagged schema (e.g., UserSchema.authenticated)
     _resourceLevel: state.resourceLevel,
+  };
+}
+
+/**
+ * Compiles a Level 3 branched procedure with a handler map
+ *
+ * Creates a CompiledProcedure with both a synthesized dispatch handler
+ * (so .handler is always defined) and the _handlerMap for branch selection.
+ *
+ * @internal
+ */
+function compileProcedureWithHandlerMap<
+  TInput,
+  TOutput,
+  TContext extends BaseContext,
+  TType extends 'query' | 'mutation',
+>(
+  type: TType,
+  dispatchHandler: ProcedureHandler<TInput, TOutput, TContext>,
+  handlerMap: Record<string, ProcedureHandler<TInput, TOutput, TContext>>,
+  state: BuilderRuntimeState
+): CompiledProcedure<TInput, TOutput, TContext, TType> {
+  const typedMiddlewares = state.middlewares as ReadonlyArray<
+    MiddlewareFunction<TInput, TContext, TContext, TOutput>
+  >;
+
+  return {
+    type,
+    handler: dispatchHandler,
+    inputSchema: state.inputSchema as { parse: (input: unknown) => TInput } | undefined,
+    outputSchema: undefined, // Level 3 uses resource schema projection, not Zod output validation
+    middlewares: typedMiddlewares,
+    guards: [] as unknown as ReadonlyArray<GuardLike<TContext>>, // Guards come from access level config
+    restOverride: state.restOverride,
+    deprecated: state.deprecated,
+    deprecationMessage: state.deprecationMessage,
+    isWebhook: state.isWebhook,
+    parentResource: state.parentResource,
+    parentResources: state.parentResources,
+    _precompiledExecutor: undefined, // Branched procedures don't use precompiled chains
+    _resourceSchema: state.resourceSchema,
+    _resourceLevel: undefined, // No fixed level — determined at runtime by branch selection
+    _handlerMap: handlerMap,
   };
 }
 
@@ -586,6 +713,11 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     ? procedure.inputSchema.parse(rawInput)
     : (rawInput as TInput);
 
+  // Step 2.5: Level 3 branch selection — if handler map is present
+  if (procedure._handlerMap) {
+    return executeBranchedProcedure(procedure, input, ctxWithLevel as TContext);
+  }
+
   // Step 3: Execute handler (with or without middleware)
   let result: TOutput;
 
@@ -628,6 +760,111 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   }
 
   return result;
+}
+
+// ============================================================================
+// Level 3 Branch Selection
+// ============================================================================
+
+/**
+ * Executes a Level 3 branched procedure
+ *
+ * Evaluates guards from the resource schema's access level config
+ * most-privileged-first to select the matching branch handler, then
+ * auto-projects the result through that level's field visibility.
+ *
+ * @internal
+ */
+async function executeBranchedProcedure<TInput, TOutput, TContext extends BaseContext>(
+  procedure: CompiledProcedure<TInput, TOutput, TContext>,
+  input: TInput,
+  ctx: TContext
+): Promise<TOutput> {
+  const handlerMap = procedure._handlerMap as Record<
+    string,
+    ProcedureHandler<TInput, unknown, TContext>
+  >;
+  const schema = procedure._resourceSchema as ResourceSchema & {
+    _levelConfig?: AccessLevelConfig;
+  };
+
+  const levelConfig = schema?._levelConfig;
+  if (!levelConfig) {
+    throw new ConfigurationError(
+      'Resource schema must be built with defineAccessLevels() containing guards for Level 3 branching.'
+    );
+  }
+
+  // Evaluate guards most-privileged-first (reverse level order)
+  const levels = [...levelConfig.levels];
+  const reversedLevels = [...levels].reverse();
+
+  let selectedLevel: string | undefined;
+  let selectedHandler: ProcedureHandler<TInput, unknown, TContext> | undefined;
+
+  for (const level of reversedLevels) {
+    const guard = levelConfig.guards[level];
+
+    if (!guard) {
+      // No guard = public/fallback level — only select if handler exists
+      const key = `__velox_level_${level}`;
+      if (handlerMap[key]) {
+        // Don't select yet — keep looking for a higher-privilege match.
+        // This fallback is used if no guarded level matches.
+        if (!selectedHandler) {
+          selectedLevel = level;
+          selectedHandler = handlerMap[key];
+        }
+      }
+      continue;
+    }
+
+    const passed = await guard(ctx);
+    if (passed) {
+      // Guard passed — find the best handler at or below this level
+      const levelIndex = levels.indexOf(level);
+      for (let i = levelIndex; i >= 0; i--) {
+        const candidateLevel = levels[i];
+        const key = `__velox_level_${candidateLevel}`;
+        if (handlerMap[key]) {
+          selectedHandler = handlerMap[key];
+          selectedLevel = candidateLevel;
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  if (!selectedHandler || !selectedLevel) {
+    throw new GuardError('access', 'No matching branch for this access level', 403);
+  }
+
+  // Execute middleware chain if any, then the selected handler
+  let result: unknown;
+  if (procedure.middlewares.length > 0) {
+    result = await executeMiddlewareChain(
+      procedure.middlewares as MiddlewareFunction<TInput, TContext, TContext, unknown>[],
+      input,
+      ctx,
+      async () => selectedHandler({ input, ctx })
+    );
+  } else {
+    result = await selectedHandler({ input, ctx });
+  }
+
+  // Auto-project through the selected level's visibility
+  const projectOne = (item: Record<string, unknown>): Record<string, unknown> => {
+    return new Resource(item, schema).forLevel(selectedLevel) as Record<string, unknown>;
+  };
+
+  if (Array.isArray(result)) {
+    result = result.map((item) => projectOne(item as Record<string, unknown>));
+  } else {
+    result = projectOne(result as Record<string, unknown>);
+  }
+
+  return result as TOutput;
 }
 
 // ============================================================================

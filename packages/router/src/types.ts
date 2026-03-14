@@ -454,6 +454,17 @@ export interface CompiledProcedure<
    * @internal
    */
   readonly _resourceLevel?: string;
+
+  /**
+   * Handler map for Level 3 branched procedures
+   *
+   * When set, the procedure has per-access-level handlers keyed by
+   * `__velox_level_{levelName}` strings. The executor evaluates guards
+   * most-privileged-first to select the correct branch.
+   *
+   * @internal
+   */
+  readonly _handlerMap?: Readonly<Record<string, ProcedureHandler<TInput, TOutput, TContext>>>;
 }
 
 // ============================================================================

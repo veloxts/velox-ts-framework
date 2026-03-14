@@ -396,7 +396,9 @@ export interface ProcedureBuilder<
    * ```
    */
   query(
-    handler: ProcedureHandler<TInput, TOutput, TContext>
+    handler:
+      | ProcedureHandler<TInput, TOutput, TContext>
+      | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
   ): CompiledProcedure<TInput, TOutput, TContext, 'query'>;
 
   /**
@@ -405,7 +407,10 @@ export interface ProcedureBuilder<
    * Mutations map to POST/PUT/DELETE in REST and can modify data.
    * The handler receives the validated input and context.
    *
-   * @param handler - The mutation handler function
+   * In Level 3 branching mode (when `.output()` receives an untagged resource schema),
+   * accepts a handler map keyed by `[Schema.level.key]` instead of a single handler.
+   *
+   * @param handler - The mutation handler function or handler map
    * @returns Compiled procedure ready for registration
    *
    * @example
@@ -418,7 +423,9 @@ export interface ProcedureBuilder<
    * ```
    */
   mutation(
-    handler: ProcedureHandler<TInput, TOutput, TContext>
+    handler:
+      | ProcedureHandler<TInput, TOutput, TContext>
+      | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
   ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
 }
 
@@ -457,6 +464,8 @@ export interface BuilderRuntimeState {
   deprecationMessage?: string;
   /** Whether this procedure is a webhook endpoint (metadata marker) */
   isWebhook?: boolean;
+  /** Whether .output() received an untagged resource schema (Level 3 branching mode) */
+  branchingMode?: boolean;
 }
 
 // ============================================================================
