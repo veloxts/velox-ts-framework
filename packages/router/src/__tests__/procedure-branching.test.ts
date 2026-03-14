@@ -253,9 +253,7 @@ describe('Level 3: branch selection', () => {
       });
 
     const ctx = {} as BaseContext;
-    await expect(executeProcedure(proc, {}, ctx)).rejects.toThrow(
-      /no matching branch/i
-    );
+    await expect(executeProcedure(proc, {}, ctx)).rejects.toThrow(/no matching branch/i);
   });
 
   it('evaluates guards most-privileged-first', async () => {

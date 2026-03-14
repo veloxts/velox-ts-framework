@@ -395,9 +395,7 @@ export function resourceSchemaToJsonSchema(
  * @param schema - The resource schema (must have _levelConfig for custom levels)
  * @returns JSON Schema with all fields, non-public fields optional
  */
-export function resourceSchemaToJsonSchemaForBranching(
-  schema: ResourceSchema
-): JSONSchema {
+export function resourceSchemaToJsonSchemaForBranching(schema: ResourceSchema): JSONSchema {
   const properties: Record<string, JSONSchema> = {};
   const required: string[] = [];
 
