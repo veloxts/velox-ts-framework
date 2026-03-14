@@ -36,20 +36,37 @@ describe('Resource Policies', () => {
     it('should return undefined for unregistered policy', () => {
       expect(getPolicy('Unknown')).toBeUndefined();
     });
-  });
 
-  describe('definePolicy', () => {
-    it('should create a typed policy definition', () => {
+    it('should register a PolicyObject via registerPolicy', () => {
       interface Post {
         id: string;
         authorId: string;
       }
 
-      const PostPolicy = definePolicy<User, Post>({
+      const PostPolicy = definePolicy<User, Post>('Post', {
         view: () => true,
-        update: (user, post) => user.id === post.authorId,
+        update: ({ user, resource }) => user.id === resource.authorId,
       });
 
+      registerPolicy(PostPolicy);
+
+      expect(getPolicy('Post')).toBeDefined();
+    });
+  });
+
+  describe('definePolicy', () => {
+    it('should create a typed policy object with resource name', () => {
+      interface Post {
+        id: string;
+        authorId: string;
+      }
+
+      const PostPolicy = definePolicy<User, Post>('Post', {
+        view: () => true,
+        update: ({ user, resource }) => user.id === resource.authorId,
+      });
+
+      expect(PostPolicy.resourceName).toBe('Post');
       expect(PostPolicy.view).toBeDefined();
       expect(PostPolicy.update).toBeDefined();
     });
@@ -85,7 +102,7 @@ describe('Resource Policies', () => {
       }
 
       registerPolicy<User, Post>('Post', {
-        update: (user, post) => user.id === post.authorId,
+        update: ({ user, resource }) => user.id === resource.authorId,
       });
 
       const user: User = { id: '1', email: 'test@example.com' };
@@ -183,7 +200,7 @@ describe('Resource Policies', () => {
     it('should build a policy with allow', () => {
       const policy = createPolicyBuilder<User>()
         .allow('view', () => true)
-        .allow('create', (user) => user.id !== '')
+        .allow('create', ({ user }) => user.id !== '')
         .build();
 
       expect(policy.view).toBeDefined();

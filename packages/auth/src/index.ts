@@ -35,7 +35,10 @@ export type {
   NativeAuthContext,
   // Policy types
   PolicyAction,
+  PolicyActionParams,
+  PolicyActionRef,
   PolicyDefinition,
+  PolicyObject,
   RateLimitConfig,
   TokenPair,
   TokenPayload,
