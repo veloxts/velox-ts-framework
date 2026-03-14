@@ -431,11 +431,42 @@ export interface ClientError extends Error {
   code?: string;
   /** Original response body (if available) */
   body?: unknown;
+  /**
+   * Typed domain error payload, extracted from `body.data` when the response
+   * is a DomainError (has a `code` field). Distinct from `body`.
+   */
+  data?: unknown;
   /** URL that was requested */
   url: string;
   /** HTTP method used */
   method: string;
 }
+
+// ============================================================================
+// Domain Error Type Utilities
+// ============================================================================
+
+/**
+ * Extracts the union of domain error shapes from a procedure's `errorClasses`.
+ *
+ * Given a procedure annotated with `.throws(MyError, OtherError)`, this type
+ * resolves to `{ code: 'MY_CODE'; data: MyData } | { code: 'OTHER_CODE'; data: OtherData }`.
+ *
+ * @example
+ * ```typescript
+ * const proc = procedure().throws(InsufficientFundsError, UserBannedError).query(...);
+ * type Errors = InferProcedureErrors<typeof proc>;
+ * // → { code: 'INSUFFICIENT_FUNDS'; data: { amount: number } }
+ * //   | { code: 'USER_BANNED'; data: { reason: string } }
+ * ```
+ */
+export type InferProcedureErrors<T> = T extends {
+  readonly errorClasses?: ReadonlyArray<infer E>;
+}
+  ? E extends new (data: infer D) => { code: infer C }
+    ? { code: C; data: D }
+    : never
+  : never;
 
 // ============================================================================
 // Request/Response Types

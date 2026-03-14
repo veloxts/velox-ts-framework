@@ -45,6 +45,19 @@ interface NotFoundErrorResponse extends BaseErrorResponse {
 }
 
 /**
+ * Domain error response from server
+ *
+ * When server-side DomainError.toJSON() is called, it returns:
+ * { error, message, statusCode, code, data }
+ */
+interface DomainErrorResponse extends BaseErrorResponse {
+  error: string;
+  statusCode: number;
+  code: string;
+  data?: unknown;
+}
+
+/**
  * Generic error response from server
  */
 interface GenericErrorResponse extends BaseErrorResponse {
@@ -56,7 +69,11 @@ interface GenericErrorResponse extends BaseErrorResponse {
 /**
  * Union of all error response types from server
  */
-export type ErrorResponse = ValidationErrorResponse | NotFoundErrorResponse | GenericErrorResponse;
+export type ErrorResponse =
+  | ValidationErrorResponse
+  | NotFoundErrorResponse
+  | DomainErrorResponse
+  | GenericErrorResponse;
 
 // ============================================================================
 // Client Error Classes
@@ -72,6 +89,12 @@ export class VeloxClientError extends Error implements ClientError {
   public readonly statusCode?: number;
   public readonly code?: string;
   public readonly body?: unknown;
+  /**
+   * Typed domain error payload, extracted from `body.data` when the response
+   * contains a `code` field (i.e. it is a DomainError response).
+   * This is DISTINCT from `body` which holds the full raw response body.
+   */
+  public readonly data?: unknown;
   public readonly url: string;
   public readonly method: string;
 
@@ -81,6 +104,7 @@ export class VeloxClientError extends Error implements ClientError {
       statusCode?: number;
       code?: string;
       body?: unknown;
+      data?: unknown;
       url: string;
       method: string;
     }
@@ -90,6 +114,7 @@ export class VeloxClientError extends Error implements ClientError {
     this.statusCode = options.statusCode;
     this.code = options.code;
     this.body = options.body;
+    this.data = options.data;
     this.url = options.url;
     this.method = options.method;
 
@@ -214,6 +239,7 @@ export class ServerError extends VeloxClientError {
       url: string;
       method: string;
       body?: unknown;
+      data?: unknown;
     }
   ) {
     super(message, options);
@@ -282,6 +308,23 @@ export function isNotFoundErrorResponse(
   return response.error === 'NotFoundError';
 }
 
+/**
+ * Type guard for domain error response
+ *
+ * A domain error response has a `code` field that is not one of the built-in
+ * error codes (VALIDATION_ERROR, NOT_FOUND). The server-side DomainError
+ * serializes as: { error, message, statusCode, code, data }.
+ */
+export function isDomainErrorResponse(
+  response: ErrorResponse
+): response is DomainErrorResponse {
+  return (
+    typeof response.code === 'string' &&
+    response.code !== 'VALIDATION_ERROR' &&
+    response.code !== 'NOT_FOUND'
+  );
+}
+
 // ============================================================================
 // Error Parsing
 // ============================================================================
@@ -319,6 +362,31 @@ export function parseErrorResponse(
         resource: errorResponse.resource,
         resourceId: errorResponse.resourceId,
         body,
+      });
+    }
+
+    // Domain error — has a custom `code` and optional `data` payload
+    if (isDomainErrorResponse(errorResponse)) {
+      const domainData = errorResponse.data;
+
+      if (response.status >= 500) {
+        return new ServerError(errorResponse.message, {
+          statusCode: errorResponse.statusCode,
+          code: errorResponse.code,
+          url,
+          method,
+          body,
+          data: domainData,
+        });
+      }
+
+      return new VeloxClientError(errorResponse.message, {
+        statusCode: errorResponse.statusCode,
+        code: errorResponse.code,
+        url,
+        method,
+        body,
+        data: domainData,
       });
     }
 
