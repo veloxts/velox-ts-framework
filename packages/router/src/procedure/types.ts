@@ -13,7 +13,7 @@
 import type { BaseContext } from '@veloxts/core';
 import type { ZodType } from 'zod';
 
-import type { ResourceSchema } from '../resource/index.js';
+import type { OutputForLevel, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -71,6 +71,24 @@ export type ValidSchema = ZodType;
  * all Zod schemas have a parse() method that returns the output type.
  */
 export type InferSchemaOutput<T> = T extends { parse: (data: unknown) => infer O } ? O : never;
+
+/**
+ * Valid types for `.output()` — Zod schemas, tagged resource views, or untagged resource schemas
+ */
+export type ValidOutputSchema = ValidSchema | TaggedResourceSchema | ResourceSchema;
+
+/**
+ * Infers the output type from a schema passed to `.output()`
+ *
+ * - Zod schema → uses structural `parse()` matching
+ * - Tagged resource view → uses `OutputForLevel` to compute projected fields
+ * - Untagged resource schema → falls back to `unknown` (Level 3 branching resolves at runtime)
+ */
+export type InferOutputSchema<T> = T extends TaggedResourceSchema
+  ? OutputForLevel<T>
+  : T extends { parse: (data: unknown) => infer O }
+    ? O
+    : unknown;
 
 // ============================================================================
 // Procedure Builder Interface
@@ -151,9 +169,9 @@ export interface ProcedureBuilder<
    *   .query(handler)
    * ```
    */
-  output<TSchema extends ValidSchema>(
+  output<TSchema extends ValidOutputSchema>(
     schema: TSchema
-  ): ProcedureBuilder<TInput, InferSchemaOutput<TSchema>, TContext>;
+  ): ProcedureBuilder<TInput, InferOutputSchema<TSchema>, TContext>;
 
   /**
    * Adds middleware to the procedure chain

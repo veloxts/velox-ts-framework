@@ -37,10 +37,12 @@ import {
 } from '../warnings.js';
 import type {
   BuilderRuntimeState,
+  InferOutputSchema,
   InferProcedures,
   InferSchemaOutput,
   ProcedureBuilder,
   ProcedureDefinitions,
+  ValidOutputSchema,
   ValidSchema,
 } from './types.js';
 
@@ -135,12 +137,12 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
      * - A tagged resource view (Level 2) — auto-projects handler result
      *   through the tagged level's field visibility
      */
-    output<TSchema extends ValidSchema>(
+    output<TSchema extends ValidOutputSchema>(
       schema: TSchema
-    ): ProcedureBuilder<TInput, InferSchemaOutput<TSchema>, TContext> {
+    ): ProcedureBuilder<TInput, InferOutputSchema<TSchema>, TContext> {
       // Level 2: tagged resource view — set up auto-projection
       if (isTaggedResourceSchema(schema)) {
-        return createBuilder<TInput, InferSchemaOutput<TSchema>, TContext>({
+        return createBuilder<TInput, InferOutputSchema<TSchema>, TContext>({
           ...state,
           resourceSchema: schema,
           resourceLevel: schema._level,
@@ -150,7 +152,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       }
       // Level 3: untagged resource schema — enables branching mode
       if (isResourceSchema(schema)) {
-        return createBuilder<TInput, InferSchemaOutput<TSchema>, TContext>({
+        return createBuilder<TInput, InferOutputSchema<TSchema>, TContext>({
           ...state,
           resourceSchema: schema as unknown as ResourceSchema,
           resourceLevel: undefined,
@@ -159,9 +161,9 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
         });
       }
       // Level 1: plain Zod schema — validate output
-      return createBuilder<TInput, InferSchemaOutput<TSchema>, TContext>({
+      return createBuilder<TInput, InferOutputSchema<TSchema>, TContext>({
         ...state,
-        outputSchema: schema,
+        outputSchema: schema as ValidSchema,
         resourceSchema: undefined,
         resourceLevel: undefined,
         branchingMode: undefined,

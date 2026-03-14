@@ -120,11 +120,13 @@ export { createProcedure, typedProcedure } from './procedure/factory.js';
 export type {
   // Builder types
   BuilderRuntimeState,
+  InferOutputSchema,
   InferProcedures,
   InferSchemaOutput,
   ProcedureBuilder,
   ProcedureBuilderState,
   ProcedureDefinitions,
+  ValidOutputSchema,
   ValidSchema,
 } from './procedure/types.js';
 export type { RouterResult } from './router-utils.js';
