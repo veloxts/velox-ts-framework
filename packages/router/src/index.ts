@@ -53,6 +53,8 @@ export const ROUTER_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // Type inference helpers
 export type {
+  // After handler types
+  AfterHandler,
   // Procedure types
   CompiledProcedure,
   ContextExtensions,
@@ -127,6 +129,7 @@ export type {
   InferOutputSchema,
   InferProcedures,
   InferSchemaOutput,
+  PostHandlerBuilder,
   ProcedureBuilder,
   ProcedureBuilderState,
   ProcedureDefinitions,

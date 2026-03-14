@@ -20,6 +20,7 @@ import {
   type ResourceSchema,
 } from '../resource/index.js';
 import type {
+  AfterHandler,
   CompiledProcedure,
   GuardLike,
   MiddlewareFunction,
@@ -44,6 +45,7 @@ import type {
   InferOutputSchema,
   InferProcedures,
   InferSchemaOutput,
+  PostHandlerBuilder,
   ProcedureBuilder,
   ProcedureDefinitions,
   ValidOutputSchema,
@@ -369,7 +371,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
       handlerOrMap:
         | ProcedureHandler<TInput, TOutput, TContext>
         | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-    ): CompiledProcedure<TInput, TOutput, TContext, 'query', TErrors> {
+    ): PostHandlerBuilder<TInput, TOutput, TContext, 'query', TErrors> {
       return compileProcedureOrBranching('query', handlerOrMap, state);
     },
 
@@ -382,7 +384,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
       handlerOrMap:
         | ProcedureHandler<TInput, TOutput, TContext>
         | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-    ): CompiledProcedure<TInput, TOutput, TContext, 'mutation', TErrors> {
+    ): PostHandlerBuilder<TInput, TOutput, TContext, 'mutation', TErrors> {
       return compileProcedureOrBranching('mutation', handlerOrMap, state);
     },
   };
@@ -408,7 +410,7 @@ function compileProcedureOrBranching<
     | ProcedureHandler<TInput, TOutput, TContext>
     | Record<string, ProcedureHandler<TInput, TOutput, TContext>>,
   state: BuilderRuntimeState
-): CompiledProcedure<TInput, TOutput, TContext, TType, TErrors> {
+): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
   if (state.branchingMode) {
     // Level 3: handler map required
     if (typeof handlerOrMap === 'function') {
@@ -471,7 +473,7 @@ function compileProcedure<
   type: TType,
   handler: ProcedureHandler<TInput, TOutput, TContext>,
   state: BuilderRuntimeState
-): CompiledProcedure<TInput, TOutput, TContext, TType, TErrors> {
+): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
   const typedMiddlewares = state.middlewares as ReadonlyArray<
     MiddlewareFunction<TInput, TContext, TContext, TOutput>
   >;
@@ -481,8 +483,8 @@ function compileProcedure<
   const precompiledExecutor =
     typedMiddlewares.length > 0 ? createMiddlewareExecutor(typedMiddlewares, handler) : undefined;
 
-  // Create the final procedure object
-  return {
+  // Create the final procedure object with .useAfter() support
+  return createPostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>({
     type,
     handler,
     inputSchema: state.inputSchema as { parse: (input: unknown) => TInput } | undefined,
@@ -512,7 +514,7 @@ function compileProcedure<
     pipelineSteps: state.pipelineSteps,
     // Store policy action declared via .policy()
     policyAction: state.policyAction,
-  };
+  });
 }
 
 /**
@@ -534,12 +536,12 @@ function compileProcedureWithHandlerMap<
   dispatchHandler: ProcedureHandler<TInput, TOutput, TContext>,
   handlerMap: Record<string, ProcedureHandler<TInput, TOutput, TContext>>,
   state: BuilderRuntimeState
-): CompiledProcedure<TInput, TOutput, TContext, TType, TErrors> {
+): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
   const typedMiddlewares = state.middlewares as ReadonlyArray<
     MiddlewareFunction<TInput, TContext, TContext, TOutput>
   >;
 
-  return {
+  return createPostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>({
     type,
     handler: dispatchHandler,
     inputSchema: state.inputSchema as { parse: (input: unknown) => TInput } | undefined,
@@ -565,6 +567,48 @@ function compileProcedureWithHandlerMap<
     pipelineSteps: state.pipelineSteps,
     // Store policy action declared via .policy()
     policyAction: state.policyAction,
+  });
+}
+
+// ============================================================================
+// PostHandlerBuilder Factory
+// ============================================================================
+
+/**
+ * Creates a PostHandlerBuilder from a CompiledProcedure's fields
+ *
+ * Wraps a compiled procedure object with a `.useAfter()` method that
+ * appends after-handler hooks. Each call returns a new PostHandlerBuilder
+ * with the hook added, preserving immutability.
+ *
+ * The resulting object passes `isCompiledProcedure` because it retains
+ * all required fields (type, handler, middlewares, guards).
+ *
+ * @internal
+ */
+function createPostHandlerBuilder<
+  TInput,
+  TOutput,
+  TContext extends BaseContext,
+  TType extends 'query' | 'mutation',
+  TErrors = never,
+>(
+  compiled: CompiledProcedure<TInput, TOutput, TContext, TType, TErrors>
+): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
+  return {
+    ...compiled,
+    useAfter(
+      handler: AfterHandler<TInput, TOutput, TContext>
+    ): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
+      const afterHandlers: ReadonlyArray<AfterHandler> = [
+        ...(compiled.afterHandlers ?? []),
+        handler as AfterHandler,
+      ];
+      return createPostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>({
+        ...compiled,
+        afterHandlers,
+      });
+    },
   };
 }
 
@@ -924,9 +968,21 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
 
   // Step 6: Validate output if schema provided
   if (procedure.outputSchema) {
-    return procedure.outputSchema.parse(result);
+    result = procedure.outputSchema.parse(result);
   }
 
+  // Step 7: Execute after-handler hooks if .useAfter() was used
+  if (procedure.afterHandlers?.length) {
+    for (const afterHandler of procedure.afterHandlers) {
+      try {
+        await afterHandler({ input, result, ctx: ctxWithLevel });
+      } catch (error) {
+        console.error('[velox:router] useAfter hook error:', error);
+      }
+    }
+  }
+
+  // Return the ORIGINAL result (hooks cannot modify it)
   return result;
 }
 

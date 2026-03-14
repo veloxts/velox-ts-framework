@@ -584,6 +584,15 @@ export interface CompiledProcedure<
   readonly policyAction?: PolicyActionLike;
 
   /**
+   * Post-handler hooks registered via `.useAfter()`
+   *
+   * When present, these hooks run after the handler succeeds (and after
+   * event emission). Errors in hooks are caught and logged — they never
+   * fail the request. Hooks cannot modify the result.
+   */
+  readonly afterHandlers?: ReadonlyArray<AfterHandler>;
+
+  /**
    * Phantom type holder for error types — not used at runtime
    *
    * Preserves the TErrors union through the type system so that
@@ -593,6 +602,29 @@ export interface CompiledProcedure<
    */
   readonly _errors?: TErrors;
 }
+
+// ============================================================================
+// After Handler Types
+// ============================================================================
+
+/**
+ * Post-handler hook function signature
+ *
+ * Runs after the handler returns successfully. Receives the validated
+ * input, the handler result, and the request context. Return value
+ * is ignored — hooks cannot modify the result.
+ *
+ * Useful for side effects like audit logging, cache invalidation, and metrics.
+ *
+ * @template TInput - The validated input type
+ * @template TOutput - The handler result type
+ * @template TContext - The context type
+ */
+export type AfterHandler<TInput = unknown, TOutput = unknown, TContext = unknown> = (params: {
+  input: TInput;
+  result: TOutput;
+  ctx: TContext;
+}) => void | Promise<void>;
 
 // ============================================================================
 // Procedure Collection Types

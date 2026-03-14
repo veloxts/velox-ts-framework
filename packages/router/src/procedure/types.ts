@@ -15,6 +15,7 @@ import type { ZodType } from 'zod';
 
 import type { OutputForLevel, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
 import type {
+  AfterHandler,
   CompiledProcedure,
   GuardLike,
   MiddlewareFunction,
@@ -554,7 +555,7 @@ export interface ProcedureBuilder<
    * The handler receives the validated input and context.
    *
    * @param handler - The query handler function
-   * @returns Compiled procedure ready for registration
+   * @returns PostHandlerBuilder with all CompiledProcedure fields plus .useAfter()
    *
    * @example
    * ```typescript
@@ -569,7 +570,7 @@ export interface ProcedureBuilder<
     handler:
       | ProcedureHandler<TInput, TOutput, TContext>
       | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-  ): CompiledProcedure<TInput, TOutput, TContext, 'query', TErrors>;
+  ): PostHandlerBuilder<TInput, TOutput, TContext, 'query', TErrors>;
 
   /**
    * Finalizes the procedure as a mutation (write operation)
@@ -581,7 +582,7 @@ export interface ProcedureBuilder<
    * accepts a handler map keyed by `[Schema.level.key]` instead of a single handler.
    *
    * @param handler - The mutation handler function or handler map
-   * @returns Compiled procedure ready for registration
+   * @returns PostHandlerBuilder with all CompiledProcedure fields plus .useAfter()
    *
    * @example
    * ```typescript
@@ -596,7 +597,65 @@ export interface ProcedureBuilder<
     handler:
       | ProcedureHandler<TInput, TOutput, TContext>
       | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-  ): CompiledProcedure<TInput, TOutput, TContext, 'mutation', TErrors>;
+  ): PostHandlerBuilder<TInput, TOutput, TContext, 'mutation', TErrors>;
+}
+
+// ============================================================================
+// Post-Handler Builder Type
+// ============================================================================
+
+/**
+ * Returned by `.query()` and `.mutation()` — extends CompiledProcedure with `.useAfter()`
+ *
+ * PostHandlerBuilder has all CompiledProcedure fields (so it's assignable to
+ * CompiledProcedure and passes `isCompiledProcedure` checks) plus a `.useAfter()`
+ * method for registering post-handler hooks.
+ *
+ * `.useAfter()` returns another PostHandlerBuilder so hooks can be chained.
+ *
+ * @template TInput - The validated input type
+ * @template TOutput - The handler output type
+ * @template TContext - The context type
+ * @template TType - The procedure type literal ('query' or 'mutation')
+ * @template TErrors - Union of domain error types (defaults to never)
+ *
+ * @example
+ * ```typescript
+ * procedure()
+ *   .input(z.object({ id: z.string() }))
+ *   .mutation(async ({ input, ctx }) => {
+ *     return ctx.db.user.delete({ where: { id: input.id } });
+ *   })
+ *   .useAfter(({ input, result, ctx }) => {
+ *     console.log(`Deleted user ${input.id}`);
+ *   })
+ *   .useAfter(({ result }) => {
+ *     invalidateCache(result.id);
+ *   })
+ * ```
+ */
+export interface PostHandlerBuilder<
+  TInput = unknown,
+  TOutput = unknown,
+  TContext extends BaseContext = BaseContext,
+  TType extends 'query' | 'mutation' = 'query' | 'mutation',
+  TErrors = never,
+> extends CompiledProcedure<TInput, TOutput, TContext, TType, TErrors> {
+  /**
+   * Registers a post-handler hook that runs after successful handler execution
+   *
+   * Hooks run after events are emitted (if any) and auto-projection is applied.
+   * Errors in hooks are caught and logged — they never fail the request.
+   * The return value is ignored: hooks cannot modify the result.
+   *
+   * Multiple `.useAfter()` calls chain in registration order.
+   *
+   * @param handler - Post-handler hook function
+   * @returns New PostHandlerBuilder with the hook appended
+   */
+  useAfter(
+    handler: AfterHandler<TInput, TOutput, TContext>
+  ): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>;
 }
 
 // ============================================================================
