@@ -89,7 +89,7 @@ describe('Type Inference - Basic Cases', () => {
           return { found: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ userId: string }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ userId: string }>();
     });
   });
 
@@ -116,7 +116,7 @@ describe('Type Inference - Basic Cases', () => {
           return { count: 42 };
         });
 
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<{ count: number }>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<{ count: number }>();
     });
 
     it('should preserve output type in compiled procedure', () => {
@@ -130,7 +130,7 @@ describe('Type Inference - Basic Cases', () => {
         }));
 
       type ExpectedUser = z.infer<typeof UserSchema>;
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<ExpectedUser>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<ExpectedUser>();
     });
   });
 
@@ -144,8 +144,8 @@ describe('Type Inference - Basic Cases', () => {
           return { name: 'John', email: 'john@example.com' };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ id: string }>();
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ id: string }>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<{
         name: string;
         email: string;
       }>();
@@ -187,8 +187,8 @@ describe('Type Inference - Basic Cases', () => {
       type ExpectedInput = z.infer<typeof inputSchema>;
       type ExpectedOutput = z.infer<typeof outputSchema>;
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<ExpectedInput>();
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<ExpectedOutput>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<ExpectedInput>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<ExpectedOutput>();
     });
   });
 });
@@ -214,7 +214,7 @@ describe('Type Inference - Context Extension', () => {
           return { authenticated: true };
         });
 
-      expectTypeOf(proc).toMatchTypeOf<
+      expectTypeOf(_proc).toMatchTypeOf<
         CompiledProcedure<unknown, { authenticated: boolean }, AuthContext>
       >();
     });
@@ -243,7 +243,7 @@ describe('Type Inference - Context Extension', () => {
           return { ready: true };
         });
 
-      expectTypeOf(proc).toMatchTypeOf<
+      expectTypeOf(_proc).toMatchTypeOf<
         CompiledProcedure<unknown, { ready: boolean }, AuthWithDbContext>
       >();
     });
@@ -260,7 +260,7 @@ describe('Type Inference - Context Extension', () => {
           return { result: true };
         });
 
-      expectTypeOf(proc).toMatchTypeOf<
+      expectTypeOf(_proc).toMatchTypeOf<
         CompiledProcedure<unknown, { result: boolean }, BaseContext>
       >();
     });
@@ -284,7 +284,7 @@ describe('Type Inference - Context Extension', () => {
           return { processed: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ userId: string }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ userId: string }>();
     });
   });
 
@@ -430,8 +430,8 @@ describe('Type Inference - defineProcedures', () => {
     type InferredProcedures = InferProcedures<typeof _procedures>;
 
     // InferProcedures should preserve the exact types
-    expectTypeOf<InferredProcedures['listItems']>().toEqualTypeOf<typeof procedures.listItems>();
-    expectTypeOf<InferredProcedures['addItem']>().toEqualTypeOf<typeof procedures.addItem>();
+    expectTypeOf<InferredProcedures['listItems']>().toEqualTypeOf<typeof _procedures.listItems>();
+    expectTypeOf<InferredProcedures['addItem']>().toEqualTypeOf<typeof _procedures.addItem>();
   });
 
   it('should create correct ProcedureCollection type', () => {
@@ -462,7 +462,7 @@ describe('Type Inference - Edge Cases', () => {
           return { received: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<string | number>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<string | number>();
     });
 
     it('should handle z.union with objects', () => {
@@ -476,7 +476,7 @@ describe('Type Inference - Edge Cases', () => {
 
       type ExpectedOutput = { type: 'success'; data: string } | { type: 'error'; message: string };
 
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<ExpectedOutput>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<ExpectedOutput>();
     });
 
     it('should handle z.or (alias for union)', () => {
@@ -489,7 +489,7 @@ describe('Type Inference - Edge Cases', () => {
           return { type: typeof input };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<string | number | boolean>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<string | number | boolean>();
     });
   });
 
@@ -520,7 +520,7 @@ describe('Type Inference - Edge Cases', () => {
         | { action: 'update'; id: string; name: string }
         | { action: 'delete'; id: string };
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<ExpectedInput>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<ExpectedInput>();
     });
   });
 
@@ -539,7 +539,7 @@ describe('Type Inference - Edge Cases', () => {
           return { hasOptional: input.optional !== undefined };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         required: string;
         optional?: string | undefined;
       }>();
@@ -557,7 +557,7 @@ describe('Type Inference - Edge Cases', () => {
           return { isNull: input.value === null };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         value: string | null;
       }>();
     });
@@ -574,7 +574,7 @@ describe('Type Inference - Edge Cases', () => {
           return { present: input.value != null };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         value?: string | null | undefined;
       }>();
     });
@@ -593,7 +593,7 @@ describe('Type Inference - Edge Cases', () => {
         });
 
       // InferSchemaOutput gets the OUTPUT type (after transform)
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<number>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<number>();
     });
 
     it('should handle transform on object properties', () => {
@@ -612,7 +612,7 @@ describe('Type Inference - Edge Cases', () => {
           return { success: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         count: number;
         uppercase: string;
         date: Date;
@@ -635,7 +635,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         id: number;
         active: boolean;
         timestamp: Date;
@@ -655,7 +655,7 @@ describe('Type Inference - Edge Cases', () => {
           return { trimmed: input };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<string>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<string>();
     });
   });
 
@@ -678,7 +678,7 @@ describe('Type Inference - Edge Cases', () => {
           return { deep: input.level1.level2.level3.value };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         level1: {
           level2: {
             level3: {
@@ -716,7 +716,7 @@ describe('Type Inference - Edge Cases', () => {
         });
 
       type ExpectedInput = z.infer<typeof schema>;
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<ExpectedInput>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<ExpectedInput>();
     });
   });
 
@@ -735,7 +735,7 @@ describe('Type Inference - Edge Cases', () => {
           return { total: input.ids.length + input.counts.length };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         ids: string[];
         counts: number[];
       }>();
@@ -761,7 +761,7 @@ describe('Type Inference - Edge Cases', () => {
           return { count: input.items.length };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         items: Array<{ id: string; name: string; price: number }>;
       }>();
     });
@@ -780,7 +780,7 @@ describe('Type Inference - Edge Cases', () => {
           return { received: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<[string, number, boolean]>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<[string, number, boolean]>();
     });
 
     it('should handle z.set', () => {
@@ -793,7 +793,7 @@ describe('Type Inference - Edge Cases', () => {
           return { size: input.size };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<Set<string>>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<Set<string>>();
     });
   });
 
@@ -808,7 +808,7 @@ describe('Type Inference - Edge Cases', () => {
           return { keys: Object.keys(input) };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<Record<string, number>>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<Record<string, number>>();
     });
 
     it('should handle z.map', () => {
@@ -821,7 +821,7 @@ describe('Type Inference - Edge Cases', () => {
           return { size: input.size };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<
         Map<string, { count: number }>
       >();
     });
@@ -840,7 +840,7 @@ describe('Type Inference - Edge Cases', () => {
           return { status: input.status };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         status: 'pending' | 'active' | 'completed';
       }>();
     });
@@ -863,7 +863,7 @@ describe('Type Inference - Edge Cases', () => {
           return { status: input.status };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         status: Status;
       }>();
     });
@@ -884,7 +884,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         type: 'user';
         version: 1;
         active: true;
@@ -909,7 +909,7 @@ describe('Type Inference - Edge Cases', () => {
         });
 
       // biome-ignore lint/suspicious/noExplicitAny: Testing z.any() behavior
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ flexible: any }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ flexible: any }>();
     });
 
     it('should handle z.unknown', () => {
@@ -924,7 +924,7 @@ describe('Type Inference - Edge Cases', () => {
           return { hasData: input.data !== undefined };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ data: unknown }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ data: unknown }>();
     });
 
     it('should handle z.never for output only', () => {
@@ -946,7 +946,7 @@ describe('Type Inference - Edge Cases', () => {
           // No return needed
         });
 
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<void>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<void>();
     });
   });
 
@@ -962,7 +962,7 @@ describe('Type Inference - Edge Cases', () => {
           return { length: input.length };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<string>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<string>();
     });
 
     it('should handle branded types', () => {
@@ -980,7 +980,7 @@ describe('Type Inference - Edge Cases', () => {
         });
 
       type ExpectedInput = { userId: string & z.BRAND<'UserId'> };
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<ExpectedInput>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<ExpectedInput>();
     });
   });
 
@@ -1006,7 +1006,7 @@ describe('Type Inference - Edge Cases', () => {
           return { depth: 1 };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<TreeNode>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<TreeNode>();
     });
   });
 
@@ -1025,7 +1025,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<
         {
           id: string;
         } & {
@@ -1046,7 +1046,7 @@ describe('Type Inference - Edge Cases', () => {
           return { sum: input.a + input.b };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<
         { a: string } & { b: number }
       >();
     });
@@ -1070,7 +1070,7 @@ describe('Type Inference - Edge Cases', () => {
           return { provided: Object.keys(input).length };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         name?: string | undefined;
         email?: string | undefined;
         age?: number | undefined;
@@ -1092,7 +1092,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         name: string;
         email: string;
       }>();
@@ -1108,7 +1108,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         id: string;
         name: string;
       }>();
@@ -1124,7 +1124,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         id: string;
         name: string;
         email: string;
@@ -1145,7 +1145,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<
         z.infer<typeof UserSchema> & { role: 'admin' | 'user'; verified: boolean }
       >();
     });
@@ -1173,7 +1173,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ only: string }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ only: string }>();
     });
   });
 });
@@ -1188,7 +1188,7 @@ describe('Type Inference - Query vs Mutation', () => {
       .input(z.object({ id: z.string() }))
       .query(async () => ({ found: true }));
 
-    expectTypeOf(proc.type).toEqualTypeOf<'query' | 'mutation'>();
+    expectTypeOf(_proc.type).toEqualTypeOf<'query' | 'mutation'>();
     // At runtime it's 'query', but TypeScript sees the union
   });
 
@@ -1197,7 +1197,7 @@ describe('Type Inference - Query vs Mutation', () => {
       .input(z.object({ data: z.string() }))
       .mutation(async () => ({ created: true }));
 
-    expectTypeOf(proc.type).toEqualTypeOf<'query' | 'mutation'>();
+    expectTypeOf(_proc.type).toEqualTypeOf<'query' | 'mutation'>();
     // At runtime it's 'mutation', but TypeScript sees the union
   });
 });
