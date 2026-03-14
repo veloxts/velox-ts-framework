@@ -25,15 +25,6 @@ import type { ResourceSchema } from './resource/schema.js';
 export type ProcedureType = 'query' | 'mutation';
 
 /**
- * HTTP methods supported by the REST adapter
- *
- * Full REST support: GET, POST, PUT, PATCH, DELETE
- *
- * @see {@link PROCEDURE_METHOD_MAP} for naming convention mapping
- */
-export type { HttpMethod };
-
-/**
  * Maps procedure naming conventions to HTTP methods
  *
  * Re-exported from @veloxts/validation for consistency across router and client.
@@ -49,6 +40,15 @@ export type { HttpMethod };
  * - deleteUser -> DELETE
  */
 export { PROCEDURE_METHOD_MAP } from '@veloxts/validation';
+
+/**
+ * HTTP methods supported by the REST adapter
+ *
+ * Full REST support: GET, POST, PUT, PATCH, DELETE
+ *
+ * @see {@link PROCEDURE_METHOD_MAP} for naming convention mapping
+ */
+export type { HttpMethod };
 
 // ============================================================================
 // Context Types

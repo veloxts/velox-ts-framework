@@ -192,4 +192,4 @@ export function useVeloxContext<TRouter>(): VeloxContextValue<TRouter> {
 // Re-export types
 // ============================================================================
 
-export type { VeloxProviderProps, VeloxContextValue };
+export type { VeloxContextValue, VeloxProviderProps };

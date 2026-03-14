@@ -566,9 +566,9 @@ describe('Serialization Edge Cases', () => {
 
   describe('type inference verification', () => {
     it('should correctly infer output type with string dates', () => {
-      const Schema = withTimestamps(z.object({ id: z.string() }));
+      const _Schema = withTimestamps(z.object({ id: z.string() }));
 
-      type SchemaOutput = z.infer<typeof Schema>;
+      type SchemaOutput = z.infer<typeof _Schema>;
 
       // This is a compile-time check - if types are wrong, this would fail to compile
       const value: SchemaOutput = {

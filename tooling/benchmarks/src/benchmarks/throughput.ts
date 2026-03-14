@@ -161,4 +161,4 @@ if (isMain) {
     });
 }
 
-export { runThroughputBenchmark, main as runThroughputBenchmarkStandalone };
+export { main as runThroughputBenchmarkStandalone, runThroughputBenchmark };

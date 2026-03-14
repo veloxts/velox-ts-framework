@@ -84,16 +84,16 @@
     }
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "3.990.0",
-    "@aws-sdk/lib-storage": "3.990.0",
-    "@aws-sdk/s3-request-presigner": "3.990.0",
+    "@aws-sdk/client-s3": "3.1009.0",
+    "@aws-sdk/lib-storage": "3.1009.0",
+    "@aws-sdk/s3-request-presigner": "3.1009.0",
     "@types/mime-types": "3.0.1",
-    "@types/node": "25.2.3",
+    "@types/node": "25.5.0",
     "@veloxts/testing": "workspace:*",
-    "@vitest/coverage-v8": "4.0.18",
-    "fastify": "5.7.4",
+    "@vitest/coverage-v8": "4.1.0",
+    "fastify": "5.8.2",
     "typescript": "5.9.3",
-    "vitest": "4.0.18"
+    "vitest": "4.1.0"
   },
   "publishConfig": {
     "access": "public"

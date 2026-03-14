@@ -465,12 +465,11 @@ async function main() {
 // Exports
 // ============================================================================
 
-// Re-export for external usage and testing
-export { createApp, main };
-
 // Export types for client type inference
 // The AppRouter type from tRPC is what clients need for full type safety
 export type { AppRouter } from './trpc/index.js';
+// Re-export for external usage and testing
+export { createApp, main };
 
 // Run if executed directly
 main();

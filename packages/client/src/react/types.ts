@@ -135,9 +135,9 @@ export interface VeloxProviderProps<_TRouter> {
 // ============================================================================
 
 export type {
+  ClientConfig,
+  ClientFromRouter,
   InferProcedureInput,
   InferProcedureOutput,
   ProcedureCollection,
-  ClientConfig,
-  ClientFromRouter,
 };

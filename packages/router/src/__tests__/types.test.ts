@@ -81,7 +81,7 @@ describe('Type Inference - Basic Cases', () => {
     it('should preserve input type through to handler', () => {
       const inputSchema = z.object({ userId: z.string() });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(inputSchema)
         .query(async ({ input }) => {
           // Verify input type in handler
@@ -89,7 +89,7 @@ describe('Type Inference - Basic Cases', () => {
           return { found: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ userId: string }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ userId: string }>();
     });
   });
 
@@ -109,18 +109,18 @@ describe('Type Inference - Basic Cases', () => {
     });
 
     it('should enforce handler return type matches output schema', () => {
-      const proc = procedure()
+      const _proc = procedure()
         .output(z.object({ count: z.number() }))
         .query(async () => {
           // Handler must return { count: number }
           return { count: 42 };
         });
 
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<{ count: number }>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<{ count: number }>();
     });
 
     it('should preserve output type in compiled procedure', () => {
-      const proc = procedure()
+      const _proc = procedure()
         .output(UserSchema)
         .query(async () => ({
           id: '123e4567-e89b-12d3-a456-426614174000',
@@ -130,13 +130,13 @@ describe('Type Inference - Basic Cases', () => {
         }));
 
       type ExpectedUser = z.infer<typeof UserSchema>;
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<ExpectedUser>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<ExpectedUser>();
     });
   });
 
   describe('Combined Input and Output', () => {
     it('should preserve both input and output types', () => {
-      const proc = procedure()
+      const _proc = procedure()
         .input(z.object({ id: z.string() }))
         .output(z.object({ name: z.string(), email: z.string() }))
         .query(async ({ input }) => {
@@ -144,8 +144,8 @@ describe('Type Inference - Basic Cases', () => {
           return { name: 'John', email: 'john@example.com' };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ id: string }>();
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ id: string }>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<{
         name: string;
         email: string;
       }>();
@@ -169,7 +169,7 @@ describe('Type Inference - Basic Cases', () => {
         hasMore: z.boolean(),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(inputSchema)
         .output(outputSchema)
         .query(async ({ input }) => {
@@ -187,8 +187,8 @@ describe('Type Inference - Basic Cases', () => {
       type ExpectedInput = z.infer<typeof inputSchema>;
       type ExpectedOutput = z.infer<typeof outputSchema>;
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<ExpectedInput>();
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<ExpectedOutput>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<ExpectedInput>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<ExpectedOutput>();
     });
   });
 });
@@ -204,7 +204,7 @@ describe('Type Inference - Context Extension', () => {
         userId: string;
       }
 
-      const proc = procedure()
+      const _proc = procedure()
         .use<AuthContext>(async ({ next }) => {
           return next({ ctx: { userId: 'user-123' } });
         })
@@ -214,7 +214,7 @@ describe('Type Inference - Context Extension', () => {
           return { authenticated: true };
         });
 
-      expectTypeOf(proc).toMatchTypeOf<
+      expectTypeOf(_proc).toMatchTypeOf<
         CompiledProcedure<unknown, { authenticated: boolean }, AuthContext>
       >();
     });
@@ -228,7 +228,7 @@ describe('Type Inference - Context Extension', () => {
         db: { query: () => void };
       }
 
-      const proc = procedure()
+      const _proc = procedure()
         .use<AuthContext>(async ({ next }) => {
           return next({ ctx: { userId: 'user-123' } });
         })
@@ -243,13 +243,13 @@ describe('Type Inference - Context Extension', () => {
           return { ready: true };
         });
 
-      expectTypeOf(proc).toMatchTypeOf<
+      expectTypeOf(_proc).toMatchTypeOf<
         CompiledProcedure<unknown, { ready: boolean }, AuthWithDbContext>
       >();
     });
 
     it('should preserve context type when no extension is made', () => {
-      const proc = procedure()
+      const _proc = procedure()
         .use(async ({ next }) => {
           // Middleware that does not extend context
           return next();
@@ -260,7 +260,7 @@ describe('Type Inference - Context Extension', () => {
           return { result: true };
         });
 
-      expectTypeOf(proc).toMatchTypeOf<
+      expectTypeOf(_proc).toMatchTypeOf<
         CompiledProcedure<unknown, { result: boolean }, BaseContext>
       >();
     });
@@ -272,7 +272,7 @@ describe('Type Inference - Context Extension', () => {
         requestId: string;
       }
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(z.object({ userId: z.string() }))
         .use<RequestContext>(async ({ next }) => {
           return next({ ctx: { requestId: 'req-456' } });
@@ -284,7 +284,7 @@ describe('Type Inference - Context Extension', () => {
           return { processed: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ userId: string }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ userId: string }>();
     });
   });
 
@@ -416,7 +416,7 @@ describe('Type Inference - defineProcedures', () => {
   });
 
   it('should work with InferProcedures helper type', () => {
-    const procedures = {
+    const _procedures = {
       listItems: procedure()
         .output(z.array(z.string()))
         .query(async () => ['a', 'b', 'c']),
@@ -427,11 +427,11 @@ describe('Type Inference - defineProcedures', () => {
         .mutation(async () => ({ added: true })),
     };
 
-    type InferredProcedures = InferProcedures<typeof procedures>;
+    type InferredProcedures = InferProcedures<typeof _procedures>;
 
     // InferProcedures should preserve the exact types
-    expectTypeOf<InferredProcedures['listItems']>().toEqualTypeOf<typeof procedures.listItems>();
-    expectTypeOf<InferredProcedures['addItem']>().toEqualTypeOf<typeof procedures.addItem>();
+    expectTypeOf<InferredProcedures['listItems']>().toEqualTypeOf<typeof _procedures.listItems>();
+    expectTypeOf<InferredProcedures['addItem']>().toEqualTypeOf<typeof _procedures.addItem>();
   });
 
   it('should create correct ProcedureCollection type', () => {
@@ -455,14 +455,14 @@ describe('Type Inference - Edge Cases', () => {
     it('should handle z.union with primitives', () => {
       const unionSchema = z.union([z.string(), z.number()]);
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(unionSchema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<string | number>();
           return { received: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<string | number>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<string | number>();
     });
 
     it('should handle z.union with objects', () => {
@@ -470,26 +470,26 @@ describe('Type Inference - Edge Cases', () => {
       const errorSchema = z.object({ type: z.literal('error'), message: z.string() });
       const unionSchema = z.union([successSchema, errorSchema]);
 
-      const proc = procedure()
+      const _proc = procedure()
         .output(unionSchema)
         .query(async () => ({ type: 'success' as const, data: 'result' }));
 
       type ExpectedOutput = { type: 'success'; data: string } | { type: 'error'; message: string };
 
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<ExpectedOutput>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<ExpectedOutput>();
     });
 
     it('should handle z.or (alias for union)', () => {
       const schema = z.string().or(z.number()).or(z.boolean());
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<string | number | boolean>();
           return { type: typeof input };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<string | number | boolean>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<string | number | boolean>();
     });
   });
 
@@ -501,7 +501,7 @@ describe('Type Inference - Edge Cases', () => {
         z.object({ action: z.literal('delete'), id: z.string() }),
       ]);
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(actionSchema)
         .query(async ({ input }) => {
           // TypeScript should narrow the type based on discriminant
@@ -520,7 +520,7 @@ describe('Type Inference - Edge Cases', () => {
         | { action: 'update'; id: string; name: string }
         | { action: 'delete'; id: string };
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<ExpectedInput>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<ExpectedInput>();
     });
   });
 
@@ -531,7 +531,7 @@ describe('Type Inference - Edge Cases', () => {
         optional: z.string().optional(),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.required).toEqualTypeOf<string>();
@@ -539,7 +539,7 @@ describe('Type Inference - Edge Cases', () => {
           return { hasOptional: input.optional !== undefined };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         required: string;
         optional?: string | undefined;
       }>();
@@ -550,14 +550,14 @@ describe('Type Inference - Edge Cases', () => {
         value: z.string().nullable(),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.value).toEqualTypeOf<string | null>();
           return { isNull: input.value === null };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         value: string | null;
       }>();
     });
@@ -567,14 +567,14 @@ describe('Type Inference - Edge Cases', () => {
         value: z.string().nullish(),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.value).toEqualTypeOf<string | null | undefined>();
           return { present: input.value != null };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         value?: string | null | undefined;
       }>();
     });
@@ -584,7 +584,7 @@ describe('Type Inference - Edge Cases', () => {
     it('should use output type after z.transform', () => {
       const schema = z.string().transform((s) => parseInt(s, 10));
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           // After transform, input should be number, not string
@@ -593,7 +593,7 @@ describe('Type Inference - Edge Cases', () => {
         });
 
       // InferSchemaOutput gets the OUTPUT type (after transform)
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<number>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<number>();
     });
 
     it('should handle transform on object properties', () => {
@@ -603,7 +603,7 @@ describe('Type Inference - Edge Cases', () => {
         date: z.string().transform((s) => new Date(s)),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.count).toEqualTypeOf<number>();
@@ -612,7 +612,7 @@ describe('Type Inference - Edge Cases', () => {
           return { success: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         count: number;
         uppercase: string;
         date: Date;
@@ -626,7 +626,7 @@ describe('Type Inference - Edge Cases', () => {
         timestamp: z.coerce.date(),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.id).toEqualTypeOf<number>();
@@ -635,7 +635,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         id: number;
         active: boolean;
         timestamp: Date;
@@ -648,14 +648,14 @@ describe('Type Inference - Edge Cases', () => {
         z.string().min(1)
       );
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<string>();
           return { trimmed: input };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<string>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<string>();
     });
   });
 
@@ -671,14 +671,14 @@ describe('Type Inference - Edge Cases', () => {
         }),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.level1.level2.level3.value).toEqualTypeOf<string>();
           return { deep: input.level1.level2.level3.value };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         level1: {
           level2: {
             level3: {
@@ -703,7 +703,7 @@ describe('Type Inference - Edge Cases', () => {
         metadata: z.record(z.string(), z.unknown()),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.user.id).toEqualTypeOf<string>();
@@ -716,7 +716,7 @@ describe('Type Inference - Edge Cases', () => {
         });
 
       type ExpectedInput = z.infer<typeof schema>;
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<ExpectedInput>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<ExpectedInput>();
     });
   });
 
@@ -727,7 +727,7 @@ describe('Type Inference - Edge Cases', () => {
         counts: z.array(z.number()),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.ids).toEqualTypeOf<string[]>();
@@ -735,7 +735,7 @@ describe('Type Inference - Edge Cases', () => {
           return { total: input.ids.length + input.counts.length };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         ids: string[];
         counts: number[];
       }>();
@@ -752,7 +752,7 @@ describe('Type Inference - Edge Cases', () => {
         items: z.array(ItemSchema),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.items).toEqualTypeOf<
@@ -761,7 +761,7 @@ describe('Type Inference - Edge Cases', () => {
           return { count: input.items.length };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         items: Array<{ id: string; name: string; price: number }>;
       }>();
     });
@@ -769,7 +769,7 @@ describe('Type Inference - Edge Cases', () => {
     it('should handle z.tuple', () => {
       const schema = z.tuple([z.string(), z.number(), z.boolean()]);
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<[string, number, boolean]>();
@@ -780,20 +780,20 @@ describe('Type Inference - Edge Cases', () => {
           return { received: true };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<[string, number, boolean]>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<[string, number, boolean]>();
     });
 
     it('should handle z.set', () => {
       const schema = z.set(z.string());
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<Set<string>>();
           return { size: input.size };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<Set<string>>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<Set<string>>();
     });
   });
 
@@ -801,27 +801,27 @@ describe('Type Inference - Edge Cases', () => {
     it('should handle z.record', () => {
       const schema = z.record(z.string(), z.number());
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<Record<string, number>>();
           return { keys: Object.keys(input) };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<Record<string, number>>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<Record<string, number>>();
     });
 
     it('should handle z.map', () => {
       const schema = z.map(z.string(), z.object({ count: z.number() }));
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<Map<string, { count: number }>>();
           return { size: input.size };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<
         Map<string, { count: number }>
       >();
     });
@@ -833,14 +833,14 @@ describe('Type Inference - Edge Cases', () => {
         status: z.enum(['pending', 'active', 'completed']),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.status).toEqualTypeOf<'pending' | 'active' | 'completed'>();
           return { status: input.status };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         status: 'pending' | 'active' | 'completed';
       }>();
     });
@@ -856,14 +856,14 @@ describe('Type Inference - Edge Cases', () => {
         status: z.enum(Status),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.status).toEqualTypeOf<Status>();
           return { status: input.status };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         status: Status;
       }>();
     });
@@ -875,7 +875,7 @@ describe('Type Inference - Edge Cases', () => {
         active: z.literal(true),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.type).toEqualTypeOf<'user'>();
@@ -884,7 +884,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         type: 'user';
         version: 1;
         active: true;
@@ -899,7 +899,7 @@ describe('Type Inference - Edge Cases', () => {
         flexible: z.any(),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           // z.any() produces `any` type
@@ -909,7 +909,7 @@ describe('Type Inference - Edge Cases', () => {
         });
 
       // biome-ignore lint/suspicious/noExplicitAny: Testing z.any() behavior
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ flexible: any }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ flexible: any }>();
     });
 
     it('should handle z.unknown', () => {
@@ -917,36 +917,36 @@ describe('Type Inference - Edge Cases', () => {
         data: z.unknown(),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.data).toEqualTypeOf<unknown>();
           return { hasData: input.data !== undefined };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ data: unknown }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ data: unknown }>();
     });
 
     it('should handle z.never for output only', () => {
       // z.never() is useful for indicating impossible states
-      const schema = z.object({
+      const _schema = z.object({
         value: z.string(),
         impossible: z.never().optional(), // Can be omitted, but if present, type is never
       });
 
       type Expected = { value: string; impossible?: never };
-      expectTypeOf<z.infer<typeof schema>>().toEqualTypeOf<Expected>();
+      expectTypeOf<z.infer<typeof _schema>>().toEqualTypeOf<Expected>();
     });
 
     it('should handle z.void', () => {
       // z.void() is typically used for outputs that return nothing meaningful
-      const proc = procedure()
+      const _proc = procedure()
         .output(z.void())
         .mutation(async () => {
           // No return needed
         });
 
-      expectTypeOf<InferProcedureOutput<typeof proc>>().toEqualTypeOf<void>();
+      expectTypeOf<InferProcedureOutput<typeof _proc>>().toEqualTypeOf<void>();
     });
   });
 
@@ -954,7 +954,7 @@ describe('Type Inference - Edge Cases', () => {
     it('should preserve base type after z.refine', () => {
       const schema = z.string().refine((s) => s.length > 0, 'Cannot be empty');
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           // Refinements do not change the type
@@ -962,7 +962,7 @@ describe('Type Inference - Edge Cases', () => {
           return { length: input.length };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<string>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<string>();
     });
 
     it('should handle branded types', () => {
@@ -971,7 +971,7 @@ describe('Type Inference - Edge Cases', () => {
         userId: UserId,
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           // Branded type should be preserved
@@ -980,7 +980,7 @@ describe('Type Inference - Edge Cases', () => {
         });
 
       type ExpectedInput = { userId: string & z.BRAND<'UserId'> };
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<ExpectedInput>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<ExpectedInput>();
     });
   });
 
@@ -998,7 +998,7 @@ describe('Type Inference - Edge Cases', () => {
         })
       );
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(TreeNodeSchema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<TreeNode>();
@@ -1006,7 +1006,7 @@ describe('Type Inference - Edge Cases', () => {
           return { depth: 1 };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<TreeNode>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<TreeNode>();
     });
   });
 
@@ -1016,7 +1016,7 @@ describe('Type Inference - Edge Cases', () => {
       const TimestampSchema = z.object({ createdAt: z.date(), updatedAt: z.date() });
       const CombinedSchema = z.intersection(BaseSchema, TimestampSchema);
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(CombinedSchema)
         .query(async ({ input }) => {
           expectTypeOf(input.id).toEqualTypeOf<string>();
@@ -1025,7 +1025,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<
         {
           id: string;
         } & {
@@ -1038,7 +1038,7 @@ describe('Type Inference - Edge Cases', () => {
     it('should handle z.and (alias for intersection)', () => {
       const schema = z.object({ a: z.string() }).and(z.object({ b: z.number() }));
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.a).toEqualTypeOf<string>();
@@ -1046,7 +1046,7 @@ describe('Type Inference - Edge Cases', () => {
           return { sum: input.a + input.b };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<
         { a: string } & { b: number }
       >();
     });
@@ -1061,7 +1061,7 @@ describe('Type Inference - Edge Cases', () => {
       });
       const PartialSchema = FullSchema.partial();
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(PartialSchema)
         .query(async ({ input }) => {
           expectTypeOf(input.name).toEqualTypeOf<string | undefined>();
@@ -1070,7 +1070,7 @@ describe('Type Inference - Edge Cases', () => {
           return { provided: Object.keys(input).length };
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         name?: string | undefined;
         email?: string | undefined;
         age?: number | undefined;
@@ -1084,7 +1084,7 @@ describe('Type Inference - Edge Cases', () => {
       });
       const RequiredSchema = PartialSchema.required();
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(RequiredSchema)
         .query(async ({ input }) => {
           expectTypeOf(input.name).toEqualTypeOf<string>();
@@ -1092,7 +1092,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         name: string;
         email: string;
       }>();
@@ -1101,14 +1101,14 @@ describe('Type Inference - Edge Cases', () => {
     it('should handle z.pick', () => {
       const schema = UserSchema.pick({ id: true, name: true });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<{ id: string; name: string }>();
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         id: string;
         name: string;
       }>();
@@ -1117,14 +1117,14 @@ describe('Type Inference - Edge Cases', () => {
     it('should handle z.omit', () => {
       const schema = UserSchema.omit({ createdAt: true });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<{ id: string; name: string; email: string }>();
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{
         id: string;
         name: string;
         email: string;
@@ -1137,7 +1137,7 @@ describe('Type Inference - Edge Cases', () => {
         verified: z.boolean(),
       });
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input.role).toEqualTypeOf<'admin' | 'user'>();
@@ -1145,7 +1145,7 @@ describe('Type Inference - Edge Cases', () => {
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<
         z.infer<typeof UserSchema> & { role: 'admin' | 'user'; verified: boolean }
       >();
     });
@@ -1166,14 +1166,14 @@ describe('Type Inference - Edge Cases', () => {
     it('should handle z.strict', () => {
       const schema = z.object({ only: z.string() }).strict();
 
-      const proc = procedure()
+      const _proc = procedure()
         .input(schema)
         .query(async ({ input }) => {
           expectTypeOf(input).toEqualTypeOf<{ only: string }>();
           return input;
         });
 
-      expectTypeOf<InferProcedureInput<typeof proc>>().toEqualTypeOf<{ only: string }>();
+      expectTypeOf<InferProcedureInput<typeof _proc>>().toEqualTypeOf<{ only: string }>();
     });
   });
 });
@@ -1184,20 +1184,20 @@ describe('Type Inference - Edge Cases', () => {
 
 describe('Type Inference - Query vs Mutation', () => {
   it('should correctly type query procedures', () => {
-    const proc = procedure()
+    const _proc = procedure()
       .input(z.object({ id: z.string() }))
       .query(async () => ({ found: true }));
 
-    expectTypeOf(proc.type).toEqualTypeOf<'query' | 'mutation'>();
+    expectTypeOf(_proc.type).toEqualTypeOf<'query' | 'mutation'>();
     // At runtime it's 'query', but TypeScript sees the union
   });
 
   it('should correctly type mutation procedures', () => {
-    const proc = procedure()
+    const _proc = procedure()
       .input(z.object({ data: z.string() }))
       .mutation(async () => ({ created: true }));
 
-    expectTypeOf(proc.type).toEqualTypeOf<'query' | 'mutation'>();
+    expectTypeOf(_proc.type).toEqualTypeOf<'query' | 'mutation'>();
     // At runtime it's 'mutation', but TypeScript sees the union
   });
 });
