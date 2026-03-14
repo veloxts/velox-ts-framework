@@ -11,18 +11,18 @@
   },
   "dependencies": {
     "@tanstack/react-query": "5.90.21",
-    "@tanstack/react-router": "1.159.10",
+    "@tanstack/react-router": "1.167.0",
     "@veloxts/client": "__VELOXTS_VERSION__",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-error-boundary": "6.1.1"
   },
   "devDependencies": {
-    "@tanstack/router-plugin": "1.159.12",
-    "@types/node": "25.2.3",
+    "@tanstack/router-plugin": "1.166.9",
+    "@types/node": "25.5.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "5.1.4",
+    "@vitejs/plugin-react": "5.2.0",
     "typescript": "5.9.3",
     "vite": "7.3.1"
   }
