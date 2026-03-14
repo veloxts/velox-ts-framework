@@ -326,8 +326,8 @@ describe('Type exports', () => {
   describe('Validation types', () => {
     it('should export InferOutput type utility', () => {
       // InferOutput extracts the output type from a schema
-      const schema = velox.z.object({ id: velox.z.string() });
-      type Output = InferOutput<typeof schema>;
+      const _schema = velox.z.object({ id: velox.z.string() });
+      type Output = InferOutput<typeof _schema>;
       expectTypeOf<Output>().toEqualTypeOf<{ id: string }>();
     });
 
