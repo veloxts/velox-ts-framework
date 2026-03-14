@@ -62,6 +62,7 @@ export type {
   GuardLike,
   HttpMethod,
   InferProcedureContext,
+  InferProcedureErrors,
   InferProcedureInput,
   InferProcedureOutput,
   Middleware,

@@ -36,11 +36,13 @@ import type {
  * @template TInput - The validated input type (unknown if no input schema)
  * @template TOutput - The validated output type (unknown if no output schema)
  * @template TContext - The context type (starts as BaseContext, extended by middleware)
+ * @template TErrors - Union of domain error types (defaults to never)
  */
 export interface ProcedureBuilderState<
   TInput = unknown,
   TOutput = unknown,
   TContext extends BaseContext = BaseContext,
+  TErrors = never,
 > {
   /** Marker for state identification */
   readonly _brand: 'ProcedureBuilderState';
@@ -48,6 +50,7 @@ export interface ProcedureBuilderState<
   readonly _input: TInput;
   readonly _output: TOutput;
   readonly _context: TContext;
+  readonly _errors: TErrors;
 }
 
 // ============================================================================
@@ -104,6 +107,7 @@ export type InferOutputSchema<T> = T extends TaggedResourceSchema
  * @template TInput - Current input type
  * @template TOutput - Current output type
  * @template TContext - Current context type
+ * @template TErrors - Union of domain error types (defaults to never)
  *
  * @example
  * ```typescript
@@ -119,6 +123,7 @@ export interface ProcedureBuilder<
   TInput = unknown,
   TOutput = unknown,
   TContext extends BaseContext = BaseContext,
+  TErrors = never,
 > {
   /**
    * Defines the input validation schema for the procedure
@@ -142,7 +147,7 @@ export interface ProcedureBuilder<
    */
   input<TSchema extends ValidSchema>(
     schema: TSchema
-  ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext>;
+  ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext, TErrors>;
 
   /**
    * Defines the output schema for the procedure
@@ -171,7 +176,7 @@ export interface ProcedureBuilder<
    */
   output<TSchema extends ValidOutputSchema>(
     schema: TSchema
-  ): ProcedureBuilder<TInput, InferOutputSchema<TSchema>, TContext>;
+  ): ProcedureBuilder<TInput, InferOutputSchema<TSchema>, TContext, TErrors>;
 
   /**
    * Adds middleware to the procedure chain
@@ -204,7 +209,7 @@ export interface ProcedureBuilder<
    */
   use<TNewContext extends BaseContext = TContext>(
     middleware: MiddlewareFunction<TInput, TContext, TNewContext, TOutput>
-  ): ProcedureBuilder<TInput, TOutput, TNewContext>;
+  ): ProcedureBuilder<TInput, TOutput, TNewContext, TErrors>;
 
   /**
    * Adds an authorization guard to the procedure
@@ -240,7 +245,7 @@ export interface ProcedureBuilder<
    */
   guard<TGuardContext extends Partial<TContext>>(
     guard: GuardLike<TGuardContext>
-  ): ProcedureBuilder<TInput, TOutput, TContext>;
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Adds multiple authorization guards at once
@@ -270,7 +275,7 @@ export interface ProcedureBuilder<
    */
   guards<TGuards extends GuardLike<Partial<TContext>>[]>(
     ...guards: TGuards
-  ): ProcedureBuilder<TInput, TOutput, TContext>;
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Configures REST route override
@@ -287,7 +292,7 @@ export interface ProcedureBuilder<
    *   .rest({ method: 'POST', path: '/users/:id/activate' })
    * ```
    */
-  rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext>;
+  rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Configures the procedure as a webhook endpoint
@@ -308,7 +313,7 @@ export interface ProcedureBuilder<
    *   })
    * ```
    */
-  webhook(path: string): ProcedureBuilder<TInput, TOutput, TContext>;
+  webhook(path: string): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Marks the procedure as deprecated
@@ -332,7 +337,7 @@ export interface ProcedureBuilder<
    *   .query(handler);
    * ```
    */
-  deprecated(message?: string): ProcedureBuilder<TInput, TOutput, TContext>;
+  deprecated(message?: string): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Declares a parent resource for nested routes (single level)
@@ -362,7 +367,7 @@ export interface ProcedureBuilder<
    *   .query(async ({ input }) => { ... });
    * ```
    */
-  parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext>;
+  parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Declares multiple parent resources for deeply nested routes
@@ -393,7 +398,7 @@ export interface ProcedureBuilder<
    */
   parents(
     config: Array<{ resource: string; param?: string }>
-  ): ProcedureBuilder<TInput, TOutput, TContext>;
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Finalizes the procedure as a query (read-only operation)
@@ -417,7 +422,7 @@ export interface ProcedureBuilder<
     handler:
       | ProcedureHandler<TInput, TOutput, TContext>
       | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-  ): CompiledProcedure<TInput, TOutput, TContext, 'query'>;
+  ): CompiledProcedure<TInput, TOutput, TContext, 'query', TErrors>;
 
   /**
    * Finalizes the procedure as a mutation (write operation)
@@ -444,7 +449,7 @@ export interface ProcedureBuilder<
     handler:
       | ProcedureHandler<TInput, TOutput, TContext>
       | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-  ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
+  ): CompiledProcedure<TInput, TOutput, TContext, 'mutation', TErrors>;
 }
 
 // ============================================================================
@@ -484,6 +489,8 @@ export interface BuilderRuntimeState {
   isWebhook?: boolean;
   /** Whether .output() received an untagged resource schema (Level 3 branching mode) */
   branchingMode?: boolean;
+  /** Error classes declared via .throws() */
+  errorClasses?: Array<new (data: unknown) => unknown>;
 }
 
 // ============================================================================
@@ -504,7 +511,7 @@ export interface BuilderRuntimeState {
  * the concrete types at definition time. This `any` only allows the assignment.
  */
 // biome-ignore lint/suspicious/noExplicitAny: Required for variance compatibility in Record type
-export type ProcedureDefinitions = Record<string, CompiledProcedure<any, any, any, any>>;
+export type ProcedureDefinitions = Record<string, CompiledProcedure<any, any, any, any, any>>;
 
 /**
  * Type helper to preserve procedure types in a collection

@@ -353,12 +353,14 @@ export interface ParentResourceChain {
  * @template TOutput - The handler output type
  * @template TContext - The context type
  * @template TType - The procedure type literal ('query' or 'mutation')
+ * @template TErrors - Union of domain error types this procedure can throw (defaults to never)
  */
 export interface CompiledProcedure<
   TInput = unknown,
   TOutput = unknown,
   TContext extends BaseContext = BaseContext,
   TType extends ProcedureType = ProcedureType,
+  TErrors = never,
 > {
   /** Whether this is a query or mutation */
   readonly type: TType;
@@ -465,6 +467,26 @@ export interface CompiledProcedure<
    * @internal
    */
   readonly _handlerMap?: Readonly<Record<string, ProcedureHandler<TInput, TOutput, TContext>>>;
+
+  /**
+   * Error classes that this procedure declares it may throw
+   *
+   * Populated by `.throws()` on the procedure builder. Used for OpenAPI
+   * error response generation and client-side error narrowing.
+   *
+   * @internal
+   */
+  readonly errorClasses?: ReadonlyArray<new (data: unknown) => unknown>;
+
+  /**
+   * Phantom type holder for error types — not used at runtime
+   *
+   * Preserves the TErrors union through the type system so that
+   * `InferProcedureErrors<T>` can extract it. Never set at runtime.
+   *
+   * @internal
+   */
+  readonly _errors?: TErrors;
 }
 
 // ============================================================================
@@ -477,7 +499,7 @@ export interface CompiledProcedure<
  * NOTE: Uses `any` for variance compatibility - see ProcedureDefinitions for explanation.
  */
 // biome-ignore lint/suspicious/noExplicitAny: Required for variance compatibility in Record type
-export type ProcedureRecord = Record<string, CompiledProcedure<any, any, any, any>>;
+export type ProcedureRecord = Record<string, CompiledProcedure<any, any, any, any, any>>;
 
 /**
  * Procedure collection with namespace
@@ -524,6 +546,15 @@ export type InferProcedureContext<T> =
  */
 export type InferProcedureType<T> =
   T extends CompiledProcedure<unknown, unknown, BaseContext, infer TType> ? TType : never;
+
+/**
+ * Extracts the error types from a compiled procedure
+ *
+ * Returns the union of domain error types declared via `.throws()`.
+ * Returns `never` if no errors are declared.
+ */
+export type InferProcedureErrors<T> =
+  T extends CompiledProcedure<unknown, unknown, BaseContext, ProcedureType, infer E> ? E : never;
 
 /**
  * Extracts procedure types from a collection
