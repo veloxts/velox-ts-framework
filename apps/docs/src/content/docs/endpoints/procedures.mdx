@@ -58,9 +58,9 @@ Define the input validation schema:
 }))
 ```
 
-### `.expose(schema)` with Resource Schemas
+### `.output(schema)` with Resource Schemas
 
-The `.expose()` method accepts resource schemas for context-dependent output projection. The Resource API lets you define field visibility levels (`public`, `authenticated`, `admin`) once and project data based on access level.
+The `.output()` method accepts both plain Zod schemas and tagged resource views for context-dependent output projection. The Resource API lets you define field visibility levels (`public`, `authenticated`, `admin`) once and project data based on access level.
 
 ```typescript
 const UserSchema = resourceSchema()
@@ -72,15 +72,15 @@ const UserSchema = resourceSchema()
 
 // Tagged view — one-liner projection
 getPublicProfile: procedure()
+  .output(UserSchema.public) // projects { id, name }
   .query(async ({ input, ctx }) => {
-    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
-    return resource(user, UserSchema.public); // returns { id, name }
+    return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   }),
 
 // Automatic projection with guards
 getProfile: procedure()
-  .guardNarrow(authenticatedNarrow)
-  .expose(UserSchema) // auto-projects { id, name, email }
+  .guard(authenticated)
+  .output(UserSchema.authenticated) // projects { id, name, email }
   .query(async ({ input, ctx }) => {
     return ctx.db.user.findUniqueOrThrow({ where: { id: input.id } });
   }),
@@ -140,9 +140,7 @@ Methods must be called in this order:
 procedure()
   .input(schema)       // 1. Input validation (optional)
   .guard(guardFn)      // 2. Authorization (optional, can have multiple)
-  .guardNarrow(guard)  // 2b. Narrowing guard (optional, sets access level)
-  .output(schema)      // 3. Output schema or resource schema (optional)
-  .expose(schema)      // 3b. Context-dependent output projection (optional)
+  .output(schema)      // 3. Zod schema or tagged resource view (optional)
   .use(middleware)     // 4. Middleware (optional, can have multiple)
   .rest(options)       // 5. REST override (optional) - BEFORE handler
   .query(handler)      // 6. Handler - MUST be last

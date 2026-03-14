@@ -1,14 +1,12 @@
 /**
- * Integration tests for narrowing guards with Resource API auto-projection
+ * Integration tests for guards with Resource API auto-projection via .output()
  *
  * Tests the full end-to-end flow:
- *   HTTP request → auth plugin → narrowing guard → handler → auto-projection
+ *   HTTP request → auth plugin → guard → handler → auto-projection via tagged view
  *
- * Key mechanism: `executeProcedure()` tracks the highest `accessLevel` from
- * guards that have the property. After the handler runs, if `_resourceSchema`
- * is set on the procedure, it auto-projects based on that level. Only narrowing
- * guards (`authenticatedNarrow`, `adminNarrow`) have `accessLevel` — regular
- * guards do NOT.
+ * Key mechanism: `.output(ProfileSchema.authenticated)` sets both `_resourceSchema`
+ * and `_resourceLevel` on the compiled procedure. `executeProcedure()` uses the
+ * level to auto-project the handler's return value.
  *
  * @module __integration__/resource-guards.integration.test
  */
@@ -18,8 +16,7 @@ import { z } from '@veloxts/validation';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { authenticated } from '../guards.js';
-import { adminNarrow, authenticatedNarrow } from '../guards-narrowing.js';
+import { authenticated, hasRole } from '../guards.js';
 import { authMiddleware } from '../middleware.js';
 import { createTestAuthConfig, TEST_USERS } from './fixtures.js';
 import { authHeader, createTestServer } from './setup.js';
@@ -48,10 +45,10 @@ const mockUser = {
 
 describe('Resource Guards Integration', () => {
   // ==========================================================================
-  // 1. guardNarrow(authenticatedNarrow) + .expose()
+  // 1. guard(authenticated) + .output(Schema.authenticated)
   // ==========================================================================
 
-  describe('guardNarrow(authenticatedNarrow) + .expose()', () => {
+  describe('guard(authenticated) + .output(Schema.authenticated)', () => {
     let server: FastifyInstance;
     let userToken: string;
 
@@ -64,9 +61,9 @@ describe('Resource Guards Integration', () => {
       const procs = defineProcedures('authprofile', {
         getAuthprofile: procedure()
           .use(auth.middleware())
-          .guardNarrow(authenticatedNarrow)
+          .guard(authenticated)
           .input(z.object({ id: z.string() }))
-          .expose(ProfileSchema)
+          .output(ProfileSchema.authenticated)
           .query(async () => mockUser),
       });
 
@@ -106,10 +103,10 @@ describe('Resource Guards Integration', () => {
   });
 
   // ==========================================================================
-  // 2. guardNarrow(adminNarrow) + .expose()
+  // 2. guard(hasRole('admin')) + .output(Schema.admin)
   // ==========================================================================
 
-  describe('guardNarrow(adminNarrow) + .expose()', () => {
+  describe("guard(hasRole('admin')) + .output(Schema.admin)", () => {
     let server: FastifyInstance;
     let adminToken: string;
     let userToken: string;
@@ -124,9 +121,9 @@ describe('Resource Guards Integration', () => {
       const procs = defineProcedures('adminprofile', {
         getAdminprofile: procedure()
           .use(auth.middleware())
-          .guardNarrow(adminNarrow)
+          .guard(hasRole('admin'))
           .input(z.object({ id: z.string() }))
-          .expose(ProfileSchema)
+          .output(ProfileSchema.admin)
           .query(async () => mockUser),
       });
 
@@ -167,10 +164,10 @@ describe('Resource Guards Integration', () => {
   });
 
   // ==========================================================================
-  // 3. No guard + .expose() → public fields only
+  // 3. No guard + .output(Schema.public) → public fields only
   // ==========================================================================
 
-  describe('No guard + .expose()', () => {
+  describe('No guard + .output(Schema.public)', () => {
     let server: FastifyInstance;
 
     beforeEach(async () => {
@@ -179,7 +176,7 @@ describe('Resource Guards Integration', () => {
       const procs = defineProcedures('publicprofile', {
         getPublicprofile: procedure()
           .input(z.object({ id: z.string() }))
-          .expose(ProfileSchema)
+          .output(ProfileSchema.public)
           .query(async () => mockUser),
       });
 
@@ -209,57 +206,7 @@ describe('Resource Guards Integration', () => {
   });
 
   // ==========================================================================
-  // 4. Regular guard(authenticated) + .expose() → defaults to public
-  // ==========================================================================
-
-  describe('Regular guard(authenticated) + .expose()', () => {
-    let server: FastifyInstance;
-    let userToken: string;
-
-    beforeEach(async () => {
-      server = await createTestServer();
-      userToken = server.auth.jwt.createTokenPair(TEST_USERS.user).accessToken;
-
-      const auth = authMiddleware(createTestAuthConfig());
-
-      const procs = defineProcedures('regularguard', {
-        getRegularguard: procedure()
-          .use(auth.middleware())
-          .guard(authenticated)
-          .input(z.object({ id: z.string() }))
-          .expose(ProfileSchema)
-          .query(async () => mockUser),
-      });
-
-      rest([procs], { prefix: '/api' })(server);
-      await server.ready();
-    });
-
-    afterEach(async () => {
-      await server.close();
-    });
-
-    it('returns only public fields even for authenticated user (regular guard lacks accessLevel)', async () => {
-      const response = await server.inject({
-        method: 'GET',
-        url: '/api/regularguard/abc',
-        headers: authHeader(userToken),
-      });
-
-      expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body);
-      // Critical: regular guards have no accessLevel, so auto-projection defaults to 'public'
-      expect(body).toEqual({
-        id: 'user-123',
-        name: 'Test User',
-      });
-      expect(body.email).toBeUndefined();
-      expect(body.internalNotes).toBeUndefined();
-    });
-  });
-
-  // ==========================================================================
-  // 5. Field filtering precision
+  // 4. Field filtering precision
   // ==========================================================================
 
   describe('Field filtering precision', () => {
@@ -275,25 +222,25 @@ describe('Resource Guards Integration', () => {
       const auth = authMiddleware(createTestAuthConfig());
 
       const procs = defineProcedures('precision', {
-        // Public endpoint (no guard) → 2 fields
+        // Public endpoint → 2 fields
         getPrecision: procedure()
           .input(z.object({ id: z.string() }))
-          .expose(ProfileSchema)
+          .output(ProfileSchema.public)
           .query(async () => mockUser),
 
         // Authenticated endpoint → 3 fields
         listPrecision: procedure()
           .use(auth.middleware())
-          .guardNarrow(authenticatedNarrow)
-          .expose(ProfileSchema)
+          .guard(authenticated)
+          .output(ProfileSchema.authenticated)
           .query(async () => mockUser),
 
         // Admin endpoint → 4 fields
         createPrecision: procedure()
           .input(z.object({ name: z.string() }))
           .use(auth.middleware())
-          .guardNarrow(adminNarrow)
-          .expose(ProfileSchema)
+          .guard(hasRole('admin'))
+          .output(ProfileSchema.admin)
           .mutation(async () => mockUser),
       });
 
@@ -371,10 +318,10 @@ describe('Resource Guards Integration', () => {
   });
 
   // ==========================================================================
-  // 6. Collection auto-projection via guardNarrow + .expose()
+  // 5. Collection auto-projection via .output(Schema.level)
   // ==========================================================================
 
-  describe('Collection auto-projection via guardNarrow + .expose()', () => {
+  describe('Collection auto-projection via .output(Schema.level)', () => {
     let server: FastifyInstance;
     let userToken: string;
     let adminToken: string;
@@ -391,19 +338,18 @@ describe('Resource Guards Integration', () => {
 
       const auth = authMiddleware(createTestAuthConfig());
 
-      // Handler returns raw array — auto-projection handles per-item filtering
       const procs = defineProcedures('collection', {
         listCollection: procedure()
           .use(auth.middleware())
-          .guardNarrow(authenticatedNarrow)
-          .expose(ProfileSchema)
+          .guard(authenticated)
+          .output(ProfileSchema.authenticated)
           .query(async () => mockUsers),
 
         createCollection: procedure()
           .input(z.object({ name: z.string() }))
           .use(auth.middleware())
-          .guardNarrow(adminNarrow)
-          .expose(ProfileSchema)
+          .guard(hasRole('admin'))
+          .output(ProfileSchema.admin)
           .mutation(async () => mockUsers),
       });
 
@@ -468,12 +414,12 @@ describe('Resource Guards Integration', () => {
       });
     });
 
-    it('auto-projects array to public fields when no guard', async () => {
+    it('auto-projects array to public fields when using public view', async () => {
       const noGuardServer = await createTestServer();
 
       const procs = defineProcedures('pubcollection', {
         listPubcollection: procedure()
-          .expose(ProfileSchema)
+          .output(ProfileSchema.public)
           .query(async () => mockUsers),
       });
 

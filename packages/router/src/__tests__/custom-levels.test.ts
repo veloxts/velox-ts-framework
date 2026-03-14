@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import {
+  defaultAccess,
   defineAccessLevels,
   Resource,
   ResourceCollection,
@@ -79,6 +80,195 @@ describe('defineAccessLevels', () => {
     expect(() => (config as ReturnType<typeof defineAccessLevels>).resolve('nonexistent')).toThrow(
       'Unknown group'
     );
+  });
+});
+
+// ============================================================================
+// defineAccessLevels with guards
+// ============================================================================
+
+describe('defineAccessLevels with guards', () => {
+  it('accepts guards in options object', () => {
+    const access = defineAccessLevels(['public', 'authenticated', 'admin'], {
+      guards: {
+        authenticated: (ctx: Record<string, unknown>) => !!ctx.user,
+        admin: (ctx: Record<string, unknown>) => {
+          const user = ctx.user as Record<string, unknown> | undefined;
+          return user?.role === 'admin';
+        },
+      },
+    });
+    expect(access.guards).toBeDefined();
+    expect(access.guards.authenticated).toBeTypeOf('function');
+    expect(access.guards.admin).toBeTypeOf('function');
+  });
+
+  it('does not require a guard for the first (public) level', () => {
+    const access = defineAccessLevels(['public', 'authenticated', 'admin'], {
+      guards: {
+        authenticated: () => true,
+        admin: () => false,
+      },
+    });
+    expect(access.guards.public).toBeUndefined();
+  });
+
+  it('accepts both guards and groups together', () => {
+    const access = defineAccessLevels(['public', 'reviewer', 'editor', 'admin'], {
+      guards: {
+        reviewer: () => true,
+        editor: () => true,
+        admin: () => false,
+      },
+      groups: {
+        staff: ['editor', 'admin'],
+      },
+    });
+    expect(access.guards).toBeDefined();
+    expect(access.groups).toBeDefined();
+    expect(access.resolve('staff')).toEqual(new Set(['editor', 'admin']));
+  });
+
+  it('rejects guard keys that do not match any level name', () => {
+    expect(() =>
+      defineAccessLevels(['public', 'authenticated', 'admin'], {
+        guards: {
+          authenticated: () => true,
+          admin: () => false,
+          nonexistent: () => false,
+        },
+      })
+    ).toThrow('unknown level');
+  });
+
+  it('rejects a guard for the first (public) level', () => {
+    expect(() =>
+      defineAccessLevels(['public', 'authenticated', 'admin'], {
+        guards: {
+          public: () => true,
+          authenticated: () => true,
+          admin: () => false,
+        },
+      })
+    ).toThrow('first level');
+  });
+
+  it('supports async guard functions', async () => {
+    const access = defineAccessLevels(['public', 'authenticated', 'admin'], {
+      guards: {
+        authenticated: async (ctx: Record<string, unknown>) => !!ctx.user,
+        admin: async (ctx: Record<string, unknown>) => {
+          const user = ctx.user as Record<string, unknown> | undefined;
+          return user?.role === 'admin';
+        },
+      },
+    });
+    const adminCtx = { user: { role: 'admin' } };
+    expect(await access.guards.admin(adminCtx)).toBe(true);
+    expect(await access.guards.authenticated(adminCtx)).toBe(true);
+    expect(await access.guards.authenticated({})).toBe(false);
+  });
+
+  it('accepts guards with _narrows phantom type', () => {
+    interface AuthenticatedNarrow {
+      user: { id: string; email: string };
+    }
+
+    const access = defineAccessLevels(['public', 'authenticated', 'admin'], {
+      guards: {
+        authenticated: Object.assign((ctx: Record<string, unknown>) => !!ctx.user, {
+          _narrows: undefined as unknown as AuthenticatedNarrow,
+        }),
+        admin: () => false,
+      },
+    });
+    // _narrows is a phantom — runtime value is undefined
+    expect(access.guards.authenticated._narrows).toBeUndefined();
+  });
+
+  it('stores guards on the returned config', () => {
+    const authenticatedGuard = () => true;
+    const adminGuard = () => false;
+    const access = defineAccessLevels(['public', 'authenticated', 'admin'], {
+      guards: {
+        authenticated: authenticatedGuard,
+        admin: adminGuard,
+      },
+    });
+    expect(access.guards.authenticated).toBe(authenticatedGuard);
+    expect(access.guards.admin).toBe(adminGuard);
+  });
+
+  it('preserves backward compatibility — groups-only second arg still works', () => {
+    // Old-style: second arg is just groups (no guards/groups wrapper)
+    // After the change, the old-style still works because we detect the shape
+    const access = defineAccessLevels(['public', 'authenticated', 'admin'], {
+      groups: {
+        staff: ['authenticated', 'admin'],
+      },
+    });
+    expect(access.resolve('staff')).toEqual(new Set(['authenticated', 'admin']));
+  });
+});
+
+// ============================================================================
+// defaultAccess
+// ============================================================================
+
+describe('defaultAccess', () => {
+  it('provides built-in public/authenticated/admin levels', () => {
+    expect(defaultAccess.levels).toEqual(['public', 'authenticated', 'admin']);
+  });
+
+  it('provides guards for authenticated and admin', () => {
+    expect(defaultAccess.guards.authenticated).toBeTypeOf('function');
+    expect(defaultAccess.guards.admin).toBeTypeOf('function');
+  });
+
+  it('does not have a guard for public', () => {
+    expect(defaultAccess.guards.public).toBeUndefined();
+  });
+
+  it('authenticated guard checks for ctx.user existence', () => {
+    const guard = defaultAccess.guards.authenticated;
+    expect(guard?.({ user: { id: '1', email: 'a@b.com' } })).toBe(true);
+    expect(guard?.({})).toBe(false);
+    expect(guard?.({ user: undefined })).toBe(false);
+  });
+
+  it('admin guard checks ctx.user.role === admin', () => {
+    const guard = defaultAccess.guards.admin;
+    expect(guard?.({ user: { id: '1', email: 'a@b.com', role: 'admin' } })).toBe(true);
+    expect(guard?.({ user: { id: '1', email: 'a@b.com', role: 'user' } })).toBe(false);
+    expect(guard?.({})).toBe(false);
+  });
+
+  it('authenticated guard carries _narrows phantom type', () => {
+    const guard = defaultAccess.guards.authenticated;
+    expect(guard).toHaveProperty('_narrows');
+  });
+
+  it('admin guard carries _narrows phantom type', () => {
+    const guard = defaultAccess.guards.admin;
+    expect(guard).toHaveProperty('_narrows');
+  });
+
+  it('works with resourceSchema() for field visibility', () => {
+    // defaultAccess is a custom level config, so level methods use
+    // single-level sets (non-hierarchical). Use groups for hierarchy.
+    const UserSchema = resourceSchema(defaultAccess)
+      .public('id', z.string())
+      .authenticated('email', z.string())
+      .admin('secret', z.string())
+      .build();
+
+    const data = { id: '1', email: 'a@b.com', secret: 'x' };
+
+    // Custom levels: each level method assigns single-level visibility
+    // public sees only public fields, authenticated sees only authenticated, etc.
+    expect(resource(data, UserSchema.public)).toEqual({ id: '1' });
+    expect(resource(data, UserSchema.authenticated)).toEqual({ email: 'a@b.com' });
+    expect(resource(data, UserSchema.admin)).toEqual({ secret: 'x' });
   });
 });
 

@@ -128,6 +128,8 @@ export interface TaggedResourceSchema<
   TLevel extends string = string,
 > extends ResourceSchema<TFields> {
   readonly _level: TLevel;
+  /** Unique key for use as a computed property key in handler maps */
+  readonly key: `__velox_level_${TLevel}`;
 }
 
 /**
@@ -453,18 +455,18 @@ export class ResourceSchemaBuilder<TFields extends readonly BuilderField[] = rea
     const fields = [...this._fields];
     const base = { fields } as ResourceSchema<TFields>;
     return Object.assign(base, {
-      public: Object.assign({ fields }, { _level: 'public' as const }) as TaggedResourceSchema<
-        TFields,
-        'public'
-      >,
+      public: Object.assign(
+        { fields },
+        { _level: 'public' as const, key: '__velox_level_public' as const }
+      ) as TaggedResourceSchema<TFields, 'public'>,
       authenticated: Object.assign(
         { fields },
-        { _level: 'authenticated' as const }
+        { _level: 'authenticated' as const, key: '__velox_level_authenticated' as const }
       ) as TaggedResourceSchema<TFields, 'authenticated'>,
-      admin: Object.assign({ fields }, { _level: 'admin' as const }) as TaggedResourceSchema<
-        TFields,
-        'admin'
-      >,
+      admin: Object.assign(
+        { fields },
+        { _level: 'admin' as const, key: '__velox_level_admin' as const }
+      ) as TaggedResourceSchema<TFields, 'admin'>,
     }) as ResourceSchemaWithViews<TFields>;
   }
 }
@@ -684,7 +686,7 @@ function createCustomSchemaBuilder<
       for (const level of config.levels) {
         result[level] = Object.assign(
           { fields: frozenFields },
-          { _level: level }
+          { _level: level, key: `__velox_level_${level}` }
         ) as TaggedResourceSchema<TFields, string>;
       }
 

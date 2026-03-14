@@ -92,7 +92,7 @@ Guards work seamlessly with the Resource API for context-dependent outputs:
 
 ```typescript
 import { resource, resourceSchema } from '@veloxts/router';
-import { authenticatedNarrow, adminNarrow } from '@veloxts/auth';
+import { authenticated, hasRole } from '@veloxts/auth';
 
 const UserSchema = resourceSchema()
   .public('id', z.string())
@@ -103,25 +103,25 @@ const UserSchema = resourceSchema()
 
 // Anonymous - returns { id, name }
 const getPublicUser = procedure()
+  .output(UserSchema.public)
   .query(async ({ input, ctx }) => {
-    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-    return resource(user, UserSchema.public);
+    return ctx.db.user.findUnique({ where: { id: input.id } });
   });
 
 // Authenticated - returns { id, name, email }
 const getUser = procedure()
-  .guardNarrow(authenticatedNarrow)
+  .guard(authenticated)
+  .output(UserSchema.authenticated)
   .query(async ({ input, ctx }) => {
-    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-    return resource(user, UserSchema).for(ctx); // Auto-detects level
+    return ctx.db.user.findUnique({ where: { id: input.id } });
   });
 
 // Admin - returns all fields
 const getFullUser = procedure()
-  .guardNarrow(adminNarrow)
+  .guard(hasRole('admin'))
+  .output(UserSchema.admin)
   .query(async ({ input, ctx }) => {
-    const user = await ctx.db.user.findUnique({ where: { id: input.id } });
-    return resource(user, UserSchema.admin);
+    return ctx.db.user.findUnique({ where: { id: input.id } });
   });
 ```
 

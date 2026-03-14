@@ -84,27 +84,6 @@ export {
 } from './token-store.js';
 
 // ============================================================================
-// Narrowing Guards (Experimental)
-// ============================================================================
-
-export type {
-  ADMIN,
-  AdminContext,
-  AUTHENTICATED,
-  AuthenticatedContext,
-  InferNarrowedContext,
-  NarrowingGuard,
-  RoleNarrowedContext,
-  TaggedContext,
-} from './guards-narrowing.js';
-export {
-  adminNarrow,
-  authenticatedNarrow,
-  createNarrowingGuard,
-  hasRoleNarrow,
-} from './guards-narrowing.js';
-
-// ============================================================================
 // Password Hashing
 // ============================================================================
 

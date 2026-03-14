@@ -429,17 +429,16 @@ export interface CompiledProcedure<
   /**
    * Resource schema for auto-projection
    *
-   * When set via `.expose()`, the procedure executor will automatically
-   * project the handler's return value based on `ctx.__accessLevel`.
+   * When set via `.output()` with a tagged resource view, the procedure
+   * executor will automatically project the handler's return value based
+   * on the tagged level.
    *
-   * This enables the elegant chained API:
    * ```typescript
    * procedure()
-   *   .guardNarrow(authenticatedNarrow)
-   *   .expose(UserSchema)
+   *   .output(UserSchema.authenticated)
    *   .query(async ({ ctx }) => {
    *     return ctx.db.user.findUnique(...);
-   *     // Auto-projected based on __accessLevel
+   *     // Auto-projected to authenticated fields
    *   });
    * ```
    *
@@ -450,12 +449,22 @@ export interface CompiledProcedure<
   /**
    * Explicit resource projection level from tagged schema
    *
-   * Set when using `.expose(UserSchema.authenticated)` etc.
-   * Takes precedence over guard-derived access level.
+   * Set when using `.output(UserSchema.authenticated)` etc.
    *
    * @internal
    */
   readonly _resourceLevel?: string;
+
+  /**
+   * Handler map for Level 3 branched procedures
+   *
+   * When set, the procedure has per-access-level handlers keyed by
+   * `__velox_level_{levelName}` strings. The executor evaluates guards
+   * most-privileged-first to select the correct branch.
+   *
+   * @internal
+   */
+  readonly _handlerMap?: Readonly<Record<string, ProcedureHandler<TInput, TOutput, TContext>>>;
 }
 
 // ============================================================================

@@ -13,13 +13,7 @@
 import type { BaseContext } from '@veloxts/core';
 import type { ZodType } from 'zod';
 
-import type {
-  FilterFieldsByLevel,
-  OutputForTag,
-  ResourceSchema,
-  TaggedResourceSchema,
-} from '../resource/index.js';
-import type { ContextTag, ExtractTag, LevelToTag, TaggedContext } from '../resource/tags.js';
+import type { OutputForLevel, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
 import type {
   CompiledProcedure,
   GuardLike,
@@ -78,6 +72,24 @@ export type ValidSchema = ZodType;
  */
 export type InferSchemaOutput<T> = T extends { parse: (data: unknown) => infer O } ? O : never;
 
+/**
+ * Valid types for `.output()` — Zod schemas, tagged resource views, or untagged resource schemas
+ */
+export type ValidOutputSchema = ValidSchema | TaggedResourceSchema | ResourceSchema;
+
+/**
+ * Infers the output type from a schema passed to `.output()`
+ *
+ * - Zod schema → uses structural `parse()` matching
+ * - Tagged resource view → uses `OutputForLevel` to compute projected fields
+ * - Untagged resource schema → falls back to `unknown` (Level 3 branching resolves at runtime)
+ */
+export type InferOutputSchema<T> = T extends TaggedResourceSchema
+  ? OutputForLevel<T>
+  : T extends { parse: (data: unknown) => infer O }
+    ? O
+    : unknown;
+
 // ============================================================================
 // Procedure Builder Interface
 // ============================================================================
@@ -133,71 +145,33 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext>;
 
   /**
-   * Defines the output validation schema (Zod)
+   * Defines the output schema for the procedure
    *
-   * Sets a Zod schema that validates the handler's return value.
-   * All callers receive the same fields.
+   * Accepts two schema variants:
+   * 1. **Zod schema** — validates handler return value, all callers see same fields
+   * 2. **Tagged resource view** (e.g., `UserSchema.authenticated`) — auto-projects fields by access level
    *
-   * For field-level visibility (different fields per access level),
-   * use `.expose()` with a resource schema instead.
-   *
-   * @template TSchema - The Zod schema type
-   * @param schema - Zod schema for output validation
+   * @template TSchema - The Zod or tagged resource schema type
+   * @param schema - Zod schema or tagged resource view
    * @returns New builder with updated output type
    *
-   * @example
+   * @example Zod schema
    * ```typescript
    * procedure()
    *   .output(z.object({ id: z.string(), name: z.string() }))
    *   .query(handler) // handler must return { id: string; name: string }
    * ```
-   */
-  output<TSchema extends ValidSchema>(
-    schema: TSchema
-  ): ProcedureBuilder<TInput, InferSchemaOutput<TSchema>, TContext>;
-
-  /**
-   * Sets field-level visibility via a resource schema
    *
-   * Accepts two resource schema variants:
-   * 1. **Tagged resource schema** (e.g., `UserSchema.authenticated`) — explicit field projection by access level
-   * 2. **Plain resource schema** (e.g., `UserSchema`) — context-derived field projection from `guardNarrow`
-   *
-   * @template TSchema - The resource schema type
-   * @param schema - Resource schema for field projection
-   * @returns New builder with updated output type
-   *
-   * @example Tagged resource schema — explicit projection level
+   * @example Tagged resource view
    * ```typescript
    * procedure()
-   *   .guard(authenticated)
-   *   .expose(UserSchema.authenticated) // returns { id, name, email }
-   *   .query(handler)
-   * ```
-   *
-   * @example Plain resource schema — derives level from guardNarrow
-   * ```typescript
-   * procedure()
-   *   .guardNarrow(authenticatedNarrow)
-   *   .expose(UserSchema) // auto-projects based on guard's accessLevel
+   *   .output(UserSchema.authenticated) // auto-projects to { id, name, email }
    *   .query(handler)
    * ```
    */
-  expose<TSchema extends ResourceSchema>(
+  output<TSchema extends ValidOutputSchema>(
     schema: TSchema
-  ): ProcedureBuilder<
-    TInput,
-    TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
-      ? TLevel extends 'admin' | 'authenticated' | 'public'
-        ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
-        : FilterFieldsByLevel<TFields, TLevel>
-      : TContext extends TaggedContext<infer TTag>
-        ? TTag extends ContextTag
-          ? OutputForTag<TSchema, TTag>
-          : OutputForTag<TSchema, ExtractTag<TContext>>
-        : OutputForTag<TSchema, ExtractTag<TContext>>,
-    TContext
-  >;
+  ): ProcedureBuilder<TInput, InferOutputSchema<TSchema>, TContext>;
 
   /**
    * Adds middleware to the procedure chain
@@ -267,42 +241,6 @@ export interface ProcedureBuilder<
   guard<TGuardContext extends Partial<TContext>>(
     guard: GuardLike<TGuardContext>
   ): ProcedureBuilder<TInput, TOutput, TContext>;
-
-  /**
-   * Adds an authorization guard with type narrowing (EXPERIMENTAL)
-   *
-   * Unlike `.guard()`, this method narrows the context type based on
-   * what the guard guarantees. For example, `authenticatedNarrow` narrows
-   * `ctx.user` from `User | undefined` to `User`.
-   *
-   * **EXPERIMENTAL**: This API may change. Consider using middleware
-   * for context type extension as the current stable alternative.
-   *
-   * @template TNarrowedContext - The context type guaranteed by the guard
-   * @param guard - Narrowing guard definition with `_narrows` type
-   * @returns New builder with narrowed context type
-   *
-   * @example
-   * ```typescript
-   * import { authenticatedNarrow, hasRoleNarrow } from '@veloxts/auth';
-   *
-   * // ctx.user is guaranteed non-null after guard passes
-   * procedure()
-   *   .guardNarrow(authenticatedNarrow)
-   *   .query(({ ctx }) => {
-   *     return { email: ctx.user.email }; // No null check needed!
-   *   });
-   *
-   * // Chain multiple narrowing guards
-   * procedure()
-   *   .guardNarrow(authenticatedNarrow)
-   *   .guardNarrow(hasRoleNarrow('admin'))
-   *   .mutation(({ ctx }) => { ... });
-   * ```
-   */
-  guardNarrow<TNarrowedContext>(
-    guard: GuardLike<Partial<TContext>> & { readonly _narrows: TNarrowedContext }
-  ): ProcedureBuilder<TInput, TOutput, TContext & TNarrowedContext>;
 
   /**
    * Adds multiple authorization guards at once
@@ -476,7 +414,9 @@ export interface ProcedureBuilder<
    * ```
    */
   query(
-    handler: ProcedureHandler<TInput, TOutput, TContext>
+    handler:
+      | ProcedureHandler<TInput, TOutput, TContext>
+      | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
   ): CompiledProcedure<TInput, TOutput, TContext, 'query'>;
 
   /**
@@ -485,7 +425,10 @@ export interface ProcedureBuilder<
    * Mutations map to POST/PUT/DELETE in REST and can modify data.
    * The handler receives the validated input and context.
    *
-   * @param handler - The mutation handler function
+   * In Level 3 branching mode (when `.output()` receives an untagged resource schema),
+   * accepts a handler map keyed by `[Schema.level.key]` instead of a single handler.
+   *
+   * @param handler - The mutation handler function or handler map
    * @returns Compiled procedure ready for registration
    *
    * @example
@@ -498,36 +441,10 @@ export interface ProcedureBuilder<
    * ```
    */
   mutation(
-    handler: ProcedureHandler<TInput, TOutput, TContext>
+    handler:
+      | ProcedureHandler<TInput, TOutput, TContext>
+      | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
   ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
-
-  /**
-   * @deprecated Use `.expose()` instead. `.resource()` will be removed in v1.0.
-   *
-   * Sets field-level visibility via a resource schema.
-   *
-   * @example Migration
-   * ```typescript
-   * // Before
-   * procedure().resource(UserSchema.authenticated).query(handler)
-   *
-   * // After
-   * procedure().expose(UserSchema.authenticated).query(handler)
-   * ```
-   */
-  resource<TSchema extends ResourceSchema>(
-    schema: TSchema
-  ): ProcedureBuilder<
-    TInput,
-    TSchema extends TaggedResourceSchema<infer TFields, infer TLevel>
-      ? OutputForTag<ResourceSchema<TFields>, LevelToTag<TLevel>>
-      : TContext extends TaggedContext<infer TTag>
-        ? TTag extends ContextTag
-          ? OutputForTag<TSchema, TTag>
-          : OutputForTag<TSchema, ExtractTag<TContext>>
-        : OutputForTag<TSchema, ExtractTag<TContext>>,
-    TContext
-  >;
 }
 
 // ============================================================================
@@ -565,6 +482,8 @@ export interface BuilderRuntimeState {
   deprecationMessage?: string;
   /** Whether this procedure is a webhook endpoint (metadata marker) */
   isWebhook?: boolean;
+  /** Whether .output() received an untagged resource schema (Level 3 branching mode) */
+  branchingMode?: boolean;
 }
 
 // ============================================================================

@@ -384,3 +384,55 @@ export function resourceSchemaToJsonSchema(
     ...(required.length > 0 ? { required } : {}),
   };
 }
+
+/**
+ * Converts a resource schema to JSON Schema for Level 3 branched procedures
+ *
+ * Includes ALL fields from the resource schema. Fields visible at the
+ * lowest level (first in the levels array) are marked as required;
+ * higher-level-only fields are optional.
+ *
+ * @param schema - The resource schema (must have _levelConfig for custom levels)
+ * @returns JSON Schema with all fields, non-public fields optional
+ */
+export function resourceSchemaToJsonSchemaForBranching(schema: ResourceSchema): JSONSchema {
+  const properties: Record<string, JSONSchema> = {};
+  const required: string[] = [];
+
+  // Determine the lowest (most accessible) level
+  const schemaWithConfig = schema as ResourceSchema & {
+    _levelConfig?: { levels: readonly string[] };
+  };
+  const lowestLevel = schemaWithConfig._levelConfig?.levels[0] ?? 'public';
+
+  for (const field of schema.fields) {
+    const runtimeField = field as RuntimeField;
+
+    if (field.nestedSchema) {
+      const nestedJsonSchema = resourceSchemaToJsonSchemaForBranching(field.nestedSchema);
+      if (field.cardinality === 'many') {
+        properties[field.name] = { type: 'array', items: nestedJsonSchema };
+      } else {
+        properties[field.name] = { ...nestedJsonSchema, nullable: true };
+      }
+    } else if (field.schema) {
+      const fieldJsonSchema = zodSchemaToJsonSchema(field.schema);
+      if (fieldJsonSchema) {
+        properties[field.name] = fieldJsonSchema;
+      }
+    } else {
+      properties[field.name] = {};
+    }
+
+    // Only public/lowest-level fields are required
+    if (isFieldVisibleToLevel(runtimeField, lowestLevel)) {
+      required.push(field.name);
+    }
+  }
+
+  return {
+    type: 'object',
+    properties,
+    ...(required.length > 0 ? { required } : {}),
+  };
+}

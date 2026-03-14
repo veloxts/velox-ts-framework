@@ -39,7 +39,7 @@
  *
  *   // Authenticated endpoint → returns { id, name, email }
  *   getProfile: procedure()
- *     .guardNarrow(authenticatedNarrow)
+ *     .guard(authenticated)
  *     .input(z.object({ id: z.string() }))
  *     .query(async ({ input, ctx }) => {
  *       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
@@ -48,7 +48,7 @@
  *
  *   // Admin endpoint → returns { id, name, email, internalNotes }
  *   getFullProfile: procedure()
- *     .guardNarrow(adminNarrow)
+ *     .guard(hasRole('admin'))
  *     .input(z.object({ id: z.string() }))
  *     .query(async ({ input, ctx }) => {
  *       const user = await ctx.db.user.findUnique({ where: { id: input.id } });
@@ -67,8 +67,8 @@
 // Resource instances
 export { Resource, ResourceCollection, resource, resourceCollection } from './instance.js';
 // Access level configuration
-export type { AccessLevelConfig } from './levels.js';
-export { defineAccessLevels } from './levels.js';
+export type { AccessLevelConfig, AccessLevelGuard, AccessLevelGuards } from './levels.js';
+export { defaultAccess, defineAccessLevels } from './levels.js';
 export type {
   AdminOutput,
   AnonymousOutput,

@@ -234,7 +234,7 @@ export class Resource<TSchema extends ResourceSchema> {
    *
    * @example
    * ```typescript
-   * // In a procedure with guardNarrow(authenticatedNarrow)
+   * // In a procedure with guard(authenticated)
    * const profile = resource(user, UserSchema).for(ctx);
    * // Type is automatically inferred based on ctx's tag
    * ```

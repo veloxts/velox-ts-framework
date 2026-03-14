@@ -75,8 +75,8 @@ Use Prisma's `include` to fetch related data, then let the Resource API project 
 ```typescript
 export const userProcedures = procedures('users', {
   getProfile: procedure()
-    .guardNarrow(authenticatedNarrow)
-    .expose(UserSchema)
+    .guard(authenticated)
+    .output(UserSchema.authenticated)
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       return ctx.db.user.findUniqueOrThrow({
@@ -134,5 +134,5 @@ Define leaf schemas first, then compose parent schemas. This ensures each schema
 ## Related Content
 
 - [Resource API](/docs/endpoints/resource-api/) — Tagged views, projection methods, and custom access levels
-- [Procedures](/docs/endpoints/procedures/) — Builder API including `.expose()`
+- [Procedures](/docs/endpoints/procedures/) — Builder API including `.output()`
 - [Guards](/docs/authentication/guards/) — Authorization and access levels

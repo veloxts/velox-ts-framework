@@ -5,7 +5,7 @@
  * through the type system without any runtime overhead.
  *
  * Additionally provides runtime `__accessLevel` property for auto-projection
- * when using the chained `.expose()` method on procedures.
+ * when using the chained `.output()` method on procedures.
  *
  * @module resource/tags
  */
@@ -112,7 +112,7 @@ export type ContextTag = typeof PUBLIC | typeof AUTHENTICATED | typeof ADMIN;
  * without any memory overhead.
  *
  * The `__accessLevel` field is a runtime field set by narrowing guards.
- * It enables automatic resource projection when using `.expose()` in
+ * It enables automatic resource projection when using `.output()` in
  * the procedure builder chain.
  *
  * @template TTag - The context tag type (defaults to PUBLIC)
@@ -141,12 +141,10 @@ export interface TaggedContext<TTag extends ContextTag = typeof PUBLIC> {
    * Runtime access level set by narrowing guards
    *
    * This field IS present at runtime (unlike __tag) and is used for
-   * automatic resource projection when using `.expose()` in procedures.
+   * automatic resource projection when using `.output()` in procedures.
    *
-   * Set automatically by:
-   * - `authenticatedNarrow` → 'authenticated'
-   * - `adminNarrow` → 'admin'
-   * - No guard → 'public' (default)
+   * Set automatically by guards with `accessLevel` property,
+   * or derived from tagged resource view level in `.output()`.
    */
   __accessLevel?: string;
 }
