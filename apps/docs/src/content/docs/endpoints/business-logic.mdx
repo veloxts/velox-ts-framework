@@ -1,0 +1,388 @@
+---
+title: Business Logic
+description: Transactions, domain errors, events, and pipelines on the procedure builder.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Your procedure validates input and runs a handler. But real mutations charge cards, update inventory, emit events, and need to roll back on failure. The procedure builder has first-class support for all of this.
+
+## Domain Errors
+
+Your handler throws `new Error('Not enough stock')`. The client gets a generic 500 with no structured data to act on.
+
+Define a `DomainError` subclass with a typed `code` and `data` payload:
+
+```typescript
+import { DomainError } from '@veloxts/core';
+
+export class InsufficientStock extends DomainError<{
+  sku: string;
+  requested: number;
+  available: number;
+}> {
+  readonly code = 'INSUFFICIENT_STOCK';
+  readonly status = 422;
+  readonly message = 'Not enough inventory';
+}
+
+export class PaymentFailed extends DomainError<{
+  reason: string;
+  chargeId?: string;
+}> {
+  readonly code = 'PAYMENT_FAILED';
+  readonly status = 422;
+  readonly message = 'Payment could not be processed';
+}
+```
+
+Throw it in your handler — the framework serializes `code` and `data` in the response automatically:
+
+```typescript
+throw new InsufficientStock({
+  sku: input.sku,
+  requested: input.quantity,
+  available: stock.available,
+});
+// → { statusCode: 422, code: "INSUFFICIENT_STOCK", data: { sku, requested, available } }
+```
+
+Declare which errors a procedure can throw with `.throws()`:
+
+```typescript
+createOrder: procedure()
+  .input(CreateOrderSchema)
+  .throws(InsufficientStock, PaymentFailed)
+  .mutation(async ({ input, ctx }) => {
+    // handler may throw InsufficientStock or PaymentFailed
+    return ctx.db.order.create({ data: input });
+  })
+```
+
+`.throws()` does two things:
+1. Documents the procedure's error contract (appears in OpenAPI output).
+2. Enables typed error narrowing on the client — see [Client Error Narrowing](#client-error-narrowing).
+
+<Aside type="tip">
+Undeclared `DomainError` subclasses still work at runtime — they just don't get client-side type narrowing.
+</Aside>
+
+## Transactions
+
+Your mutation creates an order and updates inventory. If the inventory update fails, the order record is orphaned.
+
+Add `.transactional()` to wrap the handler in a database transaction:
+
+```typescript
+createOrder: procedure()
+  .input(CreateOrderSchema)
+  .transactional()
+  .mutation(async ({ input, ctx }) => {
+    const order = await ctx.db.order.create({ data: input });
+    await ctx.db.inventory.update({
+      where: { sku: input.sku },
+      data: { stock: { decrement: input.quantity } },
+    });
+    // If inventory update fails, order is rolled back
+    return order;
+  })
+```
+
+`ctx.db` becomes the transactional client inside the handler. On throw: automatic rollback. On return: automatic commit.
+
+Pass options for isolation level or timeout:
+
+```typescript
+.transactional({ isolationLevel: 'Serializable', timeout: 10_000 })
+```
+
+<Aside type="note">
+`.transactional()` gracefully degrades — if `ctx.db.$transaction` is missing, the handler runs without a transaction wrapper.
+</Aside>
+
+## Domain Events
+
+Order is created. Email service and analytics need to know, but importing those services into your handler creates tight coupling.
+
+<Aside type="note">
+Domain events are server-side internal events for decoupling business logic. They are separate from [broadcast events](/docs/ecosystem/events/) (WebSocket/SSE for real-time client updates).
+</Aside>
+
+### Defining events
+
+```typescript
+import { DomainEvent } from '@veloxts/events';
+
+export class OrderCreated extends DomainEvent<{
+  orderId: string;
+  customerId: string;
+  total: number;
+}> {}
+```
+
+`DomainEvent` carries typed `data`, a `timestamp`, and an optional `correlationId` for tracing event chains.
+
+### Declarative emission with `.emits()`
+
+Add `.emits()` to fire an event after the handler succeeds:
+
+```typescript
+createOrder: procedure()
+  .emits(OrderCreated, (result) => ({
+    orderId: result.id,
+    customerId: result.customerId,
+    total: result.total,
+  }))
+  .mutation(async ({ input, ctx }) => {
+    return ctx.db.order.create({ data: input });
+  })
+```
+
+The mapper function transforms the handler result into the event payload. When `.transactional()` is used, events fire after commit.
+
+Emission errors are caught and logged — they never fail the request. The mutation already succeeded.
+
+### Imperative emission
+
+For conditional or multiple events, emit directly inside the handler:
+
+```typescript
+fulfillOrder: procedure()
+  .mutation(async ({ input, ctx }) => {
+    const order = await ctx.db.order.update({ ... });
+
+    if (order.items.every(i => i.shipped)) {
+      ctx.events.emit(new OrderFulfilled({
+        orderId: order.id,
+        trackingNumber: order.tracking,
+      }));
+    }
+
+    return order;
+  })
+```
+
+### Listening for events
+
+Register listeners at app level — typically in your module setup or plugin:
+
+```typescript
+// In your app setup or domain module
+ctx.events.on(OrderCreated, async (event) => {
+  await sendConfirmationEmail(event.data.customerId);
+});
+
+ctx.events.on(OrderCreated, async (event) => {
+  await allocateInventory(event.data.orderId);
+});
+```
+
+Listeners run concurrently by default. For sequential execution:
+
+```typescript
+ctx.events.on(OrderCreated, handler, { sequential: true });
+```
+
+Listener errors are logged but never propagate — each listener is isolated.
+
+## Pipelines
+
+Before creating the order, you need to validate stock, reserve it, and charge the card. If the charge fails, unreserve the stock.
+
+### Defining steps
+
+```typescript
+import { defineStep, defineRevert } from '@veloxts/router';
+
+const validateStock = defineStep('validateStock',
+  async ({ input, ctx }) => {
+    const stock = await ctx.db.inventory.findUnique({ where: { sku: input.sku } });
+    if (!stock || stock.available < input.quantity) {
+      throw new InsufficientStock({
+        sku: input.sku,
+        requested: input.quantity,
+        available: stock?.available ?? 0,
+      });
+    }
+    return { ...input, stock };
+  }
+);
+
+const reserveStock = defineStep('reserveStock',
+  async ({ input, ctx }) => {
+    await ctx.db.inventory.update({
+      where: { sku: input.stock.sku },
+      data: { reserved: { increment: input.quantity } },
+    });
+    return input;
+  }
+);
+```
+
+Steps run in order. Each step's return becomes the next step's `input`.
+
+### External steps and reverts
+
+Steps that call external services run outside the database transaction. Mark them with `{ external: true }`:
+
+```typescript
+const chargePayment = defineStep(
+  { name: 'chargePayment', external: true },
+  async ({ input, ctx }) => {
+    const charge = await stripe.charges.create({ amount: input.total });
+    return { ...input, chargeId: charge.id };
+  }
+);
+
+const refundPayment = defineRevert('refundPayment',
+  async ({ input, ctx }) => {
+    await stripe.refunds.create({ charge: input.chargeId });
+  }
+);
+```
+
+Attach a revert to a step with `.onRevert()` — returns a new step (immutable):
+
+```typescript
+chargePayment.onRevert(refundPayment)
+```
+
+### Wiring on the procedure
+
+```typescript
+createOrder: procedure()
+  .input(CreateOrderSchema)
+  .transactional()
+  .through(validateStock, reserveStock, chargePayment.onRevert(refundPayment))
+  .emits(OrderCreated)
+  .mutation(async ({ input, ctx }) => {
+    return ctx.db.order.create({ data: input });
+  })
+```
+
+`.through()` prepares, `.mutation()` commits. The pipeline doesn't replace the handler — it transforms the input before it.
+
+### Failure and compensation
+
+If a step fails after other steps have completed:
+1. Revert actions run in reverse order for completed steps.
+2. Each revert receives the output of the step being reverted (e.g., `chargeId` for refunds).
+3. The original error propagates to the client.
+
+### Two-phase execution with `.transactional()`
+
+When `.transactional()` and `.through()` are combined:
+
+- **Phase A:** DB steps + handler run inside the transaction. `ctx.db` is the transactional client.
+- **Phase B:** External steps run after commit, outside any transaction.
+
+```
+.through(
+  validateStock,                          // Phase A (DB, in transaction)
+  reserveStock,                           // Phase A (DB, in transaction)
+  chargePayment.onRevert(refundPayment),  // Phase B (external, after commit)
+)
+.mutation(handler)                        // Phase A (DB, in transaction)
+```
+
+<Aside type="caution">
+Under `.transactional()`, DB steps must come before external steps. The handler cannot depend on data from external steps since they run after commit.
+</Aside>
+
+Without `.transactional()`, all steps execute in declaration order regardless of type.
+
+## Post-Handler Hooks
+
+After the order is created, log an audit entry and invalidate a cache.
+
+```typescript
+createOrder: procedure()
+  .mutation(async ({ input, ctx }) => {
+    return ctx.db.order.create({ data: input });
+  })
+  .useAfter(({ input, result, ctx }) => {
+    auditLog('order.created', { orderId: result.id, userId: ctx.user.id });
+  })
+  .useAfter(({ result }) => {
+    cache.invalidate(`orders:${result.id}`);
+  })
+```
+
+`.useAfter()` hooks run after the handler succeeds (and after events are emitted). Multiple hooks chain in registration order. Errors are caught and logged — they never fail the response. Hooks cannot modify the result.
+
+<Aside type="tip">
+`.useAfter()` receives the pipeline-enriched input (after `.through()` transforms), not the raw validated input.
+</Aside>
+
+## Client Error Narrowing
+
+On the frontend, you catch an error but `error.code` is `string | undefined` — you can't narrow on it.
+
+Use `InferProcedureErrors` to extract the declared error types from a procedure:
+
+```typescript
+import type { InferProcedureErrors } from '@veloxts/client';
+import { isVeloxClientError } from '@veloxts/client';
+
+type OrderErrors = InferProcedureErrors<typeof client.orders.createOrder>;
+// → { code: 'INSUFFICIENT_STOCK'; data: { sku: string; requested: number; available: number } }
+//   | { code: 'PAYMENT_FAILED'; data: { reason: string; chargeId?: string } }
+```
+
+Use it in your catch block:
+
+```typescript
+try {
+  const order = await client.orders.createOrder(data);
+} catch (error) {
+  if (isVeloxClientError(error)) {
+    switch (error.code) {
+      case 'INSUFFICIENT_STOCK':
+        showStockWarning(error.data.available);
+        break;
+      case 'PAYMENT_FAILED':
+        showPaymentError(error.data.reason);
+        break;
+    }
+  }
+}
+```
+
+Error types flow automatically from `.throws()` on the server through `ClientFromCollection` to the client callable. No code generation or manual type definitions needed.
+
+## Full Chain
+
+Putting it all together — a single procedure declaration that validates, authorizes, orchestrates, and reports:
+
+```typescript
+import { procedure } from '@veloxts/velox';
+import { authenticated } from '@veloxts/auth';
+
+const createOrder = procedure()
+  .input(CreateOrderSchema)                           // validate
+  .guard(authenticated)                               // authorize
+  .policy(OrderPolicy.create)                         // policy check
+  .throws(InsufficientStock, PaymentFailed)           // declare errors
+  .transactional()                                    // DB atomicity
+  .through(                                           // prepare
+    validateStock,
+    reserveStock,
+    chargePayment.onRevert(refundPayment),
+  )
+  .emits(OrderCreated)                                // side effects
+  .mutation(async ({ input, ctx }) => {               // commit
+    return ctx.db.order.create({ data: input });
+  })
+  .useAfter(auditLog)                                 // post-handler
+```
+
+Each line is one concern. The builder chain reads top-to-bottom as a declaration of intent.
+
+## Related Content
+
+- [Procedures](/docs/endpoints/procedures/) — Builder chain reference
+- [Error Handling](/docs/core/error-handling/) — VeloxError hierarchy and DomainError
+- [Policies](/docs/authentication/policies/) — Resource authorization with `.policy()`
+- [Middleware](/docs/router/middleware/) — `.use()` and `.useAfter()`
+- [Events](/docs/ecosystem/events/) — Broadcast events (WebSocket/SSE)
+- [Client Package](/docs/client/overview/) — Error handling on the frontend
