@@ -223,6 +223,18 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
     },
 
     /**
+     * Declares domain error classes this procedure may throw
+     */
+    throws(
+      ...errorClasses: Array<new (data: Record<string, unknown>) => unknown>
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        errorClasses: [...(state.errorClasses ?? []), ...errorClasses],
+      });
+    },
+
+    /**
      * Sets REST route override
      */
     rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {

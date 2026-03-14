@@ -10,7 +10,7 @@
  * @module procedure/types
  */
 
-import type { BaseContext } from '@veloxts/core';
+import type { BaseContext, DomainError } from '@veloxts/core';
 import type { ZodType } from 'zod';
 
 import type { OutputForLevel, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
@@ -278,6 +278,33 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
+   * Declares domain error classes that this procedure may throw
+   *
+   * Stores error class references on the compiled procedure for:
+   * - OpenAPI error response generation (per-endpoint error schemas)
+   * - Client-side error type narrowing (`InferProcedureErrors<T>`)
+   *
+   * Can be called multiple times — error classes accumulate across calls.
+   *
+   * @template TDomainErrors - Union of domain error types declared
+   * @param errorClasses - Domain error constructors this procedure may throw
+   * @returns New builder with updated TErrors union
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .input(z.object({ sku: z.string(), qty: z.number() }))
+   *   .throws(InsufficientStock, PaymentFailed)
+   *   .mutation(async ({ input }) => {
+   *     // handler may throw InsufficientStock or PaymentFailed
+   *   })
+   * ```
+   */
+  throws<TDomainErrors extends DomainError<Record<string, unknown>>>(
+    ...errorClasses: Array<new (data: Record<string, unknown>) => TDomainErrors>
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors | TDomainErrors>;
+
+  /**
    * Configures REST route override
    *
    * By default, REST routes are auto-generated from procedure names.
@@ -490,7 +517,7 @@ export interface BuilderRuntimeState {
   /** Whether .output() received an untagged resource schema (Level 3 branching mode) */
   branchingMode?: boolean;
   /** Error classes declared via .throws() */
-  errorClasses?: Array<new (data: unknown) => unknown>;
+  errorClasses?: Array<new (data: Record<string, unknown>) => unknown>;
 }
 
 // ============================================================================

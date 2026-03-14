@@ -476,7 +476,7 @@ export interface CompiledProcedure<
    *
    * @internal
    */
-  readonly errorClasses?: ReadonlyArray<new (data: unknown) => unknown>;
+  readonly errorClasses?: ReadonlyArray<new (data: Record<string, unknown>) => unknown>;
 
   /**
    * Phantom type holder for error types — not used at runtime
