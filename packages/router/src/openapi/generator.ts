@@ -15,6 +15,7 @@ import { buildParameters, convertToOpenAPIPath, joinPaths } from './path-extract
 import {
   removeSchemaProperties,
   resourceSchemaToJsonSchema,
+  resourceSchemaToJsonSchemaForBranching,
   zodSchemaToJsonSchema,
 } from './schema-converter.js';
 import {
@@ -207,6 +208,9 @@ function generateOperation(
   let outputSchema: JSONSchema | undefined;
   if (procedure.outputSchema) {
     outputSchema = zodSchemaToJsonSchema(procedure.outputSchema as ZodType);
+  } else if (procedure._handlerMap && procedure._resourceSchema) {
+    // Level 3: branched procedure — include all fields, non-public fields optional
+    outputSchema = resourceSchemaToJsonSchemaForBranching(procedure._resourceSchema);
   } else if (procedure._resourceSchema) {
     const level = procedure._resourceLevel ?? 'public';
     outputSchema = resourceSchemaToJsonSchema(procedure._resourceSchema, level);

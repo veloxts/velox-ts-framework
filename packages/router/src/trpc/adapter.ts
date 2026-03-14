@@ -26,6 +26,7 @@ export type AnyRouter = TRPCAnyRouter;
 
 import { isGuardError } from '../errors.js';
 import { executeMiddlewareChain } from '../middleware/chain.js';
+import { executeProcedure } from '../procedure/builder.js';
 import type { CompiledProcedure, ProcedureCollection, ProcedureRecord } from '../types.js';
 
 // ============================================================================
@@ -234,6 +235,11 @@ function createProcedureHandler(procedure: CompiledProcedure) {
   return async (opts: { input?: unknown; ctx: BaseContext }) => {
     const { ctx } = opts;
     const input = opts.input ?? undefined;
+
+    // Level 3: delegate branched procedures to executeProcedure for branch selection
+    if (procedure._handlerMap) {
+      return executeProcedure(procedure, input, ctx);
+    }
 
     // Execute middleware chain if any
     if (procedure.middlewares.length > 0) {
