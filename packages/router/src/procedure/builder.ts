@@ -12,6 +12,8 @@ import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core'
 
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
+import type { PipelineStep } from './pipeline.js';
+import { executePipeline } from './pipeline-executor.js';
 import type { AccessLevelConfig } from '../resource/index.js';
 import {
   isResourceSchema,
@@ -332,6 +334,18 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
     },
 
     /**
+     * Adds pipeline steps that execute before the handler
+     */
+    through(
+      ...steps: PipelineStep[]
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        pipelineSteps: [...(state.pipelineSteps ?? []), ...steps],
+      });
+    },
+
+    /**
      * Finalizes as a query procedure
      *
      * In branching mode (Level 3), accepts a handler map keyed by schema level keys.
@@ -479,6 +493,8 @@ function compileProcedure<
     transactionalOptions: state.transactionalOptions,
     // Store emitted events declared via .emits()
     emittedEvents: state.emittedEvents,
+    // Store pipeline steps declared via .through()
+    pipelineSteps: state.pipelineSteps,
   };
 }
 
@@ -528,6 +544,8 @@ function compileProcedureWithHandlerMap<
     // Store transactional configuration
     transactional: state.transactional,
     transactionalOptions: state.transactionalOptions,
+    // Store pipeline steps declared via .through()
+    pipelineSteps: state.pipelineSteps,
   };
 }
 
@@ -786,23 +804,33 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     return executeBranchedProcedure(procedure, input, ctxWithLevel as TContext);
   }
 
+  // Step 2.7: Execute pipeline steps if .through() was used
+  // Pipeline transforms input before the handler. Runs inside transaction when applicable.
+  const hasPipeline =
+    procedure.pipelineSteps !== undefined && procedure.pipelineSteps.length > 0;
+
   // Step 3: Execute handler (with or without middleware)
-  // Helper that runs the middleware chain + handler with a given context
+  // Helper that runs the pipeline + middleware chain + handler with a given context
   const executeWithContext = async (execCtx: TContext): Promise<TOutput> => {
+    // Run pipeline to transform input before handler
+    const handlerInput = hasPipeline
+      ? ((await executePipeline(procedure.pipelineSteps!, input, execCtx)) as TInput)
+      : input;
+
     if (procedure._precompiledExecutor) {
       // PERFORMANCE: Use pre-compiled middleware chain executor
-      return procedure._precompiledExecutor(input, execCtx);
+      return procedure._precompiledExecutor(handlerInput, execCtx);
     }
     if (procedure.middlewares.length === 0) {
       // No middleware - execute handler directly
-      return procedure.handler({ input, ctx: execCtx });
+      return procedure.handler({ input: handlerInput, ctx: execCtx });
     }
     // Fallback: Build middleware chain dynamically (should not normally happen)
     return executeMiddlewareChain(
       procedure.middlewares as MiddlewareFunction<TInput, TContext, TContext, TOutput>[],
-      input,
+      handlerInput,
       execCtx,
-      async () => procedure.handler({ input, ctx: execCtx })
+      async () => procedure.handler({ input: handlerInput, ctx: execCtx })
     );
   };
 

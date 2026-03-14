@@ -10,6 +10,7 @@
 import type { BaseContext } from '@veloxts/core';
 import type { HttpMethod } from '@veloxts/validation';
 
+import type { PipelineStep } from './procedure/pipeline.js';
 import type { ResourceSchema } from './resource/schema.js';
 
 // ============================================================================
@@ -526,6 +527,18 @@ export interface CompiledProcedure<
     eventClass: { new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown; readonly eventName: string };
     mapper?: (result: unknown) => Record<string, unknown>;
   }>;
+
+  /**
+   * Pipeline steps declared via .through()
+   *
+   * When present, the pipeline executor runs these steps in order
+   * BEFORE the handler. Each step's output becomes the next step's
+   * input, and the final step's output is passed to the handler.
+   *
+   * If a step fails, revert actions for completed steps run in
+   * reverse order (compensation pattern).
+   */
+  readonly pipelineSteps?: ReadonlyArray<PipelineStep>;
 
   /**
    * Phantom type holder for error types — not used at runtime

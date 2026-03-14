@@ -13,6 +13,7 @@
 import type { BaseContext, DomainError } from '@veloxts/core';
 import type { ZodType } from 'zod';
 
+import type { PipelineStep } from './pipeline.js';
 import type { OutputForLevel, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
 import type {
   CompiledProcedure,
@@ -493,6 +494,34 @@ export interface ProcedureBuilder<
   ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
+   * Adds pipeline steps that execute BEFORE the handler
+   *
+   * Steps run in declaration order. Each step's output becomes the next
+   * step's input, and the final step's output is passed to the handler
+   * as its `input`. If a step fails, revert actions for previously
+   * completed steps run in reverse order (compensation pattern).
+   *
+   * Can be called multiple times — steps accumulate across calls.
+   *
+   * @param steps - Pipeline steps to execute before the handler
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .input(CreateOrderSchema)
+   *   .through(validateInventory, chargePayment.onRevert(refund))
+   *   .mutation(async ({ input, ctx }) => {
+   *     // input has been transformed by pipeline steps
+   *     return ctx.db.order.create({ data: input });
+   *   })
+   * ```
+   */
+  through(
+    ...steps: PipelineStep[]
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
    * Finalizes the procedure as a query (read-only operation)
    *
    * Queries map to GET requests in REST and should not modify data.
@@ -592,6 +621,8 @@ export interface BuilderRuntimeState {
     eventClass: { new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown; readonly eventName: string };
     mapper?: (result: unknown) => Record<string, unknown>;
   }>;
+  /** Pipeline steps declared via .through() */
+  pipelineSteps?: PipelineStep[];
 }
 
 // ============================================================================
