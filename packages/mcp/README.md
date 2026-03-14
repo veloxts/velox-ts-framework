@@ -1,6 +1,6 @@
 # @veloxts/mcp
 
-> **Early Access (v0.7.x)**
+> **Early Access (v0.8.x)**
 
 Model Context Protocol server for VeloxTS - exposes project context (procedures, schemas, routes, errors) to AI assistants like Claude Desktop and other tools that support the Model Context Protocol.
 
