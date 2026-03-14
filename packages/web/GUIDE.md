@@ -197,7 +197,7 @@ Complete documentation at [@veloxts/velox](https://www.npmjs.com/package/@veloxt
 
 ## Status
 
-**v0.7.x** - Early preview. APIs stabilizing with 615+ tests and 94.4% coverage.
+**v0.8.x** - Early preview. APIs stabilizing with 615+ tests and 94.4% coverage.
 
 ## License
 

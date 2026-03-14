@@ -1,6 +1,6 @@
 # Velox TS Framework
 
-> **Early Access (v0.7.x)**
+> **Early Access (v0.8.x)**
 
 Velox TS (pronounced **Velox TypeScript**) is a full-stack TypeScript framework with end-to-end type safety—no code generation required. Convention-driven APIs that generate both tRPC and REST from a single source.
 
@@ -65,8 +65,7 @@ Your API is now running at `http://localhost:3030`.
 ## Example: Defining Procedures
 
 ```typescript
-import { procedure, procedures } from '@veloxts/router';
-import { z } from 'zod';
+import { procedure, procedures, z } from '@veloxts/velox';
 
 export const userProcedures = procedures('users', {
   // GET /api/users/:id
@@ -138,6 +137,7 @@ broadcast('orders', { event: 'order.created', data: { orderId: '123' } });
 | [`@veloxts/auth`](./packages/auth) | JWT, sessions, guards, rate limiting, CSRF protection |
 | [`@veloxts/client`](./packages/client) | Type-safe frontend API client |
 | [`@veloxts/cli`](./packages/cli) | Development server with HMR and CLI commands |
+| [`@veloxts/web`](./packages/web) | React Server Components with Vinxi, file-based routing, server actions |
 | [`@veloxts/mcp`](./packages/mcp) | Model Context Protocol server for AI tool integration |
 | [`create-velox-app`](./packages/create) | Interactive project scaffolder |
 
@@ -181,7 +181,7 @@ pnpm lint
 
 ## Current Status
 
-**v0.7.x** - Pre-release with stable core features.
+**v0.8.x** - Pre-release with stable core features.
 
 The framework provides a solid foundation for building type-safe APIs:
 
@@ -200,6 +200,10 @@ The framework provides a solid foundation for building type-safe APIs:
 | MCP Server (AI integration) | ✅ Available |
 | CLI code generators | ✅ 16 generators available |
 | Database seeding | ✅ Seeder generator available |
+| OpenAPI generation | ✅ CLI + Fastify Swagger plugin |
+| `velox sync` | ✅ Prisma-to-procedure sync with 5-stage pipeline |
+| Resource API | ✅ `resourceSchema()` with tagged views and auto-projection |
+| Auth adapters | ✅ BetterAuth, Clerk, Auth0 |
 | **Ecosystem Packages** | |
 | Multi-driver caching | ✅ Available (memory, Redis) |
 | Background job processing | ✅ Available (sync, BullMQ) |
@@ -213,10 +217,12 @@ The framework provides a solid foundation for building type-safe APIs:
 - Fluent procedure builder API with excellent type inference
 - Convention-based REST route generation for all HTTP methods
 - End-to-end type safety without code generation
-- Comprehensive authentication system (JWT + sessions)
+- Resource API with tagged schema views for context-dependent outputs
+- OpenAPI 3.0.3 generation with CLI and Swagger UI plugin
+- Comprehensive authentication system (JWT + sessions + pluggable adapters)
 - Guard-based authorization with composable rules
+- `velox sync` for Prisma-to-procedure synchronization
 - Hot Module Replacement in development
-- Clean plugin system for extensibility
 - 16 code generators (`velox make <type>`) for rapid development
 - AI-native development with MCP server integration
 - React Server Components with Vinxi and file-based routing
@@ -225,6 +231,7 @@ The framework provides a solid foundation for building type-safe APIs:
 ### Current Limitations
 
 - Small ecosystem (early adopter stage)
+- Flight protocol (RSC streaming) not yet implemented
 
 ## Contributing
 

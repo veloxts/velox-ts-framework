@@ -1,6 +1,6 @@
 # create-velox-app
 
-> **Early Access (v0.7.x)**
+> **Early Access (v0.8.x)**
 
 Interactive project scaffolder for VeloxTS Framework - creates production-ready applications with batteries included. Learn more at [@veloxts/velox](https://www.npmjs.com/package/@veloxts/velox).
 
