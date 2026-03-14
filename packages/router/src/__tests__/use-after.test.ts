@@ -291,4 +291,34 @@ describe('.useAfter()', () => {
       expect(order).toEqual(['event-emitted', 'after-hook']);
     });
   });
+
+  describe('interaction with .through()', () => {
+    it('should receive pipeline-enriched input, not raw input', async () => {
+      const { defineStep } = await import('../procedure/pipeline.js');
+      const afterSpy = vi.fn();
+
+      const enrichStep = defineStep('enrich', async ({ input }: { input: { id: string } }) => ({
+        ...input,
+        enriched: true,
+      }));
+
+      const proc = procedure()
+        .input(z.object({ id: z.string() }))
+        .through(enrichStep)
+        .mutation(async ({ input }) => ({
+          done: true,
+          receivedId: (input as Record<string, unknown>).id,
+        }))
+        .useAfter(afterSpy);
+
+      const ctx = {} as BaseContext;
+      await executeProcedure(proc, { id: 'test-1' }, ctx);
+
+      expect(afterSpy).toHaveBeenCalledTimes(1);
+      const hookParams = afterSpy.mock.calls[0][0];
+      // input should be pipeline-enriched (has enriched: true), not raw { id: 'test-1' }
+      expect(hookParams.input).toEqual({ id: 'test-1', enriched: true });
+      expect(hookParams.result).toEqual({ done: true, receivedId: 'test-1' });
+    });
+  });
 });

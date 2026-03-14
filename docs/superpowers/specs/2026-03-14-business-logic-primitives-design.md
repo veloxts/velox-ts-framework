@@ -625,7 +625,7 @@ Currently, `.mutation()` / `.query()` are terminal methods that return a `Compil
 ### Behavior
 
 - `.useAfter()` runs after the handler returns successfully, before the response is sent.
-- Receives `{ input, result, ctx }` — sees what went in and what came out.
+- Receives `{ input, result, ctx }` — `input` is the pipeline-enriched input (after `.through()` steps), not the raw validated input. This lets hooks see exactly what the handler received.
 - Cannot modify the result — for side effects only.
 - If `.useAfter()` throws, the response still sends. The error is logged, not swallowed.
 - Multiple `.useAfter()` hooks chain in registration order.

@@ -910,6 +910,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     const handlerInput = hasSteps
       ? ((await executePipeline(steps, input, execCtx)) as TInput)
       : input;
+    enrichedInput = handlerInput;
 
     if (procedure._precompiledExecutor) {
       // PERFORMANCE: Use pre-compiled middleware chain executor
@@ -929,6 +930,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   };
 
   let result: TOutput;
+  let enrichedInput: TInput = input;
 
   // Wrap in transaction if .transactional() was called and ctx.db.$transaction exists
   const ctxRecord = ctxWithLevel as Record<string, unknown>;
@@ -1014,7 +1016,7 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
   if (procedure.afterHandlers?.length) {
     for (const afterHandler of procedure.afterHandlers) {
       try {
-        await afterHandler({ input, result, ctx: ctxWithLevel });
+        await afterHandler({ input: enrichedInput, result, ctx: ctxWithLevel });
       } catch (error) {
         log.error('useAfter hook error:', error);
       }
