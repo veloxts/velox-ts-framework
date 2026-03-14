@@ -1,5 +1,26 @@
 # @veloxts/velox
 
+## 0.8.0
+
+### Minor Changes
+
+- feat(router): new simplified procedure builder
+
+### Patch Changes
+
+- Updated dependencies
+  - @veloxts/auth@0.8.0
+  - @veloxts/cache@0.8.0
+  - @veloxts/core@0.8.0
+  - @veloxts/events@0.8.0
+  - @veloxts/mail@0.8.0
+  - @veloxts/orm@0.8.0
+  - @veloxts/queue@0.8.0
+  - @veloxts/router@0.8.0
+  - @veloxts/scheduler@0.8.0
+  - @veloxts/storage@0.8.0
+  - @veloxts/validation@0.8.0
+
 ## 0.7.9
 
 ### Patch Changes

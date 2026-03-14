@@ -1,5 +1,11 @@
 # create-velox-app
 
+## 0.8.0
+
+### Minor Changes
+
+- feat(router): new simplified procedure builder
+
 ## 0.7.9
 
 ### Patch Changes

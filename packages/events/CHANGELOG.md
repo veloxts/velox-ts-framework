@@ -1,5 +1,16 @@
 # @veloxts/events
 
+## 0.8.0
+
+### Minor Changes
+
+- feat(router): new simplified procedure builder
+
+### Patch Changes
+
+- Updated dependencies
+  - @veloxts/core@0.8.0
+
 ## 0.7.9
 
 ### Patch Changes
