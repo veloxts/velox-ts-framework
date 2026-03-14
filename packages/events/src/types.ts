@@ -7,6 +7,9 @@
 
 import type { FastifyRequest } from 'fastify';
 
+import type { ListenerOptions as DomainListenerOptions } from './domain/emitter.js';
+import type { DomainEvent, DomainEventClass } from './domain/event.js';
+
 // =============================================================================
 // Channel Types
 // =============================================================================
@@ -344,4 +347,59 @@ export interface EventsManager {
    * Close the manager and clean up resources.
    */
   close(): Promise<void>;
+
+  // ===========================================================================
+  // Domain Event Methods
+  // ===========================================================================
+
+  /**
+   * Emit a domain event to all registered listeners.
+   *
+   * Domain events are in-process events for business logic (e.g., OrderCreated,
+   * UserRegistered). They are distinct from broadcast events (WebSocket/SSE)
+   * which are client-facing.
+   *
+   * @example
+   * ```typescript
+   * await ctx.events.emit(new OrderCreatedEvent({
+   *   orderId: '123',
+   *   total: 99.99,
+   * }));
+   * ```
+   */
+  emit<TData extends Record<string, unknown>>(event: DomainEvent<TData>): Promise<void>;
+
+  /**
+   * Register a typed listener for a domain event class.
+   *
+   * The handler receives `event.data` — the typed payload — not the event
+   * instance itself.
+   *
+   * @param eventClass - The domain event class to listen for.
+   * @param handler    - Called with the event's `data` payload on each emit.
+   * @param options    - `{ sequential?, retryable? }`
+   *
+   * @example
+   * ```typescript
+   * events.on(OrderCreatedEvent, async (data) => {
+   *   await sendConfirmationEmail(data.orderId);
+   * });
+   * ```
+   */
+  on<TData extends Record<string, unknown>>(
+    eventClass: DomainEventClass<TData>,
+    handler: (data: TData) => void | Promise<void>,
+    options?: DomainListenerOptions
+  ): void;
+
+  /**
+   * Remove a previously registered domain event listener.
+   *
+   * @param eventClass - The domain event class the listener was registered for.
+   * @param handler    - The exact handler reference passed to `on()`.
+   */
+  off<TData extends Record<string, unknown>>(
+    eventClass: DomainEventClass<TData>,
+    handler: (data: TData) => void | Promise<void>
+  ): void;
 }

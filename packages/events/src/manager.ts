@@ -7,6 +7,8 @@
 
 import { createLogger } from '@veloxts/core';
 
+import { DomainEventEmitter } from './domain/emitter.js';
+import type { DomainEvent, DomainEventClass } from './domain/event.js';
 import type {
   BroadcastDriver,
   BroadcastEvent,
@@ -76,6 +78,8 @@ export async function createEventsManager(
 export function createManagerFromDriver(
   driver: BroadcastDriver
 ): EventsManager & { driver: BroadcastDriver } {
+  const domainEmitter = new DomainEventEmitter();
+
   const manager: EventsManager & { driver: BroadcastDriver } = {
     driver,
 
@@ -141,6 +145,29 @@ export function createManagerFromDriver(
 
     async channels(): Promise<string[]> {
       return driver.getChannels();
+    },
+
+    // -------------------------------------------------------------------------
+    // Domain Event Methods
+    // -------------------------------------------------------------------------
+
+    async emit<TData extends Record<string, unknown>>(event: DomainEvent<TData>): Promise<void> {
+      await domainEmitter.emit(event);
+    },
+
+    on<TData extends Record<string, unknown>>(
+      eventClass: DomainEventClass<TData>,
+      handler: (data: TData) => void | Promise<void>,
+      options?: Parameters<DomainEventEmitter['on']>[2]
+    ): void {
+      domainEmitter.on(eventClass, handler, options);
+    },
+
+    off<TData extends Record<string, unknown>>(
+      eventClass: DomainEventClass<TData>,
+      handler: (data: TData) => void | Promise<void>
+    ): void {
+      domainEmitter.off(eventClass, handler);
     },
 
     async close(): Promise<void> {
