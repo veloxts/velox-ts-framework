@@ -61,6 +61,7 @@ export default defineConfig({
           label: 'Type-safe Endpoints',
           items: [
             { slug: 'endpoints/procedures' },
+            { slug: 'endpoints/business-logic' },
             { slug: 'endpoints/resource-api' },
             { slug: 'endpoints/nested-relations' },
             { slug: 'endpoints/domain-modules' },
