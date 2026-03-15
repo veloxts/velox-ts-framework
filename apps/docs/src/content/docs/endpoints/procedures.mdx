@@ -121,6 +121,80 @@ Add middleware:
 .use(loggingMiddleware)
 ```
 
+### `.policy(action)`
+
+Attach a policy action for resource-level authorization:
+
+```typescript
+import { PostPolicy } from '../policies/post.js';
+
+.guard(authenticated)
+.policy(PostPolicy.update)
+.mutation(async ({ input, ctx }) => { ... })
+```
+
+See [Policies](/docs/authentication/policies/) for defining policies and actions.
+
+### `.throws(...errors)`
+
+Declare which domain errors a procedure can throw. This enables type-safe error narrowing on the client:
+
+```typescript
+import { InsufficientBalance, AccountLocked } from '../errors.js';
+
+.throws(InsufficientBalance, AccountLocked)
+.mutation(async ({ input, ctx }) => { ... })
+```
+
+See [Business Logic — Domain Errors](/docs/endpoints/business-logic/#domain-errors) for details.
+
+### `.transactional(options?)`
+
+Wrap the handler in a database transaction. Rolls back automatically on error:
+
+```typescript
+.transactional()
+.mutation(async ({ input, ctx }) => {
+  // ctx.db is scoped to the transaction
+})
+```
+
+See [Business Logic — Transactions](/docs/endpoints/business-logic/#transactions) for options.
+
+### `.through(...steps)`
+
+Run a pre-handler pipeline of steps, with optional revert-on-failure:
+
+```typescript
+.through(reserveInventory, chargePayment, sendConfirmation)
+.mutation(async ({ input, ctx }) => { ... })
+```
+
+Steps execute in order. If one fails, earlier steps revert. See [Business Logic — Pipelines](/docs/endpoints/business-logic/#pipelines) for `defineStep` and `.onRevert()`.
+
+### `.emits(Event, mapper?)`
+
+Emit a domain event after the handler succeeds:
+
+```typescript
+.emits(OrderPlaced, (output) => ({ orderId: output.id }))
+.mutation(async ({ input, ctx }) => { ... })
+```
+
+See [Business Logic — Domain Events](/docs/endpoints/business-logic/#domain-events) for event definitions.
+
+### `.useAfter(hook)`
+
+Add a post-handler hook that runs after the response is sent:
+
+```typescript
+.useAfter(async ({ input, output, ctx }) => {
+  await ctx.analytics.track('order.placed', { orderId: output.id });
+})
+```
+
+See [Middleware — Post-Handler Hooks](/docs/router/middleware/#post-handler-hooks) for details.
+
 ### `.rest(options)`
 
 Override REST endpoint generation:
