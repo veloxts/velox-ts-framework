@@ -39,6 +39,13 @@
 
 // Auth
 export { type ChannelAuthSigner, createChannelAuthSigner } from './auth.js';
+// Domain Events
+export {
+  DomainEvent,
+  type DomainEventClass,
+  DomainEventEmitter,
+  type DomainListenerOptions,
+} from './domain/index.js';
 // Drivers
 export { createSseDriver, DRIVER_NAME as SSE_DRIVER } from './drivers/sse.js';
 export { createWsDriver, DRIVER_NAME as WS_DRIVER } from './drivers/ws.js';

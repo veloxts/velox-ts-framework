@@ -45,6 +45,58 @@ class PaymentError extends VeloxError {
 }
 ```
 
+## Domain Errors
+
+Built-in errors like `NotFoundError` and `ConflictError` cover standard HTTP situations. When your business logic needs structured error data that clients can act on — "not enough stock, 3 available" — use `DomainError`:
+
+```typescript
+import { DomainError } from '@veloxts/core';
+
+export class InsufficientStock extends DomainError<{
+  sku: string;
+  requested: number;
+  available: number;
+}> {
+  readonly code = 'INSUFFICIENT_STOCK';
+  readonly status = 422;
+  readonly message = 'Not enough inventory';
+}
+```
+
+Throw it like any error:
+
+```typescript
+throw new InsufficientStock({
+  sku: 'ABC-123',
+  requested: 10,
+  available: 3,
+});
+```
+
+The framework serializes it as:
+
+```json
+{
+  "error": "InsufficientStock",
+  "message": "Not enough inventory",
+  "statusCode": 422,
+  "code": "INSUFFICIENT_STOCK",
+  "data": { "sku": "ABC-123", "requested": 10, "available": 3 }
+}
+```
+
+Use `isDomainError()` to detect domain errors across packages:
+
+```typescript
+import { isDomainError } from '@veloxts/core';
+
+if (isDomainError(error)) {
+  console.log(error.code, error.data);
+}
+```
+
+Declare domain errors on the procedure builder with `.throws()` to enable client-side type narrowing. See [Business Logic](/docs/endpoints/business-logic/) for details.
+
 ## Error Response Format
 
 ```json
@@ -68,5 +120,6 @@ VeloxError[E1001]: Procedure "getUser" missing required input schema
 
 ## Related Content
 
+- [Business Logic](/docs/endpoints/business-logic/) - Domain errors, transactions, events, pipelines
 - [Validation](/docs/validation/error-handling/) - Validation errors
 - [Reference](/docs/reference/error-codes/) - Error code catalog

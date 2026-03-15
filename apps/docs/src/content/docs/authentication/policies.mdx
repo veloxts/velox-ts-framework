@@ -3,34 +3,44 @@ title: Policies
 description: Resource-level authorization with policies.
 ---
 
-Guards check *who* the user is; policies check *what* they can do with a specific resource. A policy defines rules like "users can edit their own posts" or "only admins can delete comments," keeping authorization logic centralized rather than scattered across procedure handlers.
+import { Aside } from '@astrojs/starlight/components';
+
+Guards check *who* the user is; policies check *what* they can do with a specific resource. A policy defines rules like "users can edit their own posts" or "only admins can delete comments," keeping authorization logic centralized rather than scattered across handlers.
 
 ## Defining Policies
 
 ```typescript
 import { definePolicy } from '@veloxts/auth';
 
-const postPolicy = definePolicy('posts', {
-  view: (user, post) => post.published || post.authorId === user.id,
-  edit: (user, post) => post.authorId === user.id,
-  delete: (user, post) => post.authorId === user.id || user.role === 'admin',
+const PostPolicy = definePolicy('Post', {
+  create: ({ user }) => user.role === 'editor' || user.role === 'admin',
+  update: ({ user, resource }) => resource.authorId === user.id,
+  delete: ({ user, resource }) => resource.authorId === user.id || user.role === 'admin',
 });
 ```
 
-## Using Policies
+Each action is a `PolicyActionRef` with `.actionName`, `.resourceName`, and `.check()`:
 
 ```typescript
-import { authorize } from '@veloxts/auth';
+PostPolicy.update.actionName   // 'update'
+PostPolicy.update.resourceName // 'Post'
+PostPolicy.update.check(user, post) // boolean | Promise<boolean>
+```
+
+## Using `.policy()` on the Builder
+
+The recommended way to enforce policies — checked automatically before the handler runs:
+
+```typescript
+import { procedure } from '@veloxts/velox';
+import { authenticated } from '@veloxts/auth';
 
 updatePost: procedure()
-  .guard(authenticated)
   .input(z.object({ id: z.string(), data: UpdatePostSchema }))
+  .guard(authenticated)
+  .use(loadPost)             // adds { post: Post } to context
+  .policy(PostPolicy.update) // checked before handler — throws ForbiddenError on failure
   .mutation(async ({ input, ctx }) => {
-    const post = await ctx.db.post.findUnique({ where: { id: input.id } });
-
-    // Check policy
-    await authorize(ctx, 'posts', 'edit', post);
-
     return ctx.db.post.update({
       where: { id: input.id },
       data: input.data,
@@ -38,30 +48,39 @@ updatePost: procedure()
   }),
 ```
 
-## Helpers
+The policy looks up the resource from context by name — `PostPolicy` looks for `ctx.post`. Forgetting `.use(loadPost)` before `.policy()` produces a TypeScript error when the resource name is a string literal.
+
+<Aside type="tip">
+For action-level policies that don't need a resource (like `PostPolicy.create`), the resource lookup is skipped — only `ctx.user` is checked.
+</Aside>
+
+## Manual Helpers
+
+For complex conditional logic inside handlers, use `can()` and `cannot()`:
 
 ```typescript
 import { can, cannot } from '@veloxts/auth';
 
-// Check without throwing
-if (await can(ctx, 'posts', 'edit', post)) {
-  // User can edit
+if (await can(ctx.user, 'update', 'Post', post)) {
+  // User can update
 }
 
-if (await cannot(ctx, 'posts', 'delete', post)) {
+if (await cannot(ctx.user, 'delete', 'Post', post)) {
   // User cannot delete
 }
 ```
 
 ## Policies vs Guards
 
-| Feature | Guards | Policies |
-|---------|--------|----------|
-| Scope | Request-level | Resource-level |
-| Example | "Is user admin?" | "Can user edit THIS post?" |
-| Check | Before handler | Inside handler |
+| Feature | Guards | Policies (`.policy()`) | Policies (`can()`/`cannot()`) |
+|---------|--------|----------------------|-------------------------------|
+| Scope | Request-level | Resource-level | Resource-level |
+| Example | "Is user admin?" | "Can user edit THIS post?" | "Can user edit THIS post?" |
+| Runs | Before handler | Before handler | Inside handler |
+| Style | Declarative | Declarative | Imperative |
 
 ## Related Content
 
-- [Guards](/docs/authentication/guards/) - Request authorization
-- [JWT](/docs/authentication/jwt/) - Authentication
+- [Guards](/docs/authentication/guards/) — Request authorization
+- [Business Logic](/docs/endpoints/business-logic/) — Transactions, events, pipelines
+- [JWT](/docs/authentication/jwt/) — Authentication

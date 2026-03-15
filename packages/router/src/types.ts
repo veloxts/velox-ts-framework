@@ -10,6 +10,7 @@
 import type { BaseContext } from '@veloxts/core';
 import type { HttpMethod } from '@veloxts/validation';
 
+import type { PipelineStep } from './procedure/pipeline.js';
 import type { ResourceSchema } from './resource/schema.js';
 
 // ============================================================================
@@ -142,6 +143,33 @@ export interface GuardLike<TContext = unknown> {
   message?: string;
   /** HTTP status code on failure (default: 403) */
   statusCode?: number;
+}
+
+// ============================================================================
+// Policy Types
+// ============================================================================
+
+/**
+ * Policy action reference interface for declarative authorization
+ *
+ * This interface is compatible with @veloxts/auth's PolicyActionRef but doesn't
+ * create a hard dependency. Any object matching this shape can be used as a policy
+ * action in the procedure builder.
+ *
+ * @template TUser - The user type the policy operates on
+ * @template TResource - The resource type the policy checks against
+ */
+export interface PolicyActionLike<
+  TUser = unknown,
+  TResource = unknown,
+  TResourceName extends string = string,
+> {
+  /** The name of the action (e.g., 'update', 'delete') */
+  readonly actionName: string;
+  /** The name of the resource this policy applies to (e.g., 'Post') */
+  readonly resourceName: TResourceName;
+  /** Execute the policy check for this action */
+  readonly check: (user: TUser, resource?: TResource) => boolean | Promise<boolean>;
 }
 
 // ============================================================================
@@ -344,6 +372,25 @@ export interface ParentResourceChain {
 }
 
 /**
+ * Options for database transaction wrapping
+ *
+ * Controls isolation level and timeout when `.transactional()` is used
+ * on a procedure. These options are forwarded directly to Prisma's
+ * `$transaction()` method.
+ */
+export interface TransactionalOptions {
+  /** Transaction isolation level (forwarded to Prisma) */
+  isolationLevel?:
+    | 'ReadUncommitted'
+    | 'ReadCommitted'
+    | 'RepeatableRead'
+    | 'Serializable'
+    | 'Snapshot';
+  /** Transaction timeout in milliseconds */
+  timeout?: number;
+}
+
+/**
  * Compiled procedure with all metadata and handlers
  *
  * This is the final output of the procedure builder, ready for registration
@@ -353,12 +400,14 @@ export interface ParentResourceChain {
  * @template TOutput - The handler output type
  * @template TContext - The context type
  * @template TType - The procedure type literal ('query' or 'mutation')
+ * @template TErrors - Union of domain error types this procedure can throw (defaults to never)
  */
 export interface CompiledProcedure<
   TInput = unknown,
   TOutput = unknown,
   TContext extends BaseContext = BaseContext,
   TType extends ProcedureType = ProcedureType,
+  TErrors = never,
 > {
   /** Whether this is a query or mutation */
   readonly type: TType;
@@ -465,7 +514,124 @@ export interface CompiledProcedure<
    * @internal
    */
   readonly _handlerMap?: Readonly<Record<string, ProcedureHandler<TInput, TOutput, TContext>>>;
+
+  /**
+   * Error classes that this procedure declares it may throw
+   *
+   * Populated by `.throws()` on the procedure builder. Used for OpenAPI
+   * error response generation and client-side error narrowing.
+   *
+   * @internal
+   */
+  readonly errorClasses?: ReadonlyArray<new (data: Record<string, unknown>) => unknown>;
+
+  /**
+   * Whether the handler should be wrapped in a database transaction
+   *
+   * Set by `.transactional()` on the procedure builder. When true,
+   * `executeProcedure` wraps the handler in `ctx.db.$transaction()`.
+   */
+  readonly transactional?: boolean;
+
+  /**
+   * Options for the database transaction (isolation level, timeout)
+   *
+   * Forwarded to `ctx.db.$transaction()` as the second argument.
+   */
+  readonly transactionalOptions?: TransactionalOptions;
+
+  /**
+   * Domain events to emit after successful handler execution
+   *
+   * Populated by `.emits()` on the procedure builder. Each entry holds
+   * the event class constructor and an optional mapper that transforms
+   * the handler result into the event's data payload.
+   *
+   * Events fire AFTER the handler returns (post-commit when transactional).
+   * Emission errors are caught and logged — they never fail the request.
+   */
+  readonly emittedEvents?: ReadonlyArray<{
+    eventClass: {
+      new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown;
+      readonly name: string;
+    };
+    mapper?: (result: unknown) => Record<string, unknown>;
+  }>;
+
+  /**
+   * Pipeline steps declared via .through()
+   *
+   * When present, the pipeline executor runs these steps in order
+   * BEFORE the handler. Each step's output becomes the next step's
+   * input, and the final step's output is passed to the handler.
+   *
+   * If a step fails, revert actions for completed steps run in
+   * reverse order (compensation pattern).
+   */
+  readonly pipelineSteps?: ReadonlyArray<PipelineStep>;
+
+  /**
+   * Policy action reference for declarative authorization
+   *
+   * When set via `.policy()`, the procedure executor checks the policy
+   * action against the current user and (optionally) a resource from
+   * the context. The resource is looked up by lowercase resource name
+   * (e.g., `PostPolicy` → `ctx.post`).
+   *
+   * If the check fails, a ForbiddenError is thrown.
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .guard(authenticated)
+   *   .policy(PostPolicy.update)
+   *   .mutation(handler)
+   * ```
+   */
+  readonly policyAction?: PolicyActionLike;
+
+  /**
+   * Post-handler hooks registered via `.useAfter()`
+   *
+   * When present, these hooks run after the handler succeeds (and after
+   * event emission). Errors in hooks are caught and logged — they never
+   * fail the request. Hooks cannot modify the result.
+   */
+  readonly afterHandlers?: ReadonlyArray<AfterHandler>;
+
+  /**
+   * Phantom type holder for error types — not used at runtime
+   *
+   * Preserves the TErrors union through the type system so that
+   * `InferProcedureErrors<T>` can extract it. Never set at runtime.
+   *
+   * @internal
+   */
+  readonly _errors?: TErrors;
 }
+
+// ============================================================================
+// After Handler Types
+// ============================================================================
+
+/**
+ * Post-handler hook function signature
+ *
+ * Runs after the handler returns successfully. Receives the validated
+ * input, the handler result, and the request context. Return value
+ * is ignored — hooks cannot modify the result.
+ *
+ * Useful for side effects like audit logging, cache invalidation, and metrics.
+ *
+ * @template TInput - The validated input type
+ * @template TOutput - The handler result type
+ * @template TContext - The context type
+ */
+export type AfterHandler<TInput = unknown, TOutput = unknown, TContext = unknown> = (params: {
+  input: TInput;
+  result: TOutput;
+  ctx: TContext;
+}) => void | Promise<void>;
 
 // ============================================================================
 // Procedure Collection Types
@@ -477,7 +643,7 @@ export interface CompiledProcedure<
  * NOTE: Uses `any` for variance compatibility - see ProcedureDefinitions for explanation.
  */
 // biome-ignore lint/suspicious/noExplicitAny: Required for variance compatibility in Record type
-export type ProcedureRecord = Record<string, CompiledProcedure<any, any, any, any>>;
+export type ProcedureRecord = Record<string, CompiledProcedure<any, any, any, any, any>>;
 
 /**
  * Procedure collection with namespace
@@ -524,6 +690,15 @@ export type InferProcedureContext<T> =
  */
 export type InferProcedureType<T> =
   T extends CompiledProcedure<unknown, unknown, BaseContext, infer TType> ? TType : never;
+
+/**
+ * Extracts the error types from a compiled procedure
+ *
+ * Returns the union of domain error types declared via `.throws()`.
+ * Returns `never` if no errors are declared.
+ */
+export type InferProcedureErrors<T> =
+  T extends CompiledProcedure<unknown, unknown, BaseContext, ProcedureType, infer E> ? E : never;
 
 /**
  * Extracts procedure types from a collection

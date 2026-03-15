@@ -332,12 +332,21 @@ export interface GuardDefinition<TContext = unknown> {
 // ============================================================================
 
 /**
+ * Parameters passed to a policy action handler
+ */
+export interface PolicyActionParams<TUser = User, TResource = unknown> {
+  /** The authenticated user performing the action */
+  user: TUser;
+  /** The resource being acted upon (optional for create-like actions) */
+  resource: TResource;
+}
+
+/**
  * Policy action handler
  * Returns true if user can perform action on resource
  */
 export type PolicyAction<TUser = User, TResource = unknown> = (
-  user: TUser,
-  resource: TResource
+  params: PolicyActionParams<TUser, TResource>
 ) => boolean | Promise<boolean>;
 
 /**
@@ -355,6 +364,42 @@ export interface PolicyDefinition<TUser = User, TResource = unknown> {
   /** Custom actions */
   [action: string]: PolicyAction<TUser, TResource> | undefined;
 }
+
+/**
+ * A reference to a single policy action with its metadata.
+ *
+ * Returned as a property on a PolicyObject for each defined action.
+ * Can be used for introspection or passed to authorization helpers.
+ */
+export interface PolicyActionRef<
+  TUser = unknown,
+  TResource = unknown,
+  TResourceName extends string = string,
+> {
+  /** The name of the action (e.g., 'update', 'delete') */
+  readonly actionName: string;
+  /** The name of the resource this policy applies to (e.g., 'Post') */
+  readonly resourceName: TResourceName;
+  /** Execute the policy check for this action */
+  readonly check: (user: TUser, resource?: TResource) => boolean | Promise<boolean>;
+}
+
+/**
+ * A policy object returned by definePolicy.
+ *
+ * Contains the resource name and each action as a PolicyActionRef.
+ */
+export type PolicyObject<
+  TUser = User,
+  TResource = unknown,
+  TResourceName extends string = string,
+  TActions extends string = string,
+> = {
+  /** The resource name this policy applies to */
+  readonly resourceName: TResourceName;
+} & {
+  readonly [K in TActions]: PolicyActionRef<TUser, TResource, TResourceName>;
+};
 
 // ============================================================================
 // Middleware Types

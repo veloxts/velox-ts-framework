@@ -73,6 +73,10 @@ await app.start();
   **Production requires Redis.** Without it, broadcasts only reach clients connected to the same server instance. See [Production Deployment](#production-deployment) for complete setup.
 </Aside>
 
+<Aside type="note" title="Server-Side Events">
+This page covers **broadcast events** — real-time WebSocket/SSE for client applications. For internal server-side events that decouple business logic between modules (e.g., emitting `OrderCreated` after a mutation), see [Domain Events](/docs/endpoints/business-logic/#domain-events).
+</Aside>
+
 ## Environment Variables
 
 ```bash title=".env"

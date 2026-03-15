@@ -3,9 +3,15 @@
  * @module auth/policies
  */
 
-import { createLogger } from '@veloxts/core';
+import { createLogger, ForbiddenError } from '@veloxts/core';
 
-import type { PolicyAction, PolicyDefinition, User } from './types.js';
+import type {
+  PolicyAction,
+  PolicyActionRef,
+  PolicyDefinition,
+  PolicyObject,
+  User,
+} from './types.js';
 
 const log = createLogger('auth');
 
@@ -24,18 +30,38 @@ const policyRegistry = new Map<string, PolicyDefinition>();
  *
  * @example
  * ```typescript
- * registerPolicy('Post', {
- *   view: (user, post) => true, // Anyone can view
- *   update: (user, post) => user.id === post.authorId,
- *   delete: (user, post) => user.id === post.authorId || user.role === 'admin',
+ * const PostPolicy = definePolicy<User, Post>('Post', {
+ *   view: () => true,
+ *   update: ({ user, resource }) => user.id === resource.authorId,
+ *   delete: ({ user, resource }) => user.id === resource.authorId || user.role === 'admin',
  * });
+ *
+ * registerPolicy(PostPolicy);
  * ```
  */
 export function registerPolicy<TUser = User, TResource = unknown>(
-  resourceName: string,
-  policy: PolicyDefinition<TUser, TResource>
+  policyOrName: string | PolicyObject<TUser, TResource>,
+  policy?: PolicyDefinition<TUser, TResource>
 ): void {
-  policyRegistry.set(resourceName, policy as PolicyDefinition);
+  if (typeof policyOrName === 'string') {
+    // Legacy: registerPolicy('Post', policyDef)
+    if (policy) {
+      policyRegistry.set(policyOrName, policy as PolicyDefinition);
+    }
+  } else {
+    // New: registerPolicy(PostPolicy) — extracts resourceName and rebuilds definition
+    const policyObj = policyOrName;
+    const definition: PolicyDefinition = {};
+    for (const key of Object.keys(policyObj)) {
+      if (key === 'resourceName') continue;
+      const ref = policyObj[key as keyof typeof policyObj];
+      if (ref && typeof ref === 'object' && 'check' in ref && 'actionName' in ref) {
+        const actionRef = ref as PolicyActionRef;
+        definition[key] = ({ user, resource }) => actionRef.check(user, resource);
+      }
+    }
+    policyRegistry.set(policyObj.resourceName, definition);
+  }
 }
 
 /**
@@ -61,22 +87,50 @@ export function clearPolicies(): void {
  *
  * @example
  * ```typescript
- * const PostPolicy = definePolicy<User, Post>({
+ * const PostPolicy = definePolicy<User, Post>('Post', {
  *   view: () => true,
- *   create: (user) => user.emailVerified,
- *   update: (user, post) => user.id === post.authorId,
- *   delete: (user, post) => user.id === post.authorId || user.role === 'admin',
- *   publish: (user, post) => user.role === 'editor' && user.id === post.authorId,
+ *   create: ({ user }) => user.emailVerified,
+ *   update: ({ user, resource }) => user.id === resource.authorId,
+ *   delete: ({ user, resource }) => user.id === resource.authorId || user.role === 'admin',
+ *   publish: ({ user, resource }) => user.role === 'editor' && user.id === resource.authorId,
  * });
  *
+ * // Each action is a PolicyActionRef:
+ * PostPolicy.update.actionName   // 'update'
+ * PostPolicy.update.resourceName // 'Post'
+ * PostPolicy.update.check(user, post) // boolean | Promise<boolean>
+ *
  * // Register it
- * registerPolicy('Post', PostPolicy);
+ * registerPolicy(PostPolicy);
  * ```
  */
-export function definePolicy<TUser = User, TResource = unknown>(
+export function definePolicy<
+  TUser = User,
+  TResource = unknown,
+  const TResourceName extends string = string,
+>(
+  resourceName: TResourceName,
   actions: PolicyDefinition<TUser, TResource>
-): PolicyDefinition<TUser, TResource> {
-  return actions;
+): PolicyObject<TUser, TResource, TResourceName> {
+  const result: Record<string, unknown> = {
+    resourceName,
+  };
+
+  for (const [actionName, handler] of Object.entries(actions)) {
+    if (handler) {
+      const actionHandler = handler;
+      const ref: PolicyActionRef<TUser, TResource, TResourceName> = {
+        actionName,
+        resourceName,
+        check: (user: TUser, resource?: TResource) => {
+          return actionHandler({ user, resource: resource as TResource });
+        },
+      };
+      result[actionName] = ref;
+    }
+  }
+
+  return result as PolicyObject<TUser, TResource, TResourceName>;
 }
 
 // ============================================================================
@@ -118,7 +172,7 @@ export async function can<TResource = unknown>(
     return false;
   }
 
-  return actionHandler(user, resource as TResource);
+  return actionHandler({ user, resource: resource as TResource });
 }
 
 /**
@@ -151,11 +205,9 @@ export async function authorize<TResource = unknown>(
 ): Promise<void> {
   const allowed = await can(user, action, resourceName, resource);
   if (!allowed) {
-    const error = new Error(
+    throw new ForbiddenError(
       `Unauthorized: cannot ${action} ${resourceName}${resource ? ` (id: ${(resource as { id?: string }).id ?? 'unknown'})` : ''}`
     );
-    (error as Error & { statusCode: number }).statusCode = 403;
-    throw error;
   }
 }
 
@@ -170,10 +222,10 @@ export async function authorize<TResource = unknown>(
  * ```typescript
  * const CommentPolicy = createPolicyBuilder<User, Comment>()
  *   .allow('view', () => true)
- *   .allow('create', (user) => user.emailVerified)
- *   .allow('update', (user, comment) => user.id === comment.authorId)
- *   .allow('delete', (user, comment) =>
- *     user.id === comment.authorId || user.role === 'admin'
+ *   .allow('create', ({ user }) => user.emailVerified)
+ *   .allow('update', ({ user, resource }) => user.id === resource.authorId)
+ *   .allow('delete', ({ user, resource }) =>
+ *     user.id === resource.authorId || user.role === 'admin'
  *   )
  *   .build();
  * ```
@@ -209,7 +261,7 @@ class PolicyBuilder<TUser = User, TResource = unknown> {
    * Assumes resource has a userId or authorId field
    */
   allowOwner(action: string, ownerField: keyof TResource = 'userId' as keyof TResource): this {
-    this.actions[action] = (user, resource) => {
+    this.actions[action] = ({ user, resource }) => {
       const ownerId = resource?.[ownerField];
       return ownerId === (user as User).id;
     };
@@ -224,7 +276,7 @@ class PolicyBuilder<TUser = User, TResource = unknown> {
     roles: string[],
     ownerField: keyof TResource = 'userId' as keyof TResource
   ): this {
-    this.actions[action] = (user, resource) => {
+    this.actions[action] = ({ user, resource }) => {
       const ownerId = resource?.[ownerField];
       const userRole = (user as User & { role?: string }).role;
       const isOwner = ownerId === (user as User).id;
@@ -262,7 +314,13 @@ class PolicyBuilder<TUser = User, TResource = unknown> {
 export function createOwnerOrAdminPolicy<TResource extends { userId?: string; authorId?: string }>(
   ownerField: 'userId' | 'authorId' = 'userId'
 ): PolicyDefinition<User & { role?: string }, TResource> {
-  const isOwnerOrAdmin = (user: User & { role?: string }, resource: TResource): boolean => {
+  const isOwnerOrAdmin = ({
+    user,
+    resource,
+  }: {
+    user: User & { role?: string };
+    resource: TResource;
+  }): boolean => {
     if (user.role === 'admin') {
       return true;
     }
@@ -297,7 +355,7 @@ export function createAdminOnlyPolicy<TResource>(): PolicyDefinition<
   User & { role?: string },
   TResource
 > {
-  const isAdmin = (user: User & { role?: string }): boolean => user.role === 'admin';
+  const isAdmin = ({ user }: { user: User & { role?: string } }): boolean => user.role === 'admin';
 
   return {
     view: isAdmin,

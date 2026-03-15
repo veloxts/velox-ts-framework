@@ -10,18 +10,22 @@
  * @module procedure/types
  */
 
-import type { BaseContext } from '@veloxts/core';
+import type { BaseContext, DomainError } from '@veloxts/core';
 import type { ZodType } from 'zod';
 
 import type { OutputForLevel, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
 import type {
+  AfterHandler,
   CompiledProcedure,
   GuardLike,
   MiddlewareFunction,
   ParentResourceConfig,
+  PolicyActionLike,
   ProcedureHandler,
   RestRouteOverride,
+  TransactionalOptions,
 } from '../types.js';
+import type { PipelineStep } from './pipeline.js';
 
 // ============================================================================
 // Builder State Type
@@ -36,11 +40,13 @@ import type {
  * @template TInput - The validated input type (unknown if no input schema)
  * @template TOutput - The validated output type (unknown if no output schema)
  * @template TContext - The context type (starts as BaseContext, extended by middleware)
+ * @template TErrors - Union of domain error types (defaults to never)
  */
 export interface ProcedureBuilderState<
   TInput = unknown,
   TOutput = unknown,
   TContext extends BaseContext = BaseContext,
+  TErrors = never,
 > {
   /** Marker for state identification */
   readonly _brand: 'ProcedureBuilderState';
@@ -48,6 +54,7 @@ export interface ProcedureBuilderState<
   readonly _input: TInput;
   readonly _output: TOutput;
   readonly _context: TContext;
+  readonly _errors: TErrors;
 }
 
 // ============================================================================
@@ -104,6 +111,7 @@ export type InferOutputSchema<T> = T extends TaggedResourceSchema
  * @template TInput - Current input type
  * @template TOutput - Current output type
  * @template TContext - Current context type
+ * @template TErrors - Union of domain error types (defaults to never)
  *
  * @example
  * ```typescript
@@ -119,6 +127,7 @@ export interface ProcedureBuilder<
   TInput = unknown,
   TOutput = unknown,
   TContext extends BaseContext = BaseContext,
+  TErrors = never,
 > {
   /**
    * Defines the input validation schema for the procedure
@@ -142,7 +151,7 @@ export interface ProcedureBuilder<
    */
   input<TSchema extends ValidSchema>(
     schema: TSchema
-  ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext>;
+  ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext, TErrors>;
 
   /**
    * Defines the output schema for the procedure
@@ -171,7 +180,7 @@ export interface ProcedureBuilder<
    */
   output<TSchema extends ValidOutputSchema>(
     schema: TSchema
-  ): ProcedureBuilder<TInput, InferOutputSchema<TSchema>, TContext>;
+  ): ProcedureBuilder<TInput, InferOutputSchema<TSchema>, TContext, TErrors>;
 
   /**
    * Adds middleware to the procedure chain
@@ -204,7 +213,7 @@ export interface ProcedureBuilder<
    */
   use<TNewContext extends BaseContext = TContext>(
     middleware: MiddlewareFunction<TInput, TContext, TNewContext, TOutput>
-  ): ProcedureBuilder<TInput, TOutput, TNewContext>;
+  ): ProcedureBuilder<TInput, TOutput, TNewContext, TErrors>;
 
   /**
    * Adds an authorization guard to the procedure
@@ -240,7 +249,7 @@ export interface ProcedureBuilder<
    */
   guard<TGuardContext extends Partial<TContext>>(
     guard: GuardLike<TGuardContext>
-  ): ProcedureBuilder<TInput, TOutput, TContext>;
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Adds multiple authorization guards at once
@@ -270,7 +279,72 @@ export interface ProcedureBuilder<
    */
   guards<TGuards extends GuardLike<Partial<TContext>>[]>(
     ...guards: TGuards
-  ): ProcedureBuilder<TInput, TOutput, TContext>;
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
+   * Adds a policy action check to the procedure
+   *
+   * Policy actions are checked during execution after guards but before
+   * the pipeline and handler. The policy looks up the resource on the
+   * context by lowercase resource name (e.g., `PostPolicy` → `ctx.post`).
+   *
+   * If the policy check fails, a ForbiddenError is thrown.
+   *
+   * **Compile-time safety:** When the resource name is a string literal
+   * (e.g., from `definePolicy('Post', ...)`), TypeScript enforces that the
+   * context contains the resource key. Forgetting `.use(loadPost)` before
+   * `.policy(PostPolicy.update)` produces a type error.
+   *
+   * @param action - Policy action reference (from definePolicy)
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * import { PostPolicy } from './policies';
+   *
+   * procedure()
+   *   .guard(authenticated)
+   *   .use(loadPost) // adds { post: Post } to context
+   *   .policy(PostPolicy.update) // ✓ context has 'post'
+   *   .mutation(async ({ input, ctx }) => { ... });
+   * ```
+   */
+  policy<TResourceName extends string>(
+    action: string extends TResourceName
+      ? PolicyActionLike<unknown, unknown, TResourceName>
+      : Uncapitalize<TResourceName> extends keyof TContext
+        ? PolicyActionLike<unknown, unknown, TResourceName>
+        : PolicyActionLike<unknown, unknown, TResourceName> & {
+            _contextMissing: `Add .use() middleware to provide '${Uncapitalize<TResourceName>}' in context before .policy()`;
+          }
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
+   * Declares domain error classes that this procedure may throw
+   *
+   * Stores error class references on the compiled procedure for:
+   * - OpenAPI error response generation (per-endpoint error schemas)
+   * - Client-side error type narrowing (`InferProcedureErrors<T>`)
+   *
+   * Can be called multiple times — error classes accumulate across calls.
+   *
+   * @template TDomainErrors - Union of domain error types declared
+   * @param errorClasses - Domain error constructors this procedure may throw
+   * @returns New builder with updated TErrors union
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .input(z.object({ sku: z.string(), qty: z.number() }))
+   *   .throws(InsufficientStock, PaymentFailed)
+   *   .mutation(async ({ input }) => {
+   *     // handler may throw InsufficientStock or PaymentFailed
+   *   })
+   * ```
+   */
+  throws<TDomainErrors extends DomainError<Record<string, unknown>>>(
+    ...errorClasses: Array<new (data: Record<string, unknown>) => TDomainErrors>
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors | TDomainErrors>;
 
   /**
    * Configures REST route override
@@ -287,7 +361,7 @@ export interface ProcedureBuilder<
    *   .rest({ method: 'POST', path: '/users/:id/activate' })
    * ```
    */
-  rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext>;
+  rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Configures the procedure as a webhook endpoint
@@ -308,7 +382,7 @@ export interface ProcedureBuilder<
    *   })
    * ```
    */
-  webhook(path: string): ProcedureBuilder<TInput, TOutput, TContext>;
+  webhook(path: string): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Marks the procedure as deprecated
@@ -332,7 +406,7 @@ export interface ProcedureBuilder<
    *   .query(handler);
    * ```
    */
-  deprecated(message?: string): ProcedureBuilder<TInput, TOutput, TContext>;
+  deprecated(message?: string): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Declares a parent resource for nested routes (single level)
@@ -362,7 +436,7 @@ export interface ProcedureBuilder<
    *   .query(async ({ input }) => { ... });
    * ```
    */
-  parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext>;
+  parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Declares multiple parent resources for deeply nested routes
@@ -393,7 +467,100 @@ export interface ProcedureBuilder<
    */
   parents(
     config: Array<{ resource: string; param?: string }>
-  ): ProcedureBuilder<TInput, TOutput, TContext>;
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
+   * Declares a domain event to emit after successful handler execution
+   *
+   * Events fire AFTER the handler returns its result (and AFTER transaction
+   * commit when `.transactional()` is used). Multiple `.emits()` calls
+   * accumulate — all declared events are emitted in order.
+   *
+   * Emission errors are caught and logged; they never fail the request.
+   *
+   * @template TEventData - The event's data payload type
+   * @param eventClass - Domain event class constructor
+   * @param mapper - Optional function to transform the handler result into event data.
+   *   When omitted, the handler result is used directly as event data.
+   * @returns Same builder (no type changes)
+   *
+   * @example With mapper (recommended)
+   * ```typescript
+   * procedure()
+   *   .emits(OrderCreated, (result) => ({ orderId: result.id, total: result.total }))
+   *   .mutation(handler)
+   * ```
+   *
+   * @example Without mapper (result type must match event data type)
+   * ```typescript
+   * procedure()
+   *   .emits(OrderCreated)
+   *   .mutation(handler)
+   * ```
+   */
+  emits<TEventData extends Record<string, unknown>>(
+    eventClass: {
+      new (data: TEventData, options?: { correlationId?: string }): unknown;
+      readonly name: string;
+    },
+    mapper?: (result: TOutput) => TEventData
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
+   * Wraps the handler in a database transaction via `ctx.db.$transaction()`
+   *
+   * When set, `executeProcedure` replaces `ctx.db` with the transactional
+   * client inside the handler. On throw the transaction auto-rollbacks;
+   * on return it auto-commits.
+   *
+   * Gracefully degrades: if `ctx.db` or `ctx.db.$transaction` is missing,
+   * the handler runs without transaction wrapping.
+   *
+   * @param options - Optional isolation level and timeout
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .input(CreateOrderSchema)
+   *   .transactional({ isolationLevel: 'Serializable', timeout: 10000 })
+   *   .mutation(async ({ input, ctx }) => {
+   *     // ctx.db is the transactional client — all queries share the same tx
+   *     const order = await ctx.db.order.create({ data: input });
+   *     await ctx.db.inventory.update({ ... });
+   *     return order; // auto-commit on success
+   *   })
+   * ```
+   */
+  transactional(
+    options?: TransactionalOptions
+  ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
+   * Adds pipeline steps that execute BEFORE the handler
+   *
+   * Steps run in declaration order. Each step's output becomes the next
+   * step's input, and the final step's output is passed to the handler
+   * as its `input`. If a step fails, revert actions for previously
+   * completed steps run in reverse order (compensation pattern).
+   *
+   * Can be called multiple times — steps accumulate across calls.
+   *
+   * @param steps - Pipeline steps to execute before the handler
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .input(CreateOrderSchema)
+   *   .through(validateInventory, chargePayment.onRevert(refund))
+   *   .mutation(async ({ input, ctx }) => {
+   *     // input has been transformed by pipeline steps
+   *     return ctx.db.order.create({ data: input });
+   *   })
+   * ```
+   */
+  through(...steps: PipelineStep[]): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Finalizes the procedure as a query (read-only operation)
@@ -402,7 +569,7 @@ export interface ProcedureBuilder<
    * The handler receives the validated input and context.
    *
    * @param handler - The query handler function
-   * @returns Compiled procedure ready for registration
+   * @returns PostHandlerBuilder with all CompiledProcedure fields plus .useAfter()
    *
    * @example
    * ```typescript
@@ -417,7 +584,7 @@ export interface ProcedureBuilder<
     handler:
       | ProcedureHandler<TInput, TOutput, TContext>
       | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-  ): CompiledProcedure<TInput, TOutput, TContext, 'query'>;
+  ): PostHandlerBuilder<TInput, TOutput, TContext, 'query', TErrors>;
 
   /**
    * Finalizes the procedure as a mutation (write operation)
@@ -429,7 +596,7 @@ export interface ProcedureBuilder<
    * accepts a handler map keyed by `[Schema.level.key]` instead of a single handler.
    *
    * @param handler - The mutation handler function or handler map
-   * @returns Compiled procedure ready for registration
+   * @returns PostHandlerBuilder with all CompiledProcedure fields plus .useAfter()
    *
    * @example
    * ```typescript
@@ -444,7 +611,65 @@ export interface ProcedureBuilder<
     handler:
       | ProcedureHandler<TInput, TOutput, TContext>
       | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-  ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'>;
+  ): PostHandlerBuilder<TInput, TOutput, TContext, 'mutation', TErrors>;
+}
+
+// ============================================================================
+// Post-Handler Builder Type
+// ============================================================================
+
+/**
+ * Returned by `.query()` and `.mutation()` — extends CompiledProcedure with `.useAfter()`
+ *
+ * PostHandlerBuilder has all CompiledProcedure fields (so it's assignable to
+ * CompiledProcedure and passes `isCompiledProcedure` checks) plus a `.useAfter()`
+ * method for registering post-handler hooks.
+ *
+ * `.useAfter()` returns another PostHandlerBuilder so hooks can be chained.
+ *
+ * @template TInput - The validated input type
+ * @template TOutput - The handler output type
+ * @template TContext - The context type
+ * @template TType - The procedure type literal ('query' or 'mutation')
+ * @template TErrors - Union of domain error types (defaults to never)
+ *
+ * @example
+ * ```typescript
+ * procedure()
+ *   .input(z.object({ id: z.string() }))
+ *   .mutation(async ({ input, ctx }) => {
+ *     return ctx.db.user.delete({ where: { id: input.id } });
+ *   })
+ *   .useAfter(({ input, result, ctx }) => {
+ *     console.log(`Deleted user ${input.id}`);
+ *   })
+ *   .useAfter(({ result }) => {
+ *     invalidateCache(result.id);
+ *   })
+ * ```
+ */
+export interface PostHandlerBuilder<
+  TInput = unknown,
+  TOutput = unknown,
+  TContext extends BaseContext = BaseContext,
+  TType extends 'query' | 'mutation' = 'query' | 'mutation',
+  TErrors = never,
+> extends CompiledProcedure<TInput, TOutput, TContext, TType, TErrors> {
+  /**
+   * Registers a post-handler hook that runs after successful handler execution
+   *
+   * Hooks run after events are emitted (if any) and auto-projection is applied.
+   * Errors in hooks are caught and logged — they never fail the request.
+   * The return value is ignored: hooks cannot modify the result.
+   *
+   * Multiple `.useAfter()` calls chain in registration order.
+   *
+   * @param handler - Post-handler hook function
+   * @returns New PostHandlerBuilder with the hook appended
+   */
+  useAfter(
+    handler: AfterHandler<TInput, TOutput, TContext>
+  ): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>;
 }
 
 // ============================================================================
@@ -484,6 +709,24 @@ export interface BuilderRuntimeState {
   isWebhook?: boolean;
   /** Whether .output() received an untagged resource schema (Level 3 branching mode) */
   branchingMode?: boolean;
+  /** Error classes declared via .throws() */
+  errorClasses?: Array<new (data: Record<string, unknown>) => unknown>;
+  /** Whether the handler should be wrapped in a database transaction */
+  transactional?: boolean;
+  /** Options for the database transaction (isolation level, timeout) */
+  transactionalOptions?: TransactionalOptions;
+  /** Domain events to emit after successful handler execution */
+  emittedEvents?: Array<{
+    eventClass: {
+      new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown;
+      readonly name: string;
+    };
+    mapper?: (result: unknown) => Record<string, unknown>;
+  }>;
+  /** Pipeline steps declared via .through() */
+  pipelineSteps?: PipelineStep[];
+  /** Policy action reference for declarative authorization */
+  policyAction?: PolicyActionLike;
 }
 
 // ============================================================================
@@ -504,7 +747,7 @@ export interface BuilderRuntimeState {
  * the concrete types at definition time. This `any` only allows the assignment.
  */
 // biome-ignore lint/suspicious/noExplicitAny: Required for variance compatibility in Record type
-export type ProcedureDefinitions = Record<string, CompiledProcedure<any, any, any, any>>;
+export type ProcedureDefinitions = Record<string, CompiledProcedure<any, any, any, any, any>>;
 
 /**
  * Type helper to preserve procedure types in a collection

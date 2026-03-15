@@ -305,27 +305,48 @@ function DeleteUserButton({ userId }: { userId: string }) {
 
 ## Error Handling
 
+Catch domain errors from the server with typed `code` and `data`:
+
 ```typescript
 import { isVeloxClientError } from '@veloxts/client';
 
 try {
-  await api.users.getUser({ id: 'invalid' });
+  const order = await client.orders.createOrder(data);
 } catch (error) {
   if (isVeloxClientError(error)) {
-    switch (error.code) {
-      case 'NOT_FOUND':
-        console.log('User not found');
-        break;
-      case 'VALIDATION_ERROR':
-        console.log('Invalid input:', error.details);
-        break;
-      case 'UNAUTHORIZED':
-        // Redirect to login
-        break;
-    }
+    console.log(error.statusCode); // 422
+    console.log(error.code);       // 'INSUFFICIENT_STOCK'
+    console.log(error.data);       // { sku: 'ABC-123', available: 3 }
   }
 }
 ```
+
+### Type-Safe Error Narrowing
+
+When the server declares errors with `.throws()`, extract the error union for compile-time narrowing:
+
+```typescript
+import type { InferProcedureErrors } from '@veloxts/client';
+
+type OrderErrors = InferProcedureErrors<typeof client.orders.createOrder>;
+// → { code: 'INSUFFICIENT_STOCK'; data: { sku: string; ... } }
+//   | { code: 'PAYMENT_FAILED'; data: { reason: string; ... } }
+```
+
+```typescript
+if (isVeloxClientError(error)) {
+  switch (error.code) {
+    case 'INSUFFICIENT_STOCK':
+      showStockWarning(error.data.available);
+      break;
+    case 'PAYMENT_FAILED':
+      showPaymentError(error.data.reason);
+      break;
+  }
+}
+```
+
+See [Business Logic](/docs/endpoints/business-logic/#domain-errors) for defining domain errors on the server.
 
 ## Type Inference
 

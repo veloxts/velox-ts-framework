@@ -8,7 +8,13 @@
  * @module procedure/builder
  */
 
-import { type BaseContext, ConfigurationError, logWarning } from '@veloxts/core';
+import {
+  type BaseContext,
+  ConfigurationError,
+  createLogger,
+  ForbiddenError,
+  logWarning,
+} from '@veloxts/core';
 
 import { GuardError } from '../errors.js';
 import { createMiddlewareExecutor, executeMiddlewareChain } from '../middleware/chain.js';
@@ -20,13 +26,16 @@ import {
   type ResourceSchema,
 } from '../resource/index.js';
 import type {
+  AfterHandler,
   CompiledProcedure,
   GuardLike,
   MiddlewareFunction,
   ParentResourceConfig,
+  PolicyActionLike,
   ProcedureCollection,
   ProcedureHandler,
   RestRouteOverride,
+  TransactionalOptions,
 } from '../types.js';
 import { deriveParentParamName } from '../utils/pluralization.js';
 import {
@@ -35,16 +44,21 @@ import {
   normalizeWarningOption,
   type WarningOption,
 } from '../warnings.js';
+import type { PipelineStep } from './pipeline.js';
+import { executeExternalSteps, executePipeline, splitPipelineSteps } from './pipeline-executor.js';
 import type {
   BuilderRuntimeState,
   InferOutputSchema,
   InferProcedures,
   InferSchemaOutput,
+  PostHandlerBuilder,
   ProcedureBuilder,
   ProcedureDefinitions,
   ValidOutputSchema,
   ValidSchema,
 } from './types.js';
+
+const log = createLogger('router');
 
 // ============================================================================
 // Builder Factory
@@ -83,9 +97,10 @@ import type {
 export function procedure<TContext extends BaseContext = BaseContext>(): ProcedureBuilder<
   unknown,
   unknown,
-  TContext
+  TContext,
+  never
 > {
-  return createBuilder<unknown, unknown, TContext>({
+  return createBuilder<unknown, unknown, TContext, never>({
     inputSchema: undefined,
     outputSchema: undefined,
     resourceSchema: undefined,
@@ -111,19 +126,19 @@ export function procedure<TContext extends BaseContext = BaseContext>(): Procedu
  *
  * @internal
  */
-function createBuilder<TInput, TOutput, TContext extends BaseContext>(
+function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = never>(
   state: BuilderRuntimeState
-): ProcedureBuilder<TInput, TOutput, TContext> {
+): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
   return {
     /**
      * Sets the input validation schema
      */
     input<TSchema extends ValidSchema>(
       schema: TSchema
-    ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext> {
+    ): ProcedureBuilder<InferSchemaOutput<TSchema>, TOutput, TContext, TErrors> {
       // Return new builder with updated input schema
       // The type parameter extracts the schema's output type
-      return createBuilder<InferSchemaOutput<TSchema>, TOutput, TContext>({
+      return createBuilder<InferSchemaOutput<TSchema>, TOutput, TContext, TErrors>({
         ...state,
         inputSchema: schema,
       });
@@ -139,10 +154,10 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
      */
     output<TSchema extends ValidOutputSchema>(
       schema: TSchema
-    ): ProcedureBuilder<TInput, InferOutputSchema<TSchema>, TContext> {
+    ): ProcedureBuilder<TInput, InferOutputSchema<TSchema>, TContext, TErrors> {
       // Level 2: tagged resource view — set up auto-projection
       if (isTaggedResourceSchema(schema)) {
-        return createBuilder<TInput, InferOutputSchema<TSchema>, TContext>({
+        return createBuilder<TInput, InferOutputSchema<TSchema>, TContext, TErrors>({
           ...state,
           resourceSchema: schema,
           resourceLevel: schema._level,
@@ -152,7 +167,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       }
       // Level 3: untagged resource schema — enables branching mode
       if (isResourceSchema(schema)) {
-        return createBuilder<TInput, InferOutputSchema<TSchema>, TContext>({
+        return createBuilder<TInput, InferOutputSchema<TSchema>, TContext, TErrors>({
           ...state,
           resourceSchema: schema as unknown as ResourceSchema,
           resourceLevel: undefined,
@@ -161,7 +176,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
         });
       }
       // Level 1: plain Zod schema — validate output
-      return createBuilder<TInput, InferOutputSchema<TSchema>, TContext>({
+      return createBuilder<TInput, InferOutputSchema<TSchema>, TContext, TErrors>({
         ...state,
         outputSchema: schema as ValidSchema,
         resourceSchema: undefined,
@@ -175,7 +190,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
      */
     use<TNewContext extends BaseContext = TContext>(
       middleware: MiddlewareFunction<TInput, TContext, TNewContext, TOutput>
-    ): ProcedureBuilder<TInput, TOutput, TNewContext> {
+    ): ProcedureBuilder<TInput, TOutput, TNewContext, TErrors> {
       // Add middleware to the chain
       // Cast is safe because we're building up the chain incrementally
       const typedMiddleware = middleware as MiddlewareFunction<
@@ -185,7 +200,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
         unknown
       >;
 
-      return createBuilder<TInput, TOutput, TNewContext>({
+      return createBuilder<TInput, TOutput, TNewContext, TErrors>({
         ...state,
         middlewares: [...state.middlewares, typedMiddleware],
       });
@@ -199,8 +214,8 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
      */
     guard<TGuardContext extends Partial<TContext>>(
       guardDef: GuardLike<TGuardContext>
-    ): ProcedureBuilder<TInput, TOutput, TContext> {
-      return createBuilder<TInput, TOutput, TContext>({
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         guards: [...state.guards, guardDef as GuardLike<unknown>],
       });
@@ -214,18 +229,42 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
      */
     guards<TGuards extends GuardLike<Partial<TContext>>[]>(
       ...guardDefs: TGuards
-    ): ProcedureBuilder<TInput, TOutput, TContext> {
-      return createBuilder<TInput, TOutput, TContext>({
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         guards: [...state.guards, ...(guardDefs as GuardLike<unknown>[])],
       });
     },
 
     /**
+     * Adds a policy action check to the procedure
+     */
+    policy<TResourceName extends string>(
+      action: PolicyActionLike<unknown, unknown, TResourceName>
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        policyAction: action,
+      });
+    },
+
+    /**
+     * Declares domain error classes this procedure may throw
+     */
+    throws(
+      ...errorClasses: Array<new (data: Record<string, unknown>) => unknown>
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        errorClasses: [...(state.errorClasses ?? []), ...errorClasses],
+      });
+    },
+
+    /**
      * Sets REST route override
      */
-    rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext> {
-      return createBuilder<TInput, TOutput, TContext>({
+    rest(config: RestRouteOverride): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         restOverride: config,
       });
@@ -234,8 +273,8 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     /**
      * Configures the procedure as a webhook endpoint
      */
-    webhook(path: string): ProcedureBuilder<TInput, TOutput, TContext> {
-      return createBuilder<TInput, TOutput, TContext>({
+    webhook(path: string): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         restOverride: { method: 'POST', path },
         isWebhook: true,
@@ -245,8 +284,8 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     /**
      * Marks the procedure as deprecated
      */
-    deprecated(message?: string): ProcedureBuilder<TInput, TOutput, TContext> {
-      return createBuilder<TInput, TOutput, TContext>({
+    deprecated(message?: string): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         deprecated: true,
         deprecationMessage: message,
@@ -256,13 +295,13 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
     /**
      * Declares a parent resource for nested routes (single level)
      */
-    parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext> {
+    parent(resource: string, param?: string): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
       const parentConfig: ParentResourceConfig = {
         resource,
         param: param ?? deriveParentParamName(resource),
       };
 
-      return createBuilder<TInput, TOutput, TContext>({
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         parentResource: parentConfig,
       });
@@ -273,15 +312,63 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
      */
     parents(
       config: Array<{ resource: string; param?: string }>
-    ): ProcedureBuilder<TInput, TOutput, TContext> {
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
       const parentConfigs: ParentResourceConfig[] = config.map((item) => ({
         resource: item.resource,
         param: item.param ?? deriveParentParamName(item.resource),
       }));
 
-      return createBuilder<TInput, TOutput, TContext>({
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         parentResources: parentConfigs,
+      });
+    },
+
+    /**
+     * Declares a domain event to emit after successful handler execution
+     */
+    emits<TEventData extends Record<string, unknown>>(
+      eventClass: {
+        new (data: TEventData, options?: { correlationId?: string }): unknown;
+        readonly name: string;
+      },
+      mapper?: (result: TOutput) => TEventData
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      // Cast is safe: the typed TEventData and TOutput are erased at runtime.
+      // BuilderRuntimeState stores the widened types for uniform handling.
+      const entry = { eventClass, mapper } as {
+        eventClass: {
+          new (data: Record<string, unknown>, options?: { correlationId?: string }): unknown;
+          readonly name: string;
+        };
+        mapper?: (result: unknown) => Record<string, unknown>;
+      };
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        emittedEvents: [...(state.emittedEvents ?? []), entry],
+      });
+    },
+
+    /**
+     * Wraps the handler in a database transaction
+     */
+    transactional(
+      options?: TransactionalOptions
+    ): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        transactional: true,
+        transactionalOptions: options,
+      });
+    },
+
+    /**
+     * Adds pipeline steps that execute before the handler
+     */
+    through(...steps: PipelineStep[]): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        pipelineSteps: [...(state.pipelineSteps ?? []), ...steps],
       });
     },
 
@@ -294,7 +381,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       handlerOrMap:
         | ProcedureHandler<TInput, TOutput, TContext>
         | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-    ): CompiledProcedure<TInput, TOutput, TContext, 'query'> {
+    ): PostHandlerBuilder<TInput, TOutput, TContext, 'query', TErrors> {
       return compileProcedureOrBranching('query', handlerOrMap, state);
     },
 
@@ -307,7 +394,7 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext>(
       handlerOrMap:
         | ProcedureHandler<TInput, TOutput, TContext>
         | Record<string, ProcedureHandler<TInput, TOutput, TContext>>
-    ): CompiledProcedure<TInput, TOutput, TContext, 'mutation'> {
+    ): PostHandlerBuilder<TInput, TOutput, TContext, 'mutation', TErrors> {
       return compileProcedureOrBranching('mutation', handlerOrMap, state);
     },
   };
@@ -326,13 +413,14 @@ function compileProcedureOrBranching<
   TOutput,
   TContext extends BaseContext,
   TType extends 'query' | 'mutation',
+  TErrors = never,
 >(
   type: TType,
   handlerOrMap:
     | ProcedureHandler<TInput, TOutput, TContext>
     | Record<string, ProcedureHandler<TInput, TOutput, TContext>>,
   state: BuilderRuntimeState
-): CompiledProcedure<TInput, TOutput, TContext, TType> {
+): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
   if (state.branchingMode) {
     // Level 3: handler map required
     if (typeof handlerOrMap === 'function') {
@@ -358,7 +446,12 @@ function compileProcedureOrBranching<
       );
     };
 
-    return compileProcedureWithHandlerMap(type, dispatchHandler, handlerOrMap, state);
+    return compileProcedureWithHandlerMap<TInput, TOutput, TContext, TType, TErrors>(
+      type,
+      dispatchHandler,
+      handlerOrMap,
+      state
+    );
   }
 
   // Not in branching mode: handler map is not allowed
@@ -368,7 +461,7 @@ function compileProcedureOrBranching<
     );
   }
 
-  return compileProcedure(type, handlerOrMap, state);
+  return compileProcedure<TInput, TOutput, TContext, TType, TErrors>(type, handlerOrMap, state);
 }
 
 /**
@@ -385,11 +478,12 @@ function compileProcedure<
   TOutput,
   TContext extends BaseContext,
   TType extends 'query' | 'mutation',
+  TErrors = never,
 >(
   type: TType,
   handler: ProcedureHandler<TInput, TOutput, TContext>,
   state: BuilderRuntimeState
-): CompiledProcedure<TInput, TOutput, TContext, TType> {
+): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
   const typedMiddlewares = state.middlewares as ReadonlyArray<
     MiddlewareFunction<TInput, TContext, TContext, TOutput>
   >;
@@ -399,8 +493,8 @@ function compileProcedure<
   const precompiledExecutor =
     typedMiddlewares.length > 0 ? createMiddlewareExecutor(typedMiddlewares, handler) : undefined;
 
-  // Create the final procedure object
-  return {
+  // Create the final procedure object with .useAfter() support
+  return createPostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>({
     type,
     handler,
     inputSchema: state.inputSchema as { parse: (input: unknown) => TInput } | undefined,
@@ -419,7 +513,18 @@ function compileProcedure<
     _resourceSchema: state.resourceSchema,
     // Store explicit resource level from tagged schema (e.g., UserSchema.authenticated)
     _resourceLevel: state.resourceLevel,
-  };
+    // Store error classes declared via .throws()
+    errorClasses: state.errorClasses,
+    // Store transactional configuration
+    transactional: state.transactional,
+    transactionalOptions: state.transactionalOptions,
+    // Store emitted events declared via .emits()
+    emittedEvents: state.emittedEvents,
+    // Store pipeline steps declared via .through()
+    pipelineSteps: state.pipelineSteps,
+    // Store policy action declared via .policy()
+    policyAction: state.policyAction,
+  });
 }
 
 /**
@@ -435,17 +540,18 @@ function compileProcedureWithHandlerMap<
   TOutput,
   TContext extends BaseContext,
   TType extends 'query' | 'mutation',
+  TErrors = never,
 >(
   type: TType,
   dispatchHandler: ProcedureHandler<TInput, TOutput, TContext>,
   handlerMap: Record<string, ProcedureHandler<TInput, TOutput, TContext>>,
   state: BuilderRuntimeState
-): CompiledProcedure<TInput, TOutput, TContext, TType> {
+): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
   const typedMiddlewares = state.middlewares as ReadonlyArray<
     MiddlewareFunction<TInput, TContext, TContext, TOutput>
   >;
 
-  return {
+  return createPostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>({
     type,
     handler: dispatchHandler,
     inputSchema: state.inputSchema as { parse: (input: unknown) => TInput } | undefined,
@@ -462,6 +568,57 @@ function compileProcedureWithHandlerMap<
     _resourceSchema: state.resourceSchema,
     _resourceLevel: undefined, // No fixed level — determined at runtime by branch selection
     _handlerMap: handlerMap,
+    // Store error classes declared via .throws()
+    errorClasses: state.errorClasses,
+    // Store transactional configuration
+    transactional: state.transactional,
+    transactionalOptions: state.transactionalOptions,
+    // Store pipeline steps declared via .through()
+    pipelineSteps: state.pipelineSteps,
+    // Store policy action declared via .policy()
+    policyAction: state.policyAction,
+  });
+}
+
+// ============================================================================
+// PostHandlerBuilder Factory
+// ============================================================================
+
+/**
+ * Creates a PostHandlerBuilder from a CompiledProcedure's fields
+ *
+ * Wraps a compiled procedure object with a `.useAfter()` method that
+ * appends after-handler hooks. Each call returns a new PostHandlerBuilder
+ * with the hook added, preserving immutability.
+ *
+ * The resulting object passes `isCompiledProcedure` because it retains
+ * all required fields (type, handler, middlewares, guards).
+ *
+ * @internal
+ */
+function createPostHandlerBuilder<
+  TInput,
+  TOutput,
+  TContext extends BaseContext,
+  TType extends 'query' | 'mutation',
+  TErrors = never,
+>(
+  compiled: CompiledProcedure<TInput, TOutput, TContext, TType, TErrors>
+): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
+  return {
+    ...compiled,
+    useAfter(
+      handler: AfterHandler<TInput, TOutput, TContext>
+    ): PostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors> {
+      const afterHandlers: ReadonlyArray<AfterHandler> = [
+        ...(compiled.afterHandlers ?? []),
+        handler as AfterHandler,
+      ];
+      return createPostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>({
+        ...compiled,
+        afterHandlers,
+      });
+    },
   };
 }
 
@@ -715,31 +872,127 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     ? procedure.inputSchema.parse(rawInput)
     : (rawInput as TInput);
 
+  // Step 2.3: Policy check — if .policy() was used
+  if (procedure.policyAction) {
+    const ctxRecord = ctxWithLevel as Record<string, unknown>;
+    const user = ctxRecord.user;
+    if (user == null) {
+      throw new ForbiddenError('Policy check failed: no authenticated user');
+    }
+    const resourceNameRaw = procedure.policyAction.resourceName;
+    const resourceName = resourceNameRaw.charAt(0).toLowerCase() + resourceNameRaw.slice(1);
+    const policyResource = ctxRecord[resourceName];
+    const allowed = await procedure.policyAction.check(user, policyResource);
+    if (!allowed) {
+      throw new ForbiddenError(
+        `Policy check failed: cannot ${procedure.policyAction.actionName} ${procedure.policyAction.resourceName}`
+      );
+    }
+  }
+
   // Step 2.5: Level 3 branch selection — if handler map is present
   if (procedure._handlerMap) {
     return executeBranchedProcedure(procedure, input, ctxWithLevel as TContext);
   }
 
-  // Step 3: Execute handler (with or without middleware)
-  let result: TOutput;
+  // Step 2.7: Execute pipeline steps if .through() was used
+  // Pipeline transforms input before the handler. Runs inside transaction when applicable.
+  const pipelineSteps = procedure.pipelineSteps;
+  const hasPipeline = pipelineSteps !== undefined && pipelineSteps.length > 0;
 
-  if (procedure._precompiledExecutor) {
-    // PERFORMANCE: Use pre-compiled middleware chain executor
-    result = await procedure._precompiledExecutor(input, ctxWithLevel as TContext);
-  } else if (procedure.middlewares.length === 0) {
-    // No middleware - execute handler directly
-    result = await procedure.handler({ input, ctx: ctxWithLevel as TContext });
-  } else {
+  // Step 3: Execute handler (with or without middleware)
+  // Helper that runs a given set of pipeline steps + middleware chain + handler
+  const executeWithSteps = async (
+    steps: ReadonlyArray<PipelineStep> | undefined,
+    execCtx: TContext
+  ): Promise<TOutput> => {
+    const hasSteps = steps !== undefined && steps.length > 0;
+
+    // Run pipeline to transform input before handler
+    const handlerInput = hasSteps
+      ? ((await executePipeline(steps, input, execCtx)) as TInput)
+      : input;
+    enrichedInput = handlerInput;
+
+    if (procedure._precompiledExecutor) {
+      // PERFORMANCE: Use pre-compiled middleware chain executor
+      return procedure._precompiledExecutor(handlerInput, execCtx);
+    }
+    if (procedure.middlewares.length === 0) {
+      // No middleware - execute handler directly
+      return procedure.handler({ input: handlerInput, ctx: execCtx });
+    }
     // Fallback: Build middleware chain dynamically (should not normally happen)
-    result = await executeMiddlewareChain(
+    return executeMiddlewareChain(
       procedure.middlewares as MiddlewareFunction<TInput, TContext, TContext, TOutput>[],
-      input,
-      ctxWithLevel as TContext,
-      async () => procedure.handler({ input, ctx: ctxWithLevel as TContext })
+      handlerInput,
+      execCtx,
+      async () => procedure.handler({ input: handlerInput, ctx: execCtx })
+    );
+  };
+
+  let result: TOutput;
+  let enrichedInput: TInput = input;
+
+  // Wrap in transaction if .transactional() was called and ctx.db.$transaction exists
+  const ctxRecord = ctxWithLevel as Record<string, unknown>;
+  const db = ctxRecord.db as Record<string, unknown> | undefined;
+  const isTransactional = procedure.transactional && db && typeof db.$transaction === 'function';
+
+  if (isTransactional) {
+    const $transaction = db.$transaction as (
+      callback: (tx: unknown) => Promise<TOutput>,
+      options?: unknown
+    ) => Promise<TOutput>;
+
+    if (hasPipeline) {
+      // Two-phase model: split steps into DB (inside tx) and external (after commit)
+      const { dbSteps, externalSteps } = splitPipelineSteps(pipelineSteps);
+
+      // Phase A: Run DB steps + handler inside transaction
+      result = await $transaction(async (tx) => {
+        const txCtx = { ...ctxWithLevel, db: tx } as TContext;
+        return executeWithSteps(dbSteps.length > 0 ? dbSteps : undefined, txCtx);
+      }, procedure.transactionalOptions);
+
+      // Phase B: Run external steps after commit (outside transaction)
+      if (externalSteps.length > 0) {
+        await executeExternalSteps(externalSteps, input, ctxWithLevel as TContext);
+      }
+    } else {
+      // Transactional, no pipeline — wrap handler in $transaction (current behavior)
+      result = await $transaction(async (tx) => {
+        const txCtx = { ...ctxWithLevel, db: tx } as TContext;
+        return executeWithSteps(undefined, txCtx);
+      }, procedure.transactionalOptions);
+    }
+  } else {
+    // Not transactional — run all steps in declaration order (regardless of external flag)
+    result = await executeWithSteps(
+      hasPipeline ? pipelineSteps : undefined,
+      ctxWithLevel as TContext
     );
   }
 
-  // Step 4: Auto-project if resource schema is set
+  // Step 4: Emit domain events if .emits() was used
+  if (procedure.emittedEvents) {
+    const ctxEvents = (ctxRecord as { events?: { emit?: (event: unknown) => Promise<void> } })
+      .events;
+    if (ctxEvents?.emit) {
+      for (const { eventClass, mapper } of procedure.emittedEvents) {
+        try {
+          const eventData = mapper
+            ? mapper(result as Record<string, unknown>)
+            : (result as Record<string, unknown>);
+          await ctxEvents.emit(new eventClass(eventData));
+        } catch (error) {
+          log.error('Event emission error:', error);
+        }
+      }
+    }
+  }
+
+  // Step 5: Auto-project if resource schema is set
   if (procedure._resourceSchema) {
     const schema = procedure._resourceSchema as ResourceSchema;
     // Prefer explicit level from tagged schema over guard-derived level
@@ -756,11 +1009,23 @@ export async function executeProcedure<TInput, TOutput, TContext extends BaseCon
     }
   }
 
-  // Step 5: Validate output if schema provided
+  // Step 6: Validate output if schema provided
   if (procedure.outputSchema) {
-    return procedure.outputSchema.parse(result);
+    result = procedure.outputSchema.parse(result);
   }
 
+  // Step 7: Execute after-handler hooks if .useAfter() was used
+  if (procedure.afterHandlers?.length) {
+    for (const afterHandler of procedure.afterHandlers) {
+      try {
+        await afterHandler({ input: enrichedInput, result, ctx: ctxWithLevel });
+      } catch (error) {
+        log.error('useAfter hook error:', error);
+      }
+    }
+  }
+
+  // Return the ORIGINAL result (hooks cannot modify it)
   return result;
 }
 

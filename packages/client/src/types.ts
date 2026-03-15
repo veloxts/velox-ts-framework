@@ -33,6 +33,7 @@ export interface ClientProcedure<
   TInput = unknown,
   TOutput = unknown,
   TType extends ProcedureType = ProcedureType,
+  TErrors = never,
 > {
   /** Whether this is a query or mutation */
   readonly type: TType;
@@ -51,6 +52,8 @@ export interface ClientProcedure<
   readonly restOverride?: { method?: string; path?: string };
   /** Parent resource configuration for nested routes */
   readonly parentResource?: { resource: string; param: string };
+  /** Phantom type holder for error types — not used at runtime */
+  readonly _errors?: TErrors;
 }
 
 /**
@@ -59,7 +62,7 @@ export interface ClientProcedure<
  * NOTE: Uses `any` for variance compatibility with @veloxts/router's ProcedureRecord
  */
 // biome-ignore lint/suspicious/noExplicitAny: Required for variance compatibility
-export type ProcedureRecord = Record<string, ClientProcedure<any, any, any>>;
+export type ProcedureRecord = Record<string, ClientProcedure<any, any, any, any>>;
 
 /**
  * Procedure collection with namespace
@@ -190,16 +193,42 @@ export type IsTRPCNamespace<T> =
 // ============================================================================
 
 /**
+ * Extracts the error types from a procedure's `_errors` phantom field
+ *
+ * Returns the TErrors union directly from the phantom. Works with both
+ * `CompiledProcedure` and `ClientProcedure`.
+ */
+type ExtractProcedureErrors<T> = T extends { readonly _errors?: infer E } ? E : never;
+
+/**
+ * A callable client procedure method with error type information
+ *
+ * Extends a plain function type with a phantom `_errors` property so that
+ * `InferProcedureErrors<typeof client.namespace.method>` can extract the
+ * declared domain error types from client callables.
+ *
+ * @template TInput - The validated input type
+ * @template TOutput - The handler output type
+ * @template TErrors - Union of domain error types (defaults to never)
+ */
+export type ClientCallable<TInput, TOutput, TErrors = never> = ((
+  input: TInput
+) => Promise<TOutput>) & { readonly _errors?: TErrors };
+
+/**
  * Builds a callable client interface from a single procedure collection
  *
- * For each procedure, creates a method that:
+ * For each procedure, creates a `ClientCallable` method that:
  * - Takes the procedure's input type as parameter
  * - Returns a Promise of the procedure's output type
+ * - Carries the procedure's declared error types via a `_errors` phantom
  */
 export type ClientFromCollection<TCollection extends ProcedureCollection> = {
-  [K in keyof TCollection['procedures']]: (
-    input: InferProcedureInput<TCollection['procedures'][K]>
-  ) => Promise<InferProcedureOutput<TCollection['procedures'][K]>>;
+  [K in keyof TCollection['procedures']]: ClientCallable<
+    InferProcedureInput<TCollection['procedures'][K]>,
+    InferProcedureOutput<TCollection['procedures'][K]>,
+    ExtractProcedureErrors<TCollection['procedures'][K]>
+  >;
 };
 
 /**
@@ -431,11 +460,67 @@ export interface ClientError extends Error {
   code?: string;
   /** Original response body (if available) */
   body?: unknown;
+  /**
+   * Typed domain error payload, extracted from `body.data` when the response
+   * is a DomainError (has a `code` field). Distinct from `body`.
+   */
+  data?: unknown;
   /** URL that was requested */
   url: string;
   /** HTTP method used */
   method: string;
 }
+
+// ============================================================================
+// Domain Error Type Utilities
+// ============================================================================
+
+/**
+ * Extracts the union of domain error shapes from a procedure or client callable.
+ *
+ * Supports two extraction paths:
+ * 1. **`_errors` phantom** (primary) — extracts `{ code, data }` from the TErrors
+ *    union carried by `CompiledProcedure`, `ClientProcedure`, or `ClientCallable`.
+ * 2. **`errorClasses` constructors** (fallback) — extracts from constructor signatures
+ *    when the `_errors` phantom is absent or empty.
+ *
+ * @example From a procedure
+ * ```typescript
+ * const proc = procedure().throws(InsufficientFundsError, UserBannedError).query(...);
+ * type Errors = InferProcedureErrors<typeof proc>;
+ * // → { code: 'INSUFFICIENT_FUNDS'; data: { amount: number } }
+ * //   | { code: 'USER_BANNED'; data: { reason: string } }
+ * ```
+ *
+ * @example From a client callable
+ * ```typescript
+ * const client = createClient<AppRouter>({ baseUrl: '/api' });
+ * type Errors = InferProcedureErrors<typeof client.orders.createOrder>;
+ * // Same result — errors are threaded through ClientFromCollection
+ * ```
+ */
+export type InferProcedureErrors<T> =
+  _ExtractErrorsFromPhantom<T> extends never
+    ? _ExtractErrorsFromClasses<T>
+    : _ExtractErrorsFromPhantom<T>;
+
+/** @internal Extracts `{ code, data }` shapes from the `_errors` phantom type */
+type _ExtractErrorsFromPhantom<T> = T extends { readonly _errors?: infer E }
+  ? E extends { readonly code: infer C; readonly data: infer D }
+    ? { code: C; data: D }
+    : never
+  : never;
+
+/** @internal Fallback: extracts `{ code, data }` from `errorClasses` constructor signatures */
+type _ExtractErrorsFromClasses<T> = T extends {
+  readonly errorClasses?: ReadonlyArray<infer E>;
+}
+  ? E extends new (
+      data: infer D
+    ) => { code: infer C }
+    ? { code: C; data: D }
+    : never
+  : never;
 
 // ============================================================================
 // Request/Response Types

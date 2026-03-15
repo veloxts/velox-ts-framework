@@ -20,7 +20,9 @@ import type {
   JwtConfig,
   NativeAuthContext,
   PolicyAction,
+  PolicyActionRef,
   PolicyDefinition,
+  PolicyObject,
   TokenPair,
   TokenPayload,
   User,
@@ -300,55 +302,70 @@ expectType<
 // PolicyAction Type Tests
 // ============================================================================
 
-// PolicyAction takes user and resource
-const viewAction: PolicyAction<User, { id: string }> = (u, resource) => {
+// PolicyAction takes params object with user and resource
+const viewAction: PolicyAction<User, { id: string }> = ({ user: u, resource }) => {
   expectType<User>(u);
   expectType<{ id: string }>(resource);
   return true;
 };
 
 // Keep viewAction used
-expectType<boolean | Promise<boolean>>(viewAction(user, { id: '1' }));
+expectType<boolean | Promise<boolean>>(viewAction({ user, resource: { id: '1' } }));
 
 // ============================================================================
 // PolicyDefinition Type Tests
 // ============================================================================
 
-// definePolicy preserves types
+// definePolicy preserves types and returns PolicyObject
 interface Post {
   id: string;
   authorId: string;
   title: string;
 }
 
-const postPolicy = definePolicy<User, Post>({
+const postPolicy = definePolicy<User, Post>('Post', {
   view: () => true,
-  create: (u) => u.email !== undefined,
-  update: (u, post) => u.id === post.authorId,
-  delete: (u, post) => u.id === post.authorId,
+  create: ({ user: u }) => u.email !== undefined,
+  update: ({ user: u, resource: post }) => u.id === post.authorId,
+  delete: ({ user: u, resource: post }) => u.id === post.authorId,
 });
 
-expectType<PolicyDefinition<User, Post>>(postPolicy);
-expectType<PolicyAction<User, Post> | undefined>(postPolicy.view);
-expectType<PolicyAction<User, Post> | undefined>(postPolicy.create);
-expectType<PolicyAction<User, Post> | undefined>(postPolicy.update);
-expectType<PolicyAction<User, Post> | undefined>(postPolicy.delete);
+// postPolicy is a PolicyObject
+expectAssignable<PolicyObject<User, Post>>(postPolicy);
+
+// PolicyObject has resourceName
+expectType<string>(postPolicy.resourceName);
+
+// Each action is a PolicyActionRef
+expectType<PolicyActionRef<User, Post>>(postPolicy.view);
+expectType<PolicyActionRef<User, Post>>(postPolicy.update);
+
+// PolicyActionRef has correct properties
+expectType<string>(postPolicy.view.actionName);
+expectType<string>(postPolicy.view.resourceName);
+expectType<boolean | Promise<boolean>>(postPolicy.view.check(user));
 
 // Custom actions via index signature
-const policyWithCustom = definePolicy<User, Post>({
+const policyWithCustom = definePolicy<User, Post>('Post', {
   view: () => true,
-  publish: (u, post) => u.id === post.authorId,
-  archive: (u) => u.roles?.includes('admin') ?? false,
+  publish: ({ user: u, resource: post }) => u.id === post.authorId,
+  archive: ({ user: u }) => u.roles?.includes('admin') ?? false,
 });
-expectType<PolicyAction<User, Post> | undefined>(policyWithCustom.publish);
-expectType<PolicyAction<User, Post> | undefined>(policyWithCustom.archive);
+expectType<PolicyActionRef<User, Post>>(policyWithCustom.publish);
+expectType<PolicyActionRef<User, Post>>(policyWithCustom.archive);
 
 // ============================================================================
 // Policy Registry Type Tests
 // ============================================================================
 
-// registerPolicy accepts policy definition
-registerPolicy<User, Post>('Post', postPolicy);
+// registerPolicy accepts PolicyObject
+registerPolicy(postPolicy);
+
+// registerPolicy also accepts string + PolicyDefinition (legacy)
+const legacyPolicy: PolicyDefinition<User, Post> = {
+  view: () => true,
+};
+registerPolicy<User, Post>('Post', legacyPolicy);
 
 // getPolicy returns PolicyDefinition or undefined
 const retrievedPolicy = getPolicy('Post');
@@ -399,7 +416,7 @@ interface Comment {
 
 const commentPolicy = createPolicyBuilder<User, Comment>()
   .allow('view', () => true)
-  .allow('create', (u) => u.email !== undefined)
+  .allow('create', ({ user: u }) => u.email !== undefined)
   .allowOwner('update', 'userId')
   .allowOwnerOr('delete', ['admin', 'moderator'], 'userId')
   .deny('archive')

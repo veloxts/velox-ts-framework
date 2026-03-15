@@ -29,6 +29,9 @@ export type { StartOptions } from './app.js';
 export { VeloxApp, velox, veloxApp } from './app.js';
 export type { BaseContext } from './context.js';
 export { createContext, isContext, setupContextHook, setupTestContext } from './context.js';
+// Domain errors
+export type { DomainErrorJSON } from './errors/domain-error.js';
+export { DomainError, isDomainError } from './errors/domain-error.js';
 // Error handling
 export type {
   ConflictErrorResponse,

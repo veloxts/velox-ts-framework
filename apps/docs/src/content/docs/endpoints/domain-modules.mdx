@@ -314,6 +314,54 @@ export const orderModule = definePlugin({
 When modules share services through server decoration, both modules can access the service. For stricter encapsulation, keep services inside Fastify child scopes — only the module that registered in that scope can see them.
 </Aside>
 
+## Declarative Business Logic
+
+Modules organize code into features. The procedure builder handles orchestration.
+
+A billing procedure that manually orchestrates a charge:
+
+```typescript
+// Before — manual orchestration in the handler
+createCharge: billingProcedure
+  .input(ChargeSchema)
+  .mutation(async ({ input, ctx }) => {
+    return ctx.db.$transaction(async (tx) => {
+      const charge = await ctx.stripe.createCharge(input);
+      const record = await tx.payment.create({
+        data: { ...input, chargeId: charge.id },
+      });
+      await ctx.events.emit(new ChargeCompleted({
+        paymentId: record.id,
+        amount: input.amount,
+      }));
+      return record;
+    });
+  }),
+```
+
+The same procedure with builder primitives:
+
+```typescript
+// After — builder declares the orchestration
+createCharge: billingProcedure
+  .input(ChargeSchema)
+  .transactional()
+  .through(chargePayment.onRevert(refundPayment))
+  .emits(ChargeCompleted, (result) => ({
+    paymentId: result.id,
+    amount: result.amount,
+  }))
+  .mutation(async ({ input, ctx }) => {
+    return ctx.db.payment.create({
+      data: { ...input, chargeId: input.chargeId },
+    });
+  }),
+```
+
+The service still handles Stripe — `chargePayment` is a `defineStep` that calls `stripe.charges.create()`. The difference: transaction wrapping, event emission, and compensation are declared on the chain instead of hand-wired in the handler.
+
+See [Business Logic](/docs/endpoints/business-logic/) for the full guide on `.transactional()`, `.through()`, `.emits()`, and `.useAfter()`.
+
 ## `defineModule()` API
 
 The manual pattern above works but involves repetitive wiring. The `defineModule()` API automates the boilerplate while preserving full type safety.

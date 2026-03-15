@@ -53,6 +53,8 @@ export const ROUTER_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 
 // Type inference helpers
 export type {
+  // After handler types
+  AfterHandler,
   // Procedure types
   CompiledProcedure,
   ContextExtensions,
@@ -62,6 +64,7 @@ export type {
   GuardLike,
   HttpMethod,
   InferProcedureContext,
+  InferProcedureErrors,
   InferProcedureInput,
   InferProcedureOutput,
   Middleware,
@@ -73,6 +76,8 @@ export type {
   // Nested routes
   ParentResourceChain,
   ParentResourceConfig,
+  // Policy types (for declarative authorization)
+  PolicyActionLike,
   // Collection types
   ProcedureCollection,
   ProcedureHandler,
@@ -80,6 +85,7 @@ export type {
   ProcedureRecord,
   ProcedureType,
   RestRouteOverride,
+  TransactionalOptions,
 } from './types.js';
 export {
   // Constants
@@ -112,6 +118,13 @@ export {
 } from './procedure/builder.js';
 
 // ============================================================================
+// Pipeline Primitives
+// ============================================================================
+
+export type { PipelineStep, RevertAction, StepOptions } from './procedure/pipeline.js';
+export { defineRevert, defineStep } from './procedure/pipeline.js';
+
+// ============================================================================
 // Router Utilities
 // ============================================================================
 
@@ -123,6 +136,7 @@ export type {
   InferOutputSchema,
   InferProcedures,
   InferSchemaOutput,
+  PostHandlerBuilder,
   ProcedureBuilder,
   ProcedureBuilderState,
   ProcedureDefinitions,

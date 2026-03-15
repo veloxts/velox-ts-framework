@@ -135,7 +135,26 @@ export const userProcedures = procedures('users', {
 Use **middleware** for cross-cutting concerns (logging, timing).
 Use **guards** for authorization (authenticated, hasRole).
 
+## Post-Handler Hooks
+
+`.useAfter()` is the counterpart to `.use()` — it runs after the handler succeeds:
+
+```typescript
+procedure()
+  .mutation(async ({ input, ctx }) => {
+    return ctx.db.order.create({ data: input });
+  })
+  .useAfter(({ input, result, ctx }) => {
+    console.log(`Order ${result.id} created by ${ctx.user.id}`);
+  })
+```
+
+Hooks run after events are emitted (if any). Errors are caught and logged — they never fail the response. The return value is ignored: hooks cannot modify the result. Multiple `.useAfter()` calls chain in registration order.
+
+See [Business Logic](/docs/endpoints/business-logic/) for the full picture including pipelines and events.
+
 ## Related Content
 
+- [Business Logic](/docs/endpoints/business-logic/) - Post-handler hooks, pipelines, events
 - [Guards](/docs/authentication/guards/) - Authorization
 - [Procedures](/docs/endpoints/procedures/) - Procedure API

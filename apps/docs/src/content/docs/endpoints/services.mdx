@@ -167,125 +167,9 @@ export const analyticsPlugin = defineContextPlugin({
 
 This eliminates the boilerplate of `Symbol.for()`, `decorateRequest()`, and `addHook()` that context-injecting plugins require. For full details, see [Context](/docs/core/context/).
 
-## Multi-Step Mutations
-
-Real write operations often touch multiple tables and services. Use Prisma transactions to keep database operations atomic.
-
-### Database Transactions
-
-```typescript
-// src/services/orders.ts
-import type { PrismaClient } from '@prisma/client';
-import { stripe } from '../lib/stripe.js';
-
-export async function placeOrder(
-  db: PrismaClient,
-  userId: string,
-  items: Array<{ productId: string; quantity: number }>,
-) {
-  return db.$transaction(async (tx) => {
-    // 1. Fetch all products in one query (avoid N+1)
-    const productIds = items.map((i) => i.productId);
-    const products = await tx.product.findMany({
-      where: { id: { in: productIds } },
-      select: { id: true, name: true, price: true, stock: true },
-    });
-
-    // 2. Verify stock and calculate total
-    let total = 0;
-    const productMap = new Map(products.map((p) => [p.id, p]));
-    for (const item of items) {
-      const product = productMap.get(item.productId);
-      if (!product) throw new Error(`Product ${item.productId} not found`);
-      if (product.stock < item.quantity) {
-        throw new Error(`Insufficient stock for ${product.name}`);
-      }
-      total += product.price * item.quantity;
-    }
-
-    // 3. Atomically decrement stock (guards against concurrent overselling)
-    for (const item of items) {
-      const updated = await tx.product.updateMany({
-        where: { id: item.productId, stock: { gte: item.quantity } },
-        data: { stock: { decrement: item.quantity } },
-      });
-      if (updated.count === 0) {
-        throw new Error(`Insufficient stock for ${productMap.get(item.productId)!.name}`);
-      }
-    }
-
-    // 4. Create order with nested items
-    return tx.order.create({
-      data: {
-        userId,
-        total,
-        status: 'pending',
-        items: {
-          create: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          })),
-        },
-      },
-      select: { id: true, userId: true, total: true, status: true, items: true },
-    });
-  });
-}
-```
-
-<Aside type="tip" title="select vs include">
-Prefer `select` over `include` in service layer code. `include: { items: true }` fetches all columns from the relation, while `select` lets you pick only what you need. This reduces data transfer, avoids leaking sensitive fields, and makes return types explicit.
+<Aside type="tip" title="Transactions & Orchestration">
+For database transactions, multi-step pipelines with compensation, and domain event emission, use the procedure builder's declarative primitives: `.transactional()`, `.through()`, `.emits()`. See [Business Logic](/docs/endpoints/business-logic/).
 </Aside>
-
-### Coordinating External Services
-
-When a mutation involves both database changes and external API calls, structure the operation so that the external call happens after the database transaction succeeds — or use a two-phase approach:
-
-```typescript
-// src/services/orders.ts
-export async function placeAndChargeOrder(
-  db: PrismaClient,
-  userId: string,
-  items: Array<{ productId: string; quantity: number }>,
-) {
-  // Phase 1: Create order in database
-  const order = await placeOrder(db, userId, items);
-
-  // Phase 2: Charge payment (external API)
-  try {
-    const charge = await stripe.paymentIntents.create({
-      amount: Math.round(order.total * 100),
-      currency: 'usd',
-      metadata: { orderId: order.id },
-    });
-
-    await db.order.update({
-      where: { id: order.id },
-      data: { status: 'paid', stripePaymentId: charge.id },
-    });
-
-    return { ...order, status: 'paid' };
-  } catch (error) {
-    // Payment failed — mark order accordingly
-    await db.order.update({
-      where: { id: order.id },
-      data: { status: 'payment_failed' },
-    });
-    throw error;
-  }
-}
-```
-
-The procedure stays thin:
-
-```typescript
-placeOrder: procedure()
-  .input(PlaceOrderSchema)
-  .guard(authenticated)
-  .mutation(async ({ input, ctx }) => {
-    return placeAndChargeOrder(ctx.db, ctx.user.id, input.items);
-  }),
-```
 
 ## Error Handling
 
@@ -543,9 +427,8 @@ For integration tests, use `createTestApp` from `@veloxts/testing` to test proce
 | Business logic | Extract to `src/services/` — procedures delegate |
 | External APIs | Import clients from `src/lib/`, call in services |
 | Request-scoped services | `defineContextPlugin()` from `@veloxts/core` |
-| Multi-step writes | Prisma `$transaction` for atomicity |
+| Transactions & orchestration | `.transactional()`, `.through()`, `.emits()` — see [Business Logic](/docs/endpoints/business-logic/) |
 | Concurrency safety | Atomic `updateMany` with `where` guards, not read-check-write |
-| External + DB coordination | Two-phase: DB first, external second, handle failure |
 | Prisma errors | `db()` wrapper from `@veloxts/orm` for automatic conversion |
 | Transient failures | `withRetry` from `@veloxts/core` or `@veloxts/queue` for background work |
 | Non-blocking side effects | `fireAndForget()` from `@veloxts/core` |
@@ -555,6 +438,7 @@ For integration tests, use `createTestApp` from `@veloxts/testing` to test proce
 
 ## Related Content
 
+- [Business Logic](/docs/endpoints/business-logic/) - Transactions, pipelines, domain events
 - [Procedures](/docs/endpoints/procedures/) - Core procedure builder API
 - [Domain Modules](/docs/endpoints/domain-modules/) - Bundle services, procedures, and lifecycle into vertical feature slices
 - [Middleware](/docs/router/middleware/) - Cross-cutting concerns

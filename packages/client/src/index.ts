@@ -40,6 +40,7 @@ export type {
   ClientMode,
   ClientProcedure,
   HttpMethod,
+  InferProcedureErrors,
   InferProcedureInput,
   InferProcedureOutput,
   ProcedureCall,
