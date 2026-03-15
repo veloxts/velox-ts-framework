@@ -1,5 +1,11 @@
 # @veloxts/benchmarks
 
+## 0.8.1
+
+### Patch Changes
+
+- feat: add business logic primitives for B2B SaaS apps
+
 ## 0.8.0
 
 ### Minor Changes

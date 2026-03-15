@@ -1,5 +1,15 @@
 # @veloxts/mcp
 
+## 0.8.1
+
+### Patch Changes
+
+- feat: add business logic primitives for B2B SaaS apps
+- Updated dependencies
+  - @veloxts/cli@0.8.1
+  - @veloxts/router@0.8.1
+  - @veloxts/validation@0.8.1
+
 ## 0.8.0
 
 ### Minor Changes

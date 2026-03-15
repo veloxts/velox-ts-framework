@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.8.1
+
+### Patch Changes
+
+- feat: add business logic primitives for B2B SaaS apps
+- Updated dependencies
+  - @veloxts/auth@0.8.1
+  - @veloxts/cache@0.8.1
+  - @veloxts/core@0.8.1
+  - @veloxts/events@0.8.1
+  - @veloxts/mail@0.8.1
+  - @veloxts/orm@0.8.1
+  - @veloxts/queue@0.8.1
+  - @veloxts/router@0.8.1
+  - @veloxts/scheduler@0.8.1
+  - @veloxts/storage@0.8.1
+  - @veloxts/validation@0.8.1
+
 ## 0.8.0
 
 ### Minor Changes
