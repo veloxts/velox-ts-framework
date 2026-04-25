@@ -371,29 +371,21 @@ function gatherInput(request: FastifyRequest, route: RestRoute): unknown {
   const query = isPlainObject(request.query) ? request.query : {};
   const body = isPlainObject(request.body) ? request.body : {};
 
-  // Check if this is a nested route (has single parent or multiple parents)
-  const hasParentResource =
-    route.procedure.parentResource !== undefined ||
-    (route.procedure.parentResources !== undefined && route.procedure.parentResources.length > 0);
-
   switch (route.method) {
     case 'GET':
     case 'DELETE':
       // GET/DELETE: params (for :id and all parent params) + query (for filters/pagination/options)
       return { ...params, ...query };
 
+    case 'POST':
     case 'PUT':
     case 'PATCH':
-      // PUT/PATCH: params (for :id and all parent params) + body (for data)
+      // POST/PUT/PATCH: params (for :id and all parent params) + body (for data).
+      // POST must merge params unconditionally — flat conventional creates have
+      // empty params (no-op spread), but RPC-style .rest() overrides such as
+      // POST /retro/phase/:sessionId/next rely on this merge to surface path
+      // params to the input schema.
       return { ...params, ...body };
-
-    case 'POST':
-      // POST: For nested routes, merge params (for all parent IDs) with body
-      // For flat routes, use body only (no ID in params for creates)
-      if (hasParentResource) {
-        return { ...params, ...body };
-      }
-      return request.body;
 
     default:
       return request.body;
