@@ -1,5 +1,13 @@
 # @veloxts/validation
 
+## 0.8.2
+
+### Patch Changes
+
+- merge URL params into POST input for flat .rest() paths
+- Updated dependencies
+  - @veloxts/core@0.8.2
+
 ## 0.8.1
 
 ### Patch Changes

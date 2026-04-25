@@ -1,5 +1,23 @@
 # @veloxts/velox
 
+## 0.8.2
+
+### Patch Changes
+
+- merge URL params into POST input for flat .rest() paths
+- Updated dependencies
+  - @veloxts/auth@0.8.2
+  - @veloxts/cache@0.8.2
+  - @veloxts/core@0.8.2
+  - @veloxts/events@0.8.2
+  - @veloxts/mail@0.8.2
+  - @veloxts/orm@0.8.2
+  - @veloxts/queue@0.8.2
+  - @veloxts/router@0.8.2
+  - @veloxts/scheduler@0.8.2
+  - @veloxts/storage@0.8.2
+  - @veloxts/validation@0.8.2
+
 ## 0.8.1
 
 ### Patch Changes
