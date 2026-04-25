@@ -119,6 +119,7 @@ declare module 'vinxi/plugins/config' {
  */
 declare module '@vinxi/server-functions/plugin' {
   import type { Plugin } from 'vite';
+
   import type { VinxiRouter } from './types.js';
 
   /**

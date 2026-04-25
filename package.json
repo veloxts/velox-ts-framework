@@ -3,7 +3,7 @@
   "version": "0.8.2",
   "description": "A full-stack TypeScript framework with type-safe APIs, hybrid tRPC/REST architecture, with great DX",
   "main": "dist/index.js",
-  "packageManager": "pnpm@10.32.1",
+  "packageManager": "pnpm@10.33.2",
   "scripts": {
     "build": "turbo build",
     "build:tsc": "tsc --build",
@@ -41,12 +41,12 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@biomejs/biome": "2.4.7",
-    "@changesets/cli": "2.30.0",
-    "@types/node": "25.5.0",
+    "@biomejs/biome": "2.4.13",
+    "@changesets/cli": "2.31.0",
+    "@types/node": "25.6.0",
     "dts-bundle-generator": "9.5.1",
     "tsd": "0.33.0",
-    "turbo": "2.8.17",
+    "turbo": "2.9.6",
     "typescript": "5.9.3"
   },
   "engines": {
@@ -56,8 +56,8 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@biomejs/biome",
-      "@prisma/engines",
-      "prisma"
+      "esbuild",
+      "protobufjs"
     ],
     "overrides": {
       "h3": ">=1.15.6",

@@ -139,7 +139,7 @@ describe('Database Dependencies', () => {
 
     expect(pkg.dependencies['@prisma/adapter-better-sqlite3']).toBeUndefined();
     expect(pkg.dependencies['better-sqlite3']).toBeUndefined();
-    expect(pkg.dependencies['@prisma/adapter-pg']).toBe('7.4.0');
+    expect(pkg.dependencies['@prisma/adapter-pg']).toBe('7.8.0');
     expect(pkg.dependencies.pg).toBe('8.16.0');
   });
 

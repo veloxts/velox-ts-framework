@@ -110,6 +110,26 @@ trap cleanup EXIT
 # Helper Functions
 #============================================================================
 
+# Strip pnpm-leaked npm config env vars so npm/npx don't warn about
+# unknown configs throughout the smoke test.
+#
+# When this script is invoked via `pnpm smoke`, pnpm exports its own config
+# (strict-peer-dependencies, verify-deps-before-run, only-built-dependencies-file,
+# scoped registries, etc.) as NPM_CONFIG_* / npm_config_* env vars. npm 11+
+# warns about unknown configs, polluting the smoke-test output.
+#
+# Call this once after any pnpm-driven setup (e.g. after build_all) and
+# before any `npm`/`npx`/`npm run` invocations. Real registry/auth config
+# is read from ~/.npmrc, not env, so dropping these vars is safe.
+strip_npm_env_leaks() {
+  local v
+  for v in $(compgen -e); do
+    case "$v" in
+      NPM_CONFIG_*|npm_config_*) unset "$v" ;;
+    esac
+  done
+}
+
 # Kill server process safely
 # Usage: kill_server
 kill_server() {
@@ -2323,8 +2343,12 @@ fi
 echo "Database: $DATABASE"
 echo ""
 
-# Build once
+# Build once (uses pnpm — keep env intact)
 build_all
+
+# Drop pnpm-leaked NPM_CONFIG_* / npm_config_* env vars before any
+# npm/npx invocations downstream so npm doesn't warn about unknown configs.
+strip_npm_env_leaks
 
 # Test templates
 if [ "$TEST_ALL" = true ]; then

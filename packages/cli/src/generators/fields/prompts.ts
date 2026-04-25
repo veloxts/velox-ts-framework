@@ -380,7 +380,7 @@ async function collectDefaultValue(
     placeholder,
     initialValue: prefill ?? '',
     validate: (value) => {
-      if (!value || !value.trim()) return 'Default value is required';
+      if (!value?.trim()) return 'Default value is required';
       return validateDefaultValue(fieldType, value.trim());
     },
   });
