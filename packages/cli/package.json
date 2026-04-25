@@ -43,33 +43,33 @@
     }
   },
   "dependencies": {
-    "@clack/prompts": "1.1.0",
+    "@clack/prompts": "1.2.0",
     "@veloxts/auth": "workspace:*",
     "@veloxts/core": "workspace:*",
     "@veloxts/orm": "workspace:*",
     "@veloxts/router": "workspace:*",
     "@veloxts/validation": "workspace:*",
     "commander": "14.0.3",
-    "dotenv": "17.3.1",
+    "dotenv": "17.4.2",
     "hot-hook": "0.4.0",
     "pg": "8.20.0",
     "picocolors": "1.1.1",
     "pluralize": "8.0.0",
     "tsx": "4.21.0",
-    "yaml": "2.8.2"
+    "yaml": "2.8.3"
   },
   "peerDependencies": {
     "@prisma/client": ">=7.0.0"
   },
   "devDependencies": {
-    "@prisma/client": "7.5.0",
-    "@types/node": "25.5.0",
-    "@types/pg": "8.18.0",
+    "@prisma/client": "7.8.0",
+    "@types/node": "25.6.0",
+    "@types/pg": "8.20.0",
     "@types/pluralize": "0.0.33",
-    "@vitest/coverage-v8": "4.1.0",
+    "@vitest/coverage-v8": "4.1.5",
     "tsd": "0.33.0",
     "typescript": "5.9.3",
-    "vitest": "4.1.0"
+    "vitest": "4.1.5"
   },
   "keywords": [
     "velox",

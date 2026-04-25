@@ -146,7 +146,7 @@ export const authProcedures = procedures('auth', {
       const hashToVerify = user?.password || DUMMY_HASH;
       const isValid = await verifyPassword(input.password, hashToVerify);
 
-      if (!user || !user.password || !isValid) {
+      if (!user?.password || !isValid) {
         throw new AuthError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
       }
 

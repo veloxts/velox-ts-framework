@@ -302,7 +302,7 @@ export const authProcedures = defineProcedures('auth', {
       const isValid = await verifyPassword(input.password, hashToVerify);
 
       // Check if authentication failed
-      if (!user || !user.password || !isValid) {
+      if (!user?.password || !isValid) {
         throw new AuthError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
       }
 

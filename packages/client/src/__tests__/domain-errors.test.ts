@@ -251,13 +251,11 @@ describe('parseErrorResponse — domain errors', () => {
 describe('InferProcedureErrors type utility', () => {
   it('should extract error union from a procedure with errorClasses', () => {
     // Simulated error classes as the server would define them
-    // biome-ignore lint/correctness/noUnusedVariables: used in MockProcedure type
     class InsufficientFundsError {
       readonly code = 'INSUFFICIENT_FUNDS' as const;
       constructor(public readonly data: { amount: number; currency: string }) {}
     }
 
-    // biome-ignore lint/correctness/noUnusedVariables: used in MockProcedure type
     class UserBannedError {
       readonly code = 'USER_BANNED' as const;
       constructor(public readonly data: { reason: string }) {}

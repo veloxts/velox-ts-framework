@@ -36,7 +36,7 @@
     "@veloxts/core": "workspace:*",
     "fastify-plugin": "5.1.0",
     "superjson": "2.2.6",
-    "ws": "8.19.0",
+    "ws": "8.20.0",
     "zod": "4.3.6"
   },
   "peerDependencies": {
@@ -49,14 +49,14 @@
     }
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
+    "@types/node": "25.6.0",
     "@types/ws": "8.18.1",
     "@veloxts/testing": "workspace:*",
-    "@vitest/coverage-v8": "4.1.0",
-    "fastify": "5.8.2",
-    "ioredis": "5.10.0",
+    "@vitest/coverage-v8": "4.1.5",
+    "fastify": "5.8.5",
+    "ioredis": "5.10.1",
     "typescript": "5.9.3",
-    "vitest": "4.1.0"
+    "vitest": "4.1.5"
   },
   "publishConfig": {
     "access": "public"
