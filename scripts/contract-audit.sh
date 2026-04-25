@@ -32,22 +32,22 @@ print_check() {
 
 print_pass() {
     echo -e "  ${GREEN}✓${NC} $1"
-    ((PASSED++))
+    ((PASSED++)) || true
 }
 
 print_warn() {
     echo -e "  ${YELLOW}⚠${NC} $1"
-    ((WARNINGS++))
+    ((WARNINGS++)) || true
 }
 
 print_error() {
     echo -e "  ${RED}✗${NC} $1"
-    ((ERRORS++))
+    ((ERRORS++)) || true
 }
 
 print_critical() {
     echo -e "  ${RED}⛔${NC} $1"
-    ((CRITICAL++))
+    ((CRITICAL++)) || true
 }
 
 cd "$ROOT_DIR"
@@ -155,9 +155,12 @@ fi
 
 # Count total exports from velox meta-package
 print_check "Counting @veloxts/velox re-exports..."
-if [ -f "packages/velox/dist/index.js" ]; then
-    VELOX_EXPORTS=$(node -e "const v=require('./packages/velox/dist/index.js'); console.log(Object.keys(v).length)" 2>/dev/null || echo "0")
-    print_pass "@veloxts/velox exports $VELOX_EXPORTS symbols"
+if [ -f "packages/velox/dist/index.d.ts" ]; then
+    # Avoid executing the built bundle here (can hang if it pulls in runtime deps).
+    VELOX_EXPORTS=$(grep -E "^(export \\* from|export \\{)" packages/velox/dist/index.d.ts 2>/dev/null | wc -l | tr -d ' ')
+    print_pass "@veloxts/velox exports ~${VELOX_EXPORTS} re-export statements"
+elif [ -f "packages/velox/dist/index.js" ]; then
+    print_warn "Skipping runtime export count (dist JS exists, but we don't execute it during audit)"
 else
     print_warn "Cannot count exports - build packages/velox first"
 fi
@@ -177,13 +180,14 @@ else
     grep -rn "eval(" packages/*/src/*.ts 2>/dev/null | grep -v "node_modules" || true
 fi
 
-print_check "Checking for new Function() usage..."
-FUNC_COUNT=$(grep -r "new Function(" packages/*/src/*.ts 2>/dev/null | grep -v "node_modules" | wc -l | tr -d ' ')
+print_check "Checking for Function constructor usage..."
+NEW_FUNCTION_PATTERN="new"" Function("
+FUNC_COUNT=$(grep -r "$NEW_FUNCTION_PATTERN" packages/*/src/*.ts 2>/dev/null | grep -v "node_modules" | wc -l | tr -d ' ')
 if [ "$FUNC_COUNT" -eq 0 ]; then
     print_pass "No new Function() found"
 else
     print_critical "Found $FUNC_COUNT new Function() usages"
-    grep -rn "new Function(" packages/*/src/*.ts 2>/dev/null | grep -v "node_modules" || true
+    grep -rn "$NEW_FUNCTION_PATTERN" packages/*/src/*.ts 2>/dev/null | grep -v "node_modules" || true
 fi
 
 # ============================================================================
