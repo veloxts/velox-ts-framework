@@ -796,6 +796,61 @@ describe('Input gathering', () => {
     });
   });
 
+  // Regression test for v0.8.1 bug: REST adapter dropped URL path params
+  // for POST routes that weren't declared with parentResource (e.g. RPC-style
+  // .rest() overrides like POST /retro/phase/:sessionId/next).
+  it('should merge params and body for POST with a custom .rest() path containing params', async () => {
+    const collection = defineProcedures('phase', {
+      next: procedure()
+        .rest({ method: 'POST', path: '/retro/phase/:sessionId/next' })
+        .input(z.object({ sessionId: z.string(), reason: z.string().optional() }))
+        .mutation(async ({ input }) => ({
+          sessionId: input.sessionId,
+          reason: input.reason ?? null,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'POST',
+      url: '/api/retro/phase/session-abc/next',
+      payload: { reason: 'manual advance' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      sessionId: 'session-abc',
+      reason: 'manual advance',
+    });
+  });
+
+  it('should merge multiple params and body for POST with a custom .rest() path', async () => {
+    const collection = defineProcedures('groups', {
+      // 'add' prefix triggers the 201 response convention
+      addCard: procedure()
+        .rest({ method: 'POST', path: '/retro/groups/:groupId/cards/:cardId' })
+        .input(z.object({ groupId: z.string(), cardId: z.string() }))
+        .mutation(async ({ input }) => ({
+          groupId: input.groupId,
+          cardId: input.cardId,
+        })),
+    });
+
+    registerRestRoutes(app.server, [collection]);
+    await app.start();
+
+    const response = await app.server.inject({
+      method: 'POST',
+      url: '/api/retro/groups/g1/cards/c1',
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({ groupId: 'g1', cardId: 'c1' });
+  });
+
   it('should merge params and body for PUT', async () => {
     const collection = defineProcedures('users', {
       updateUser: procedure()
