@@ -301,6 +301,33 @@ export type Middleware<TContext extends BaseContext = BaseContext> = MiddlewareF
   TContext
 >;
 
+/**
+ * Post-middleware authorization check.
+ *
+ * Runs AFTER input validation, AFTER pipeline transforms, and AFTER all
+ * `.use()` middleware has populated the context — but BEFORE the handler.
+ * Use `.check()` for authorization that depends on input fields and/or
+ * context values populated by middleware (e.g. resource ownership checks
+ * where ctx.participant was loaded by `.use(loadParticipant)`).
+ *
+ * Returning `false` throws a `ForbiddenError` (403). Throwing inside the
+ * function propagates the original error so callers can throw custom
+ * domain errors with finer-grained status codes.
+ *
+ * Multiple `.check()` calls AND-compose with short-circuit on first failure.
+ *
+ * Distinguished from `.guard()`: guards are pre-input, ctx-only, fast-fail
+ * authentication checks. Checks are post-middleware authorization that can
+ * read input.
+ *
+ * @template TInput - The validated input type
+ * @template TContext - The context type (post-middleware extensions)
+ */
+export type CheckFn<TInput = unknown, TContext extends BaseContext = BaseContext> = (args: {
+  input: TInput;
+  ctx: TContext;
+}) => boolean | Promise<boolean>;
+
 // ============================================================================
 // Procedure Definition Types
 // ============================================================================
@@ -421,6 +448,14 @@ export interface CompiledProcedure<
   readonly middlewares: ReadonlyArray<MiddlewareFunction<TInput, TContext, TContext, TOutput>>;
   /** Guards to execute before handler (checked before middleware) */
   readonly guards: ReadonlyArray<GuardLike<TContext>>;
+  /**
+   * Post-middleware authorization checks (registered via `.check()`).
+   *
+   * Run after input validation, pipeline transforms, and all middleware
+   * have populated the context — immediately before the handler. Returning
+   * `false` throws ForbiddenError (403); throwing propagates as-is.
+   */
+  readonly checks?: ReadonlyArray<CheckFn<TInput, TContext>>;
   /** REST route override (if specified) */
   readonly restOverride?: RestRouteOverride;
   /** Whether this procedure is deprecated */

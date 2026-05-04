@@ -27,6 +27,7 @@ import {
 } from '../resource/index.js';
 import type {
   AfterHandler,
+  CheckFn,
   CompiledProcedure,
   GuardLike,
   MiddlewareFunction,
@@ -245,6 +246,20 @@ function createBuilder<TInput, TOutput, TContext extends BaseContext, TErrors = 
       return createBuilder<TInput, TOutput, TContext, TErrors>({
         ...state,
         policyAction: action,
+      });
+    },
+
+    /**
+     * Adds a post-middleware authorization check.
+     *
+     * Runs after input validation, pipeline transforms, and middleware —
+     * immediately before the handler. Returning `false` throws ForbiddenError;
+     * throwing propagates as-is.
+     */
+    check(check: CheckFn<TInput, TContext>): ProcedureBuilder<TInput, TOutput, TContext, TErrors> {
+      return createBuilder<TInput, TOutput, TContext, TErrors>({
+        ...state,
+        checks: [...(state.checks ?? []), check as CheckFn],
       });
     },
 
@@ -488,19 +503,30 @@ function compileProcedure<
     MiddlewareFunction<TInput, TContext, TContext, TOutput>
   >;
 
+  // Wrap the handler with .check() invocations so checks run AFTER middleware.
+  // Wrapping at the handler level (rather than inserting a phase in
+  // executeProcedure) keeps the precompiled middleware executor intact and
+  // ensures checks see middleware-extended ctx + post-pipeline input.
+  const checks = state.checks as ReadonlyArray<CheckFn<TInput, TContext>> | undefined;
+  const handlerWithChecks =
+    checks && checks.length > 0 ? wrapHandlerWithChecks(handler, checks) : handler;
+
   // Pre-compile the middleware chain executor if middlewares exist
   // This avoids rebuilding the chain on every request
   const precompiledExecutor =
-    typedMiddlewares.length > 0 ? createMiddlewareExecutor(typedMiddlewares, handler) : undefined;
+    typedMiddlewares.length > 0
+      ? createMiddlewareExecutor(typedMiddlewares, handlerWithChecks)
+      : undefined;
 
   // Create the final procedure object with .useAfter() support
   return createPostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>({
     type,
-    handler,
+    handler: handlerWithChecks,
     inputSchema: state.inputSchema as { parse: (input: unknown) => TInput } | undefined,
     outputSchema: state.outputSchema as { parse: (output: unknown) => TOutput } | undefined,
     middlewares: typedMiddlewares,
     guards: state.guards as ReadonlyArray<GuardLike<TContext>>,
+    checks,
     restOverride: state.restOverride,
     deprecated: state.deprecated,
     deprecationMessage: state.deprecationMessage,
@@ -528,6 +554,29 @@ function compileProcedure<
 }
 
 /**
+ * Wraps a handler with `.check()` predicates that run before the handler.
+ *
+ * Checks AND-compose with short-circuit. Returning `false` throws
+ * ForbiddenError; throwing inside a check propagates as-is.
+ *
+ * @internal
+ */
+function wrapHandlerWithChecks<TInput, TOutput, TContext extends BaseContext>(
+  handler: ProcedureHandler<TInput, TOutput, TContext>,
+  checks: ReadonlyArray<CheckFn<TInput, TContext>>
+): ProcedureHandler<TInput, TOutput, TContext> {
+  return async ({ input, ctx }) => {
+    for (const check of checks) {
+      const passed = await check({ input, ctx });
+      if (!passed) {
+        throw new ForbiddenError('Authorization check failed');
+      }
+    }
+    return handler({ input, ctx });
+  };
+}
+
+/**
  * Compiles a Level 3 branched procedure with a handler map
  *
  * Creates a CompiledProcedure with both a synthesized dispatch handler
@@ -551,6 +600,20 @@ function compileProcedureWithHandlerMap<
     MiddlewareFunction<TInput, TContext, TContext, TOutput>
   >;
 
+  // Wrap each branched handler with .check() invocations (parallel to
+  // compileProcedure). The dispatch handler stays unwrapped because checks
+  // run inside the per-branch handlers.
+  const checks = state.checks as ReadonlyArray<CheckFn<TInput, TContext>> | undefined;
+  const handlerMapWithChecks =
+    checks && checks.length > 0
+      ? Object.fromEntries(
+          Object.entries(handlerMap).map(([key, branchHandler]) => [
+            key,
+            wrapHandlerWithChecks(branchHandler, checks),
+          ])
+        )
+      : handlerMap;
+
   return createPostHandlerBuilder<TInput, TOutput, TContext, TType, TErrors>({
     type,
     handler: dispatchHandler,
@@ -558,6 +621,7 @@ function compileProcedureWithHandlerMap<
     outputSchema: undefined, // Level 3 uses resource schema projection, not Zod output validation
     middlewares: typedMiddlewares,
     guards: [] as unknown as ReadonlyArray<GuardLike<TContext>>, // Guards come from access level config
+    checks,
     restOverride: state.restOverride,
     deprecated: state.deprecated,
     deprecationMessage: state.deprecationMessage,
@@ -567,7 +631,7 @@ function compileProcedureWithHandlerMap<
     _precompiledExecutor: undefined, // Branched procedures don't use precompiled chains
     _resourceSchema: state.resourceSchema,
     _resourceLevel: undefined, // No fixed level — determined at runtime by branch selection
-    _handlerMap: handlerMap,
+    _handlerMap: handlerMapWithChecks,
     // Store error classes declared via .throws()
     errorClasses: state.errorClasses,
     // Store transactional configuration
