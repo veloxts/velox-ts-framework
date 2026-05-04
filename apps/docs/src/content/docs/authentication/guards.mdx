@@ -7,6 +7,12 @@ import { Aside } from '@astrojs/starlight/components';
 
 Guards run before your procedure handler and reject the request if the caller doesn't meet the required conditions — whether that's being logged in, having a specific role, or satisfying a custom check. They compose with `allOf`, `anyOf`, and `not` combinators for complex authorization logic.
 
+<Aside type="tip" title="Related primitives">
+For role-based **field projection** on responses (returning a public profile to anonymous visitors and a richer profile to authenticated users), see [Resource API](/docs/endpoints/resource-api/) — the `public`, `authenticated`, and `admin` visibility tiers align cleanly with guard levels.
+
+For authorization that needs the parsed `input` AND middleware-extended `ctx` (e.g. resource-ownership checks where the resource is loaded by `.use()`), see [Post-Middleware Checks](/docs/endpoints/post-middleware-checks/) — `.check()` is the right primitive when `.guard()` runs too early.
+</Aside>
+
 ## Built-in Guards
 
 ### `authenticated`

@@ -85,11 +85,31 @@ In `package.json`:
   "hotHook": {
     "boundaries": [
       "src/procedures/**/*.ts",
-      "src/schemas/**/*.ts"
+      "src/schemas/**/*.ts",
+      "src/handlers/**/*.ts"
     ]
   }
 }
 ```
+
+### Why these boundaries?
+
+`hot-hook` doesn't reload everything — it reloads only files that match a boundary glob, then re-imports them on next request. Pick boundaries that contain code which is **safe to re-instantiate per request**:
+
+- `src/procedures/**` — procedures are pure functions over `(input, ctx)`. Reloading swaps the handler reference; in-flight requests finish on the old handler, new requests use the new one. No state to migrate.
+- `src/schemas/**` — Zod schemas are immutable values. Reloading is identical to re-importing the module.
+- `src/handlers/**` — same shape as procedures (handler functions invoked per request).
+
+**Avoid making boundaries** of files that hold long-lived state:
+
+- `src/index.ts` — the Fastify server instance. Reloading this would tear down listening sockets.
+- `src/config/database.ts` — your Prisma client. Reloading would close the connection pool mid-request.
+- `src/config/auth.ts` — JWT signing keys, session stores.
+- Plugin registration files — Fastify plugins are encapsulated; re-registering them throws.
+
+Files outside the `boundaries` list still trigger a full process restart on change (`hot-hook` falls back to `tsx watch` semantics for non-boundary files), so you don't lose change detection — you just lose the fast in-process reload.
+
+For framework conventions on where to put procedures and schemas, see [Project Structure](/docs/getting-started/project-structure/).
 
 ### Server Ready Signal
 

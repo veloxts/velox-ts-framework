@@ -89,6 +89,8 @@ export const userProcedures = procedures('users', {
 
 Procedures are automatically discovered and registered.
 
+`procedures/` is also the canonical [HMR boundary](/docs/cli/dev-server/#configure-hmr-boundaries) — `velox dev --hmr` reloads procedure files in-process on change without restarting the server, since procedure handlers are pure functions over `(input, ctx)` and don't hold long-lived state.
+
 ### `apps/api/src/schemas/`
 
 Zod schemas for validation. These can be shared between procedures and frontend:

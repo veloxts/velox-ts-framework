@@ -1,0 +1,186 @@
+---
+title: Raw Responses
+description: Return redirects, cookies, and custom HTTP responses from procedures with raw().
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Why `raw()`?
+
+Most procedures return JSON. Some don't: OAuth callbacks redirect after setting a cookie, file downloads stream binary data, webhook acknowledgements need a specific status code, Server-Sent Events use a custom Content-Type. Without `raw()`, these endpoints have to bypass the procedure system entirely and live as raw `fastify.get(...)` routes — losing OpenAPI documentation, unified error handling, and composability with the rest of the API.
+
+`raw()` lets a procedure handler return a non-JSON HTTP response while staying inside the procedure system:
+
+```typescript
+import { procedure, procedures, raw } from '@veloxts/router';
+
+export const oauthProcedures = procedures('oauth', {
+  authorize: procedure()
+    .rest({ method: 'GET', path: '/auth/atlassian' })
+    .query(async ({ ctx }) => {
+      const { url, state, codeVerifier } = provider.buildAuthorizeUrl();
+      return raw({
+        cookies: [
+          {
+            name: 'oauth_state',
+            value: pack(state, codeVerifier, secret),
+            options: { httpOnly: true, sameSite: 'lax', path: '/' },
+          },
+        ],
+        redirect: { url, status: 302 },
+      });
+    }),
+});
+```
+
+The procedure looks like any other — it has a `.rest()` override, a handler, and registers normally with `procedures()`. The REST adapter detects the `RawResponse` brand and applies headers, cookies, and the redirect to the Fastify reply.
+
+## API
+
+`raw(options)` returns a branded `RawResponse`. All fields are optional — a bare `raw()` sends an empty 200 response.
+
+| Field | Type | Description |
+|---|---|---|
+| `status` | `number` | HTTP status code (default 200, ignored when `redirect` is set) |
+| `headers` | `Record<string, string>` | Response headers |
+| `cookies` | `Array<{ name, value, options? }>` | Cookies via `reply.setCookie` (requires `@fastify/cookie`) |
+| `redirect` | `{ url: string, status?: 301 \| 302 \| 303 \| 307 \| 308 }` | Redirect URL |
+| `body` | `string \| Buffer \| Readable` | Response body |
+
+## Common patterns
+
+### OAuth callback
+
+The flagship use case. Set a state cookie before redirecting to the provider, then verify the cookie on the callback path:
+
+```typescript
+authorize: procedure()
+  .rest({ method: 'GET', path: '/auth/oauth/start' })
+  .query(async () => {
+    const { url, state, codeVerifier } = provider.buildAuthorizeUrl();
+    return raw({
+      cookies: [{
+        name: 'oauth_state',
+        value: pack(state, codeVerifier, secret),
+        options: { httpOnly: true, sameSite: 'lax' },
+      }],
+      redirect: { url, status: 302 },
+    });
+  }),
+
+callback: procedure()
+  .input(z.object({ code: z.string(), state: z.string() }))
+  .rest({ method: 'GET', path: '/auth/oauth/callback' })
+  .query(async ({ input, ctx }) => {
+    const cookieValue = ctx.request.cookies?.oauth_state;
+    if (!cookieValue) throw new UnauthorizedError('Missing OAuth state cookie');
+    const { state, codeVerifier } = unpack(cookieValue, secret);
+    if (state !== input.state) throw new UnauthorizedError('State mismatch');
+
+    const tokens = await provider.exchangeCode(input.code, codeVerifier);
+    // ... create session ...
+    return raw({
+      cookies: [{ name: 'session', value: sessionToken, options: { httpOnly: true } }],
+      redirect: { url: '/dashboard', status: 302 },
+    });
+  }),
+```
+
+### File download
+
+Stream a file with a custom Content-Disposition:
+
+```typescript
+import { createReadStream } from 'node:fs';
+
+downloadInvoice: procedure()
+  .input(z.object({ invoiceId: z.string() }))
+  .rest({ method: 'GET', path: '/invoices/:invoiceId/download' })
+  .query(async ({ input }) => raw({
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${input.invoiceId}.pdf"`,
+    },
+    body: createReadStream(`/storage/invoices/${input.invoiceId}.pdf`),
+  })),
+```
+
+### Custom status with empty body
+
+For webhook ACKs that need a specific status without a JSON body:
+
+```typescript
+ackEvent: procedure()
+  .rest({ method: 'POST', path: '/webhooks/event' })
+  .mutation(async () => raw({ status: 202 })),
+```
+
+### Permanent redirect for renamed routes
+
+```typescript
+movedResource: procedure()
+  .rest({ method: 'GET', path: '/old-resource/:id' })
+  .query(async ({ input }) =>
+    raw({ redirect: { url: `/new-resource/${input.id}`, status: 308 } })
+  ),
+```
+
+## Cookies require `@fastify/cookie`
+
+`raw().cookies` calls `reply.setCookie` from `@fastify/cookie`. The auth template registers the plugin by default; non-auth apps need to register it explicitly:
+
+```typescript
+import cookiePlugin from '@fastify/cookie';
+
+await app.server.register(cookiePlugin);
+```
+
+If `cookies` is set without the plugin registered, the REST adapter throws a `ConfigurationError` with a clear message.
+
+## OpenAPI
+
+Procedures using `raw()` typically don't call `.output()` — there's no JSON DTO to validate. The OpenAPI generator handles missing response schemas gracefully: the operation is documented but without a `content` section, which is valid OpenAPI for raw responses.
+
+To add a description for the response (recommended for redirects), include it in the procedure's metadata or use `.deprecated()` / future OpenAPI annotations.
+
+## Body types
+
+| Type | Usage |
+|---|---|
+| `string` | Plain text. Set `headers['Content-Type']` to `text/plain`, `text/html`, etc. |
+| `Buffer` | Binary payloads. Set `Content-Type` (e.g., `application/octet-stream`). |
+| `Readable` (Node stream) | Large files / streaming. Fastify pipes it directly to the response. |
+
+`raw()` does NOT JSON-serialize objects passed as `body`. To return JSON, use a regular `.output()` schema instead — that's what the procedure system is designed for.
+
+## Testing
+
+Raw responses can be tested with Fastify's `inject` helper and assertions on the response shape:
+
+```typescript
+import { veloxApp } from '@veloxts/core';
+import { registerRestRoutes } from '@veloxts/router';
+
+const app = await veloxApp({ port: 0, logger: false });
+registerRestRoutes(app.server, [oauthProcedures]);
+await app.start();
+
+const response = await app.server.inject({ method: 'GET', url: '/api/oauth/start' });
+expect(response.statusCode).toBe(302);
+expect(response.headers.location).toMatch(/example\.com/);
+expect(response.headers['set-cookie']).toContain('oauth_state=');
+```
+
+For unit-testing the handler in isolation, call it directly and assert on the returned `RawResponse`:
+
+```typescript
+import { isRawResponse } from '@veloxts/router';
+
+const result = await handler({ input: {}, ctx });
+expect(isRawResponse(result)).toBe(true);
+expect(result.redirect?.url).toBe('https://example.com/authorize');
+```
+
+<Aside type="caution">
+`raw()` is for procedures that legitimately need non-JSON responses. If you find yourself reaching for it to return JSON with a custom status code, prefer the regular `.output()` + `.rest()` path — the auto status-code logic (201 for `create*`, 204 for empty `delete*`) covers most cases.
+</Aside>
