@@ -1,5 +1,13 @@
 # @veloxts/scheduler
 
+## 0.9.1
+
+### Patch Changes
+
+- documentation changes
+- Updated dependencies
+  - @veloxts/core@0.9.1
+
 ## 0.9.0
 
 ### Minor Changes

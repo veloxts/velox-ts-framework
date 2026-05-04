@@ -1,5 +1,11 @@
 # @veloxts/client
 
+## 0.9.1
+
+### Patch Changes
+
+- documentation changes
+
 ## 0.9.0
 
 ### Minor Changes
