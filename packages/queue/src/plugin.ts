@@ -100,9 +100,12 @@ export function queuePlugin(options: QueuePluginOptions = {}) {
       // Decorate the request with queue manager
       fastify.decorateRequest('queue', undefined);
 
-      // Add queue to request context
+      // Add queue to request and procedure ctx
       fastify.addHook('onRequest', async (request: FastifyRequest) => {
         request.queue = queueManager;
+        if (request.context) {
+          (request.context as unknown as Record<string, unknown>).queue = queueManager;
+        }
       });
 
       // Close queue on server shutdown

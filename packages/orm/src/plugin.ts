@@ -165,13 +165,13 @@ export function databasePlugin<TClient extends DatabaseClient>(config: OrmPlugin
         // The context should be created by @veloxts/core's onRequest hook
         // which runs before this hook (due to plugin registration order)
         if (request.context) {
-          // Extend the context with the database client using Object.defineProperty
-          // for proper property definition without type assertion side effects
+          // Writable so middleware (e.g. transactional handlers) and tests
+          // can swap in a tx client via Object.assign on ctx.
           Object.defineProperty(request.context, 'db', {
             value: config.client,
-            writable: false,
+            writable: true,
             enumerable: true,
-            configurable: true, // Allow redefinition for testing
+            configurable: true,
           });
         }
       });

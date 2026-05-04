@@ -175,6 +175,26 @@ describe('databasePlugin', () => {
 
       expect(mockRequest).not.toHaveProperty('context');
     });
+
+    it('should make ctx.db writable so middleware can swap in a tx client', async () => {
+      const mockClient = createMockClient();
+      const mockServer = createMockServer();
+      const plugin = databasePlugin({ client: mockClient });
+
+      await plugin.register(mockServer as unknown as Parameters<typeof plugin.register>[0]);
+
+      const mockRequest = { context: { request: {}, reply: {} } };
+      await mockServer._triggerHook('onRequest', mockRequest);
+
+      const descriptor = Object.getOwnPropertyDescriptor(mockRequest.context, 'db');
+      expect(descriptor?.writable).toBe(true);
+      expect(descriptor?.configurable).toBe(true);
+
+      // Reassignment via Object.assign (the tx-client pattern) must not throw
+      const txClient = createMockClient();
+      Object.assign(mockRequest.context, { db: txClient });
+      expect((mockRequest.context as { db: DatabaseClient }).db).toBe(txClient);
+    });
   });
 
   describe('shutdown handling', () => {
