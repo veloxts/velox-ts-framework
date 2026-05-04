@@ -132,6 +132,19 @@ export interface RawResponse extends RawResponseOptions {
 }
 
 /**
+ * WeakSet of objects produced by `raw()`. Used by `isRawResponse` to verify
+ * that a value originated from this module rather than just carrying the
+ * brand key. Defeats forgery attempts where a procedure handler echoes
+ * user-controlled JSON containing `__velox_raw_response__: true` (e.g. a
+ * generic echo handler returning `request.body` verbatim) — without this
+ * registry, such a payload could trigger an unintended redirect or cookie
+ * set via the REST adapter's short-circuit.
+ *
+ * @internal
+ */
+const rawInstances = new WeakSet<object>();
+
+/**
  * Create a raw HTTP response from a procedure handler.
  *
  * The returned object is a branded marker — its presence tells the REST
@@ -150,19 +163,23 @@ export interface RawResponse extends RawResponseOptions {
  * ```
  */
 export function raw(options: RawResponseOptions = {}): RawResponse {
-  return { ...options, [RAW_RESPONSE_BRAND]: true } as RawResponse;
+  const response = { ...options, [RAW_RESPONSE_BRAND]: true } as RawResponse;
+  rawInstances.add(response);
+  return response;
 }
 
 /**
  * Type guard: returns true when `value` is a `RawResponse` produced by `raw()`.
  *
+ * Verifies via a private WeakSet — checking the brand key alone would let
+ * user-controlled JSON forge raw responses if echoed by a handler. Values
+ * constructed in another realm (Worker, vm) won't be in this realm's
+ * registry; that's intentional — if you need cross-realm raw responses,
+ * call `raw()` on the realm that owns the REST adapter.
+ *
  * Used by the REST adapter to short-circuit JSON serialization. Exported for
  * advanced cases (custom adapters, testing) — most users don't need it.
  */
 export function isRawResponse(value: unknown): value is RawResponse {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    (value as Record<string, unknown>)[RAW_RESPONSE_BRAND] === true
-  );
+  return typeof value === 'object' && value !== null && rawInstances.has(value);
 }

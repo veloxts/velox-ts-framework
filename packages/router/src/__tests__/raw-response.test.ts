@@ -34,6 +34,27 @@ describe('raw()', () => {
       expect(isRawResponse(42)).toBe(false);
     });
 
+    it('rejects forged objects carrying only the brand key', () => {
+      // Defends against a procedure handler echoing user-controlled JSON that
+      // happens to include the brand — e.g. a generic echo handler returning
+      // request.body verbatim. Without WeakSet verification, such a payload
+      // could trigger an open redirect via the REST adapter short-circuit.
+      const forgedThroughJson = JSON.parse(
+        JSON.stringify({
+          __velox_raw_response__: true,
+          redirect: { url: 'https://attacker.example' },
+        })
+      );
+      expect(isRawResponse(forgedThroughJson)).toBe(false);
+
+      const forgedManually = {
+        __velox_raw_response__: true,
+        status: 200,
+        body: 'forged',
+      };
+      expect(isRawResponse(forgedManually)).toBe(false);
+    });
+
     it('preserves all options on the branded object', () => {
       const r = raw({
         status: 418,
