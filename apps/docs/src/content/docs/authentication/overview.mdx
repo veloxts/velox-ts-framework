@@ -5,6 +5,14 @@ description: Secure your Velox TS application with authentication.
 
 Velox TS ships with two authentication strategies — JWT for stateless APIs and sessions for server-rendered apps — plus guards, policies, rate limiting, and password hashing. Choose one strategy or combine them depending on your deployment model.
 
+## Related primitives
+
+- [**Guards**](/docs/authentication/guards/) — `.guard(authenticated)`, `.guard(hasRole('admin'))` for ctx-only authentication checks.
+- [**Policies**](/docs/authentication/policies/) — Laravel-style declarative resource authorization.
+- [**Post-Middleware Checks**](/docs/endpoints/post-middleware-checks/) — `.check()` for ad-hoc authorization that needs `input` plus middleware-extended `ctx` (e.g. resource ownership).
+- [**Resource API**](/docs/endpoints/resource-api/) — auto-project response fields by `public` / `authenticated` / `admin` access level.
+- [**Raw Responses**](/docs/endpoints/raw-responses/) — return redirects + cookies from OAuth callbacks while staying inside the procedure system.
+
 ## Quick Comparison
 
 | Feature | JWT | Sessions |

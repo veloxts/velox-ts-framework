@@ -1,0 +1,142 @@
+---
+title: Post-Middleware Checks
+description: Authorize on input + middleware-extended context with .check().
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Why `.check()`?
+
+Some authorization checks need both the validated input AND data that middleware loaded onto the context. Resource ownership is the canonical case: a user is allowed to delete their own comment, so the check needs the comment's `authorId` (loaded by middleware) and the comment's `id` (from input).
+
+`.guard()` runs before input validation and only sees `ctx`. `.policy()` runs before middleware. Neither fits the "middleware loads the resource, then we check ownership against input + ctx" pattern.
+
+`.check()` is the missing primitive: it runs **after** input validation, after `.through()` pipeline transforms, and after every `.use()` middleware has populated the context — immediately before the handler.
+
+```typescript
+import { authenticated } from '@veloxts/auth';
+
+procedure()
+  .input(z.object({ id: z.string() }))
+  .guard(authenticated)              // pre-input, ctx-only — fast-fails 401
+  .use(loadComment)                  // adds ctx.comment from input.id
+  .check(({ ctx }) =>                // sees ctx.comment AND input
+    ctx.comment.authorId === ctx.user.id
+  )
+  .mutation(async ({ input, ctx }) => {
+    return ctx.db.comment.delete({ where: { id: input.id } });
+  });
+```
+
+## When to use which
+
+| Primitive | Runs | Sees | Use for |
+|---|---|---|---|
+| `.guard(authenticated)` | Before input | `ctx` | Authentication, role checks (fast-fail) |
+| `.policy(PostPolicy.update)` | After input, before middleware | `ctx` (pre-middleware) + `input` | Declarative resource policies (Laravel-style) |
+| `.check(({ input, ctx }) => ...)` | After middleware | `ctx` (post-middleware) + `input` | Ad-hoc ownership / participation checks |
+
+## Failure modes
+
+Returning `false` throws `ForbiddenError` (403):
+
+```typescript
+.check(({ input, ctx }) => ctx.user.id === input.userId)
+// → 403 Forbidden if the user IDs don't match
+```
+
+Throwing inside a check propagates as-is, so you can throw custom errors with finer-grained status codes:
+
+```typescript
+import { UnauthorizedError } from '@veloxts/core';
+
+.check(({ ctx }) => {
+  if (ctx.user.suspended) throw new UnauthorizedError('Account suspended');
+  return true;
+})
+```
+
+## Multiple checks
+
+`.check()` calls AND-compose in declaration order with short-circuit on first failure:
+
+```typescript
+procedure()
+  .check(isOwnerOrEditor)          // 1st — runs first
+  .check(notLockedByModeration)    // 2nd — only runs if 1st passes
+  .check(withinDailyQuota)         // 3rd — only runs if 2nd passes
+```
+
+If any check returns `false` or throws, later checks aren't called and the handler doesn't run.
+
+## Builder chain order
+
+Place `.check()` after `.use()` (so middleware has populated ctx) and after `.input()` (so the schema has parsed the body), but before `.query()` / `.mutation()`:
+
+```typescript
+procedure()
+  .input(...)            // 1. parse + validate input
+  .guard(...)            // 2. ctx-only authentication
+  .resource(...)         // 3. declare resource projection
+  .use(...)              // 4. middleware extends ctx
+  .rest(...)             // 5. (optional) override REST route
+  .check(({ input, ctx }) => ...)   // 6. post-middleware authorization
+  .query(handler);       // 7. handler
+```
+
+## Practical example: retro session participants
+
+A retrospective tool where participants can only act on sessions they joined. The session is loaded from `input.sessionId` by middleware; `.check()` then verifies the authenticated user is a participant.
+
+```typescript
+import { authenticated } from '@veloxts/auth';
+import { procedure, procedures } from '@veloxts/router';
+
+const loadSession = async ({ input, ctx, next }) => {
+  const session = await ctx.db.retroSession.findUniqueOrThrow({
+    where: { id: input.sessionId },
+    include: { participants: true },
+  });
+  return next({ ctx: { session } });
+};
+
+const isParticipant = ({ ctx }) =>
+  ctx.session.participants.some((p) => p.userId === ctx.user.id);
+
+export const cardProcedures = procedures('cards', {
+  addCard: procedure()
+    .input(z.object({ sessionId: z.string(), content: z.string() }))
+    .guard(authenticated)
+    .use(loadSession)
+    .check(isParticipant)
+    .mutation(async ({ input, ctx }) => {
+      return ctx.db.card.create({
+        data: { sessionId: input.sessionId, content: input.content, authorId: ctx.user.id },
+      });
+    }),
+});
+```
+
+Without `.check()`, the participant validation would have to live as `.use()` middleware that throws — readable, but it conflates two concerns (extending context vs. authorizing) and makes the intent harder to scan.
+
+## Testing
+
+Checks are predicate functions, so they're easy to unit-test in isolation:
+
+```typescript
+import { isParticipant } from './checks';
+
+test('rejects non-participants', () => {
+  const ctx = {
+    session: { participants: [{ userId: 'u1' }] },
+    user: { id: 'u2' },
+  };
+  expect(isParticipant({ input: {}, ctx })).toBe(false);
+});
+```
+
+For end-to-end testing, drive the procedure with `executeProcedure(proc, input, ctx)` from `@veloxts/router` and assert the resulting `ForbiddenError` or successful handler invocation.
+
+<Aside type="note">
+`.check()` does NOT update `ctx.__accessLevel` (the resource auto-projection signal set by `.guardNarrow()`). It's authorization, not narrowing — which means combining `.guardNarrow(adminNarrow)` with `.check()` preserves the admin-level projection on `.resource()` outputs.
+</Aside>

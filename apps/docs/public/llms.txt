@@ -1,0 +1,133 @@
+# VeloxTS Framework
+
+> A TypeScript full-stack web framework providing exceptional developer experience and type safety. Built on Fastify, tRPC, Prisma, and Zod. Targets Node.js v20+ with TypeScript v5+.
+
+VeloxTS pairs a procedure-builder API with automatic REST and tRPC adapter generation. Procedures define input/output schemas with Zod, optional guards/policies/checks for authorization, optional middleware for cross-cutting concerns, and a handler — and the framework derives the route, OpenAPI spec, and client types from that single declaration.
+
+Quickstart: `npx create-velox-app my-app`. Default templates: `--default`, `--auth`, `--trpc`, `--rsc`, `--rsc-auth`. Default API port: 3030. Default database: SQLite via Prisma 7 driver adapter.
+
+## Getting Started
+
+- [Introduction](https://veloxts.dev/docs/getting-started/introduction/): What VeloxTS is and why
+- [Installation](https://veloxts.dev/docs/getting-started/installation/): Bootstrapping a new project
+- [Quick Start](https://veloxts.dev/docs/getting-started/quick-start/): Build your first procedure end-to-end
+- [Project Structure](https://veloxts.dev/docs/getting-started/project-structure/): Conventional layout — procedures/, schemas/, config/
+- [Templates](https://veloxts.dev/docs/getting-started/templates/): default / auth / trpc / rsc / rsc-auth
+
+## Architecture
+
+- [Overview](https://veloxts.dev/docs/architecture/overview/): Procedure-first design, type flow, hybrid REST/tRPC
+- [REST API](https://veloxts.dev/docs/architecture/rest-api/): How procedures map to REST routes
+- [tRPC API](https://veloxts.dev/docs/architecture/trpc-api/): tRPC adapter and client integration
+- [SPA + Backend](https://veloxts.dev/docs/architecture/spa-backend/): Monorepo with apps/api and apps/web
+- [Full-stack RSC](https://veloxts.dev/docs/architecture/fullstack-rsc/): React Server Components on Vinxi
+- [Hybrid](https://veloxts.dev/docs/architecture/hybrid/): Mixing REST + tRPC + RSC
+
+## Core Concepts
+
+- [Application](https://veloxts.dev/docs/core/application/): VeloxApp, lifecycle, plugins
+- [Context](https://veloxts.dev/docs/core/context/): BaseContext, declaration merging, ctx.db / ctx.user
+- [Plugins](https://veloxts.dev/docs/core/plugins/): Plugin contract, registration order, definePlugin
+- [Error Handling](https://veloxts.dev/docs/core/error-handling/): VeloxError, ForbiddenError, domain errors
+- [Configuration](https://veloxts.dev/docs/core/configuration/): VeloxAppConfig surface
+- [Environment Configuration](https://veloxts.dev/docs/core/environment-configuration/): dotenv, validation
+
+## Type-Safe Endpoints
+
+- [Procedures](https://veloxts.dev/docs/endpoints/procedures/): Builder API — input, output, guard, use, query, mutation
+- [Business Logic](https://veloxts.dev/docs/endpoints/business-logic/): Pipelines, transactions, domain events
+- [Resource API](https://veloxts.dev/docs/endpoints/resource-api/): Field-level visibility — public / authenticated / admin tiers, auto-projection
+- [Nested Relations](https://veloxts.dev/docs/endpoints/nested-relations/): hasOne / hasMany on resource schemas
+- [Post-Middleware Checks](https://veloxts.dev/docs/endpoints/post-middleware-checks/): `.check()` for input + middleware-extended ctx authorization
+- [Raw Responses](https://veloxts.dev/docs/endpoints/raw-responses/): `raw()` for redirects, cookies, custom headers, streams
+- [Domain Modules](https://veloxts.dev/docs/endpoints/domain-modules/): Bundling services + procedures into vertical slices
+- [Services](https://veloxts.dev/docs/endpoints/services/): Service definitions and dependency injection
+
+## Router
+
+- [REST Conventions](https://veloxts.dev/docs/router/rest-conventions/): get* / list* / create* / update* / patch* / delete* naming → HTTP methods
+- [REST Overrides](https://veloxts.dev/docs/router/rest-overrides/): `.rest({ method, path })` for non-conventional routes
+- [Nested Routes](https://veloxts.dev/docs/router/nested-routes/): `.parent()` and `.parents()` for nested URL paths
+- [REST Adapter Config](https://veloxts.dev/docs/router/rest-adapter-config/): prefix, shortcuts, error handlers
+- [tRPC Adapter](https://veloxts.dev/docs/router/trpc-adapter/): registerRpc, buildTRPCRouter
+- [Middleware](https://veloxts.dev/docs/router/middleware/): `.use()` middleware contract
+- [OpenAPI](https://veloxts.dev/docs/router/openapi/): Auto-generated OpenAPI 3 spec
+
+## Database
+
+- [Prisma 7 Setup](https://veloxts.dev/docs/database/prisma-7-setup/): prisma.config.ts, driver adapters, breaking changes from Prisma 5/6
+- [Driver Adapters](https://veloxts.dev/docs/database/driver-adapters/): SQLite (better-sqlite3), PostgreSQL (pg)
+- [Migrations](https://veloxts.dev/docs/database/migrations/): prisma migrate dev / deploy
+- [Seeding](https://veloxts.dev/docs/database/seeding/): db:seed script and patterns
+- [Testing](https://veloxts.dev/docs/database/testing/): Test database isolation patterns
+
+## Validation
+
+- [Schemas](https://veloxts.dev/docs/validation/schemas/): Zod 4 patterns for input/output validation
+- [Coercion](https://veloxts.dev/docs/validation/coercion/): z.coerce.* for query strings and form data
+- [Pagination](https://veloxts.dev/docs/validation/pagination/): Standard pagination input + output schemas
+- [Error Handling](https://veloxts.dev/docs/validation/error-handling/): ZodError → 400 with field details
+
+## Authentication
+
+- [Overview](https://veloxts.dev/docs/authentication/overview/): JWT vs sessions, when to use which
+- [JWT](https://veloxts.dev/docs/authentication/jwt/): jwtManager, access/refresh token pairs
+- [Sessions](https://veloxts.dev/docs/authentication/sessions/): sessionMiddleware, cookie + store
+- [Auth Adapters](https://veloxts.dev/docs/authentication/auth-adapters/): Plugging in your own user store
+- [Guards](https://veloxts.dev/docs/authentication/guards/): authenticated, hasRole, hasPermission, custom guards
+- [Policies](https://veloxts.dev/docs/authentication/policies/): definePolicy, declarative resource authorization
+- [Password Hashing](https://veloxts.dev/docs/authentication/password-hashing/): bcrypt utilities
+- [Rate Limiting](https://veloxts.dev/docs/authentication/rate-limiting/): Per-IP + per-user rate limiters
+
+## Frontend Client
+
+- [Client Overview](https://veloxts.dev/docs/client/overview/): Type-safe client with zero codegen
+
+## React Server Components
+
+- [RSC Overview](https://veloxts.dev/docs/rsc/overview/): Vinxi-based RSC architecture
+- [Server Actions](https://veloxts.dev/docs/rsc/server-actions/): validated, validatedMutation, validatedQuery
+- [File Routing](https://veloxts.dev/docs/rsc/file-routing/): app/pages/ conventions
+- [Layouts](https://veloxts.dev/docs/rsc/layouts/): Layout components and nesting
+- [tRPC Bridge](https://veloxts.dev/docs/rsc/trpc-bridge/): Calling procedures from server components
+
+## CLI
+
+- [CLI Overview](https://veloxts.dev/docs/cli/overview/): velox commands
+- [Dev Server](https://veloxts.dev/docs/cli/dev-server/): velox dev, HMR boundaries, `velox:ready` IPC
+- [Sync](https://veloxts.dev/docs/cli/sync/): Generate procedures + schemas from Prisma models
+- [Generators](https://veloxts.dev/docs/cli/generators/): Resource scaffolding
+- [Database Commands](https://veloxts.dev/docs/cli/database-commands/): db:push, db:migrate, db:seed
+- [MCP Integration](https://veloxts.dev/docs/cli/mcp-integration/): Model Context Protocol server
+
+## Ecosystem
+
+- [Ecosystem Overview](https://veloxts.dev/docs/ecosystem/overview/): Optional packages
+- [Cache](https://veloxts.dev/docs/ecosystem/cache/): Memory + Redis drivers
+- [Queue](https://veloxts.dev/docs/ecosystem/queue/): Sync + BullMQ drivers
+- [Mail](https://veloxts.dev/docs/ecosystem/mail/): SMTP + Resend + log drivers
+- [Storage](https://veloxts.dev/docs/ecosystem/storage/): Local + S3 drivers
+- [Scheduler](https://veloxts.dev/docs/ecosystem/scheduler/): Cron + interval jobs
+- [Events](https://veloxts.dev/docs/ecosystem/events/): Pub/sub via WebSocket or SSE
+
+## Advanced
+
+- [Type Safety](https://veloxts.dev/docs/advanced/type-safety/): How types flow without code generation
+- [Architectural Patterns](https://veloxts.dev/docs/advanced/architectural-patterns/): Domain-driven layout, scaling
+- [Testing Patterns](https://veloxts.dev/docs/advanced/testing-patterns/): Unit, integration, type-level tests
+- [RSC Module Separation](https://veloxts.dev/docs/advanced/rsc-module-separation/): Server/client boundary discipline
+
+## Deployment
+
+- [Deployment Overview](https://veloxts.dev/docs/deployment/overview/): Targets and trade-offs
+- [Docker](https://veloxts.dev/docs/deployment/docker/): Dockerfile patterns
+- [Railway](https://veloxts.dev/docs/deployment/railway/): Railway-specific deployment
+- [Render](https://veloxts.dev/docs/deployment/render/): Render-specific deployment
+- [Production Checklist](https://veloxts.dev/docs/deployment/production-checklist/): Pre-launch checklist
+
+## Reference
+
+- [Configuration](https://veloxts.dev/docs/reference/configuration/): Full config surface
+- [Environment Variables](https://veloxts.dev/docs/reference/environment-variables/): VELOX_*, DATABASE_URL, JWT_SECRET, etc.
+- [Error Codes](https://veloxts.dev/docs/reference/error-codes/): Built-in error catalog
+- [Troubleshooting](https://veloxts.dev/docs/reference/troubleshooting/): Common pitfalls
