@@ -191,6 +191,26 @@ describe('.check()', () => {
       expect(checkFn).not.toHaveBeenCalled();
     });
 
+    it('runs after .policy() — policy gates the check', async () => {
+      // Execution order in executeProcedure: guards → input → policy → middleware → check → handler.
+      // When a policy fails, .check() must not be invoked.
+      const checkFn = vi.fn().mockReturnValue(true);
+      const failingPolicy = {
+        actionName: 'update',
+        resourceName: 'Post',
+        check: () => false,
+      };
+
+      const proc = procedure()
+        .policy(failingPolicy)
+        .check(checkFn)
+        .mutation(async () => ({ ok: true }));
+
+      const ctx = { ...ctxBase(), user: { id: 'u1' } } as unknown as BaseContext;
+      await expect(executeProcedure(proc, {}, ctx)).rejects.toThrow(ForbiddenError);
+      expect(checkFn).not.toHaveBeenCalled();
+    });
+
     it('preserves accessLevel from .guardNarrow() guards', async () => {
       // Regression: .check() must NOT reset ctx.__accessLevel set by guards
       // with the accessLevel marker (used for resource auto-projection).
