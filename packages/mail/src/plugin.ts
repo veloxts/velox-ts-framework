@@ -108,7 +108,7 @@ export function mailPlugin(options: MailPluginOptions = {}) {
       fastify.addHook('onRequest', async (request: FastifyRequest) => {
         request.mail = mailManager;
         if (request.context) {
-          (request.context as unknown as Record<string, unknown>).mail = mailManager;
+          request.context.mail = mailManager;
         }
       });
 

@@ -100,7 +100,7 @@ export function storagePlugin(options: StoragePluginOptions = {}) {
       // Bridge storage onto procedure ctx
       fastify.addHook('onRequest', async (request) => {
         if (request.context) {
-          (request.context as unknown as Record<string, unknown>).storage = storage;
+          request.context.storage = storage;
         }
       });
 

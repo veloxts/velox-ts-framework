@@ -104,7 +104,7 @@ export function queuePlugin(options: QueuePluginOptions = {}) {
       fastify.addHook('onRequest', async (request: FastifyRequest) => {
         request.queue = queueManager;
         if (request.context) {
-          (request.context as unknown as Record<string, unknown>).queue = queueManager;
+          request.context.queue = queueManager;
         }
       });
 

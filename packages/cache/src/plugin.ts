@@ -106,7 +106,7 @@ export function cachePlugin(options: CachePluginOptions = {}) {
       fastify.addHook('onRequest', async (request: FastifyRequest) => {
         request.cache = cacheManager;
         if (request.context) {
-          (request.context as unknown as Record<string, unknown>).cache = cacheManager;
+          request.context.cache = cacheManager;
         }
       });
 
