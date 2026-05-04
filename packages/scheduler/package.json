@@ -1,6 +1,6 @@
 {
   "name": "@veloxts/scheduler",
-  "version": "0.8.3",
+  "version": "0.9.0",
   "description": "Task scheduling for VeloxTS framework",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,5 +1,80 @@
 # @veloxts/router
 
+## 0.9.0
+
+### Minor Changes
+
+- e1c32a2: Add `.check()` post-middleware authorization primitive on the procedure builder.
+
+  `.check()` runs **after** input validation, `.through()` pipeline transforms, and all `.use()` middleware have populated the context — immediately before the handler. Use it for authorization that depends on input fields and/or context values populated by middleware:
+
+  ```typescript
+  procedure()
+    .input(z.object({ sessionId: z.string() }))
+    .guard(authenticated) // pre-input, ctx-only (unchanged)
+    .use(loadParticipant) // middleware extends ctx
+    .check(
+      (
+        { input, ctx }, // sees input + middleware-extended ctx
+      ) => ctx.participant.sessionId === input.sessionId,
+    )
+    .query(handler);
+  ```
+
+  **When to use which:**
+  - `.guard(authenticated)` — pre-input, ctx-only authentication (fast-fail).
+  - `.policy(PostPolicy.update)` — declarative resource-policy authorization.
+  - `.check(({ input, ctx }) => ...)` — ad-hoc authorization that needs both `input` and middleware-extended `ctx`.
+
+  Returning `false` throws `ForbiddenError` (403). Throwing inside the function propagates as-is, so callers can throw custom domain errors with finer-grained status codes. Multiple `.check()` calls AND-compose with short-circuit on first failure.
+
+  Closes the gap exposed by the `ara/apps/api` audit where `requireParticipant((i) => i.id)` had to be implemented as `.use()` middleware because `.guard()` couldn't see middleware-extended ctx.
+
+- feat(router): add raw() response primitive for redirects, cookies, custom headers and .check() post-middleware authorization primitive
+- 83c5da1: Add `raw()` response primitive for procedures.
+
+  Procedure handlers can now return non-JSON HTTP responses — redirects, cookies, custom headers, raw bodies, streams — without bypassing the procedure system. This closes the gap exposed by the `ara/apps/api` audit, where the OAuth callback at `src/auth/atlassian.routes.ts` had to be a raw `fastify.get(...)` route because procedures couldn't model `reply.redirect()` or cookies.
+
+  ```typescript
+  import { procedure, raw } from "@veloxts/router";
+
+  export const oauthProcedures = procedures("oauth", {
+    authorize: procedure()
+      .rest({ method: "GET", path: "/auth/atlassian" })
+      .query(async ({ ctx }) => {
+        const { url, state, codeVerifier } = provider.buildAuthorizeUrl();
+        return raw({
+          cookies: [
+            {
+              name: "oauth_state",
+              value: pack(state, codeVerifier, secret),
+              options: { httpOnly: true, sameSite: "lax" },
+            },
+          ],
+          redirect: { url, status: 302 },
+        });
+      }),
+  });
+  ```
+
+  `raw()` accepts:
+  - `status` — HTTP status (default 200, ignored when `redirect` is set)
+  - `headers` — response headers
+  - `cookies` — array of `{ name, value, options }` (requires `@fastify/cookie` to be registered)
+  - `redirect` — `{ url, status? }` for 301/302/303/307/308 redirects
+  - `body` — string, Buffer, or Node `Readable` stream
+
+  The REST adapter detects `RawResponse` via a brand and short-circuits before applying the auto 201/204 status logic. OpenAPI generation already handles missing response schemas gracefully — `.raw()` procedures without `.output()` document as a response without a body schema (valid OpenAPI).
+
+  Also exports `RawResponse`, `RawResponseOptions`, `RawResponseCookie`, `RawResponseCookieOptions`, `RawResponseRedirect`, and `isRawResponse` from `@veloxts/router`.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [ca6ede3]
+  - @veloxts/core@0.9.0
+  - @veloxts/validation@0.9.0
+
 ## 0.8.3
 
 ### Patch Changes
@@ -471,7 +546,6 @@
 - ### feat(auth): Unified Adapter-Only Architecture
 
   **New Features:**
-
   - Add `JwtAdapter` implementing the `AuthAdapter` interface for unified JWT authentication
   - Add `jwtAuth()` convenience function for direct adapter usage with optional built-in routes (`/api/auth/refresh`, `/api/auth/logout`)
   - Add `AuthContext` discriminated union (`NativeAuthContext | AdapterAuthContext`) for type-safe auth mode handling
@@ -479,24 +553,20 @@
   - Add shared decoration utilities (`decorateAuth`, `setRequestAuth`, `checkDoubleRegistration`)
 
   **Architecture Changes:**
-
   - `authPlugin` now uses `JwtAdapter` internally - all authentication flows through the adapter pattern
   - Single code path for authentication (no more dual native/adapter modes)
   - `authContext.authMode` is now always `'adapter'` with `providerId='jwt'` when using `authPlugin`
 
   **Breaking Changes:**
-
   - Remove deprecated `LegacySessionConfig` interface (use `sessionMiddleware` instead)
   - Remove deprecated `session` field from `AuthConfig`
   - `User` interface no longer has index signature (extend via declaration merging)
 
   **Type Safety Improvements:**
-
   - `AuthContext` discriminated union enables exhaustive type narrowing based on `authMode`
   - Export `NativeAuthContext` and `AdapterAuthContext` types for explicit typing
 
   **Migration:**
-
   - Existing `authPlugin` usage remains backward-compatible
   - If checking `authContext.token`, use `authContext.session` instead (token stored in session for adapter mode)
 
@@ -515,12 +585,10 @@
   Addresses 9 user feedback items to improve DX, reduce boilerplate, and eliminate template duplications.
 
   ### Phase 1: Validation Helpers (`@veloxts/validation`)
-
   - Add `prismaDecimal()`, `prismaDecimalNullable()`, `prismaDecimalOptional()` for Prisma Decimal → number conversion
   - Add `dateToIso`, `dateToIsoNullable`, `dateToIsoOptional` aliases for consistency
 
   ### Phase 2: Template Deduplication (`@veloxts/auth`)
-
   - Export `createEnhancedTokenStore()` with token revocation and refresh token reuse detection
   - Export `parseUserRoles()` and `DEFAULT_ALLOWED_ROLES`
   - Fix memory leak: track pending timeouts for proper cleanup on `destroy()`
@@ -528,20 +596,17 @@
   - Fix jwtManager singleton pattern in templates
 
   ### Phase 3: Router Helpers (`@veloxts/router`)
-
   - Add `createRouter()` returning `{ collections, router }` for DRY setup
   - Add `toRouter()` for router-only use cases
   - Update all router templates to use `createRouter()`
 
   ### Phase 4: Guard Type Narrowing - Experimental (`@veloxts/auth`, `@veloxts/router`)
-
   - Add `NarrowingGuard` interface with phantom `_narrows` type
   - Add `authenticatedNarrow` and `hasRoleNarrow()` guards
   - Add `guardNarrow()` method to `ProcedureBuilder` for context narrowing
   - Enables `ctx.user` to be non-null after guard passes
 
   ### Phase 5: Documentation (`@veloxts/router`)
-
   - Document `.rest()` override patterns
   - Document `createRouter()` helper usage
   - Document `guardNarrow()` experimental API
@@ -1466,7 +1531,6 @@
 ### Patch Changes
 
 - Fix Prisma client generation in scaffolder
-
   - Added automatic Prisma client generation after dependency installation in create-velox-app
   - Fixed database template to validate DATABASE_URL environment variable
   - Added alpha release warning to all package READMEs

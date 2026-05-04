@@ -1,5 +1,29 @@
 # @veloxts/velox
 
+## 0.9.0
+
+### Minor Changes
+
+- feat(router): add raw() response primitive for redirects, cookies, custom headers and .check() post-middleware authorization primitive
+
+### Patch Changes
+
+- Updated dependencies [e1c32a2]
+- Updated dependencies
+- Updated dependencies [ca6ede3]
+- Updated dependencies [83c5da1]
+  - @veloxts/router@0.9.0
+  - @veloxts/auth@0.9.0
+  - @veloxts/cache@0.9.0
+  - @veloxts/core@0.9.0
+  - @veloxts/events@0.9.0
+  - @veloxts/mail@0.9.0
+  - @veloxts/orm@0.9.0
+  - @veloxts/queue@0.9.0
+  - @veloxts/scheduler@0.9.0
+  - @veloxts/storage@0.9.0
+  - @veloxts/validation@0.9.0
+
 ## 0.8.3
 
 ### Patch Changes
@@ -819,7 +843,6 @@
 - ### feat(auth): Unified Adapter-Only Architecture
 
   **New Features:**
-
   - Add `JwtAdapter` implementing the `AuthAdapter` interface for unified JWT authentication
   - Add `jwtAuth()` convenience function for direct adapter usage with optional built-in routes (`/api/auth/refresh`, `/api/auth/logout`)
   - Add `AuthContext` discriminated union (`NativeAuthContext | AdapterAuthContext`) for type-safe auth mode handling
@@ -827,24 +850,20 @@
   - Add shared decoration utilities (`decorateAuth`, `setRequestAuth`, `checkDoubleRegistration`)
 
   **Architecture Changes:**
-
   - `authPlugin` now uses `JwtAdapter` internally - all authentication flows through the adapter pattern
   - Single code path for authentication (no more dual native/adapter modes)
   - `authContext.authMode` is now always `'adapter'` with `providerId='jwt'` when using `authPlugin`
 
   **Breaking Changes:**
-
   - Remove deprecated `LegacySessionConfig` interface (use `sessionMiddleware` instead)
   - Remove deprecated `session` field from `AuthConfig`
   - `User` interface no longer has index signature (extend via declaration merging)
 
   **Type Safety Improvements:**
-
   - `AuthContext` discriminated union enables exhaustive type narrowing based on `authMode`
   - Export `NativeAuthContext` and `AdapterAuthContext` types for explicit typing
 
   **Migration:**
-
   - Existing `authPlugin` usage remains backward-compatible
   - If checking `authContext.token`, use `authContext.session` instead (token stored in session for adapter mode)
 
@@ -866,12 +885,10 @@
   Addresses 9 user feedback items to improve DX, reduce boilerplate, and eliminate template duplications.
 
   ### Phase 1: Validation Helpers (`@veloxts/validation`)
-
   - Add `prismaDecimal()`, `prismaDecimalNullable()`, `prismaDecimalOptional()` for Prisma Decimal → number conversion
   - Add `dateToIso`, `dateToIsoNullable`, `dateToIsoOptional` aliases for consistency
 
   ### Phase 2: Template Deduplication (`@veloxts/auth`)
-
   - Export `createEnhancedTokenStore()` with token revocation and refresh token reuse detection
   - Export `parseUserRoles()` and `DEFAULT_ALLOWED_ROLES`
   - Fix memory leak: track pending timeouts for proper cleanup on `destroy()`
@@ -879,20 +896,17 @@
   - Fix jwtManager singleton pattern in templates
 
   ### Phase 3: Router Helpers (`@veloxts/router`)
-
   - Add `createRouter()` returning `{ collections, router }` for DRY setup
   - Add `toRouter()` for router-only use cases
   - Update all router templates to use `createRouter()`
 
   ### Phase 4: Guard Type Narrowing - Experimental (`@veloxts/auth`, `@veloxts/router`)
-
   - Add `NarrowingGuard` interface with phantom `_narrows` type
   - Add `authenticatedNarrow` and `hasRoleNarrow()` guards
   - Add `guardNarrow()` method to `ProcedureBuilder` for context narrowing
   - Enables `ctx.user` to be non-null after guard passes
 
   ### Phase 5: Documentation (`@veloxts/router`)
-
   - Document `.rest()` override patterns
   - Document `createRouter()` helper usage
   - Document `guardNarrow()` experimental API

@@ -1,5 +1,26 @@
 # @veloxts/storage
 
+## 0.9.0
+
+### Minor Changes
+
+- feat(router): add raw() response primitive for redirects, cookies, custom headers and .check() post-middleware authorization primitive
+
+### Patch Changes
+
+- ca6ede3: Plugin contract fixes — eliminates three workaround `addHook` blocks freehand projects need to write today.
+  - **`@veloxts/orm`**: `ctx.db` is now writable so middleware (e.g. transactional handlers) can swap in a tx client via `Object.assign(ctx, { db: tx })` without redefining the property.
+  - **`@veloxts/core`**: registers an empty-JSON-body fallback parser at app construction. POSTs with `Content-Type: application/json` and empty body now reach handlers as `input = {}` instead of being rejected with 400 by Fastify's default parser.
+  - **`@veloxts/events`, `@veloxts/cache`, `@veloxts/mail`, `@veloxts/queue`, `@veloxts/storage`**: each plugin now mirrors its `request.<name>` decoration onto the procedure context (`request.context.<name>`), matching the existing auth-plugin pattern. `ctx.events`, `ctx.cache`, `ctx.mail`, `ctx.queue`, `ctx.storage` are now populated automatically — no manual bridging hook required.
+
+  **Behavior changes to be aware of on upgrade:**
+  - `@veloxts/core` now registers an `application/json` content-type parser by default. If you previously called `app.server.addContentTypeParser('application/json', ...)` in user code, you will now hit `FST_ERR_CTP_ALREADY_PRESENT`. Call `app.server.removeContentTypeParser('application/json')` first, then register your own parser.
+  - `ctx.db` was previously frozen via `Object.defineProperty({ writable: false })`. Library authors who relied on the strict-mode TypeError on reassignment should switch to defensive copying (`{ ...ctx }`) instead. End-user procedures and middleware are unaffected.
+
+- Updated dependencies
+- Updated dependencies [ca6ede3]
+  - @veloxts/core@0.9.0
+
 ## 0.8.3
 
 ### Patch Changes
@@ -420,7 +441,6 @@
 - ### feat(auth): Unified Adapter-Only Architecture
 
   **New Features:**
-
   - Add `JwtAdapter` implementing the `AuthAdapter` interface for unified JWT authentication
   - Add `jwtAuth()` convenience function for direct adapter usage with optional built-in routes (`/api/auth/refresh`, `/api/auth/logout`)
   - Add `AuthContext` discriminated union (`NativeAuthContext | AdapterAuthContext`) for type-safe auth mode handling
@@ -428,24 +448,20 @@
   - Add shared decoration utilities (`decorateAuth`, `setRequestAuth`, `checkDoubleRegistration`)
 
   **Architecture Changes:**
-
   - `authPlugin` now uses `JwtAdapter` internally - all authentication flows through the adapter pattern
   - Single code path for authentication (no more dual native/adapter modes)
   - `authContext.authMode` is now always `'adapter'` with `providerId='jwt'` when using `authPlugin`
 
   **Breaking Changes:**
-
   - Remove deprecated `LegacySessionConfig` interface (use `sessionMiddleware` instead)
   - Remove deprecated `session` field from `AuthConfig`
   - `User` interface no longer has index signature (extend via declaration merging)
 
   **Type Safety Improvements:**
-
   - `AuthContext` discriminated union enables exhaustive type narrowing based on `authMode`
   - Export `NativeAuthContext` and `AdapterAuthContext` types for explicit typing
 
   **Migration:**
-
   - Existing `authPlugin` usage remains backward-compatible
   - If checking `authContext.token`, use `authContext.session` instead (token stored in session for adapter mode)
 
@@ -463,12 +479,10 @@
   Addresses 9 user feedback items to improve DX, reduce boilerplate, and eliminate template duplications.
 
   ### Phase 1: Validation Helpers (`@veloxts/validation`)
-
   - Add `prismaDecimal()`, `prismaDecimalNullable()`, `prismaDecimalOptional()` for Prisma Decimal → number conversion
   - Add `dateToIso`, `dateToIsoNullable`, `dateToIsoOptional` aliases for consistency
 
   ### Phase 2: Template Deduplication (`@veloxts/auth`)
-
   - Export `createEnhancedTokenStore()` with token revocation and refresh token reuse detection
   - Export `parseUserRoles()` and `DEFAULT_ALLOWED_ROLES`
   - Fix memory leak: track pending timeouts for proper cleanup on `destroy()`
@@ -476,20 +490,17 @@
   - Fix jwtManager singleton pattern in templates
 
   ### Phase 3: Router Helpers (`@veloxts/router`)
-
   - Add `createRouter()` returning `{ collections, router }` for DRY setup
   - Add `toRouter()` for router-only use cases
   - Update all router templates to use `createRouter()`
 
   ### Phase 4: Guard Type Narrowing - Experimental (`@veloxts/auth`, `@veloxts/router`)
-
   - Add `NarrowingGuard` interface with phantom `_narrows` type
   - Add `authenticatedNarrow` and `hasRoleNarrow()` guards
   - Add `guardNarrow()` method to `ProcedureBuilder` for context narrowing
   - Enables `ctx.user` to be non-null after guard passes
 
   ### Phase 5: Documentation (`@veloxts/router`)
-
   - Document `.rest()` override patterns
   - Document `createRouter()` helper usage
   - Document `guardNarrow()` experimental API
