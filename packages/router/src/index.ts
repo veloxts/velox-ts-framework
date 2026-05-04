@@ -55,6 +55,8 @@ export const ROUTER_VERSION: string = packageJson.version ?? '0.0.0-unknown';
 export type {
   // After handler types
   AfterHandler,
+  // Post-middleware authorization checks (for procedure builder `.check()`)
+  CheckFn,
   // Procedure types
   CompiledProcedure,
   ContextExtensions,

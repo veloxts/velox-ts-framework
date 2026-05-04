@@ -16,6 +16,7 @@ import type { ZodType } from 'zod';
 import type { OutputForLevel, ResourceSchema, TaggedResourceSchema } from '../resource/index.js';
 import type {
   AfterHandler,
+  CheckFn,
   CompiledProcedure,
   GuardLike,
   MiddlewareFunction,
@@ -318,6 +319,42 @@ export interface ProcedureBuilder<
             _contextMissing: `Add .use() middleware to provide '${Uncapitalize<TResourceName>}' in context before .policy()`;
           }
   ): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
+
+  /**
+   * Adds a post-middleware authorization check.
+   *
+   * `.check()` runs AFTER input validation, AFTER `.through()` pipeline
+   * transforms, and AFTER all `.use()` middleware have populated the context
+   * — immediately before the handler. Use it for authorization that depends
+   * on input fields and/or context values populated by middleware (e.g.
+   * resource ownership where the resource was loaded by a preceding `.use()`).
+   *
+   * Returning `false` throws a `ForbiddenError` (403). Throwing inside the
+   * function propagates the original error so callers can throw custom
+   * errors with finer-grained status codes.
+   *
+   * Multiple `.check()` calls AND-compose with short-circuit on first failure.
+   *
+   * **When to use which:**
+   * - `.guard(authenticated)` — pre-input, ctx-only authentication (fast-fail).
+   * - `.policy(PostPolicy.update)` — declarative resource-policy authorization.
+   * - `.check(({ input, ctx }) => ...)` — ad-hoc authorization that needs
+   *   both `input` and middleware-extended `ctx`.
+   *
+   * @param check - Post-middleware authorization predicate
+   * @returns Same builder (no type changes)
+   *
+   * @example
+   * ```typescript
+   * procedure()
+   *   .input(z.object({ sessionId: z.string() }))
+   *   .guard(authenticated)
+   *   .use(loadParticipant) // adds ctx.participant
+   *   .check(({ input, ctx }) => ctx.participant.sessionId === input.sessionId)
+   *   .query(handler);
+   * ```
+   */
+  check(check: CheckFn<TInput, TContext>): ProcedureBuilder<TInput, TOutput, TContext, TErrors>;
 
   /**
    * Declares domain error classes that this procedure may throw
@@ -727,6 +764,8 @@ export interface BuilderRuntimeState {
   pipelineSteps?: PipelineStep[];
   /** Policy action reference for declarative authorization */
   policyAction?: PolicyActionLike;
+  /** Post-middleware checks declared via .check() */
+  checks?: CheckFn[];
 }
 
 // ============================================================================
