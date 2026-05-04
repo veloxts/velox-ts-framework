@@ -14,6 +14,7 @@ import { createModulePlugin } from './module/register.js';
 import type { InferServices, ServiceDefinitions, VeloxModule } from './module/types.js';
 import type { PluginOptions, VeloxPlugin } from './plugin.js';
 import { isFastifyPlugin, isVeloxPlugin, validatePluginMetadata } from './plugin.js';
+import { setupEmptyBodyParser } from './plugins/empty-body-parser.js';
 import { requestLogger } from './plugins/request-logger.js';
 import type { StaticOptions } from './plugins/static.js';
 import { registerStatic } from './plugins/static.js';
@@ -82,6 +83,7 @@ export class VeloxApp {
     this._lifecycle = new LifecycleManager();
 
     setupContextHook(this._server);
+    setupEmptyBodyParser(this._server);
     this._setupErrorHandling();
     this._lifecycle.setupSignalHandlers(async () => {
       await this.stop();

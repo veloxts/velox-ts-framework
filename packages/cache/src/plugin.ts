@@ -102,9 +102,12 @@ export function cachePlugin(options: CachePluginOptions = {}) {
       // Decorate the request with cache manager
       fastify.decorateRequest('cache', undefined);
 
-      // Add cache to request context
+      // Add cache to request and procedure ctx
       fastify.addHook('onRequest', async (request: FastifyRequest) => {
         request.cache = cacheManager;
+        if (request.context) {
+          request.context.cache = cacheManager;
+        }
       });
 
       // Close cache on server shutdown

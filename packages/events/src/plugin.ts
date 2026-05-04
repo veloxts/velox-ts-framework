@@ -252,9 +252,12 @@ export function eventsPlugin(options: EventsPluginOptions = {}) {
       // Decorate request with events accessor (matching cache/mail/queue/storage pattern)
       fastify.decorateRequest('events', undefined);
 
-      // Add events to request context
+      // Add events to request and procedure ctx
       fastify.addHook('onRequest', async (request) => {
         request.events = events;
+        if (request.context) {
+          request.context.events = events;
+        }
       });
 
       // Register cleanup hook

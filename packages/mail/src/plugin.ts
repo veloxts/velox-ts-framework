@@ -104,9 +104,12 @@ export function mailPlugin(options: MailPluginOptions = {}) {
       // Decorate the request with mail manager
       fastify.decorateRequest('mail', undefined);
 
-      // Add mail to request context
+      // Add mail to request and procedure ctx
       fastify.addHook('onRequest', async (request: FastifyRequest) => {
         request.mail = mailManager;
+        if (request.context) {
+          request.context.mail = mailManager;
+        }
       });
 
       // Close mail on server shutdown

@@ -97,6 +97,13 @@ export function storagePlugin(options: StoragePluginOptions = {}) {
         },
       });
 
+      // Bridge storage onto procedure ctx
+      fastify.addHook('onRequest', async (request) => {
+        if (request.context) {
+          request.context.storage = storage;
+        }
+      });
+
       // Register cleanup hook
       fastify.addHook('onClose', async () => {
         await storage.close();
