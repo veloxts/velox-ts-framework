@@ -33,7 +33,7 @@ procedure()
 | Primitive | Runs | Sees | Use for |
 |---|---|---|---|
 | `.guard(authenticated)` | Before input | `ctx` | Authentication, role checks (fast-fail) |
-| `.policy(PostPolicy.update)` | After input, before middleware | `ctx` + `input` | Declarative resource policies (Laravel-style) |
+| `.policy(PostPolicy.update)` | After input, before middleware | `ctx` (pre-middleware) + `input` | Declarative resource policies (Laravel-style) |
 | `.check(({ input, ctx }) => ...)` | After middleware | `ctx` (post-middleware) + `input` | Ad-hoc ownership / participation checks |
 
 ## Failure modes
@@ -97,7 +97,7 @@ const loadSession = async ({ input, ctx, next }) => {
     where: { id: input.sessionId },
     include: { participants: true },
   });
-  return next({ ctx: { ...ctx, session } });
+  return next({ ctx: { session } });
 };
 
 const isParticipant = ({ ctx }) =>

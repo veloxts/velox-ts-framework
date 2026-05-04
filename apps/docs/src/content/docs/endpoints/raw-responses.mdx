@@ -165,9 +165,9 @@ const app = await veloxApp({ port: 0, logger: false });
 registerRestRoutes(app.server, [oauthProcedures]);
 await app.start();
 
-const response = await app.server.inject({ method: 'GET', url: '/api/oauth/start' });
+const response = await app.server.inject({ method: 'GET', url: '/api/auth/atlassian' });
 expect(response.statusCode).toBe(302);
-expect(response.headers.location).toMatch(/example\.com/);
+expect(response.headers.location).toMatch(/atlassian/);
 expect(response.headers['set-cookie']).toContain('oauth_state=');
 ```
 
