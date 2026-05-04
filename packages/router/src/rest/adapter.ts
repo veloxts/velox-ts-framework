@@ -14,6 +14,7 @@ import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest 
 const log = createLogger('router');
 
 import { executeProcedure } from '../procedure/builder.js';
+import { isRawResponse, type RawResponse } from '../raw.js';
 import type { CompiledProcedure, HttpMethod, ProcedureCollection } from '../types.js';
 import type { RestMapping } from './naming.js';
 import {
@@ -323,6 +324,11 @@ function createRouteHandler(
     // Execute the procedure
     const result = await executeProcedure(route.procedure, input, ctx);
 
+    // Short-circuit on raw responses (redirects, cookies, custom headers/body)
+    if (isRawResponse(result)) {
+      return applyRawResponse(reply, result);
+    }
+
     // Set appropriate HTTP status codes based on method and result
     switch (route.method) {
       case 'POST':
@@ -345,6 +351,54 @@ function createRouteHandler(
 
     return result;
   };
+}
+
+/**
+ * Apply a `RawResponse` to a Fastify reply.
+ *
+ * Sets headers, cookies, status, and either redirects or sends the body.
+ * Returns the reply so Fastify treats the request as handled (no implicit
+ * JSON serialization of the return value).
+ *
+ * Cookies require `@fastify/cookie` to be registered on the Fastify instance —
+ * we cast through `unknown` to avoid a hard dependency on that plugin's types.
+ *
+ * @internal
+ */
+function applyRawResponse(reply: FastifyReply, response: RawResponse): FastifyReply {
+  if (response.headers) {
+    for (const [name, value] of Object.entries(response.headers)) {
+      reply.header(name, value);
+    }
+  }
+
+  if (response.cookies && response.cookies.length > 0) {
+    const replyWithCookie = reply as unknown as {
+      setCookie?: (name: string, value: string, options?: unknown) => unknown;
+    };
+    if (typeof replyWithCookie.setCookie !== 'function') {
+      throw new ConfigurationError(
+        'raw().cookies requires @fastify/cookie to be registered on the Fastify instance.'
+      );
+    }
+    for (const cookie of response.cookies) {
+      replyWithCookie.setCookie(cookie.name, cookie.value, cookie.options);
+    }
+  }
+
+  if (response.redirect) {
+    return reply.redirect(response.redirect.url, response.redirect.status ?? 302);
+  }
+
+  if (response.status !== undefined) {
+    reply.status(response.status);
+  }
+
+  if (response.body !== undefined) {
+    return reply.send(response.body);
+  }
+
+  return reply.send();
 }
 
 /**
