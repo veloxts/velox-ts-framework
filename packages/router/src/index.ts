@@ -127,6 +127,19 @@ export type { PipelineStep, RevertAction, StepOptions } from './procedure/pipeli
 export { defineRevert, defineStep } from './procedure/pipeline.js';
 
 // ============================================================================
+// Raw Response Primitive
+// ============================================================================
+
+export type {
+  RawResponse,
+  RawResponseCookie,
+  RawResponseCookieOptions,
+  RawResponseOptions,
+  RawResponseRedirect,
+} from './raw.js';
+export { isRawResponse, raw } from './raw.js';
+
+// ============================================================================
 // Router Utilities
 // ============================================================================
 
