@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**VeloxTS Framework** is a TypeScript full-stack web framework (v0.8.x) providing exceptional developer experience and type safety. Built on Fastify, tRPC, Prisma, and Zod. Targets Node.js v20+ with TypeScript v5+.
+**VeloxTS Framework** is a TypeScript full-stack web framework (v0.9.x) providing exceptional developer experience and type safety. Built on Fastify, tRPC, Prisma, and Zod. Targets Node.js v20+ with TypeScript v5+.
 
 **Key Defaults (IMPORTANT):**
 - **Default API port:** `3030` (not 3210)
